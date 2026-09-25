@@ -438,7 +438,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `API-33` | POST | `/accounts/{id}/refresh` | `*` | — → [`Run`](#run) |
 | `API-34` | GET | `/runs` | `*` | query `kind`, `status`, `account_id`, `service_id` → `Page<`[`Run`](#run)`>` |
 | `API-35` | GET | `/runs/{id}` | `*` | — → [`Run`](#run) |
-| `API-36` | POST | `/runs/{id}/cancel` | `*` | — → [`Run`](#run) |
+| `API-36` | POST | `/runs/{id}/cancel` | `*`; `A` for `RECLASSIFY`, `RESCORE` and `EVALUATION` runs | — → [`Run`](#run) |
 | `API-37` | GET | `/source-plugins` | `A` | — → [`SourcePlugin`](#sourceplugin)`[]` |
 | `API-38` | PATCH | `/source-plugins/{code}` | `A` | [`SourcePluginUpdate`](#sourcepluginupdate) → [`SourcePlugin`](#sourceplugin) |
 

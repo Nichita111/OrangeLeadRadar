@@ -3,7 +3,7 @@ type: Decision
 title: ADR-15 OpenRouter as the LLM provider
 description: Every LLM call goes through OpenRouter's chat completions API, each AI role's model is an OpenRouter model id chosen by configuration, and a call's cost is the cost OpenRouter reports.
 status: draft
-tags: []
+tags: [evaluation-and-feedback, outreach-and-crm, signal-pipeline]
 ---
 
 # ADR-15 OpenRouter as the LLM provider
@@ -28,3 +28,7 @@ The [OpenRouter adapter](/architecture/services/worker.md#ai-gateway) of the AI 
 
 - **Anthropic's Messages API directly.** Rejected: one vendor's prices for every role, and no key will be provisioned.
 - **Each vendor's own API.** Rejected: one adapter, key and structured-output dialect per vendor.
+
+## Supersedes
+
+ADR-02 kept the LLM adapter as the default until a separate Jev key was provisioned and described Jev as early access with an unpublished API; Jev is served through OpenRouter with the same key, so only the quality-check condition remains.

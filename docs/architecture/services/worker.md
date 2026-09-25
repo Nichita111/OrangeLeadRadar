@@ -102,7 +102,7 @@ The graph's state holds identifiers and passage texts of one batch. Each node wr
 
 One module owns every classifier and LLM call, for the worker and the api. For each call it:
 
-1. checks the [Budget guard](/architecture/rules.md#budget-guard) for OpenRouter calls;
+1. checks the [Budget guard](/architecture/rules.md#budget-guard) for LLM calls;
 2. in `replay` fixture mode answers from `FIXTURE_DIR`, or fails with `FIXTURE_MISSING`; in `record` mode stores the exchange;
 3. sends the request with `CLASSIFIER_TIMEOUT_S` or `AI_CALL_TIMEOUT_S`, retrying a transport error, `429` or `5xx` up to `AI_TRANSPORT_RETRIES` times with backoff;
 4. validates the output against the port's shape;
