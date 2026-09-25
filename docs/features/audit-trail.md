@@ -27,7 +27,7 @@ Every configuration change, exception, piece of feedback, run and AI call is rec
 3. Stores: [`audit_event`](/architecture/sql-store.md#audit_event) and [Audit actions](/architecture/sql-store.md#audit-actions).
 4. Rules: [Budget guard](/architecture/rules.md#budget-guard), which reads the `AI_CALL` rows.
 5. Interfaces: [Audit and health](/architecture/interfaces.md#audit-and-health) (`API-60`, [`AuditEntry`](/architecture/interfaces.md#auditentry)).
-6. Services: the [api](/architecture/services/api.md) (`AUDIT_DEFAULT_RANGE_DAYS`); the [AI gateway](/architecture/services/worker.md#ai-gateway), which writes `AI_CALL` rows; [AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries).
+6. Services: the [api](/architecture/services/api.md) (`AUDIT_DEFAULT_RANGE_DAYS`); the [AI gateway](/architecture/services/worker.md#ai-gateway), which writes `AI_CALL` rows; [AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries); the [frontend](/architecture/services/frontend.md) shell.
 7. Decisions: [ADR-03](/architecture/adrs/adr-03-models-answer-rules-score.md).
 8. Screens: [Audit log](#audit-log).
 9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-55`, `AC-56`.

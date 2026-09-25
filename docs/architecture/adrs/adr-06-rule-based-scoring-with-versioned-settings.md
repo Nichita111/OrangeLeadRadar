@@ -3,7 +3,7 @@ type: Decision
 title: ADR-06 Rule-based scoring with versioned settings
 description: Scores come from explainable weighted rules whose settings are immutable versions activated by an Admin; feedback never changes weights.
 status: draft
-tags: [service-configuration, prospect-dashboard, evaluation-and-feedback, signal-pipeline]
+tags: [evaluation-and-feedback, prospect-dashboard, service-configuration, signal-pipeline]
 ---
 
 # ADR-06 Rule-based scoring with versioned settings

@@ -54,14 +54,14 @@ sequenceDiagram
 ## Reading order
 
 1. Terms in the [glossary](/requirements/glossary.md): Prospect, Fit score, Intent score, Priority score, Standing, Band, Score breakdown, Finding, Strength, Confidence, Evidence quote, Disqualifier, Disqualifier override, Negative signal, Recency decay, Alert.
-2. Requirement rows: `S-PRO-01` to `S-PRO-06`, `S-SCO-04` to `S-SCO-06`, `S-PIP-01`, `S-SIG-09` in [system requirements](/requirements/system.md); `N-01`, `N-10`; `B-14`, `B-16` to `B-23`, `RULE-02`, `RULE-10` in [business requirements](/requirements/business.md).
+2. Requirement rows: `S-PRO-01` to `S-PRO-06`, `S-SCO-04` to `S-SCO-06`, `S-PIP-01`, `S-SIG-09` in [system requirements](/requirements/system.md); `N-01`, `N-10`, `N-13`; `B-14`, `B-16` to `B-23`, `RULE-02`, `RULE-10` in [business requirements](/requirements/business.md).
 3. Stores: [`account_score`](/architecture/sql-store.md#account_score), [`finding`](/architecture/sql-store.md#finding), [`document`](/architecture/sql-store.md#document), [`chunk`](/architecture/sql-store.md#chunk), [`disqualifier_override`](/architecture/sql-store.md#disqualifier_override), [`alert`](/architecture/sql-store.md#alert), [`lead_feedback`](/architecture/sql-store.md#lead_feedback), [`finding_feedback`](/architecture/sql-store.md#finding_feedback), [`pipeline_run`](/architecture/sql-store.md#pipeline_run).
 4. Rules: [Score breakdown](/architecture/rules.md#score-breakdown), [Fit score](/architecture/rules.md#fit-score), [Intent score](/architecture/rules.md#intent-score), [Recency decay](/architecture/rules.md#recency-decay), [Disqualification](/architecture/rules.md#disqualification), [Priority, standing and band](/architecture/rules.md#priority-standing-and-band), [Alerts](/architecture/rules.md#alerts), [Rescoring](/architecture/rules.md#rescoring).
 5. Interfaces: [Prospects and evidence](/architecture/interfaces.md#prospects-and-evidence) (`API-39` to `API-45`), [Feedback and alerts](/architecture/interfaces.md#feedback-and-alerts) (`API-46` to `API-49`), `API-33` and `API-35` of [Runs and source plug-ins](/architecture/interfaces.md#runs-and-source-plug-ins).
-6. Services: the [api](/architecture/services/api.md) with `EVIDENCE_CONTEXT_CHARS` and `INTERACTIVE_P95_TARGET_MS` in its [runtime](/architecture/services/api.md#runtime); the [frontend](/architecture/services/frontend.md) — [screen labels](/architecture/services/frontend.md#screen-labels), [Formatting](/architecture/services/frontend.md#formatting), [Polling](/architecture/services/frontend.md#polling), [Accessibility](/architecture/services/frontend.md#accessibility).
+6. Services: the [api](/architecture/services/api.md) with `EVIDENCE_CONTEXT_CHARS` and `INTERACTIVE_P95_TARGET_MS` in its [runtime](/architecture/services/api.md#runtime); the [frontend](/architecture/services/frontend.md) — [screen labels](/architecture/services/frontend.md#screen-labels), [Formatting](/architecture/services/frontend.md#formatting), [Polling](/architecture/services/frontend.md#polling), [Accessibility](/architecture/services/frontend.md#accessibility); [Degradation](/architecture/overview.md#degradation) for what these screens still show when a dependency is down.
 7. Decisions: [ADR-03](/architecture/adrs/adr-03-models-answer-rules-score.md), [ADR-06](/architecture/adrs/adr-06-rule-based-scoring-with-versioned-settings.md), [ADR-13](/architecture/adrs/adr-13-run-progress-by-polling.md).
 8. Screens: [Prospects](#prospects), [Account detail](#account-detail), [Alerts](#alerts); the Profile tab is [Account profile](/features/accounts-and-discovery.md#account-profile), the Outreach tab is [Outreach composer](/features/outreach-and-crm.md#outreach-composer).
-9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-28`, `AC-36`, `AC-41` to `AC-45`, `AC-60`, `AC-65`.
+9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-24`, `AC-28`, `AC-36` to `AC-38`, `AC-41` to `AC-45`, `AC-60`, `AC-65`, `AC-68`.
 
 ## Prospects
 
@@ -93,7 +93,7 @@ WF-12 — Prospects
 | `FR-064` | The status filter shall also show accounts below fit, excluded or marked as customers, each with its reason in one line — the minimum fit, the disqualifier's label, or who marked it a customer — and without a rank or band. |
 | `FR-065` | When the service has no scores yet, the empty state shall explain that accounts appear after their first refresh and link to [Accounts](/features/accounts-and-discovery.md#accounts). |
 
-Obligations: `S-PRO-01`, `S-SCO-05`, `N-01`, `N-10`.
+Obligations: `S-PRO-01`, `S-SCO-05`, `N-01`, `N-10`, `N-13`.
 
 **Data**: `API-39`. **States**: [States](/architecture/services/frontend.md#states).
 
@@ -155,7 +155,7 @@ WF-15 — Account detail, History tab
 
 | ID | Requirement |
 |---|---|
-| `FR-066` | The header shall show name, domain linking to the website, country, industry, parent account as a link, standing and band, Priority, Fit and Intent, when it was scored and with which scoring version. |
+| `FR-066` | The header shall show name, domain linking to the website, country, industry, parent account as a link — a parent's view never combines its subsidiaries' signals — standing and band, Priority, Fit and Intent, when it was scored and with which scoring version. |
 | `FR-067` | Refresh now shall request a refresh and show the run's stage and counters in the header until it finishes, then reload the score; a refresh already running shall be shown instead of starting another. |
 | `FR-068` | The lead verdict buttons shall record Relevant, Not relevant or Already a customer with an optional note and show the verdict in force with who gave it and when. |
 | `FR-069` | The Why tab shall open with an "In short" paragraph composed from the breakdown only: the matched, unknown and unmatched criteria by label; the two counted positive signals with the most points, with strength label and age; the counted negative signals; and, when not ranked, the reason — below the minimum fit, the matched disqualifier's label, or marked as a customer. |
@@ -166,7 +166,7 @@ WF-15 — Account detail, History tab
 | `FR-074` | Evidence shall open the passage with surrounding text and the quote highlighted, and a link to the original page; for a purged document it shall show the quote, the link and a sentence that the full text is no longer stored. |
 | `FR-075` | The History tab shall list score changes newest first, each with when, the cause in words (refresh, scoring version with its change note, feedback, exception, account change, question change), the Priority and band before and after, the signals added and removed, and the exceptions changed. |
 
-Obligations: `S-PRO-02`, `S-PRO-03`, `S-PRO-04`, `S-PRO-05`, `S-PIP-01`, `S-SCO-04`, `S-SCO-06`, `S-SIG-09`, `S-EVL-01`, `S-EVL-02`.
+Obligations: `S-PRO-02`, `S-PRO-03`, `S-PRO-04`, `S-PRO-05`, `S-PIP-01`, `S-SCO-04`, `S-SCO-06`, `S-SIG-09`, `S-EVL-01`, `S-EVL-02`, `N-13`.
 
 **Data**: `API-33`, `API-35`, `API-40` to `API-47`. **States**: [States](/architecture/services/frontend.md#states); an account never scored for the service shows its profile and Refresh now.
 
@@ -199,6 +199,3 @@ Obligations: `S-PRO-06`.
 
 **Data**: `API-48`, `API-49`. **States**: [States](/architecture/services/frontend.md#states).
 
-## Open questions
-
-- Whether a parent account's view should summarise its subsidiaries' signals (for example Lufthansa Group and SWISS). Missing: how sales managers approach group accounts. Decides: product owner.

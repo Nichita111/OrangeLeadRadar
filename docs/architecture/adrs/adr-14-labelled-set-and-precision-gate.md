@@ -3,7 +3,7 @@ type: Decision
 title: ADR-14 Labelled set and precision gate
 description: Signal accuracy is measured on a labelled set built blind in the product, and a release requires the configured precision.
 status: draft
-tags: [evaluation-and-feedback, signal-pipeline]
+tags: [evaluation-and-feedback]
 ---
 
 # ADR-14 Labelled set and precision gate

@@ -3,7 +3,7 @@ type: Decision
 title: ADR-01 One PostgreSQL store
 description: The single PostgreSQL store with pgvector that holds everything, and why there is no graph store or GraphRAG.
 status: draft
-tags: [signal-pipeline, service-configuration]
+tags: [signal-pipeline]
 ---
 
 # ADR-01 One PostgreSQL store

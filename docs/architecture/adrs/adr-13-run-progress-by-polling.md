@@ -3,7 +3,7 @@ type: Decision
 title: ADR-13 Run progress by polling
 description: The frontend follows a run by polling it every few seconds instead of a push channel.
 status: draft
-tags: [signal-pipeline, prospect-dashboard, service-configuration, evaluation-and-feedback]
+tags: [prospect-dashboard, signal-pipeline]
 ---
 
 # ADR-13 Run progress by polling

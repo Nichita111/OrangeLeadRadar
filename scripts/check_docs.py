@@ -227,6 +227,8 @@ def run(root: str) -> tuple[list[str], int]:
                 add(rel, link.line, "link", f"broken anchor {path or ''}#{anchor}")
 
     _check_traceability(files, lines_by_rel, flows, declared, add)
+    _check_references(files, lines_by_rel, declared, add)
+    _check_tags(files, lines_by_rel, add)
 
     generated, _ = build_indexes.generated(root, texts=files)
     generated["requirements/traceability.md"] = build_traceability.render(files)
@@ -332,6 +334,133 @@ def _check_traceability(
             add(rel, 1, "trace", f"{fl} is named by no requirement")
     for e in sorted(store_entities - entities_used):
         add("architecture/sql-store.md", 1, "trace", f"entity #{e} is named by no requirement")
+
+
+ANY_ID_RE = re.compile(
+    r"\b((?:API|AC|FR|WF|FL|ADR|B|N|RULE)-\d{1,3}|S-[A-Z]{3}-\d{2}|SC-[A-Z])\b"
+)
+WF_DECL_RE = re.compile(r"^(WF-\d{2}) — ", re.MULTILINE)
+SC_DECL_RE = re.compile(r"\*\*`(SC-[A-Z])`")
+PRIORITY_ORDER = {"P0": 0, "P1": 1, "P2": 2}
+
+
+def _check_references(
+    files: dict[str, str],
+    lines_by_rel: dict[str, list[str]],
+    declared: dict[str, tuple[str, int]],
+    add: Callable[..., None],
+) -> None:
+    """Every identifier cited exists; families are numbered without gaps unless retired;
+    S- rows inherit the highest priority they realise; the release gate lists exactly
+    the non-P0 criteria and no scenario names one of them."""
+    known = dict(declared)
+    for rel, text in files.items():
+        for m in WF_DECL_RE.finditer("\n".join(lines_by_rel[rel])):
+            known.setdefault(m.group(1), (rel, 0))
+        for m in SC_DECL_RE.finditer(text):
+            known.setdefault(m.group(1), (rel, 0))
+        for h in parse_headings(lines_by_rel[rel]):
+            m = re.match(r"^(ADR-\d{2}|FL-\d{2}) ", h.title)
+            if m:
+                known.setdefault(m.group(1), (rel, h.line))
+    glossary = files.get("requirements/glossary.md", "")
+    retired = set(ANY_ID_RE.findall(glossary.split("## Retired identifiers", 1)[1])) if (
+        "## Retired identifiers" in glossary
+    ) else set()
+    for rel, text in files.items():
+        if rel.startswith("reference/") or rel == build_traceability.TARGET:
+            continue
+        for n, line in enumerate(lines_by_rel[rel], start=1):
+            for ident in ANY_ID_RE.findall(line):
+                if ident not in known and ident not in retired:
+                    add(rel, n, "reference", f"{ident} is cited but declared nowhere")
+    for family in ("API", "AC", "FR", "WF", "FL", "ADR", "B", "N", "RULE"):
+        nums = {int(k.rsplit("-", 1)[1]) for k in known if re.fullmatch(rf"{family}-\d+", k)}
+        nums |= {int(k.rsplit("-", 1)[1]) for k in retired if re.fullmatch(rf"{family}-\d+", k)}
+        gaps = sorted(set(range(1, max(nums, default=0) + 1)) - nums)
+        if gaps:
+            add("index.md", 1, "numbering", f"{family} numbering has gaps {gaps}")
+    tables = {
+        rel: find_tables(lines_by_rel[rel])
+        for rel in ("requirements/business.md", "requirements/system.md", "requirements/acceptance.md")
+        if rel in files
+    }
+    b_prio: dict[str, str] = {}
+    for t in tables.get("requirements/business.md", []):
+        p = _column(t.header, "Priority")
+        for row in t.rows:
+            m = DECLARED_ID_RE.match(row[0].strip())
+            if m and p is not None:
+                b_prio[m.group(1)] = row[p].strip()
+    s_prio: dict[str, str] = {}
+    for t in tables.get("requirements/system.md", []):
+        p, r = _column(t.header, "Priority"), _column(t.header, "Realises")
+        if p is None or r is None:
+            continue
+        for row, ln in zip(t.rows, t.row_lines, strict=True):
+            m = DECLARED_ID_RE.match(row[0].strip())
+            if not m:
+                continue
+            s_prio[m.group(1)] = row[p].strip()
+            if m.group(1).startswith("S-"):
+                inherited = [b_prio[b] for b in REF_ID_RE.findall(row[r]) if b in b_prio]
+                expected = min(inherited, key=PRIORITY_ORDER.__getitem__) if inherited else "P0"
+                if row[p].strip() != expected:
+                    add("requirements/system.md", ln, "priority",
+                        f"{m.group(1)} is {row[p].strip()} but inherits {expected}")
+    acceptance = files.get("requirements/acceptance.md", "")
+    if "Outside the gate:" not in acceptance:
+        return
+    outside = set(re.findall(r"`(AC-\d{2})`", acceptance.split("Outside the gate:", 1)[1]))
+    for t in tables.get("requirements/acceptance.md", []):
+        v = _column(t.header, "Verifies")
+        if v is None:
+            continue
+        for row, ln in zip(t.rows, t.row_lines, strict=True):
+            m = DECLARED_ID_RE.match(row[0].strip())
+            if not m:
+                continue
+            prios = [s_prio.get(i) or b_prio.get(i) for i in REF_ID_RE.findall(row[v])]
+            prio = min([x for x in prios if x], key=PRIORITY_ORDER.__getitem__, default="P0")
+            if (prio != "P0") != (m.group(1) in outside):
+                add("requirements/acceptance.md", ln, "gate",
+                    f"{m.group(1)} is {prio} but the release gate says otherwise")
+    if "## Scenario pass criteria" in acceptance:
+        scenarios = acceptance.split("## Scenario pass criteria", 1)[1].split("## Release gate", 1)[0]
+        for ac in set(re.findall(r"`(AC-\d{2})`", scenarios)) & outside:
+            add("requirements/acceptance.md", 1, "gate", f"a scenario names {ac}, outside the gate")
+
+
+def _check_tags(
+    files: dict[str, str], lines_by_rel: dict[str, list[str]], add: Callable[..., None]
+) -> None:
+    """A document's tags are exactly the features whose reading order links it (R6)."""
+    linkers: dict[str, set[str]] = collections.defaultdict(set)
+    for rel in files:
+        if not rel.startswith("features/") or rel.endswith("index.md"):
+            continue
+        heads = parse_headings(lines_by_rel[rel])
+        h = next((h for h in heads if h.level == 2 and h.title == "Reading order"), None)
+        if h is None:
+            add(rel, 1, "tags", "feature has no Reading order")
+            continue
+        for link in find_links(lines_by_rel[rel], h.line, h.end):
+            target = link.target.split("#", 1)[0]
+            if target.startswith("/") and target.endswith(".md"):
+                linkers[target.lstrip("/")].add(PurePosixPath(rel).stem)
+    for rel, text in files.items():
+        if rel.startswith(("features/", "guidelines/", "reference/")) or rel.endswith(
+            ("index.md", "log.md")
+        ) or rel == build_traceability.TARGET:
+            continue
+        try:
+            fm = frontmatter(text) or {}
+        except FrontmatterError:
+            continue
+        tags = set(fm.get("tags") or [])
+        if tags != linkers.get(rel, set()):
+            add(rel, 1, "tags", f"tags {sorted(tags)} differ from the features whose reading "
+                f"order links it: {sorted(linkers.get(rel, set()))}")
 
 
 def main(root: str) -> int:

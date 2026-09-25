@@ -3,7 +3,7 @@ type: Architecture
 title: Architecture overview
 description: What LeadRadar is built from and why - principles, topology, runtime and fixture mode, store ownership, AI roles and their boundaries, degradation, the production path and the demo dataset with its seeded services and accounts.
 status: draft
-tags: [service-configuration, accounts-and-discovery, signal-pipeline, prospect-dashboard, evaluation-and-feedback, outreach-and-crm, identity-and-access, audit-trail]
+tags: [accounts-and-discovery, audit-trail, evaluation-and-feedback, identity-and-access, outreach-and-crm, prospect-dashboard, service-configuration, signal-pipeline]
 ---
 
 # Architecture overview
@@ -82,7 +82,7 @@ Configuration comes from environment variables only; secrets (API keys, the HubS
 
 **Fixture mode** ([ADR-11](/architecture/adrs/adr-11-recorded-fixtures.md)). `FIXTURE_MODE` is `off`, `record` or `replay`. In `record`, every source plug-in request and every classifier and LLM call is stored under `FIXTURE_DIR`, keyed by a SHA-256 of the adapter name and the normalised request. In `replay`, they are answered from those files; a request with no file fails its step with `FIXTURE_MISSING` and is never sent live. The embedder is local and runs in every mode. Replay is how the demo and the acceptance tests run offline and repeatably ([S-RUN-02](/requirements/system.md)).
 
-**Seeding.** `make seed-demo` loads the [demo dataset](#demo-dataset) into an empty database: users, services, questions, active scoring versions, accounts and their sources, and the labelled items exported to `FIXTURE_DIR/evaluation_items.json` once the team has labelled them ([S-RUN-03](/requirements/system.md)). It never fetches: refreshes run afterwards, in replay mode for the demo.
+**Seeding.** `make seed-demo` loads the [demo dataset](#demo-dataset) into an empty database: users, services, questions, active scoring versions, accounts and their sources ([S-RUN-03](/requirements/system.md)). It never fetches: refreshes run afterwards, in replay mode for the demo. Labels reference passages, which exist only after a refresh, so they are exported to `FIXTURE_DIR/evaluation_items.json` keyed by account domain, document content hash, passage ordinal, question key and revision, and `make seed-labels` loads them after the demo refresh, matching each to its passage; replay reproduces the same documents and passages, so every exported label finds its passage.
 
 ## Store ownership
 
@@ -95,11 +95,12 @@ The api service owns the schema and applies migrations; both processes write the
 | [`account`](/architecture/sql-store.md#account) | user-entered fields, `status` | `CRUNCHBASE` and `CLASSIFIER` attributes, `crunchbase_id`, `last_refreshed_at`, `next_refresh_at` |
 | [`account_alias`](/architecture/sql-store.md#account_alias) | all | — |
 | [`account_source`](/architecture/sql-store.md#account_source) | `MANUAL` rows, any row's `status` | `DETECTED` rows |
-| [`contact`](/architecture/sql-store.md#contact) | all | persona mapping, retention erasure |
+| [`contact`](/architecture/sql-store.md#contact) | all, including persona mapping and erasure on request | erasure at the end of retention |
 | [`discovery_candidate`](/architecture/sql-store.md#discovery_candidate) | decisions | creation |
 | [`source_plugin`](/architecture/sql-store.md#source_plugin) | `enabled`, limits | `last_success_at`, `last_error`, `last_error_at` |
 | [`plugin_usage`](/architecture/sql-store.md#plugin_usage), [`document`](/architecture/sql-store.md#document), [`chunk`](/architecture/sql-store.md#chunk), [`document_triage`](/architecture/sql-store.md#document_triage), [`classification`](/architecture/sql-store.md#classification), [`account_score`](/architecture/sql-store.md#account_score), [`evaluation_result`](/architecture/sql-store.md#evaluation_result) | — | all |
-| [`pipeline_run`](/architecture/sql-store.md#pipeline_run), [`job`](/architecture/sql-store.md#job) | creation, cancellation | claiming, progress, completion |
+| [`pipeline_run`](/architecture/sql-store.md#pipeline_run) | runs a user or a change starts; cancellation | scheduled refreshes; status, stage, progress, errors, completion |
+| [`job`](/architecture/sql-store.md#job) | the first-stage jobs of the runs it creates; cancellation | first-stage jobs of scheduled refreshes; claiming, retries, next-stage jobs, completion |
 | [`finding`](/architecture/sql-store.md#finding) | `status` from finding feedback | creation, `SUPERSEDED` |
 | [`alert`](/architecture/sql-store.md#alert) | acknowledgement | creation |
 | [`disqualifier_override`](/architecture/sql-store.md#disqualifier_override), [`lead_feedback`](/architecture/sql-store.md#lead_feedback), [`finding_feedback`](/architecture/sql-store.md#finding_feedback), [`outreach_draft`](/architecture/sql-store.md#outreach_draft), [`crm_sync`](/architecture/sql-store.md#crm_sync) | all | — |
@@ -205,4 +206,4 @@ ICP: `SECTOR` (`INDUSTRY`: `AEROSPACE_AVIATION`, `LOGISTICS_TRANSPORT`, `MANUFAC
 
 ICP: `SECTOR` (`INDUSTRY`: `BANKING`, `INSURANCE`, `ENERGY_UTILITIES`, `HEALTHCARE_PHARMA`, `MANUFACTURING`, `AUTOMOTIVE`, `LOGISTICS_TRANSPORT`, `AEROSPACE_AVIATION`; `HIGH`), `REGION` (as Intelligent Automation; `MEDIUM`), `SIZE` (`EMPLOYEE_RANGE` min 1000; `MEDIUM`). Exclusion rule: `INSOLVENT` as Intelligent Automation. All other settings are the defaults.
 
-**Fixtures.** `FIXTURE_DIR` holds a recording of one refresh of every demo account on the free core, made with `FIXTURE_MODE=record`, and of the classifier and LLM calls it caused. The acceptance criteria name this recording "the demo recording".
+**Fixtures.** `FIXTURE_DIR` holds a recording of one refresh of every demo account on the free core, made with `FIXTURE_MODE=record`, of the classifier and LLM calls it caused, and of one quality check over the exported labels under each classifier adapter. The acceptance criteria name this recording "the demo recording".

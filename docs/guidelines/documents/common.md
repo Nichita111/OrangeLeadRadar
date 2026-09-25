@@ -90,7 +90,7 @@ The coding chain in `AGENTS.md` needs every requirement to lead to the flows it 
 |---|---|---|
 | `uv run --project scripts python scripts/build_indexes.py` | after adding, renaming, moving or re-describing a document | Rewrites every `index.md` from the documents' `title` and `description` |
 | `uv run --project scripts python scripts/build_traceability.py` | after changing a register row or a flow heading | Rewrites `requirements/traceability.md` |
-| `uv run --project scripts python scripts/check_docs.py` | before every commit that touches `docs/` | Exit 1 on any finding: types and folders, frontmatter, headings, ADR file names, duplicate identifiers, `FR-` rows outside features and the frontend service, broken links and anchors, ephemeral marks, log format, the traceability rules above, and any stale generated file |
+| `uv run --project scripts python scripts/check_docs.py` | before every commit that touches `docs/` | Exit 1 on any finding: types and folders, frontmatter, headings, ADR file names, duplicate identifiers, `FR-` rows outside features and the frontend service, broken links and anchors, ephemeral marks, log format, the traceability rules above, identifiers cited but declared nowhere, gaps in an identifier family's numbering that the glossary does not retire, an `S-` row whose priority differs from the highest it realises, a release gate that does not exclude exactly the non-P0 criteria, a scenario naming a criterion outside the gate, `tags` that differ from the features whose reading order links the file, and any stale generated file |
 
 Generated files are never edited by hand. A finding is a defect, not a warning.
 

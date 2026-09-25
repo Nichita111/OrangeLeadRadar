@@ -3,7 +3,7 @@ type: Decision
 title: ADR-03 Models answer, rules score
 description: Classifier and LLM output is limited to answers, quotes and text; deterministic rules compute every score, band, standing and exclusion.
 status: draft
-tags: [service-configuration, accounts-and-discovery, signal-pipeline, prospect-dashboard, evaluation-and-feedback, outreach-and-crm, identity-and-access, audit-trail]
+tags: [audit-trail, outreach-and-crm, prospect-dashboard, service-configuration, signal-pipeline]
 ---
 
 # ADR-03 Models answer, rules score

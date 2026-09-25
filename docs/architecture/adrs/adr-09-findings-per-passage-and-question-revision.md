@@ -3,7 +3,7 @@ type: Decision
 title: ADR-09 Findings per passage and question revision
 description: Classifications and findings are keyed by passage, question and question revision, and scoring parameters live outside the question, so rescoring never reclassifies.
 status: draft
-tags: [signal-pipeline, service-configuration, prospect-dashboard]
+tags: [service-configuration, signal-pipeline]
 ---
 
 # ADR-09 Findings per passage and question revision

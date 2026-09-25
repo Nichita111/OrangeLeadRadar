@@ -3,7 +3,7 @@ type: Decision
 title: ADR-02 Classification cascade
 description: Every relevant passage is classified by a fast classifier behind one port, with Jev and LLM adapters, and only uncertain answers and confirmed positives reach the LLM.
 status: draft
-tags: [signal-pipeline, evaluation-and-feedback, service-configuration]
+tags: [evaluation-and-feedback, signal-pipeline]
 ---
 
 # ADR-02 Classification cascade

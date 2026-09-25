@@ -56,10 +56,10 @@ sequenceDiagram
 3. Stores: [`service`](/architecture/sql-store.md#service), [`signal_question`](/architecture/sql-store.md#signal_question), [`scoring_config`](/architecture/sql-store.md#scoring_config) and the [scoring settings document](/architecture/sql-store.md#scoring-settings-document).
 4. Rules: [Scoring settings validation](/architecture/rules.md#scoring-settings-validation), [Reclassification](/architecture/rules.md#reclassification), [Rescoring](/architecture/rules.md#rescoring), and for preview [Signal classification](/architecture/rules.md#signal-classification), [Escalation](/architecture/rules.md#escalation), [Evidence extraction](/architecture/rules.md#evidence-extraction), [Fit score](/architecture/rules.md#fit-score), [Intent score](/architecture/rules.md#intent-score), [Priority, standing and band](/architecture/rules.md#priority-standing-and-band).
 5. Interfaces: [Services and questions](/architecture/interfaces.md#services-and-questions) (`API-07` to `API-14`) and [Scoring](/architecture/interfaces.md#scoring) (`API-15` to `API-19`).
-6. Services: the [api](/architecture/services/api.md) and its [runtime](/architecture/services/api.md#runtime) (`PREVIEW_MAX_PASSAGES`); the [worker](/architecture/services/worker.md) for the runs; the [frontend](/architecture/services/frontend.md) shell.
+6. Services: the [api](/architecture/services/api.md) and its [runtime](/architecture/services/api.md#runtime) (`PREVIEW_MAX_PASSAGES`); the [worker](/architecture/services/worker.md) for the runs; the [frontend](/architecture/services/frontend.md) shell; the seeded services of the [demo dataset](/architecture/overview.md#demo-dataset).
 7. Decisions: [ADR-06](/architecture/adrs/adr-06-rule-based-scoring-with-versioned-settings.md), [ADR-09](/architecture/adrs/adr-09-findings-per-passage-and-question-revision.md), [ADR-03](/architecture/adrs/adr-03-models-answer-rules-score.md).
 8. Screens: [Services](#services), [Service editor](#service-editor), [Scoring settings](#scoring-settings).
-9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-01` to `AC-08`, `AC-26`, `AC-39`, `AC-59`.
+9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-01` to `AC-08`, `AC-26`, `AC-27`, `AC-39`, `AC-59`, `AC-62`, `AC-66`.
 
 ## Services
 
@@ -151,7 +151,7 @@ Obligations: `S-CFG-02`, `S-CFG-05`, `S-SIG-07`.
 
 ## Scoring settings
 
-Route `/services/:id/scoring`. Admin only; the active version is readable by any user through the account's score view, not this screen.
+Route `/services/:id/scoring`. Admin only; Sales sees the effect of the active version on each account in the Why tab of [Account detail](/features/prospect-dashboard.md#account-detail), not here.
 
 **Layout**
 
@@ -198,6 +198,3 @@ Obligations: `S-CFG-03`, `S-CFG-04`, `S-CFG-06`, `S-SCO-07`.
 
 **Data**: `API-11`, `API-15`, `API-16`, `API-17`, `API-18`, `API-19`, `API-35`. **States**: [States](/architecture/services/frontend.md#states).
 
-## Open questions
-
-- Whether a Sales user should see a read-only version of Scoring settings. Decides: product owner.

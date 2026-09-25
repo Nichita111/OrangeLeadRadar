@@ -3,7 +3,7 @@ type: Requirements
 title: Business requirements
 description: The product objective, the Sales and Admin roles, the RULE-nn business rules that bind every other document, the B-nn requirement register with priorities, the SC-x business scenarios and the assumptions the product depends on.
 status: draft
-tags: [service-configuration, accounts-and-discovery, signal-pipeline, prospect-dashboard, evaluation-and-feedback, outreach-and-crm, identity-and-access, audit-trail]
+tags: [accounts-and-discovery, audit-trail, evaluation-and-feedback, identity-and-access, outreach-and-crm, prospect-dashboard, service-configuration, signal-pipeline]
 ---
 
 # Business requirements and rules
@@ -67,6 +67,7 @@ Each requirement states one business obligation and carries a priority. `P0` is 
 | `B-08` | Sales shall keep each account's profile, alternative names and publication addresses, with values entered by a person taking precedence over collected ones. | P0 |
 | `B-09` | Sales shall record decision-makers with the minimum personal data. | P1 |
 | `B-10` | The product shall suggest new accounts that fit a service, and Sales shall accept or reject each suggestion. | P1 |
+| `B-37` | The product shall fill in an account's missing profile details from data providers and by classification. | P1 |
 
 ### Detect signals
 
@@ -76,7 +77,8 @@ Each requirement states one business obligation and carries a priority. `P0` is 
 | `B-12` | The product shall answer every active signal question against the gathered information and keep each positive answer as a finding with its verbatim evidence. | P0 |
 | `B-13` | The product shall read sources in any language and show evidence in the original with an English translation, in an English interface. | P0 |
 | `B-14` | Sales shall refresh an account on demand and follow the progress live. | P0 |
-| `B-15` | Every account shall be refreshed on a schedule. | P0 |
+| `B-15` | Every account shall be refreshed on a schedule. | P1 |
+| `B-36` | The product shall find an account's newsroom, investor-relations, careers and feed addresses by itself. | P1 |
 
 ### Score and prioritise
 
@@ -139,7 +141,7 @@ The scenarios are the business definition of done. Each `SC-` row passes by the 
 
 | Item | Statement |
 |---|---|
-| Scope | The specification describes an MVP buildable during the hackathon plus a written [production path](/architecture/overview.md#production-path). P0 is the demo path end to end: configure a service, import accounts, refresh, get findings with evidence, see the ranking and the explanation, and pass the quality gate. The hackathon date and team size are not known; if they cut scope, P1 rows go first. |
+| Scope | The specification describes an MVP buildable during the hackathon plus a written [production path](/architecture/overview.md#production-path). P0 is the demo path end to end: configure a service, import accounts, refresh on demand, get findings with evidence, see the ranking and the explanation, and pass the quality gate. Scheduled refresh, automatic source detection, profile enrichment and the moderated usability walkthrough are P1. The hackathon date and team size are not known; if they cut scope further, P1 rows go first. |
 | Reference material | The files in `docs/reference/` are the external brief as received; requirements cite them and they are never edited to match the specification. |
 | ICP attributes | ICP criteria are industry, employee range, revenue range, countries and operational complexity; complexity is a classified level when no one entered it. |
 | Question shape | Questions are yes/no, scale or choice, matching the classifier's question types; weight levels are High, Medium, Low and None. |

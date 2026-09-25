@@ -3,7 +3,7 @@ type: Service
 title: API service
 description: The FastAPI process - its responsibilities and boundary, the tables and rules it owns, request handling, transactions, enqueueing, the interactive AI calls it makes, and its configuration keys.
 status: draft
-tags: [service-configuration, accounts-and-discovery, signal-pipeline, prospect-dashboard, evaluation-and-feedback, outreach-and-crm, identity-and-access, audit-trail]
+tags: [accounts-and-discovery, audit-trail, evaluation-and-feedback, identity-and-access, outreach-and-crm, prospect-dashboard, service-configuration, signal-pipeline]
 ---
 
 # API service
@@ -17,8 +17,8 @@ It never fetches from a source, never classifies in batch, never writes a score,
 ## Owns
 
 - **Tables and columns**: those of the api column of [store ownership](/architecture/overview.md#store-ownership); the Alembic migrations of the whole [SQL store](/architecture/sql-store.md).
-- **Rules implemented**: [Account identity](/architecture/rules.md#account-identity), [Scoring settings validation](/architecture/rules.md#scoring-settings-validation), [Feedback effects](/architecture/rules.md#feedback-effects) (the status and label writes; the rescore is the worker's), the label queue of [Evaluation metrics](/architecture/rules.md#evaluation-metrics), [Outreach grounding](/architecture/rules.md#outreach-grounding) and erasure on request of [Retention and erasure](/architecture/rules.md#retention-and-erasure).
-- **Rules invoked**, implemented by the [worker](/architecture/services/worker.md): [Chunking and passage selection](/architecture/rules.md#chunking-and-passage-selection), [Signal classification](/architecture/rules.md#signal-classification), [Escalation](/architecture/rules.md#escalation) and [Evidence extraction](/architecture/rules.md#evidence-extraction) for question preview, without writing; [Fit score](/architecture/rules.md#fit-score) through [Priority, standing and band](/architecture/rules.md#priority-standing-and-band) for scoring preview, without writing; [Persona mapping](/architecture/rules.md#persona-mapping) on contact creation.
+- **Rules implemented**: [Account identity](/architecture/rules.md#account-identity), [Scoring settings validation](/architecture/rules.md#scoring-settings-validation), [Feedback effects](/architecture/rules.md#feedback-effects) (the status and label writes; the rescore is the worker's), the label queue of [Evaluation metrics](/architecture/rules.md#evaluation-metrics), [Outreach grounding](/architecture/rules.md#outreach-grounding), [Persona mapping](/architecture/rules.md#persona-mapping) on contact creation and edit, and erasure on request of [Retention and erasure](/architecture/rules.md#retention-and-erasure).
+- **Rules invoked**, implemented by the [worker](/architecture/services/worker.md): [Chunking and passage selection](/architecture/rules.md#chunking-and-passage-selection), [Signal classification](/architecture/rules.md#signal-classification), [Escalation](/architecture/rules.md#escalation) and [Evidence extraction](/architecture/rules.md#evidence-extraction) for question preview, without writing; [Fit score](/architecture/rules.md#fit-score) through [Priority, standing and band](/architecture/rules.md#priority-standing-and-band) for scoring preview, without writing.
 
 ## Provides and consumes
 

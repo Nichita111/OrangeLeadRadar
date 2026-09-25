@@ -3,7 +3,7 @@ type: Rule
 title: Rules
 description: The deterministic computations of LeadRadar - account identity, fetching, normalisation, triage, classification and escalation, evidence, the budget guard, Fit, Intent, decay, exclusion, Priority and bands, rescoring, alerts, discovery, feedback, evaluation, outreach grounding and retention - with worked scoring examples.
 status: draft
-tags: [service-configuration, accounts-and-discovery, signal-pipeline, prospect-dashboard, evaluation-and-feedback, outreach-and-crm, audit-trail]
+tags: [accounts-and-discovery, audit-trail, evaluation-and-feedback, identity-and-access, outreach-and-crm, prospect-dashboard, service-configuration, signal-pipeline]
 ---
 
 # Rules
@@ -133,7 +133,7 @@ The outcome is `NOT_ABOUT_ACCOUNT` when the probability of `ABOUT_ACCOUNT` is be
 
 The route is then decided by [Escalation](#escalation).
 
-**Invariants.** A passage is asked a question at most once per revision. The classifier's probabilities are stored in `answer` whatever the route.
+**Invariants.** A passage is asked a question at most once per revision. The classifier's probabilities are stored in `answer` whatever the route. A selected passage left unclassified — because the classifier was unavailable, or the budget stopped the LLM classifier adapter — is classified by the account's next refresh.
 
 ## Escalation
 
@@ -350,7 +350,7 @@ The cost of a call is its token counts times the model's price keys (`LLM_PRICE_
 | `errors` | Up to 50 misclassified items: `item_id`, `expected`, `predicted`, `p_positive`, `escalated` |
 | `lead_verdicts` | Counts of in-force `RELEVANT` and `NOT_RELEVANT` lead feedback per current band |
 
-`passed` = `precision ≥ EVAL_MIN_PRECISION` and `items ≥ EVAL_MIN_ITEMS` ([ADR-14](/architecture/adrs/adr-14-labelled-set-and-precision-gate.md)).
+`passed` = `precision ≥ EVAL_MIN_PRECISION` and `items ≥ EVAL_MIN_ITEMS` ([ADR-14](/architecture/adrs/adr-14-labelled-set-and-precision-gate.md)). An evaluation whose classifier or LLM calls fail, or that the [Budget guard](#budget-guard) stops, ends `FAILED` with the reason and reports no metrics: a partial result is never reported as a quality check.
 
 **Label queue.** Pairs of a selected passage of a kept document of an active account and an applicable active question, without an active item, are split into three strata by their classification's `p_positive`: below `ESCALATION_LOWER`, inside the band, at or above `ESCALATION_UPPER`. The queue returns `LABEL_QUEUE_SIZE` pairs, as equal a share from each stratum as there are pairs, ordered within a stratum by the SHA-256 of the passage id and question id, so the order is stable.
 

@@ -62,14 +62,14 @@ sequenceDiagram
 ## Reading order
 
 1. Terms in the [glossary](/requirements/glossary.md): Account, Account alias, Account source, Contact, Persona, Discovery candidate, Fit score, Free core.
-2. Requirement rows: `S-ACC-01` to `S-ACC-05`, `S-DSC-01`, `S-DSC-02`, `S-ING-06` in [system requirements](/requirements/system.md); `B-07` to `B-10`, `RULE-01`, `RULE-07` in [business requirements](/requirements/business.md); `N-08`.
+2. Requirement rows: `S-ACC-01` to `S-ACC-05`, `S-DSC-01`, `S-DSC-02`, `S-ING-06` in [system requirements](/requirements/system.md); `B-07` to `B-10`, `B-37`, `RULE-01`, `RULE-07` in [business requirements](/requirements/business.md); `N-08`.
 3. Stores: [`account`](/architecture/sql-store.md#account), [`account_alias`](/architecture/sql-store.md#account_alias), [`account_source`](/architecture/sql-store.md#account_source), [`contact`](/architecture/sql-store.md#contact), [`discovery_candidate`](/architecture/sql-store.md#discovery_candidate).
 4. Rules: [Account identity](/architecture/rules.md#account-identity), [Account attributes](/architecture/rules.md#account-attributes), [Persona mapping](/architecture/rules.md#persona-mapping), [Discovery](/architecture/rules.md#discovery), [Fit score](/architecture/rules.md#fit-score), [Retention and erasure](/architecture/rules.md#retention-and-erasure).
 5. Interfaces: [Accounts and contacts](/architecture/interfaces.md#accounts-and-contacts) (`API-20` to `API-28`, [`AccountImportRow`](/architecture/interfaces.md#accountimportrow)) and [Discovery](/architecture/interfaces.md#discovery) (`API-29` to `API-32`).
-6. Services: the [api](/architecture/services/api.md) and its [runtime](/architecture/services/api.md#runtime) (`IMPORT_MAX_ROWS`, `CONTACT_RETENTION_DAYS`); the [worker](/architecture/services/worker.md) for discovery; the [frontend](/architecture/services/frontend.md) shell.
+6. Services: the [api](/architecture/services/api.md) and its [runtime](/architecture/services/api.md#runtime) (`IMPORT_MAX_ROWS`, `CONTACT_RETENTION_DAYS`); the [worker](/architecture/services/worker.md) for discovery; the [frontend](/architecture/services/frontend.md) shell; the accounts of the [demo dataset](/architecture/overview.md#demo-dataset) and the account columns of [store ownership](/architecture/overview.md#store-ownership).
 7. Decisions: [ADR-10](/architecture/adrs/adr-10-minimal-contact-data.md), [ADR-12](/architecture/adrs/adr-12-suggested-accounts-need-acceptance.md), [ADR-07](/architecture/adrs/adr-07-source-plug-ins-with-a-free-core.md).
 8. Screens: [Accounts](#accounts), [Account import](#account-import), [Account profile](#account-profile), [Suggested accounts](#suggested-accounts).
-9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-09` to `AC-15`, `AC-63`.
+9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-09` to `AC-15`, `AC-59`, `AC-63`, `AC-69`.
 
 ## Accounts
 

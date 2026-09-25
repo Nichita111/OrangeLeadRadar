@@ -30,7 +30,7 @@ LeadRadar serves one organisation with two roles. Sales works accounts, prospect
 1. Terms in the [glossary](/requirements/glossary.md): Sales, Admin, Session.
 2. Requirement rows: `S-SEC-01` to `S-SEC-03` in [system requirements](/requirements/system.md); `N-07`; `B-30` and the [Roles](/requirements/business.md#roles) in [business requirements](/requirements/business.md).
 3. Stores: [`app_user`](/architecture/sql-store.md#app_user), [`auth_session`](/architecture/sql-store.md#auth_session); `AUTH` and `USER` rows of [Audit actions](/architecture/sql-store.md#audit-actions).
-4. Rules: [Retention and erasure](/architecture/rules.md#retention-and-erasure) for expired sessions.
+4. Rules: [Retention and erasure](/architecture/rules.md#retention-and-erasure) for expired sessions; [store ownership](/architecture/overview.md#store-ownership) for who writes users and sessions.
 5. Interfaces: [Conventions](/architecture/interfaces.md#conventions) (roles, authentication, CSRF) and [Authentication and users](/architecture/interfaces.md#authentication-and-users) (`API-01` to `API-06`).
 6. Services: the [api](/architecture/services/api.md) (`SESSION_TTL_HOURS`, `LOGIN_MAX_FAILURES`, `LOGIN_LOCK_MINUTES`, `PASSWORD_MIN_LENGTH` in its [runtime](/architecture/services/api.md#runtime)); the frontend's [Routes](/architecture/services/frontend.md#routes), [Navigation](/architecture/services/frontend.md#navigation) and [States](/architecture/services/frontend.md#states).
 7. Screens: [Sign in](#sign-in), [Users](#users).

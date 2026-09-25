@@ -3,7 +3,7 @@ type: Decision
 title: ADR-08 Multilingual embeddings
 description: Passages are embedded with bge-m3 served locally by Text Embeddings Inference, for passage selection, near-duplicate detection and preview search.
 status: draft
-tags: [signal-pipeline, service-configuration]
+tags: [signal-pipeline]
 ---
 
 # ADR-08 Multilingual embeddings

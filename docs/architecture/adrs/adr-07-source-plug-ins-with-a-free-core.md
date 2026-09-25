@@ -3,7 +3,7 @@ type: Decision
 title: ADR-07 Source plug-ins with a free core
 description: Sources are seven plug-ins behind one port; four need no key and suffice alone, three are optional keyed ones, and LinkedIn is never read.
 status: draft
-tags: [signal-pipeline, accounts-and-discovery]
+tags: [accounts-and-discovery, signal-pipeline]
 ---
 
 # ADR-07 Source plug-ins with a free core

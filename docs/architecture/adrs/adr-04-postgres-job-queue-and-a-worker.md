@@ -3,7 +3,7 @@ type: Decision
 title: ADR-04 Postgres job queue and a worker
 description: Background work runs in a separate worker process that claims jobs from a PostgreSQL table, enqueued in the same transaction as the change that needs them.
 status: draft
-tags: [signal-pipeline, service-configuration, accounts-and-discovery, prospect-dashboard, evaluation-and-feedback]
+tags: [signal-pipeline]
 ---
 
 # ADR-04 Postgres job queue and a worker

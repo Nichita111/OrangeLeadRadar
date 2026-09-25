@@ -3,7 +3,7 @@ type: Glossary
 title: Glossary
 description: Every domain term of LeadRadar with its meaning, the implementation identifier it maps to and the heading that defines it, and the values that are never translated.
 status: draft
-tags: [service-configuration, accounts-and-discovery, signal-pipeline, prospect-dashboard, evaluation-and-feedback, outreach-and-crm, identity-and-access, audit-trail]
+tags: [accounts-and-discovery, audit-trail, evaluation-and-feedback, identity-and-access, outreach-and-crm, prospect-dashboard, service-configuration, signal-pipeline]
 ---
 
 # Glossary

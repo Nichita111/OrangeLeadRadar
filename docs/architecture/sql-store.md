@@ -3,7 +3,7 @@ type: Store
 title: SQL store
 description: Every PostgreSQL table, column and enum of LeadRadar - identity, configuration, accounts, ingestion, signals and scores, feedback and evaluation, outreach and audit - with the scoring settings document, the audit vocabulary and the constraints.
 status: draft
-tags: [service-configuration, accounts-and-discovery, signal-pipeline, prospect-dashboard, evaluation-and-feedback, outreach-and-crm, identity-and-access, audit-trail]
+tags: [accounts-and-discovery, audit-trail, evaluation-and-feedback, identity-and-access, outreach-and-crm, prospect-dashboard, service-configuration, signal-pipeline]
 ---
 
 # SQL store
@@ -259,7 +259,7 @@ An address where an account publishes: the pages the website, careers and RSS pl
 
 ### contact
 
-A decision-maker at an account, kept to the minimum ([RULE-07](/requirements/business.md#business-rules), [ADR-10](/architecture/adrs/adr-10-minimal-contact-data.md)). There is deliberately no column for an email address or a phone number.
+A decision-maker at an account, entered by a user and kept to the minimum ([RULE-07](/requirements/business.md#business-rules), [ADR-10](/architecture/adrs/adr-10-minimal-contact-data.md)). There is deliberately no column for an email address or a phone number.
 
 | Column | Type | Notes |
 |---|---|---|
@@ -269,7 +269,6 @@ A decision-maker at an account, kept to the minimum ([RULE-07](/requirements/bus
 | `persona` | enum | One of the persona values below; mapped by [Persona mapping](/architecture/rules.md#persona-mapping) and editable. |
 | `persona_origin` | enum: `MANUAL`, `CLASSIFIER` | A `MANUAL` persona is never remapped. |
 | `source_url` | text | Public page stating the person and title; required. |
-| `origin` | enum: `MANUAL`, `CRUNCHBASE` | Entered by a user, or read from Crunchbase people data. |
 | `retain_until` | date | Creation date + `CONTACT_RETENTION_DAYS`; erased after it ([Retention and erasure](/architecture/rules.md#retention-and-erasure)). |
 
 Persona values:
@@ -390,11 +389,11 @@ A unit of background work a user can see: a refresh, a reclassification, a resco
 | Column | Type | Notes |
 |---|---|---|
 | `kind` | enum: `ACCOUNT_REFRESH`, `RECLASSIFY`, `RESCORE`, `DISCOVERY`, `EVALUATION` | `ACCOUNT_REFRESH`: fetch, process, triage, classify and score one account. `RECLASSIFY`: classify stored passages for one question at its current revision. `RESCORE`: recompute scores of one account or of a whole service, without fetching or classifying. `DISCOVERY`: propose candidates for one service. `EVALUATION`: run the classification cascade over the labelled set. |
-| `trigger` | enum: `SCHEDULE`, `USER`, `QUESTION_CHANGE`, `SCORING_ACTIVATION`, `ACCOUNT_CHANGE`, `FEEDBACK`, `OVERRIDE`, `REFRESH` | What caused it: the scheduler, a user's explicit request, a question created or changed, a scoring version activated, an account attribute changed, feedback given, an override created or revoked, or a finished refresh that produced new findings. |
+| `trigger` | enum: `SCHEDULE`, `USER`, `QUESTION_CHANGE`, `SCORING_ACTIVATION`, `ACCOUNT_CHANGE`, `FEEDBACK`, `OVERRIDE` | What caused it: the scheduler, a user's explicit request, a question created or changed, a scoring version activated, an account attribute changed, feedback given, or an exception added or revoked. |
 | `account_id` | uuid FK → [`account`](#account), null | `ACCOUNT_REFRESH`, and a `RESCORE` of one account. |
 | `service_id` | uuid FK → [`service`](#service), null | `RESCORE` of a whole service or of one account for one service, `DISCOVERY`, `RECLASSIFY`. |
 | `question_id` | uuid FK → [`signal_question`](#signal_question), null | `RECLASSIFY`. |
-| `status` | enum: `QUEUED`, `RUNNING`, `SUCCEEDED`, `PARTIAL`, `FAILED`, `CANCELLED` | `PARTIAL`: finished, but at least one plug-in or step failed, or pairs were left `PENDING_LLM`, as `errors` and `progress` state. `FAILED`: nothing usable was produced. |
+| `status` | enum: `QUEUED`, `RUNNING`, `SUCCEEDED`, `PARTIAL`, `FAILED`, `CANCELLED` | `PARTIAL`: finished, but at least one plug-in or step failed, or pairs were left `PENDING_LLM`, as `errors` and `progress` state. `FAILED`: its final stage failed after its retries. |
 | `stage` | enum, null: `FETCH`, `PROCESS`, `TRIAGE`, `CLASSIFY`, `EVIDENCE`, `SCORE` | The stage in progress; null when queued or finished. The stages each kind passes through are the [run lifecycle](/architecture/services/worker.md#run-lifecycle). |
 | `progress` | jsonb | Counters: `documents_fetched`, `documents_new`, `documents_kept`, `passages`, `pairs_classified`, `pairs_escalated`, `findings_created`, `pending_budget`, `candidates`, `items_evaluated`. |
 | `errors` | jsonb | Array of `{stage, plugin_code?, code, message}`; `code` is an error code of [Conventions](/architecture/interfaces.md#conventions) or `FIXTURE_MISSING`. |
@@ -792,7 +791,7 @@ Only these tables have rows deleted:
 
 - `app_user.email`, `service.code`, `service.name`, `account.domain`, `source_plugin.code` are unique.
 - `signal_question (service_id, key)`, `scoring_config (service_id, version)`, `account_alias (account_id, normalised)`, `account_source (account_id, url)`, `plugin_usage (plugin_code, day)`, `chunk (document_id, ordinal)` and `classification (chunk_id, question_id, question_revision)` are unique.
-- `document (account_id, content_hash)` is unique; the same canonical URL with new content is a new document ([Document normalisation](/architecture/rules.md#document-normalisation)).
+- `document (account_id, content_hash)` is unique with `NULLS NOT DISTINCT`, so discovery documents without an account are deduplicated too; the same canonical URL with new content is a new document ([Document normalisation](/architecture/rules.md#document-normalisation)).
 - Partial unique indexes: one `scoring_config` with `status = 'DRAFT'` and one with `status = 'ACTIVE'` per service; one `account_score` with `is_current` per account and service; one `pipeline_run` of kind `ACCOUNT_REFRESH` with status `QUEUED` or `RUNNING` per account; one `ACTIVE` `disqualifier_override` per account, service and rule key; one `ACTIVE` `evaluation_item` per passage, question and revision.
 - `finding.classification_id`, `alert.finding_id`, `alert.score_id`, `document_triage.document_id` and `evaluation_result.run_id` are unique.
 - `chunk.embedding` has an HNSW index with cosine distance.

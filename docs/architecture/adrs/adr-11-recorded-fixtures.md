@@ -3,7 +3,7 @@ type: Decision
 title: ADR-11 Recorded fixtures
 description: Every source, classifier and LLM exchange can be recorded and replayed, so the demo and the acceptance tests run offline and repeatably.
 status: draft
-tags: [signal-pipeline, evaluation-and-feedback, outreach-and-crm]
+tags: [signal-pipeline]
 ---
 
 # ADR-11 Recorded fixtures

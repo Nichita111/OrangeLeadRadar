@@ -3,7 +3,7 @@ type: Interface
 title: Interfaces
 description: Every contract that crosses a boundary - the REST API the frontend calls, the in-process classifier, LLM, embedder, source plug-in and CRM ports - with every shape each carries and its source of truth.
 status: draft
-tags: [service-configuration, accounts-and-discovery, signal-pipeline, prospect-dashboard, evaluation-and-feedback, outreach-and-crm, identity-and-access, audit-trail]
+tags: [accounts-and-discovery, audit-trail, evaluation-and-feedback, identity-and-access, outreach-and-crm, prospect-dashboard, service-configuration, signal-pipeline]
 ---
 
 # Interfaces
@@ -375,7 +375,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 |---|---|---|
 | `id`, `account_id`, `full_name`, `job_title`, `source_url` | string | [`contact`](/architecture/sql-store.md#contact) |
 | `persona` | enum | [`contact`](/architecture/sql-store.md#contact) `persona` |
-| `persona_origin`, `origin` | enum | [`contact`](/architecture/sql-store.md#contact) |
+| `persona_origin` | enum | [`contact`](/architecture/sql-store.md#contact) |
 | `retain_until` | string (date) | [`contact`](/architecture/sql-store.md#contact) |
 
 #### ContactCreate
