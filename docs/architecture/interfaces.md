@@ -206,7 +206,7 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 | Field | Type | Source of truth |
 |---|---|---|
 | `classifier` | enum | [`document_triage`](/architecture/sql-store.md#document_triage) `classifier`: the configured adapter |
-| `results` | array of preview results, at most `PREVIEW_MAX_PASSAGES` | the passages most similar to the question, as [Chunking and passage selection](/architecture/rules.md#chunking-and-passage-selection) ranks them |
+| `results` | array of preview results, at most `PREVIEW_MAX_PASSAGES` | the passages ranked first for the question by [question-scoped retrieval](/architecture/rules.md#chunking-and-passage-selection) |
 | `results[].passage` | string | the passage text |
 | `results[].document` | `{title, url, published_at}`, null | the passage's [`document`](/architecture/sql-store.md#document); null for pasted text |
 | `results[].p_positive`, `results[].escalated` | number, boolean | as [`classification`](/architecture/sql-store.md#classification) would store them |
@@ -559,6 +559,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 |---|---|---|
 | `finding_id` | string | [`finding`](/architecture/sql-store.md#finding) |
 | `document` | as in [`FindingView`](#findingview) | [`document`](/architecture/sql-store.md#document) |
+| `section` | string, null | the passage's [`chunk`](/architecture/sql-store.md#chunk) `section` |
 | `purged` | boolean | whether the document's `purged_at` is set |
 | `excerpt` | string, null | the passage with up to `EVIDENCE_CONTEXT_CHARS` of document text on each side; null when purged |
 | `quote_start`, `quote_end` | integer, null | offsets of the quote in `excerpt` |
@@ -782,7 +783,7 @@ The in-process port every classification goes through ([ADR-02](/architecture/ad
 | Field | Type | Source of truth |
 |---|---|---|
 | `state` | string | the text judged: a passage, or a document's title and opening |
-| `context` | string, optional | one line naming the account, e.g. "Company: Lufthansa Group (lufthansagroup.com, DE)" |
+| `context` | string, optional | for a passage, its passage header of [Chunking and passage selection](/architecture/rules.md#chunking-and-passage-selection); for triage, one line naming the account, e.g. "Company: Lufthansa Group (lufthansagroup.com, DE)" |
 | `questions` | array of `{id, kind, text, options}` | `kind` is `YES_NO`, `SCALE` or `CHOICE`; `options` is `[{key, label}]` for `SCALE` and `CHOICE`; built by [Signal classification](/architecture/rules.md#signal-classification) and [Triage](/architecture/rules.md#triage) |
 
 #### ClassifierAnswer
@@ -816,6 +817,7 @@ The in-process port for the four generation roles, all calling OpenRouter's chat
 | `account_name` | string | [`account`](/architecture/sql-store.md#account) |
 | `question` | `{text, answer_type, options}` | [`signal_question`](/architecture/sql-store.md#signal_question) |
 | `passage`, `language` | string | [`chunk`](/architecture/sql-store.md#chunk), [`document`](/architecture/sql-store.md#document) |
+| `header` | string | the passage header of [Chunking and passage selection](/architecture/rules.md#chunking-and-passage-selection); never a source of the quote |
 
 #### EscalationOutput
 

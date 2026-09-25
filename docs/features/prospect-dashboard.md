@@ -163,7 +163,7 @@ WF-15 — Account detail, History tab
 | `FR-071` | The Exclusions section shall list every matched disqualifier with its label and the fact or signal that matched; an Admin shall be able to add an exception with a required note, or revoke one, with confirmation. |
 | `FR-072` | The Signals tab shall list the account's signals for the service, filtered by question and by status (Counting, Marked wrong, Outdated question), each with question, strength label, the matched option for a choice question, confidence word, Quick check or Detailed check, quote, translation, source and age. |
 | `FR-073` | Correct and Wrong on a signal shall record the verdict with an optional note, show it on the signal, and say that the score will be updated. |
-| `FR-074` | Evidence shall open the passage with surrounding text and the quote highlighted, and a link to the original page; for a purged document it shall show the quote, the link and a sentence that the full text is no longer stored. |
+| `FR-074` | Evidence shall open the passage with its section path, surrounding text and the quote highlighted, and a link to the original page; for a purged document it shall show the quote, the link and a sentence that the full text is no longer stored. |
 | `FR-075` | The History tab shall list score changes newest first, each with when, the cause in words (refresh, scoring version with its change note, feedback, exception, account change, question change), the Priority and band before and after, the signals added and removed, and the exceptions changed. |
 
 Obligations: `S-PRO-02`, `S-PRO-03`, `S-PRO-04`, `S-PRO-05`, `S-PIP-01`, `S-SCO-04`, `S-SCO-06`, `S-SIG-09`, `S-EVL-01`, `S-EVL-02`, `N-13`.

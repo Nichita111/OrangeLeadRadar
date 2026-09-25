@@ -181,9 +181,13 @@ One worker at a time runs the scheduler: each loop takes a PostgreSQL advisory l
 | `WEBSITE_RENDER_JS` | `false` | Render pages with Playwright when static text is too short |
 | `HTTP_TIMEOUT_S` | `20` | Timeout of one HTTP request to a source |
 | `MIN_DOCUMENT_CHARS` | `200` | Shortest text kept as a document |
-| `CHUNK_TARGET_CHARS` | `1600` | Longest passage |
+| `WHOLE_DOCUMENT_MAX_CHARS` | `8000` | Longest document read whole, as one passage |
+| `CHUNK_TARGET_CHARS` | `1600` | Longest passage of a longer document |
 | `CHUNK_OVERLAP_CHARS` | `200` | Overlap between passages |
-| `MAX_PASSAGES_PER_DOCUMENT` | `8` | Passages classified per document and service |
+| `PASSAGES_PER_QUESTION` | `3` | Passages of a long document selected for each question |
+| `MAX_PASSAGES_PER_DOCUMENT` | `20` | Most passages of one long document classified per service |
+| `RETRIEVAL_CANDIDATES` | `50` | Passages each ranking contributes to question-scoped retrieval |
+| `RETRIEVAL_RRF_K` | `60` | Rank constant of the fused score of question-scoped retrieval |
 | `NEAR_DUPLICATE_SIMILARITY` | `0.95` | Cosine similarity of a near duplicate |
 | `NEAR_DUPLICATE_WINDOW_DAYS` | `7` | Date window of near-duplicate search |
 | `USD_EUR_RATE` | `0.92` | Conversion of Crunchbase revenue ranges |
