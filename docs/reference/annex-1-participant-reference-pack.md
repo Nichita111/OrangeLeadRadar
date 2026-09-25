@@ -1,3 +1,11 @@
+---
+type: Reference
+title: Annex 1 Participant Reference Pack
+description: The brief's annex as received - the current manual sales process for Intelligent Automation and the Lufthansa and DHL illustrative examples.
+status: stable
+tags: []
+---
+
 # Annex 1: Participant Reference Pack
 
 ## 1. Step-by-step manual sales process

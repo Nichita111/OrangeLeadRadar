@@ -37,7 +37,7 @@ An application account. There is one organisation; every user sees every account
 |---|---|---|
 | `email` | citext, unique | Sign-in name. |
 | `display_name` | text | Name shown in the interface and the audit. |
-| `role` | enum: `SALES`, `ADMIN` | `SALES` works accounts, runs, prospects, feedback, labels and outreach. `ADMIN` may do everything `SALES` may and also configures services and scoring, source plug-ins and users, overrides exclusion rules, runs quality checks and reads the audit ([Roles](/requirements/business.md#roles)). |
+| `role` | enum: `SALES`, `ADMIN` | `SALES` works accounts, runs, prospects, feedback, labels and outreach. `ADMIN` may do everything `SALES` may and also configures services and scoring, source plug-ins and users, overrides disqualifiers, runs quality checks and reads the audit ([Roles](/requirements/business.md#roles)). |
 | `status` | enum: `ACTIVE`, `DISABLED` | A disabled user cannot sign in; their sessions are revoked when disabled. |
 | `password_hash` | text | argon2id hash; the password is never stored or logged. |
 | `failed_logins` | integer | Consecutive failed sign-ins; reset to 0 by a successful one. |
@@ -100,7 +100,7 @@ One configurable question a passage can answer for a service. Weight and half-li
 | Column | Type | Notes |
 |---|---|---|
 | `service_id` | uuid FK → [`service`](#service) | Owning service. |
-| `key` | text | UPPER_SNAKE, unique within the service, immutable; the name the scoring settings and exclusion rules use for the question. |
+| `key` | text | UPPER_SNAKE, unique within the service, immutable; the name the scoring settings and disqualifiers use for the question. |
 | `text` | text | The question, in English, answerable from one passage, e.g. "Does the company announce a cost-reduction or operational-efficiency programme?". |
 | `answer_type` | enum: `YES_NO`, `SCALE`, `CHOICE` | `YES_NO`: yes or no, with the strength of a yes asked in the same classifier pass. `SCALE`: the answer is a [strength](#finding) level itself. `CHOICE`: one of `options`, each mapped to a strength. How each maps to a strength is [Signal classification](/architecture/rules.md#signal-classification). |
 | `options` | jsonb, null | `CHOICE` only: an array of `{key, label, strength}`, at least two, with at least one option of strength `NONE`; `key` is UPPER_SNAKE and unique within the question. Null for the other answer types. |
@@ -135,7 +135,7 @@ The `settings` column of [`scoring_config`](#scoring_config) is one JSON object 
 | `min_fit` | integer 0–100 | An account below it has standing `BELOW_FIT`. | `40` |
 | `hot_threshold` | integer 0–100 | Priority at or above it is `HOT`. | `70` |
 | `warm_threshold` | integer 0–100 | Priority at or above it, and below `hot_threshold`, is `WARM`. | `40` |
-| `weight_values` | object: weight level → number ≥ 0 | Numeric value of each weight level. Weight levels are `HIGH`, `MEDIUM`, `LOW` and `NONE`; `NONE` keeps a question out of Intent while an exclusion rule still reads it. | `{"HIGH": 3, "MEDIUM": 2, "LOW": 1, "NONE": 0}` |
+| `weight_values` | object: weight level → number ≥ 0 | Numeric value of each weight level. Weight levels are `HIGH`, `MEDIUM`, `LOW` and `NONE`; `NONE` keeps a question out of Intent while a disqualifier still reads it. | `{"HIGH": 3, "MEDIUM": 2, "LOW": 1, "NONE": 0}` |
 | `strength_values` | object: strength → number 0–1 | Value of a finding of each strength. | `{"WEAK": 0.5, "MEDIUM": 0.75, "STRONG": 1.0}` |
 | `default_half_life_days` | object: source type → integer > 0 | Half-life of a finding whose question sets none, by its document's source type. | `{"NEWS": 90, "COMPANY_PUBLICATION": 365, "JOB_POSTING": 60, "COMPANY_PROFILE": 365}` |
 | `min_decay` | number 0–1 | A finding whose decay factor falls below it contributes nothing. | `0.05` |
@@ -144,7 +144,7 @@ The `settings` column of [`scoring_config`](#scoring_config) is one JSON object 
 | `unknown_match` | number 0–1 | Match credit of an ICP criterion whose account attribute is unknown. | `0.5` |
 | `icp_criteria` | array of ICP criterion | The ICP of the service. | `[]` |
 | `questions` | array of question setting | One per `ACTIVE` question of the service. | every active question at `MEDIUM`, `half_life_days` null |
-| `disqualifiers` | array of exclusion rule | The exclusion rules of the service. | `[]` |
+| `disqualifiers` | array of disqualifier | The disqualifiers of the service. | `[]` |
 
 **ICP criterion** — `{key, kind, weight, values?, min?, max?}`. `key` is UPPER_SNAKE and unique within the document; `weight` is a weight level. `kind` is one of:
 
@@ -158,7 +158,7 @@ The `settings` column of [`scoring_config`](#scoring_config) is one JSON object 
 
 **Question setting** — `{question_key, weight, half_life_days}`: `question_key` names a [`signal_question`](#signal_question) `key` of the same service; `weight` is a weight level; `half_life_days` is an integer > 0 or null for the source-type default.
 
-**Exclusion rule** — `{key, label, kind, criterion_key?, question_key?, min_strength?}`: `key` is UPPER_SNAKE, unique within the service and stable across versions, because [`disqualifier_override`](#disqualifier_override) rows name it; `label` is the reason shown to users. `kind` is one of:
+**Disqualifier** — `{key, label, kind, criterion_key?, question_key?, min_strength?}`: `key` is UPPER_SNAKE, unique within the service and stable across versions, because [`disqualifier_override`](#disqualifier_override) rows name it; `label` is the reason shown to users. `kind` is one of:
 
 | Kind | Operands | Excludes when |
 |---|---|---|
@@ -554,20 +554,20 @@ The score of one account for one service, as of one time. Rows are appended; exa
 | `fit` | integer 0–100 | [Fit score](/architecture/rules.md#fit-score). |
 | `intent` | integer 0–100 | [Intent score](/architecture/rules.md#intent-score). |
 | `priority` | integer 0–100 | [Priority, standing and band](/architecture/rules.md#priority-standing-and-band). |
-| `standing` | enum: `RANKED`, `BELOW_FIT`, `DISQUALIFIED`, `CUSTOMER` | `RANKED`: in the ranking. `BELOW_FIT`: Fit below `min_fit`. `DISQUALIFIED`: an exclusion rule matched and is not overridden. `CUSTOMER`: the in-force lead feedback says the account is already a customer for the service. |
+| `standing` | enum: `RANKED`, `BELOW_FIT`, `DISQUALIFIED`, `CUSTOMER` | `RANKED`: in the ranking. `BELOW_FIT`: Fit below `min_fit`. `DISQUALIFIED`: a disqualifier matched and is not overridden. `CUSTOMER`: the in-force lead feedback says the account is already a customer for the service. |
 | `band` | enum: `HOT`, `WARM`, `COLD`, null | Set only when `standing` is `RANKED`. |
 | `breakdown` | jsonb | The [Score breakdown](/architecture/rules.md#score-breakdown). |
 | `is_current` | boolean | True on the latest row of the account and service. |
 
 ### disqualifier_override
 
-An Admin's decision that one exclusion rule does not apply to one account for one service ([Disqualification](/architecture/rules.md#disqualification)).
+An Admin's exception: one disqualifier does not apply to one account for one service ([Disqualification](/architecture/rules.md#disqualification)).
 
 | Column | Type | Notes |
 |---|---|---|
 | `account_id` | uuid FK → [`account`](#account) | The account. |
 | `service_id` | uuid FK → [`service`](#service) | The service. |
-| `rule_key` | text | The exclusion rule's `key` in the [scoring settings document](#scoring-settings-document); applies to every version that has the key. |
+| `rule_key` | text | The disqualifier's `key` in the [scoring settings document](#scoring-settings-document); applies to every version that has the key. |
 | `note` | text | Required reason. |
 | `created_by` | uuid FK → [`app_user`](#app_user) | The Admin. |
 | `status` | enum: `ACTIVE`, `REVOKED` | Only `ACTIVE` overrides apply. |

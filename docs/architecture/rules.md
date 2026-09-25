@@ -227,7 +227,7 @@ The cost of a call is its token counts times the model's price keys (`LLM_PRICE_
 
 ## Disqualification
 
-**Inputs.** The exclusion rules of the active settings; the account's attributes; its in-force findings; its `ACTIVE` [`disqualifier_override`](/architecture/sql-store.md#disqualifier_override) rows for the service.
+**Inputs.** The disqualifiers of the active settings; the account's attributes; its in-force findings; its `ACTIVE` [`disqualifier_override`](/architecture/sql-store.md#disqualifier_override) rows for the service.
 
 **Algorithm.** A rule **matches** as its kind states in the [scoring settings document](/architecture/sql-store.md#scoring-settings-document). A matched rule with an `ACTIVE` override for its `key` is **overridden**. The account is excluded when at least one rule matches and is not overridden.
 
@@ -291,7 +291,7 @@ The cost of a call is its token counts times the model's price keys (`LLM_PRICE_
 - `default_half_life_days` has all four source types, each > 0; `min_decay` in 0–1; `negative_factor ≥ 0`; `intent_saturation` in (0, 1]; `unknown_match` in 0–1;
 - criterion, question and exclusion-rule keys are unique; every operand is valid for its kind (non-empty known enum values or ISO country codes, `min ≤ max`);
 - `questions` names every `ACTIVE` question of the service exactly once and no other;
-- every exclusion rule names an existing `criterion_key` or `question_key`.
+- every disqualifier names an existing `criterion_key` or `question_key`.
 
 ## Alerts
 
@@ -312,7 +312,7 @@ The cost of a call is its token counts times the model's price keys (`LLM_PRICE_
 
 1. When `CRUNCHBASE` is available: an organisation search restricted by the ICP's `GEOGRAPHY` countries, `INDUSTRY` values mapped to Crunchbase categories and `EMPLOYEE_RANGE`, up to `DISCOVERY_MAX_CANDIDATES` results.
 2. For each available news plug-in: a query made of the `hint_terms` of the service's positive questions whose `source_types` include `NEWS`, restricted to the ICP's countries where the plug-in supports it, over the last `DISCOVERY_LOOKBACK_DAYS`, up to `DISCOVERY_MAX_DOCUMENTS` documents, stored with no account. Each is triaged for the service's relevance only; for a kept document the [LLM extract organisations](/architecture/interfaces.md#llm) call names the companies that are the subject of the signal, with the country and website when the text states them.
-3. Drop a company that matches an existing account ([Account identity](#account-identity)) or any earlier candidate of the service in any status, or that an `ICP_MISMATCH` exclusion rule excludes on its known attributes.
+3. Drop a company that matches an existing account ([Account identity](#account-identity)) or any earlier candidate of the service in any status, or that an `ICP_MISMATCH` disqualifier excludes on its known attributes.
 4. Compute `fit_estimate` with the [Fit score](#fit-score) over the known attributes; keep the `DISCOVERY_MAX_CANDIDATES` best by `fit_estimate`.
 
 **Acceptance.** Accepting a candidate requires a domain, taken from the candidate or entered by the user. It creates an account with origin `DISCOVERED`, the candidate's known attributes, its name as alias and a `WEBSITE` source, links the candidate, and enqueues an `ACCOUNT_REFRESH` with trigger `USER`. A domain that is already an account's is refused as `CONFLICT` naming it.
@@ -415,6 +415,6 @@ The acceptance tests verify these cases through the product's surface. Settings 
 | Priority | `0.4 × 94 + 0.6 × 38` | 60.4 → **60** |
 | Standing, band | Fit ≥ 40; 40 ≤ 60 < 70 | `RANKED`, **`WARM`** |
 
-**Example 2 — an excluded account and its override.** The settings add the exclusion rule `OUTSIDE_REGION` of kind `ICP_MISMATCH` on `REGION`. An account with country `FR` and otherwise the attributes and findings of Example 1 has Fit `100 × (3 + 0 + 0.5 + 2) / 8` = 68.75 → 69, Intent 38, Priority `0.4 × 69 + 0.6 × 38` = 50.4 → 50, and standing `DISQUALIFIED` with no band. After an Admin overrides `OUTSIDE_REGION` for it, the same numbers give standing `RANKED` and band `WARM`.
+**Example 2 — an excluded account and its override.** The settings add the disqualifier `OUTSIDE_REGION` of kind `ICP_MISMATCH` on `REGION`. An account with country `FR` and otherwise the attributes and findings of Example 1 has Fit `100 × (3 + 0 + 0.5 + 2) / 8` = 68.75 → 69, Intent 38, Priority `0.4 × 69 + 0.6 × 38` = 50.4 → 50, and standing `DISQUALIFIED` with no band. After an Admin overrides `OUTSIDE_REGION` for it, the same numbers give standing `RANKED` and band `WARM`.
 
 **Example 3 — decay floor.** A `WEAK` `NEWS` finding 400 days old has decay `0.5^(400/90)` = 0.0459, below `min_decay` 0.05, and contributes 0.

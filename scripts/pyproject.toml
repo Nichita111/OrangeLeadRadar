@@ -4,7 +4,7 @@ version = "0.1.0"
 requires-python = ">=3.12"
 description = "Docs bundle tooling: index builder, checker and traceability matrix generator. Imports nothing from any app."
 dependencies = [
-    "markdown-it-py>=3.0.0",
+    "markdown-it-py[linkify]>=3.0.0",
     "pyyaml>=6.0.2",
 ]
 

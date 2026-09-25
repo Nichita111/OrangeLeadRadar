@@ -174,7 +174,7 @@ def run(root: str) -> tuple[list[str], int]:
                 add(rel, 1, "adr", "ADR heading does not match its filename")
         slugs: collections.Counter[str] = collections.Counter()
         for h in heads:
-            if is_heading_numbered(h.title):
+            if is_heading_numbered(h.title) and not rel.startswith("reference/"):
                 add(rel, h.line, "heading", f"numbered heading: {h.title}")
             if not h.title.isascii():
                 add(rel, h.line, "heading", f"non-ASCII heading: {h.title}")

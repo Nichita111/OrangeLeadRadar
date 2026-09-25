@@ -35,6 +35,7 @@ React with TypeScript in strict mode, built by Vite; React Router for routes; Ta
 | `/accounts/:id` | [Account detail](/features/prospect-dashboard.md#account-detail) | any | prospect-dashboard |
 | `/alerts` | [Alerts](/features/prospect-dashboard.md#alerts) | any | prospect-dashboard |
 | `/accounts` | [Accounts](/features/accounts-and-discovery.md#accounts) | any | accounts-and-discovery |
+| `/accounts/:id/profile` | [Account profile](/features/accounts-and-discovery.md#account-profile) | any | accounts-and-discovery |
 | `/accounts/import` | [Account import](/features/accounts-and-discovery.md#account-import) | any | accounts-and-discovery |
 | `/suggested-accounts` | [Suggested accounts](/features/accounts-and-discovery.md#suggested-accounts) | any | accounts-and-discovery |
 | `/runs` | [Runs](/features/signal-pipeline.md#runs) | any | signal-pipeline |
@@ -98,7 +99,7 @@ The words the screens show for glossary terms. A label is a presentation of the 
 | Fit score, Intent score, Priority score | Fit, Intent, Priority |
 | Band `HOT`, `WARM`, `COLD` | Hot, Warm, Cold |
 | Standing `RANKED`, `BELOW_FIT`, `DISQUALIFIED`, `CUSTOMER` | Ranked, Below fit, Excluded, Customer |
-| Exclusion rule | Exclusion rule |
+| Disqualifier | Exclusion rule |
 | Disqualifier override | Exception |
 | Discovery candidate | Suggested account |
 | Evaluation item | Label |

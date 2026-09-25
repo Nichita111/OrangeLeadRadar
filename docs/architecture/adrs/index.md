@@ -1,0 +1,16 @@
+# Decisions
+
+* [ADR-01 One PostgreSQL store](adr-01-one-postgresql-store.md) - The single PostgreSQL store with pgvector that holds everything, and why there is no graph store or GraphRAG.
+* [ADR-02 Classification cascade](adr-02-classification-cascade.md) - Every relevant passage is classified by a fast classifier behind one port, with Jev and LLM adapters, and only uncertain answers and confirmed positives reach the LLM.
+* [ADR-03 Models answer, rules score](adr-03-models-answer-rules-score.md) - Classifier and LLM output is limited to answers, quotes and text; deterministic rules compute every score, band, standing and exclusion.
+* [ADR-04 Postgres job queue and a worker](adr-04-postgres-job-queue-and-a-worker.md) - Background work runs in a separate worker process that claims jobs from a PostgreSQL table, enqueued in the same transaction as the change that needs them.
+* [ADR-05 LangGraph only for the signal graph](adr-05-langgraph-only-for-the-signal-graph.md) - The branching triage, classify, escalate and evidence step is a LangGraph state graph; every other step is plain code.
+* [ADR-06 Rule-based scoring with versioned settings](adr-06-rule-based-scoring-with-versioned-settings.md) - Scores come from explainable weighted rules whose settings are immutable versions activated by an Admin; feedback never changes weights.
+* [ADR-07 Source plug-ins with a free core](adr-07-source-plug-ins-with-a-free-core.md) - Sources are seven plug-ins behind one port; four need no key and suffice alone, three are optional keyed ones, and LinkedIn is never read.
+* [ADR-08 Multilingual embeddings](adr-08-multilingual-embeddings.md) - Passages are embedded with bge-m3 served locally by Text Embeddings Inference, for passage selection, near-duplicate detection and preview search.
+* [ADR-09 Findings per passage and question revision](adr-09-findings-per-passage-and-question-revision.md) - Classifications and findings are keyed by passage, question and question revision, and scoring parameters live outside the question, so rescoring never reclassifies.
+* [ADR-10 Minimal contact data](adr-10-minimal-contact-data.md) - Contacts hold only name, job title, public source address and persona; no email or phone; retention and erasure are built in.
+* [ADR-11 Recorded fixtures](adr-11-recorded-fixtures.md) - Every source, classifier and LLM exchange can be recorded and replayed, so the demo and the acceptance tests run offline and repeatably.
+* [ADR-12 Suggested accounts need acceptance](adr-12-suggested-accounts-need-acceptance.md) - Discovery stores candidates apart from accounts; nothing is fetched or scored for a candidate until a person accepts it with a domain.
+* [ADR-13 Run progress by polling](adr-13-run-progress-by-polling.md) - The frontend follows a run by polling it every few seconds instead of a push channel.
+* [ADR-14 Labelled set and precision gate](adr-14-labelled-set-and-precision-gate.md) - Signal accuracy is measured on a labelled set built blind in the product, and a release requires the configured precision.

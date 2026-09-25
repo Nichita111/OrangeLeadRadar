@@ -169,7 +169,7 @@ Route `/services/:id/scoring`. Admin only; the active version is readable by any
 │             IN_HOUSE_AUTOMATION   − [Medium ▾] half-life [ … ]                │
 │ Exclusions  OUTSIDE_EUROPE  "Outside the target region"  ICP mismatch: REGION │
 │             INSOLVENT       "In insolvency"  Signal INSOLVENCY ≥ Clear        │
-│             [ + exclusion rule ]                                              │
+│             [ + disqualifier ]                                              │
 │ ▸ Advanced (weight values, strength values, half-lives, decay floor, …)       │
 │                         [ Save draft ]  [ Preview impact ]  [ Activate… ]     │
 ├──────────────────────────────────────────────────────────────────────────────┤

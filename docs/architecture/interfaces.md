@@ -536,7 +536,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `trigger`, `run_id` | | the row's [`pipeline_run`](/architecture/sql-store.md#pipeline_run) |
 | `change_note` | string, null | its [`scoring_config`](/architecture/sql-store.md#scoring_config) `change_note`, when the version changed |
 | `findings_added`, `findings_removed` | array of `{finding_id, question_key}` | finding ids in this breakdown and not the previous one, and the reverse |
-| `overrides_changed` | array of `{rule_key, overridden}` | exclusion rules whose `overridden` flag differs from the previous breakdown |
+| `overrides_changed` | array of `{rule_key, overridden}` | disqualifiers whose `overridden` flag differs from the previous breakdown |
 
 #### FindingView
 

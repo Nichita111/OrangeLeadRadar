@@ -6,7 +6,7 @@ status: draft
 tags: [service-configuration, accounts-and-discovery, signal-pipeline, prospect-dashboard, evaluation-and-feedback, outreach-and-crm, identity-and-access, audit-trail]
 ---
 
-# Business requirements
+# Business requirements and rules
 
 ## Objective
 

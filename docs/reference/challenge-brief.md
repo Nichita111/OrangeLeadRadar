@@ -1,3 +1,11 @@
+---
+type: Reference
+title: LeadRadar challenge brief
+description: The hackathon brief as received - problem statement, challenge, solution scope, data sources, expected stack, prizes and judging criteria.
+status: stable
+tags: []
+---
+
 # LeadRadar | AI-Powered B2B Sales Signals Platform
 
 ## Problem statement

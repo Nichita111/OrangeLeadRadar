@@ -70,7 +70,7 @@ It never fetches from a source, never classifies in batch, never writes a score,
 | `SEED_ADMIN_PASSWORD`, `SEED_SALES_PASSWORD` | — (required by `make seed-demo`) | Passwords of the demo users |
 | `LOG_LEVEL` | `INFO` | Log level; logs are JSON lines |
 
-The api also reads the AI gateway, embedder and fixture keys of the [worker runtime](/architecture/services/worker.md#runtime).
+The api also reads the AI gateway, embedder, fixture and `CLOCK_FILE` keys of the [worker runtime](/architecture/services/worker.md#runtime).
 
 ## Examples
 
