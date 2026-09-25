@@ -90,9 +90,8 @@ empty Flows, Entities or Acceptance cell.
 | `S-SIG-05` | P0 | `B-12`, `RULE-02` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account) | [`finding`](/architecture/sql-store.md#finding), [`classification`](/architecture/sql-store.md#classification) | `AC-24` |
 | `S-SIG-06` | P0 | `B-12` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account), [FL-09](/features/signal-pipeline.md#fl-09-reclassify-after-a-question-change) | [`finding`](/architecture/sql-store.md#finding) | `AC-25`, `AC-26` |
 | `S-SIG-07` | P0 | `B-05` | [FL-09](/features/signal-pipeline.md#fl-09-reclassify-after-a-question-change) | [`classification`](/architecture/sql-store.md#classification), [`finding`](/architecture/sql-store.md#finding), [`document_triage`](/architecture/sql-store.md#document_triage), [`evaluation_item`](/architecture/sql-store.md#evaluation_item), [`pipeline_run`](/architecture/sql-store.md#pipeline_run) | `AC-03`, `AC-26` |
-| `S-SIG-08` | P0 | `B-33` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account), [FL-03](/features/service-configuration.md#fl-03-try-a-question), [FL-17](/features/outreach-and-crm.md#fl-17-draft-outreach) | [`classification`](/architecture/sql-store.md#classification), [`pipeline_run`](/architecture/sql-store.md#pipeline_run), [`audit_event`](/architecture/sql-store.md#audit_event) | `AC-27` |
+| `S-SIG-08` | P0 | `B-33` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account), [FL-03](/features/service-configuration.md#fl-03-try-a-question), [FL-17](/features/outreach-and-crm.md#fl-17-draft-outreach) | [`classification`](/architecture/sql-store.md#classification), [`pipeline_run`](/architecture/sql-store.md#pipeline_run), [`audit_event`](/architecture/sql-store.md#audit_event) | `AC-27`, `AC-70` |
 | `S-SIG-09` | P0 | `B-13` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account), [FL-12](/features/prospect-dashboard.md#fl-12-explain-a-lead) | [`document`](/architecture/sql-store.md#document), [`finding`](/architecture/sql-store.md#finding) | `AC-24` |
-| `S-SIG-10` | P1 | `B-38` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account), [FL-16](/features/evaluation-and-feedback.md#fl-16-label-passages-and-run-a-quality-check) | [`classification`](/architecture/sql-store.md#classification), [`evaluation_result`](/architecture/sql-store.md#evaluation_result) | `AC-70` |
 
 ## Flow coverage
 
@@ -100,11 +99,11 @@ empty Flows, Entities or Acceptance cell.
 |---|---|---|---|
 | [FL-01](/features/service-configuration.md#fl-01-define-a-service-and-its-signal-questions) | Define a service and its signal questions | `N-11`, `S-CFG-01`, `S-CFG-02`, `S-RUN-03` | `AC-01`, `AC-02`, `AC-03`, `AC-04`, `AC-59`, `AC-66` |
 | [FL-02](/features/service-configuration.md#fl-02-edit-and-activate-scoring-settings) | Edit and activate scoring settings | `S-CFG-03`, `S-CFG-04`, `S-CFG-06` | `AC-05`, `AC-06`, `AC-08` |
-| [FL-03](/features/service-configuration.md#fl-03-try-a-question) | Try a question | `N-06`, `S-CFG-05`, `S-SIG-08` | `AC-07`, `AC-27`, `AC-62` |
+| [FL-03](/features/service-configuration.md#fl-03-try-a-question) | Try a question | `N-06`, `S-CFG-05`, `S-SIG-08` | `AC-07`, `AC-27`, `AC-62`, `AC-70` |
 | [FL-04](/features/accounts-and-discovery.md#fl-04-import-accounts-from-a-csv-file) | Import accounts from a CSV file | `S-ACC-02`, `S-RUN-03` | `AC-10`, `AC-59` |
 | [FL-05](/features/accounts-and-discovery.md#fl-05-maintain-an-account-and-its-contacts) | Maintain an account and its contacts | `N-08`, `S-ACC-01`, `S-ACC-03`, `S-ACC-04`, `S-ACC-05` | `AC-09`, `AC-11`, `AC-12`, `AC-13`, `AC-63` |
 | [FL-06](/features/accounts-and-discovery.md#fl-06-discover-and-accept-suggested-accounts) | Discover and accept suggested accounts | `S-DSC-01`, `S-DSC-02` | `AC-14`, `AC-15` |
-| [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account) | Refresh one account | `N-02`, `N-03`, `N-05`, `N-06`, `N-09`, `N-11`, `S-ING-01`, `S-ING-02`, `S-ING-03`, `S-ING-04`, `S-ING-05`, `S-ING-06`, `S-PIP-01`, `S-PIP-03`, `S-PIP-04`, `S-PIP-05`, `S-RUN-02`, `S-SCO-01`, `S-SCO-02`, `S-SCO-03`, `S-SCO-05`, `S-SCO-08`, `S-SIG-01`, `S-SIG-02`, `S-SIG-03`, `S-SIG-04`, `S-SIG-05`, `S-SIG-06`, `S-SIG-08`, `S-SIG-09`, `S-SIG-10` | `AC-16`, `AC-17`, `AC-18`, `AC-19`, `AC-20`, `AC-21`, `AC-22`, `AC-23`, `AC-24`, `AC-25`, `AC-26`, `AC-27`, `AC-28`, `AC-30`, `AC-31`, `AC-32`, `AC-33`, `AC-34`, `AC-35`, `AC-37`, `AC-40`, `AC-49`, `AC-58`, `AC-61`, `AC-62`, `AC-64`, `AC-66`, `AC-69`, `AC-70` |
+| [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account) | Refresh one account | `N-02`, `N-03`, `N-05`, `N-06`, `N-09`, `N-11`, `S-ING-01`, `S-ING-02`, `S-ING-03`, `S-ING-04`, `S-ING-05`, `S-ING-06`, `S-PIP-01`, `S-PIP-03`, `S-PIP-04`, `S-PIP-05`, `S-RUN-02`, `S-SCO-01`, `S-SCO-02`, `S-SCO-03`, `S-SCO-05`, `S-SCO-08`, `S-SIG-01`, `S-SIG-02`, `S-SIG-03`, `S-SIG-04`, `S-SIG-05`, `S-SIG-06`, `S-SIG-08`, `S-SIG-09` | `AC-16`, `AC-17`, `AC-18`, `AC-19`, `AC-20`, `AC-21`, `AC-22`, `AC-23`, `AC-24`, `AC-25`, `AC-26`, `AC-27`, `AC-28`, `AC-30`, `AC-31`, `AC-32`, `AC-33`, `AC-34`, `AC-35`, `AC-37`, `AC-40`, `AC-49`, `AC-58`, `AC-61`, `AC-62`, `AC-64`, `AC-66`, `AC-69`, `AC-70` |
 | [FL-08](/features/signal-pipeline.md#fl-08-scheduled-refresh-cycle) | Scheduled refresh cycle | `N-05`, `N-08`, `S-PIP-02`, `S-PIP-04` | `AC-29`, `AC-31`, `AC-58`, `AC-63` |
 | [FL-09](/features/signal-pipeline.md#fl-09-reclassify-after-a-question-change) | Reclassify after a question change | `S-CFG-02`, `S-SIG-06`, `S-SIG-07` | `AC-03`, `AC-04`, `AC-25`, `AC-26` |
 | [FL-10](/features/signal-pipeline.md#fl-10-rescore-after-a-scoring-or-data-change) | Rescore after a scoring or data change | `N-04`, `S-ACC-03`, `S-CFG-04`, `S-SCO-01`, `S-SCO-02`, `S-SCO-03`, `S-SCO-04`, `S-SCO-05`, `S-SCO-06`, `S-SCO-07`, `S-SCO-08` | `AC-06`, `AC-11`, `AC-33`, `AC-34`, `AC-35`, `AC-36`, `AC-37`, `AC-38`, `AC-39`, `AC-40` |
@@ -113,8 +112,8 @@ empty Flows, Entities or Acceptance cell.
 | [FL-13](/features/prospect-dashboard.md#fl-13-override-a-disqualifier) | Override a disqualifier | `S-PRO-05`, `S-SCO-04` | `AC-36` |
 | [FL-14](/features/prospect-dashboard.md#fl-14-act-on-an-alert) | Act on an alert | `S-PRO-06` | `AC-45` |
 | [FL-15](/features/evaluation-and-feedback.md#fl-15-give-feedback-on-a-lead-or-a-signal) | Give feedback on a lead or a signal | `S-EVL-01`, `S-EVL-02` | `AC-46`, `AC-47` |
-| [FL-16](/features/evaluation-and-feedback.md#fl-16-label-passages-and-run-a-quality-check) | Label passages and run a quality check | `N-03`, `S-EVL-03`, `S-EVL-04`, `S-RUN-02`, `S-SIG-04`, `S-SIG-10` | `AC-21`, `AC-23`, `AC-48`, `AC-49`, `AC-58`, `AC-70` |
-| [FL-17](/features/outreach-and-crm.md#fl-17-draft-outreach) | Draft outreach | `N-06`, `S-OUT-01`, `S-SIG-08` | `AC-27`, `AC-50`, `AC-62` |
+| [FL-16](/features/evaluation-and-feedback.md#fl-16-label-passages-and-run-a-quality-check) | Label passages and run a quality check | `N-03`, `S-EVL-03`, `S-EVL-04`, `S-RUN-02`, `S-SIG-04` | `AC-21`, `AC-23`, `AC-48`, `AC-49`, `AC-58` |
+| [FL-17](/features/outreach-and-crm.md#fl-17-draft-outreach) | Draft outreach | `N-06`, `S-OUT-01`, `S-SIG-08` | `AC-27`, `AC-50`, `AC-62`, `AC-70` |
 | [FL-18](/features/outreach-and-crm.md#fl-18-push-to-hubspot) | Push to HubSpot | `N-06`, `S-OUT-02` | `AC-51`, `AC-62` |
 | [FL-19](/features/identity-and-access.md#fl-19-sign-in-and-sign-out) | Sign in and sign out | `N-07`, `S-SEC-01` | `AC-52`, `AC-67` |
 | [FL-20](/features/identity-and-access.md#fl-20-manage-users) | Manage users | `N-07`, `S-SEC-03` | `AC-52`, `AC-54`, `AC-67` |
@@ -133,7 +132,7 @@ empty Flows, Entities or Acceptance cell.
 | [`audit_event`](/architecture/sql-store.md#audit_event) | `N-07`, `S-ACC-02`, `S-ACC-04`, `S-AUD-01`, `S-AUD-02`, `S-CFG-05`, `S-PRO-05`, `S-RUN-02`, `S-SIG-08` |
 | [`auth_session`](/architecture/sql-store.md#auth_session) | `N-07`, `S-SEC-01`, `S-SEC-03` |
 | [`chunk`](/architecture/sql-store.md#chunk) | `N-05`, `N-08`, `S-CFG-05`, `S-EVL-03`, `S-ING-04`, `S-PRO-03`, `S-SIG-02` |
-| [`classification`](/architecture/sql-store.md#classification) | `N-03`, `N-05`, `S-SIG-02`, `S-SIG-03`, `S-SIG-04`, `S-SIG-05`, `S-SIG-07`, `S-SIG-08`, `S-SIG-10` |
+| [`classification`](/architecture/sql-store.md#classification) | `N-03`, `N-05`, `S-SIG-02`, `S-SIG-03`, `S-SIG-04`, `S-SIG-05`, `S-SIG-07`, `S-SIG-08` |
 | [`contact`](/architecture/sql-store.md#contact) | `N-08`, `S-ACC-04`, `S-OUT-01` |
 | [`crm_sync`](/architecture/sql-store.md#crm_sync) | `S-OUT-02` |
 | [`discovery_candidate`](/architecture/sql-store.md#discovery_candidate) | `S-DSC-01`, `S-DSC-02` |
@@ -141,7 +140,7 @@ empty Flows, Entities or Acceptance cell.
 | [`document`](/architecture/sql-store.md#document) | `N-05`, `N-08`, `N-09`, `S-DSC-01`, `S-ING-02`, `S-ING-03`, `S-PRO-02`, `S-PRO-03`, `S-RUN-02`, `S-SIG-01`, `S-SIG-09` |
 | [`document_triage`](/architecture/sql-store.md#document_triage) | `S-SIG-01`, `S-SIG-07` |
 | [`evaluation_item`](/architecture/sql-store.md#evaluation_item) | `S-EVL-02`, `S-EVL-03`, `S-EVL-04`, `S-RUN-03`, `S-SIG-07` |
-| [`evaluation_result`](/architecture/sql-store.md#evaluation_result) | `N-03`, `S-EVL-04`, `S-SIG-04`, `S-SIG-10` |
+| [`evaluation_result`](/architecture/sql-store.md#evaluation_result) | `N-03`, `S-EVL-04`, `S-SIG-04` |
 | [`finding`](/architecture/sql-store.md#finding) | `N-01`, `N-05`, `S-EVL-02`, `S-OUT-01`, `S-PRO-01`, `S-PRO-02`, `S-PRO-03`, `S-SCO-02`, `S-SCO-03`, `S-SCO-08`, `S-SIG-05`, `S-SIG-06`, `S-SIG-07`, `S-SIG-09` |
 | [`finding_feedback`](/architecture/sql-store.md#finding_feedback) | `S-EVL-02` |
 | [`job`](/architecture/sql-store.md#job) | `N-05`, `N-11`, `S-PIP-01`, `S-PIP-03`, `S-PIP-04` |
@@ -189,12 +188,11 @@ empty Flows, Entities or Acceptance cell.
 | `B-30` | `N-07`, `S-SEC-01`, `S-SEC-02`, `S-SEC-03` | `AC-52`, `AC-53`, `AC-54`, `AC-67` |
 | `B-31` | `S-AUD-01` | `AC-55` |
 | `B-32` | `S-AUD-02` | `AC-56` |
-| `B-33` | `N-03`, `S-ING-02`, `S-PIP-05`, `S-SIG-08` | `AC-16`, `AC-27`, `AC-32`, `AC-49` |
+| `B-33` | `N-03`, `S-ING-02`, `S-PIP-05`, `S-SIG-08` | `AC-16`, `AC-27`, `AC-32`, `AC-49`, `AC-70` |
 | `B-34` | `N-12`, `S-RUN-01` | `AC-57`, `AC-67` |
 | `B-35` | `S-RUN-02`, `S-RUN-03` | `AC-58`, `AC-59` |
 | `B-36` | `S-ING-05` | `AC-19` |
 | `B-37` | `S-ING-06` | `AC-69` |
-| `B-38` | `S-SIG-10` | `AC-70` |
 | `RULE-01` | `N-09` | `AC-64` |
 | `RULE-02` | `N-06`, `S-SIG-05` | `AC-24`, `AC-62` |
 | `RULE-03` | `S-SCO-08` | `AC-40` |
