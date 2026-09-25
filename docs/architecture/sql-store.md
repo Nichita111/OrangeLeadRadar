@@ -10,7 +10,7 @@ tags: [accounts-and-discovery, audit-trail, evaluation-and-feedback, identity-an
 
 LeadRadar has one store: PostgreSQL with the `pgvector` extension ([ADR-01](/architecture/adrs/adr-01-one-postgresql-store.md)). It holds configuration, accounts, fetched documents and their passages with embeddings, classifier answers, findings, scores, feedback, drafts, the job queue and the audit. Which service writes which table is the [store ownership](/architecture/overview.md#store-ownership) table.
 
-Every table has `id` (uuid), `created_at` and `updated_at` (timestamptz, UTC); they are omitted from the column tables below. Column types are PostgreSQL names. Foreign keys use `RESTRICT` on delete. Rows are deactivated or superseded, never deleted, except the tables of the [hard-delete allow-list](#hard-delete-allow-list). Each domain opens with a diagram of its tables and a selection of columns; only the column tables are complete. An enum is defined once, under the column that owns it, and every other column of that enum links there.
+Every table has `id` (uuid), `created_at` and `updated_at` (timestamptz, UTC); they are omitted from the column tables below. Column types are PostgreSQL names. Foreign keys use `RESTRICT` on delete, except [`outreach_draft`](#outreach_draft) `contact_id`, which uses `SET NULL` because a contact is erased. Rows are deactivated or superseded, never deleted, except the tables of the [hard-delete allow-list](#hard-delete-allow-list). Each domain opens with a diagram of its tables and a selection of columns; only the column tables are complete. An enum is defined once, under the column that owns it, and every other column of that enum links there.
 
 ## Identity
 
@@ -108,7 +108,7 @@ One configurable question a passage can answer for a service. Weight and half-li
 | `source_types` | text[] | The document source types the question is asked against; each element is a value of [`document`](#document) `source_type`. At least one. |
 | `hint_terms` | text[] | Optional search terms in any language. Used to build news queries and discovery searches ([Fetch window](/architecture/rules.md#fetch-window), [Discovery](/architecture/rules.md#discovery)); never used to decide an answer. |
 | `revision` | integer | 1 on creation; incremented by any change to `text`, `answer_type`, `options` or `source_types`, which triggers [Reclassification](/architecture/rules.md#reclassification). A change to `hint_terms` or `status` does not. |
-| `status` | enum: `ACTIVE`, `INACTIVE` | An inactive question is not classified or scored; its findings are kept. |
+| `status` | enum: `ACTIVE`, `INACTIVE` | An inactive question is not classified and is left out of the service's draft; its findings are kept and stop counting once a scoring version without it is activated. A new or reactivated question counts once a scoring version with it is activated. |
 
 ### scoring_config
 
@@ -205,7 +205,7 @@ A company that may buy. Accounts are shared by the whole team.
 | `industry` | enum, null | One of the industry values below. |
 | `employee_count` | integer, null | Number of employees. |
 | `revenue_eur` | bigint, null | Annual revenue in EUR. |
-| `operational_complexity` | enum: `LOW`, `MEDIUM`, `HIGH`, null | How complex the company's operations are: countries, business units and headcount. Entered, or classified by [Account attributes](/architecture/rules.md#account-attributes). |
+| `operational_complexity` | enum: `LOW`, `MEDIUM`, `HIGH`, null | How complex the company's operations are, by the countries it operates in and its business units; headcount is `employee_count`. `LOW`: at most 2 countries and one business unit. `MEDIUM`: 3 to 10 countries, or 2 to 4 business units. `HIGH`: more than 10 countries, or 5 or more business units. When the two measures point to different levels, the higher applies. Entered, or classified by [Account attributes](/architecture/rules.md#account-attributes). |
 | `attribute_origin` | jsonb | Object: attribute name → `MANUAL`, `CRUNCHBASE` or `CLASSIFIER`, for `country_code`, `industry`, `employee_count`, `revenue_eur` and `operational_complexity`. A `MANUAL` value is never overwritten by a plug-in or the classifier. |
 | `parent_account_id` | uuid FK → [`account`](#account), null | Group parent, e.g. SWISS → Lufthansa Group. Display and navigation only; findings are never inherited. |
 | `origin` | enum: `IMPORTED`, `MANUAL`, `DISCOVERED` | How the account entered: CSV import, manual entry, or an accepted [`discovery_candidate`](#discovery_candidate). |
@@ -450,8 +450,10 @@ A passage of a document: the unit the classifier reads and a finding quotes.
 | `ordinal` | integer | Position in the document, from 0. |
 | `char_start` | integer | Start offset in the document's text. |
 | `char_end` | integer | End offset, exclusive. |
+| `section` | text, null | Section path, headings joined with ` › `, or `page N` for a PDF without an outline; null when the document has no sections or is one passage ([Chunking and passage selection](/architecture/rules.md#chunking-and-passage-selection)). |
 | `text` | text, null | The passage; null once purged unless an [`evaluation_item`](#evaluation_item) references it. |
-| `embedding` | vector(`EMBEDDING_DIM`), null | Dense bge-m3 embedding ([ADR-08](/architecture/adrs/adr-08-multilingual-embeddings.md)); null once purged. |
+| `embedding` | vector(`EMBEDDING_DIM`), null | Dense bge-m3 embedding of `text` ([ADR-08](/architecture/adrs/adr-08-multilingual-embeddings.md)); null once purged. |
+| `lexemes` | tsvector, generated, null | `to_tsvector('simple', text)`, for the keyword ranking of question-scoped retrieval; null once `text` is purged. |
 
 ## Signals and scores
 
@@ -516,7 +518,7 @@ The classifier's answer to one question on one passage, at one question revision
 | `answer` | jsonb | The classifier's probability for every answer value of the question. |
 | `p_positive` | numeric 0–1 | Probability mass of the answer values whose strength is not `NONE`. |
 | `escalated` | boolean | Whether [Escalation](/architecture/rules.md#escalation) sent the pair to the LLM. |
-| `strength` | enum | Final strength after escalation; a [`finding`](#finding) `strength` value. |
+| `strength` | enum, null | Final strength after escalation; a [`finding`](#finding) `strength` value. Null while `PENDING_LLM`. |
 | `status` | enum: `NEGATIVE`, `POSITIVE`, `PENDING_LLM`, `EVIDENCE_FAILED` | `NEGATIVE`: final, strength `NONE`, no finding. `POSITIVE`: final, a finding exists. `PENDING_LLM`: escalation or evidence is waiting for the LLM (budget or availability). `EVIDENCE_FAILED`: positive, but no verbatim quote could be obtained; retried by the next refresh. |
 
 ### finding
@@ -533,6 +535,7 @@ A positive answer to a signal question, backed by a verbatim quote ([RULE-02](/r
 | `strength` | enum: `NONE`, `WEAK`, `MEDIUM`, `STRONG` | How strongly the passage answers the question. `NONE` means no signal and is never stored on a finding; it exists for [`classification`](#classification) and [`evaluation_item`](#evaluation_item). `WEAK`: mentioned or implied. `MEDIUM`: stated. `STRONG`: stated with commitment — a programme, budget, target, date, hire or appointment. |
 | `confidence` | numeric 0–1 | `p_positive` of the classification, or the LLM's confidence when escalated. |
 | `decided_by` | enum: `CLASSIFIER`, `LLM` | Whether the classifier's answer was accepted or the LLM decided after escalation. |
+| `option_key` | text, null | `CHOICE` questions only: the `key` of the option the passage matched, from the question's `options`; its strength is `strength`. |
 | `quote` | text | Verbatim substring of the passage, in the original language. |
 | `quote_en` | text, null | English translation of `quote`; null when the document language is `en`. |
 | `rationale` | text | One English sentence: why the quote answers the question. |
@@ -698,7 +701,7 @@ A message draft for a person to send themselves ([RULE-06](/requirements/busines
 |---|---|---|
 | `account_id` | uuid FK → [`account`](#account) | The account. |
 | `service_id` | uuid FK → [`service`](#service) | The service it proposes. |
-| `contact_id` | uuid FK → [`contact`](#contact), null | Addressee, when chosen; set to null if the contact is erased. |
+| `contact_id` | uuid FK → [`contact`](#contact), null, `ON DELETE SET NULL` | Addressee, when chosen; set to null when the contact is erased. |
 | `channel` | enum: `EMAIL`, `LINKEDIN_INMAIL` | Email (subject and body) or LinkedIn InMail (body only). |
 | `subject` | text, null | `EMAIL` only. |
 | `body` | text | Message text. |
@@ -742,7 +745,7 @@ The append-only record of who did what ([RULE-09](/requirements/business.md#busi
 
 ## Audit actions
 
-The closed vocabulary of `audit_event.action`. **AI call payload**: `ai_role` (a role of [AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries)), `provider` (`JEV` or `ANTHROPIC`), `model`, `prompt_version` (null for `JEV`), `items` (passages or questions in the call), `input_tokens`, `output_tokens`, `cost_eur`, `latency_ms`, `outcome` (`OK`, `TIMEOUT`, `ERROR`, `INVALID_OUTPUT`), `fixture` (true when replayed).
+The closed vocabulary of `audit_event.action`. **AI call payload**: `ai_role` (a role of [AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries)), `provider` (`JEV` or `OPENROUTER`), `model` (the OpenRouter model id for `OPENROUTER`), `prompt_version` (null for `JEV`), `items` (passages or questions in the call), `input_tokens`, `output_tokens`, `cost_eur`, `latency_ms`, `outcome` (`OK`, `TIMEOUT`, `ERROR`, `INVALID_OUTPUT`), `fixture` (true when replayed).
 
 | Action | Kind | Entity | Payload |
 |---|---|---|---|
@@ -794,7 +797,7 @@ Only these tables have rows deleted:
 - `document (account_id, content_hash)` is unique with `NULLS NOT DISTINCT`, so discovery documents without an account are deduplicated too; the same canonical URL with new content is a new document ([Document normalisation](/architecture/rules.md#document-normalisation)).
 - Partial unique indexes: one `scoring_config` with `status = 'DRAFT'` and one with `status = 'ACTIVE'` per service; one `account_score` with `is_current` per account and service; one `pipeline_run` of kind `ACCOUNT_REFRESH` with status `QUEUED` or `RUNNING` per account; one `ACTIVE` `disqualifier_override` per account, service and rule key; one `ACTIVE` `evaluation_item` per passage, question and revision.
 - `finding.classification_id`, `alert.finding_id`, `alert.score_id`, `document_triage.document_id` and `evaluation_result.run_id` are unique.
-- `chunk.embedding` has an HNSW index with cosine distance.
+- `chunk.embedding` has an HNSW index with cosine distance; `chunk.lexemes` has a GIN index.
 - `job (status, priority, not_before)` is indexed for claiming; `audit_event (kind, occurred_at)` and `audit_event (run_id)` for filtering and the [Budget guard](/architecture/rules.md#budget-guard); `finding (account_id, status)` and `account_score (service_id, is_current, standing, priority)` for Prospects.
 - Check constraints: every 0–1 probability and every 0–100 score is within range; `account_score.band` is null unless `standing = 'RANKED'`; `signal_question.options` is non-null exactly when `answer_type = 'CHOICE'`.
 - The schema is created and changed only by Alembic migrations owned by the [api service](/architecture/services/api.md#owns).

@@ -206,7 +206,7 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 | Field | Type | Source of truth |
 |---|---|---|
 | `classifier` | enum | [`document_triage`](/architecture/sql-store.md#document_triage) `classifier`: the configured adapter |
-| `results` | array of preview results, at most `PREVIEW_MAX_PASSAGES` | the passages most similar to the question, as [Chunking and passage selection](/architecture/rules.md#chunking-and-passage-selection) ranks them |
+| `results` | array of preview results, at most `PREVIEW_MAX_PASSAGES` | the passages ranked first for the question by [question-scoped retrieval](/architecture/rules.md#chunking-and-passage-selection) |
 | `results[].passage` | string | the passage text |
 | `results[].document` | `{title, url, published_at}`, null | the passage's [`document`](/architecture/sql-store.md#document); null for pasted text |
 | `results[].p_positive`, `results[].escalated` | number, boolean | as [`classification`](/architecture/sql-store.md#classification) would store them |
@@ -290,7 +290,7 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 
 - `API-20` — `q` matches the name, any alias or the domain.
 - `API-21` — the domain is normalised by [Account identity](/architecture/rules.md#account-identity); an existing domain answers `409 CONFLICT` with `details.entity_id`. Creates the name alias, the `WEBSITE` source and any sources given, with `next_refresh_at` = now.
-- `API-22` — at most `IMPORT_MAX_ROWS` rows, else `422`. Each row is matched by [Account identity](/architecture/rules.md#account-identity): a new domain is created; an existing domain is updated with the columns the row fills, as `MANUAL` values; a new domain whose name matches another account is reported `POSSIBLE_DUPLICATE` and skipped; an invalid row is reported with its errors. With `dry_run` true nothing is written.
+- `API-22` — at most `IMPORT_MAX_ROWS` rows, else `422`. Each row is matched by [Account identity](/architecture/rules.md#account-identity): a new domain is created; an existing domain is updated with the columns the row fills, as `MANUAL` values, and an update that changes an attribute enqueues a `RESCORE` with trigger `ACCOUNT_CHANGE` for that account, as `API-24` does; a new domain whose name matches another account is reported `POSSIBLE_DUPLICATE` and skipped; an invalid row is reported with its errors. With `dry_run` true nothing is written.
 - `API-24` — `aliases` replaces the aliases (the name alias is kept); `sources` replaces the `MANUAL` sources and may set a `DETECTED` source's status. Any attribute change enqueues a `RESCORE` with trigger `ACCOUNT_CHANGE`.
 - `API-26`, `API-27` — a contact without `source_url` answers `422`; a body field not in the shape, such as an email address, answers `422`. The persona is mapped by [Persona mapping](/architecture/rules.md#persona-mapping) unless one is given.
 - `API-28` — erases the contact as [Retention and erasure](/architecture/rules.md#retention-and-erasure) states, with reason `REQUEST`.
@@ -358,6 +358,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `careers_url` | optional | [`account_source`](/architecture/sql-store.md#account_source) of kind `CAREERS` |
 | `investor_relations_url` | optional | [`account_source`](/architecture/sql-store.md#account_source) of kind `INVESTOR_RELATIONS` |
 | `rss_url` | optional | [`account_source`](/architecture/sql-store.md#account_source) of kind `RSS_FEED` |
+| `operational_complexity` | optional | [`account`](/architecture/sql-store.md#account) `operational_complexity` |
 | `linkedin_url` | optional | [`account`](/architecture/sql-store.md#account) |
 | `notes` | optional | [`account`](/architecture/sql-store.md#account) |
 
@@ -437,13 +438,13 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `API-33` | POST | `/accounts/{id}/refresh` | `*` | — → [`Run`](#run) |
 | `API-34` | GET | `/runs` | `*` | query `kind`, `status`, `account_id`, `service_id` → `Page<`[`Run`](#run)`>` |
 | `API-35` | GET | `/runs/{id}` | `*` | — → [`Run`](#run) |
-| `API-36` | POST | `/runs/{id}/cancel` | `*` | — → [`Run`](#run) |
+| `API-36` | POST | `/runs/{id}/cancel` | `*`; `A` for `RECLASSIFY`, `RESCORE` and `EVALUATION` runs | — → [`Run`](#run) |
 | `API-37` | GET | `/source-plugins` | `A` | — → [`SourcePlugin`](#sourceplugin)`[]` |
 | `API-38` | PATCH | `/source-plugins/{code}` | `A` | [`SourcePluginUpdate`](#sourcepluginupdate) → [`SourcePlugin`](#sourceplugin) |
 
 - `API-33` — an inactive account answers `409`. The frontend polls `API-35` for progress ([ADR-13](/architecture/adrs/adr-13-run-progress-by-polling.md)).
 - `API-34` — newest first.
-- `API-36` — cancels its `READY` jobs; running jobs finish their current step; the run ends `CANCELLED`. A finished run answers `409`.
+- `API-36` — a `RECLASSIFY`, `RESCORE` or `EVALUATION` run can be cancelled by an Admin only (`403 FORBIDDEN` for Sales), so a user cannot leave a question's stored passages or a scoring version half applied. It cancels the run's `READY` jobs; running jobs finish their current step; the run ends `CANCELLED`. A finished run answers `409`.
 
 ### Runs and source plug-ins shapes
 
@@ -547,6 +548,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `question` | `{id, key, text, polarity}` | [`signal_question`](/architecture/sql-store.md#signal_question) |
 | `question_revision`, `confidence`, `quote`, `quote_en`, `rationale`, `observed_at` | | [`finding`](/architecture/sql-store.md#finding) |
 | `strength`, `decided_by`, `status` | enum | [`finding`](/architecture/sql-store.md#finding) |
+| `option` | `{key, label}`, null | the question's option named by [`finding`](/architecture/sql-store.md#finding) `option_key`; `CHOICE` only |
 | `document` | `{id, title, url, source_type, plugin_code, language, published_at}` | [`document`](/architecture/sql-store.md#document) |
 | `points` | number, null | the finding's `points` in the current breakdown; null when it is not the counted finding of its question |
 | `feedback` | `{verdict, user_name, created_at}`, null | the in-force [`finding_feedback`](/architecture/sql-store.md#finding_feedback) |
@@ -557,6 +559,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 |---|---|---|
 | `finding_id` | string | [`finding`](/architecture/sql-store.md#finding) |
 | `document` | as in [`FindingView`](#findingview) | [`document`](/architecture/sql-store.md#document) |
+| `section` | string, null | the passage's [`chunk`](/architecture/sql-store.md#chunk) `section` |
 | `purged` | boolean | whether the document's `purged_at` is set |
 | `excerpt` | string, null | the passage with up to `EVIDENCE_CONTEXT_CHARS` of document text on each side; null when purged |
 | `quote_start`, `quote_end` | integer, null | offsets of the quote in `excerpt` |
@@ -762,7 +765,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 
 ## Classifier
 
-The in-process port every classification goes through ([ADR-02](/architecture/adrs/adr-02-classification-cascade.md)). Two adapters implement it, selected by `CLASSIFIER_PROVIDER`: `JEV` calls TypeSafe's Jev; `LLM` asks `LLM_CLASSIFIER_MODEL` for the same probabilities through structured output. Both are behind the [AI gateway](/architecture/services/worker.md#ai-gateway).
+The in-process port every classification goes through ([ADR-02](/architecture/adrs/adr-02-classification-cascade.md)). Two adapters implement it, selected by `CLASSIFIER_PROVIDER`: `JEV` calls TypeSafe's Jev through OpenRouter's Decisions API; `LLM` asks `LLM_CLASSIFIER_MODEL` for the same probabilities through structured output. Both are behind the [AI gateway](/architecture/services/worker.md#ai-gateway).
 
 ### Classifier contracts
 
@@ -780,7 +783,7 @@ The in-process port every classification goes through ([ADR-02](/architecture/ad
 | Field | Type | Source of truth |
 |---|---|---|
 | `state` | string | the text judged: a passage, or a document's title and opening |
-| `context` | string, optional | one line naming the account, e.g. "Company: Lufthansa Group (lufthansagroup.com, DE)" |
+| `context` | string, optional | for a passage, its passage header of [Chunking and passage selection](/architecture/rules.md#chunking-and-passage-selection); for triage, one line naming the account, e.g. "Company: Lufthansa Group (lufthansagroup.com, DE)" |
 | `questions` | array of `{id, kind, text, options}` | `kind` is `YES_NO`, `SCALE` or `CHOICE`; `options` is `[{key, label}]` for `SCALE` and `CHOICE`; built by [Signal classification](/architecture/rules.md#signal-classification) and [Triage](/architecture/rules.md#triage) |
 
 #### ClassifierAnswer
@@ -792,7 +795,7 @@ The in-process port every classification goes through ([ADR-02](/architecture/ad
 
 ## LLM
 
-The in-process port for the four generation roles, all calling Anthropic's Messages API with a versioned prompt and structured output ([AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries)).
+The in-process port for the four generation roles, all calling OpenRouter's chat completions API with a versioned prompt and structured output ([AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries)).
 
 ### LLM contracts
 
@@ -814,12 +817,14 @@ The in-process port for the four generation roles, all calling Anthropic's Messa
 | `account_name` | string | [`account`](/architecture/sql-store.md#account) |
 | `question` | `{text, answer_type, options}` | [`signal_question`](/architecture/sql-store.md#signal_question) |
 | `passage`, `language` | string | [`chunk`](/architecture/sql-store.md#chunk), [`document`](/architecture/sql-store.md#document) |
+| `header` | string | the passage header of [Chunking and passage selection](/architecture/rules.md#chunking-and-passage-selection); never a source of the quote |
 
 #### EscalationOutput
 
 | Field | Type | Source of truth |
 |---|---|---|
-| `strength` | enum | [`finding`](/architecture/sql-store.md#finding) `strength`, `NONE` included |
+| `strength` | enum | [`finding`](/architecture/sql-store.md#finding) `strength`, `NONE` included; for a `CHOICE` question, the strength of `option_key` |
+| `option_key` | string, null | `CHOICE` only: the key of the chosen option; becomes [`finding`](/architecture/sql-store.md#finding) `option_key` |
 | `confidence` | number 0–1 | becomes [`finding`](/architecture/sql-store.md#finding) `confidence` |
 | `quote`, `quote_en`, `rationale` | string, null | as [`EvidenceOutput`](#evidenceoutput); null when `strength` is `NONE` |
 

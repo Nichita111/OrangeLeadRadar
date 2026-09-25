@@ -44,7 +44,7 @@ Route `/audit`. Admin only.
 ├─────────────────────┬──────────────┬─────────────────┬───────────────────────┤
 │ When                │ Who          │ Action          │ Subject               │
 ├─────────────────────┼──────────────┼─────────────────┼───────────────────────┤
-│ 2026-09-25 09:14:02 │ system       │ AI_CALL         │ ESCALATION · claude-sonnet-5 · v2 · €0.012 · 1.8 s · OK │
+│ 2026-09-25 09:14:02 │ system       │ AI_CALL         │ ESCALATION · google/gemini-2.5-flash · v2 · €0.012 · 1.8 s · OK │
 │ 2026-09-25 09:13:57 │ system       │ AI_CALL         │ CLASSIFIER · JEV · 6 questions · 0.2 s · OK │
 │ 2026-09-25 08:40:11 │ Olga Admin   │ SCORING_ACTIVATED │ Intelligent Automation v3 "Hiring counts less" │
 └─────────────────────┴──────────────┴─────────────────┴───────────────────────┘

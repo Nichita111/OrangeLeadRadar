@@ -24,7 +24,7 @@ Consumes every REST family of [interfaces](/architecture/interfaces.md) through 
 
 ## Design
 
-React with TypeScript in strict mode, built by Vite; React Router for routes; TanStack Query for server state, caching and polling; a typed client generated with `openapi-typescript`; Tailwind CSS with Radix-based components for accessible primitives. Icons come from one family, Phosphor (`@phosphor-icons/react`), at one stroke weight. Type is Geist and Geist Mono, self-hosted by the `web` container. Animation uses `motion`, and the animated components of [Motion](#motion) are copied from React Bits ([ADR-15](/architecture/adrs/adr-15-animated-components-from-react-bits.md)). The build is static files served by the `web` container, which proxies `/api/v1` to `API_UPSTREAM`.
+React with TypeScript in strict mode, built by Vite; React Router for routes; TanStack Query for server state, caching and polling; a typed client generated with `openapi-typescript`; Tailwind CSS with Radix-based components for accessible primitives. Icons come from one family, Phosphor (`@phosphor-icons/react`), at one stroke weight. Type is Geist and Geist Mono, self-hosted by the `web` container. Animation uses `motion`, and the animated components of [Motion](#motion) are copied from React Bits ([ADR-17](/architecture/adrs/adr-17-animated-components-from-react-bits.md)). The build is static files served by the `web` container, which proxies `/api/v1` to `API_UPSTREAM`.
 
 ## Routes
 
@@ -227,7 +227,7 @@ The words the screens show for glossary terms. A label is a presentation of the 
 
 ## Motion
 
-Motion tells a user that something changed. It never carries meaning alone, never delays a task, and every pattern below collapses to an instant change under `prefers-reduced-motion`. Only transform and opacity are animated. The animated components come from [React Bits](https://reactbits.dev), installed through its shadcn registry in the TypeScript and Tailwind variant and copied into `apps/web/src/components/motion/` ([ADR-15](/architecture/adrs/adr-15-animated-components-from-react-bits.md)); the Motion library supplies the rest.
+Motion tells a user that something changed. It never carries meaning alone, never delays a task, and every pattern below collapses to an instant change under `prefers-reduced-motion`. Only transform and opacity are animated. The animated components come from [React Bits](https://reactbits.dev), installed through its shadcn registry in the TypeScript and Tailwind variant and copied into `apps/web/src/components/motion/` ([ADR-17](/architecture/adrs/adr-17-animated-components-from-react-bits.md)); the Motion library supplies the rest.
 
 | Pattern | React Bits family | Where | What it communicates |
 |---|---|---|---|

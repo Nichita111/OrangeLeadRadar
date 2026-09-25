@@ -26,7 +26,7 @@ sequenceDiagram
   participant P as source plug-ins
   participant E as embedder
   participant C as classifier (Jev or LLM)
-  participant L as Anthropic LLM
+  participant L as OpenRouter LLM
   Sales->>Web: Refresh now
   Web->>API: refresh (API-33)
   API->>DB: run QUEUED with one FETCH job per available plug-in
@@ -50,7 +50,7 @@ sequenceDiagram
 
 1. A refresh starts from Refresh now on [Account detail](/features/prospect-dashboard.md#account-detail) or from the scheduler; a second request while one is queued or running returns the same run.
 2. Each available plug-in fetches within the [Fetch window](/architecture/rules.md#fetch-window); a failing plug-in is recorded and the others continue.
-3. [Document normalisation](/architecture/rules.md#document-normalisation) stores each new item once; [Chunking and passage selection](/architecture/rules.md#chunking-and-passage-selection) splits and embeds it.
+3. [Document normalisation](/architecture/rules.md#document-normalisation) stores each new item once; [Chunking and passage selection](/architecture/rules.md#chunking-and-passage-selection) keeps a short item whole, splits a long one at its sections, and embeds every passage; each question then retrieves its own passages of a long document by keyword and by meaning.
 4. The [signal graph](/architecture/services/worker.md#signal-graph) triages, classifies, escalates and extracts evidence, resuming the account's pairs left waiting by an earlier run.
 5. The `SCORE` stage rescores every active service of the account and raises alerts.
 6. The run ends `SUCCEEDED`, `PARTIAL` with its reasons, or `FAILED`.
@@ -81,9 +81,9 @@ sequenceDiagram
 4. Rules: in pipeline order, [Refresh scheduling](/architecture/rules.md#refresh-scheduling), [Plug-in availability](/architecture/rules.md#plug-in-availability), [Fetch window](/architecture/rules.md#fetch-window), [Source detection](/architecture/rules.md#source-detection), [Account attributes](/architecture/rules.md#account-attributes), [Document normalisation](/architecture/rules.md#document-normalisation), [Chunking and passage selection](/architecture/rules.md#chunking-and-passage-selection), [Triage](/architecture/rules.md#triage), [Signal classification](/architecture/rules.md#signal-classification), [Escalation](/architecture/rules.md#escalation), [Evidence extraction](/architecture/rules.md#evidence-extraction), [Budget guard](/architecture/rules.md#budget-guard), [Reclassification](/architecture/rules.md#reclassification), then scoring: [Recency decay](/architecture/rules.md#recency-decay), [Fit score](/architecture/rules.md#fit-score), [Intent score](/architecture/rules.md#intent-score), [Disqualification](/architecture/rules.md#disqualification), [Priority, standing and band](/architecture/rules.md#priority-standing-and-band), [Score breakdown](/architecture/rules.md#score-breakdown), [Rescoring](/architecture/rules.md#rescoring), [Alerts](/architecture/rules.md#alerts), [Retention and erasure](/architecture/rules.md#retention-and-erasure) and the [Examples](/architecture/rules.md#examples).
 5. Interfaces: [Runs and source plug-ins](/architecture/interfaces.md#runs-and-source-plug-ins) (`API-33` to `API-38`), [Classifier](/architecture/interfaces.md#classifier) (`API-62`), [LLM](/architecture/interfaces.md#llm) (`API-63`, `API-64`), [Embedder](/architecture/interfaces.md#embedder) (`API-67`), [Source plug-ins](/architecture/interfaces.md#source-plug-ins) (`API-68`).
 6. Services: the [worker](/architecture/services/worker.md) — job queue, run lifecycle, signal graph, AI gateway, source plug-ins, scheduler, runtime keys; the [api](/architecture/services/api.md) for enqueueing; the frontend's [Polling](/architecture/services/frontend.md#polling); in the [architecture overview](/architecture/overview.md), [AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries), [Degradation](/architecture/overview.md#degradation), fixture mode under [Runtime](/architecture/overview.md#runtime) and the [demo dataset](/architecture/overview.md#demo-dataset).
-7. Decisions: [ADR-01](/architecture/adrs/adr-01-one-postgresql-store.md), [ADR-02](/architecture/adrs/adr-02-classification-cascade.md), [ADR-03](/architecture/adrs/adr-03-models-answer-rules-score.md), [ADR-04](/architecture/adrs/adr-04-postgres-job-queue-and-a-worker.md), [ADR-05](/architecture/adrs/adr-05-langgraph-only-for-the-signal-graph.md), [ADR-06](/architecture/adrs/adr-06-rule-based-scoring-with-versioned-settings.md), [ADR-07](/architecture/adrs/adr-07-source-plug-ins-with-a-free-core.md), [ADR-08](/architecture/adrs/adr-08-multilingual-embeddings.md), [ADR-09](/architecture/adrs/adr-09-findings-per-passage-and-question-revision.md), [ADR-11](/architecture/adrs/adr-11-recorded-fixtures.md), [ADR-13](/architecture/adrs/adr-13-run-progress-by-polling.md).
+7. Decisions: [ADR-01](/architecture/adrs/adr-01-one-postgresql-store.md), [ADR-02](/architecture/adrs/adr-02-classification-cascade.md), [ADR-03](/architecture/adrs/adr-03-models-answer-rules-score.md), [ADR-04](/architecture/adrs/adr-04-postgres-job-queue-and-a-worker.md), [ADR-05](/architecture/adrs/adr-05-langgraph-only-for-the-signal-graph.md), [ADR-06](/architecture/adrs/adr-06-rule-based-scoring-with-versioned-settings.md), [ADR-07](/architecture/adrs/adr-07-source-plug-ins-with-a-free-core.md), [ADR-08](/architecture/adrs/adr-08-multilingual-embeddings.md), [ADR-09](/architecture/adrs/adr-09-findings-per-passage-and-question-revision.md), [ADR-11](/architecture/adrs/adr-11-recorded-fixtures.md), [ADR-13](/architecture/adrs/adr-13-run-progress-by-polling.md), [ADR-15](/architecture/adrs/adr-15-openrouter-as-the-llm-provider.md), [ADR-16](/architecture/adrs/adr-16-question-scoped-hybrid-passage-selection.md).
 8. Screens: [Runs](#runs), [Source plug-ins](#source-plug-ins); Refresh now on [Account detail](/features/prospect-dashboard.md#account-detail).
-9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-03`, `AC-04`, `AC-06`, `AC-11`, `AC-16` to `AC-40`, `AC-49`, `AC-58`, `AC-61` to `AC-64`, `AC-66`, `AC-69`.
+9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-03`, `AC-04`, `AC-06`, `AC-11`, `AC-16` to `AC-40`, `AC-49`, `AC-58`, `AC-61` to `AC-64`, `AC-66`, `AC-69` to `AC-73`.
 
 ## Runs
 
@@ -117,7 +117,7 @@ WF-10 — Runs
 | `FR-054` | The screen shall list runs newest first with kind, subject (account, service or question), trigger, requester, start time, duration, status and a one-line progress summary, filtered by kind, status and account. |
 | `FR-055` | Selecting a run shall show its stages in order with done, current and pending marks, its counters in plain words, and each error with its stage and plug-in; an Admin also sees the run's AI cost. |
 | `FR-056` | A `PARTIAL` run shall say why in one line: which plug-ins failed and how many signals are waiting for the next refresh. |
-| `FR-057` | Cancel shall be offered on a queued or running run and confirm that running steps finish first. |
+| `FR-057` | Cancel shall be offered on a queued or running run — to Admins only for reclassification, rescore and quality-check runs — and confirm that running steps finish first. |
 | `FR-058` | A live run shall update by polling as the frontend's [Polling](/architecture/services/frontend.md#polling) states. |
 
 Obligations: `S-PIP-01`, `S-PIP-03`, `S-SIG-08`.
@@ -159,5 +159,5 @@ Obligations: `S-PIP-05`, `S-ING-01`.
 
 ## Open questions
 
-- The exact Jev request and response fields, request size limits and language coverage are not yet published outside early access; the [Jev adapter](/architecture/services/worker.md#ai-gateway) is specified by the mapping it must perform. Missing: TypeSafe's API reference and a key. Decides: the team, once the key is provisioned; the quality check on the labelled set decides whether `CLASSIFIER_PROVIDER` becomes `JEV`.
+- Jev's language coverage is not published; the quality check on the labelled set, which includes German passages, decides whether `CLASSIFIER_PROVIDER` becomes `JEV`. Decides: the team.
 - Whether each demo account's careers source is one of the supported applicant-tracking hosts or needs crawling. Missing: the recording. Decides: the team while recording fixtures.

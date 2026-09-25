@@ -25,7 +25,7 @@ A term is the one name of its concept in prose. **Identifier** is the name code,
 | Answer type | How a signal question is answered: yes/no, scale or choice. | `answer_type` | [`signal_question`](/architecture/sql-store.md#signal_question) |
 | Audit event | One append-only record of an action. | `audit_event` | [`audit_event`](/architecture/sql-store.md#audit_event) |
 | Band | Hot, Warm or Cold, from a ranked account's Priority. | `band` | [Priority, standing and band](/architecture/rules.md#priority-standing-and-band) |
-| Budget guard | The rule that stops Anthropic calls once the day's spend reaches its cap. | — | [Budget guard](/architecture/rules.md#budget-guard) |
+| Budget guard | The rule that stops LLM calls — OpenRouter chat completions — once the day's spend reaches its cap; Jev calls are not capped. | — | [Budget guard](/architecture/rules.md#budget-guard) |
 | Calibration | How closely classifier confidence matches the observed share of positives. | `calibration` | [Evaluation metrics](/architecture/rules.md#evaluation-metrics) |
 | Classification | The classifier's answer to one question on one passage at one question revision. | `classification` | [`classification`](/architecture/sql-store.md#classification) |
 | Classifier | The fast model that returns probabilities over fixed answers: Jev, or the LLM classifier adapter. | `CLASSIFIER` | [Classifier](/architecture/interfaces.md#classifier) |
@@ -51,19 +51,22 @@ A term is the one name of its concept in prose. **Identifier** is the name code,
 | ICP criterion | One weighted condition of the ICP: industry, geography, size, revenue or complexity. | `icp_criteria[]` | [scoring settings document](/architecture/sql-store.md#scoring-settings-document) |
 | In force | Counting now: an `ACTIVE` finding, the latest feedback row, an `ACTIVE` exception. | — | [`finding`](/architecture/sql-store.md#finding) |
 | Intent score | 0–100: how strongly an account's recent findings show a need for a service. | `intent` | [Intent score](/architecture/rules.md#intent-score) |
-| Jev | TypeSafe AI's classification model, one of the two classifier adapters. | `JEV` | [AI gateway](/architecture/services/worker.md#ai-gateway) |
+| Jev | TypeSafe AI's classification model, served through OpenRouter; one of the two classifier adapters. | `JEV` | [AI gateway](/architecture/services/worker.md#ai-gateway) |
 | Label queue | The stratified list of pairs offered for labelling. | — | [Evaluation metrics](/architecture/rules.md#evaluation-metrics) |
 | Lead feedback | A user's verdict on a lead: relevant, not relevant or already a customer. | `lead_feedback` | [`lead_feedback`](/architecture/sql-store.md#lead_feedback) |
 | LeadRadar | This product. | — | [Architecture overview](/architecture/overview.md#purpose) |
+| Missed evidence | The share of labelled passages the selection leaves unread that hold a signal. | `missed_evidence` | [Evaluation metrics](/architecture/rules.md#evaluation-metrics) |
 | Negative signal | A finding of a negative question, which lowers Intent. | `NEGATIVE` | [Intent score](/architecture/rules.md#intent-score) |
 | Outreach draft | A message a person may send, drafted from findings; never sent by the product. | `outreach_draft` | [`outreach_draft`](/architecture/sql-store.md#outreach_draft) |
 | Passage | A piece of a document: what the classifier reads and a finding quotes. | `chunk` | [`chunk`](/architecture/sql-store.md#chunk) |
+| Passage header | The line naming account, document, section and date that a passage is read with; never quoted. | — | [Chunking and passage selection](/architecture/rules.md#chunking-and-passage-selection) |
 | Persona | The role category of a contact, such as CIO or head of automation. | `persona` | [`contact`](/architecture/sql-store.md#contact) |
 | Polarity | Whether a question's findings raise or lower Intent. | `polarity` | [`signal_question`](/architecture/sql-store.md#signal_question) |
 | Precision | The share of predicted positives that the labels confirm. | `precision` | [Evaluation metrics](/architecture/rules.md#evaluation-metrics) |
 | Priority score | 0–100: the weighted combination of Fit and Intent that ranks accounts. | `priority` | [Priority, standing and band](/architecture/rules.md#priority-standing-and-band) |
 | Prospect | An account in a service's ranking. | `prospects` | [Prospects](/features/prospect-dashboard.md#prospects) |
 | Question revision | The version of a signal question's content; a new revision reclassifies. | `revision` | [`signal_question`](/architecture/sql-store.md#signal_question) |
+| Question-scoped retrieval | Ranking a long document's passages for one question by keyword and by meaning, fused by rank. | — | [Chunking and passage selection](/architecture/rules.md#chunking-and-passage-selection) |
 | Recall | The share of labelled positives that were predicted positive. | `recall` | [Evaluation metrics](/architecture/rules.md#evaluation-metrics) |
 | Recency decay | The halving of a finding's weight with every half-life of age. | `decay` | [Recency decay](/architecture/rules.md#recency-decay) |
 | Release gate | The criteria and scenarios a release must pass, including the precision threshold. | — | [Release gate](/requirements/acceptance.md#release-gate) |
@@ -73,6 +76,7 @@ A term is the one name of its concept in prose. **Identifier** is the name code,
 | Score breakdown | The stored attribution of every point of a score to a criterion or a finding. | `breakdown` | [Score breakdown](/architecture/rules.md#score-breakdown) |
 | Scoring settings | The configuration a service is scored with: ICP, weights, half-lives, disqualifiers, thresholds. | `settings` | [scoring settings document](/architecture/sql-store.md#scoring-settings-document) |
 | Scoring version | One immutable, numbered version of a service's scoring settings. | `scoring_config` | [`scoring_config`](/architecture/sql-store.md#scoring_config) |
+| Section path | The headings, or the page, above a passage in its document. | `section` | [`chunk`](/architecture/sql-store.md#chunk) |
 | Service | An Orange Systems service that accounts are scored for. | `service` | [`service`](/architecture/sql-store.md#service) |
 | Session | A signed-in browser session. | `auth_session` | [`auth_session`](/architecture/sql-store.md#auth_session) |
 | Signal question | A configurable question a passage can answer, revealing a need for a service. | `signal_question` | [`signal_question`](/architecture/sql-store.md#signal_question) |
@@ -87,3 +91,10 @@ A term is the one name of its concept in prose. **Identifier** is the name code,
 ## Do not translate
 
 Evidence quotes are shown as written, with their translation beside them, never instead of them. Translations and screens keep these unchanged: the product name LeadRadar; Jev; company, product and person names inside quotes; service codes and question keys; enum values; configuration keys; identifiers of the `API-`, `AC-`, `FL-`, `FR-` and `WF-` families.
+
+## Retired identifiers
+
+| Identifier | Reason | Replaced by |
+|---|---|---|
+| `B-38` | Jev became available through OpenRouter, so keeping it classifying under an exhausted budget no longer needed its own should-have row | `B-33` through `S-SIG-08` |
+| `S-SIG-10` | The same obligation belongs to the budget guard, as first specified | `S-SIG-08` |

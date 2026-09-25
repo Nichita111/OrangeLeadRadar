@@ -1,7 +1,7 @@
 ---
 type: Service
 title: Worker service
-description: The background process - job queue and priorities, run lifecycle and stages, the LangGraph signal graph, the AI gateway with its Jev and Anthropic adapters, the source plug-in adapters, the scheduler and housekeeping, and every pipeline configuration key.
+description: The background process - job queue and priorities, run lifecycle and stages, the LangGraph signal graph, the AI gateway with its Jev and OpenRouter adapters, the source plug-in adapters, the scheduler and housekeeping, and every pipeline configuration key.
 status: draft
 tags: [accounts-and-discovery, audit-trail, evaluation-and-feedback, outreach-and-crm, service-configuration, signal-pipeline]
 ---
@@ -25,7 +25,7 @@ The rules are pure functions in the product package's core module; the api impor
 ## Provides and consumes
 
 - Provides the [AI gateway](#ai-gateway) module that implements the [Classifier](/architecture/interfaces.md#classifier) and [LLM](/architecture/interfaces.md#llm) ports for both processes, and the [Source plug-ins](/architecture/interfaces.md#source-plug-ins) port.
-- Consumes the [Embedder](/architecture/interfaces.md#embedder), Jev, the Anthropic Messages API and the providers of the [source plug-ins](#source-plug-ins).
+- Consumes the [Embedder](/architecture/interfaces.md#embedder), OpenRouter's chat completions API and, for Jev, its Decisions API, and the providers of the [source plug-ins](#source-plug-ins).
 
 ## Design
 
@@ -102,17 +102,17 @@ The graph's state holds identifiers and passage texts of one batch. Each node wr
 
 One module owns every classifier and LLM call, for the worker and the api. For each call it:
 
-1. checks the [Budget guard](/architecture/rules.md#budget-guard) for Anthropic calls;
+1. checks the [Budget guard](/architecture/rules.md#budget-guard) for LLM calls;
 2. in `replay` fixture mode answers from `FIXTURE_DIR`, or fails with `FIXTURE_MISSING`; in `record` mode stores the exchange;
 3. sends the request with `CLASSIFIER_TIMEOUT_S` or `AI_CALL_TIMEOUT_S`, retrying a transport error, `429` or `5xx` up to `AI_TRANSPORT_RETRIES` times with backoff;
 4. validates the output against the port's shape;
-5. writes the `AI_CALL` audit row with the payload of [Audit actions](/architecture/sql-store.md#audit-actions), computing `cost_eur` from `LLM_PRICES_EUR_PER_MTOK` or `JEV_PRICE_EUR_PER_CALL`.
+5. writes the `AI_CALL` audit row with the payload of [Audit actions](/architecture/sql-store.md#audit-actions), computing `cost_eur` from the response's `usage.cost` at `USD_EUR_RATE`.
 
-**Jev adapter.** Maps a [`ClassifierRequest`](/architecture/interfaces.md#classifierrequest) to one Jev request: the passage and the context line are Jev's state, and each question becomes one of Jev's typed questions — `YES_NO` a yes/no question, `SCALE` a score question over its ordered levels, `CHOICE` a choice question over its options — so that one call answers them all. Jev's per-answer probabilities become the answer's `probabilities`. The request and response fields follow TypeSafe's API documentation for early-access customers.
+**Jev adapter.** Maps a [`ClassifierRequest`](/architecture/interfaces.md#classifierrequest) to one Jev request: the passage and the context line are Jev's state, and each question becomes one of Jev's typed questions — `YES_NO` a yes/no question, `SCALE` a score question over its ordered levels, `CHOICE` a choice question over its options — so that one call answers them all. Jev's per-answer probabilities become the answer's `probabilities`. Requests go to `JEV_DECISIONS_URL`, OpenRouter's Decisions API, for the model `JEV_MODEL` with the `OPENROUTER_API_KEY` bearer token, and the response's `usage.cost` is the call's cost ([ADR-15](/architecture/adrs/adr-15-openrouter-as-the-llm-provider.md)).
 
-**LLM classifier adapter.** Sends the same request to `LLM_CLASSIFIER_MODEL` with a tool whose JSON schema requires a probability for every answer value of every question, and normalises each question's probabilities to sum to 1.
+**LLM classifier adapter.** Sends the same request through the OpenRouter adapter to `LLM_CLASSIFIER_MODEL`, with a response schema that requires a probability for every answer value of every question, and normalises each question's probabilities to sum to 1.
 
-**Anthropic adapter.** Every generation role has a prompt versioned in the repository as `prompts/<role>/v<n>.md`; the version is recorded in the audit. Calls use temperature 0 and a tool whose JSON schema is the role's output shape of [LLM shapes](/architecture/interfaces.md#llm-shapes), so the answer is structured, then the rule that owns the role validates its content.
+**OpenRouter adapter.** Every generation role has a prompt versioned in the repository as `prompts/<role>/v<n>.md`; the version is recorded in the audit. Calls go to `{OPENROUTER_BASE_URL}/chat/completions` in the OpenAI chat format with the `OPENROUTER_API_KEY` bearer token, at temperature 0, with a `response_format` of type `json_schema` whose schema is the role's output shape of [LLM shapes](/architecture/interfaces.md#llm-shapes), and with `provider.require_parameters` true so that only providers that honour the schema serve the call; the rule that owns the role then validates the content ([ADR-15](/architecture/adrs/adr-15-openrouter-as-the-llm-provider.md)).
 
 ### Source plug-ins
 
@@ -165,7 +165,7 @@ One worker at a time runs the scheduler: each loop takes a PostgreSQL advisory l
 | `SCHEDULER_MAX_ENQUEUE` | `20` | Refreshes enqueued per tick |
 | `REFRESH_INTERVAL_HOURS` | `24` | Time between refreshes of an account |
 | `HOUSEKEEPING_HOUR_UTC` | `3` | Hour of the daily housekeeping |
-| `CLOCK_FILE` | unset | Test only, honoured only when `FIXTURE_MODE` is `replay`: a file holding the current time as ISO-8601, read on every use of the clock; unset uses the system clock |
+| `CLOCK_FILE` | unset | For the acceptance tests and the demo, honoured only when `FIXTURE_MODE` is `replay`: a file holding the current time as ISO-8601, read on every use of the clock; unset uses the system clock |
 | `REFRESH_TARGET_MINUTES` | `10` | Target duration of one account refresh in replay mode ([N-02](/requirements/system.md)) |
 
 **Fetching and processing.**
@@ -181,9 +181,13 @@ One worker at a time runs the scheduler: each loop takes a PostgreSQL advisory l
 | `WEBSITE_RENDER_JS` | `false` | Render pages with Playwright when static text is too short |
 | `HTTP_TIMEOUT_S` | `20` | Timeout of one HTTP request to a source |
 | `MIN_DOCUMENT_CHARS` | `200` | Shortest text kept as a document |
-| `CHUNK_TARGET_CHARS` | `1600` | Longest passage |
+| `WHOLE_DOCUMENT_MAX_CHARS` | `8000` | Longest document read whole, as one passage |
+| `CHUNK_TARGET_CHARS` | `1600` | Longest passage of a longer document |
 | `CHUNK_OVERLAP_CHARS` | `200` | Overlap between passages |
-| `MAX_PASSAGES_PER_DOCUMENT` | `8` | Passages classified per document and service |
+| `PASSAGES_PER_QUESTION` | `3` | Passages of a long document selected for each question |
+| `MAX_PASSAGES_PER_DOCUMENT` | `20` | Most passages of one long document classified per service |
+| `RETRIEVAL_CANDIDATES` | `50` | Passages each ranking contributes to question-scoped retrieval |
+| `RETRIEVAL_RRF_K` | `60` | Rank constant of the fused score of question-scoped retrieval |
 | `NEAR_DUPLICATE_SIMILARITY` | `0.95` | Cosine similarity of a near duplicate |
 | `NEAR_DUPLICATE_WINDOW_DAYS` | `7` | Date window of near-duplicate search |
 | `USD_EUR_RATE` | `0.92` | Conversion of Crunchbase revenue ranges |
@@ -213,15 +217,15 @@ One worker at a time runs the scheduler: each loop takes a PostgreSQL advisory l
 
 | Key | Default | Meaning |
 |---|---|---|
-| `CLASSIFIER_PROVIDER` | `LLM` | `JEV` or `LLM`: the classifier adapter ([ADR-02](/architecture/adrs/adr-02-classification-cascade.md)); set `JEV` once a key is provisioned |
-| `JEV_API_KEY`, `JEV_BASE_URL` | unset | Jev credentials and endpoint |
-| `JEV_PRICE_EUR_PER_CALL` | `0` | Recorded cost of one Jev call |
-| `ANTHROPIC_API_KEY` | unset | Anthropic credentials |
-| `LLM_CLASSIFIER_MODEL` | `claude-haiku-4-5-20251001` | Model of the LLM classifier adapter |
-| `LLM_EVIDENCE_MODEL` | `claude-sonnet-5` | Model of escalation, evidence and discovery extraction |
-| `LLM_OUTREACH_MODEL` | `claude-sonnet-5` | Model of outreach drafting |
-| `LLM_PRICES_EUR_PER_MTOK` | — (required with `ANTHROPIC_API_KEY`) | JSON object: model id → `{"input": n, "output": n}`, from the provider's current price list |
-| `LLM_DAILY_BUDGET_EUR` | `20` | Daily Anthropic spend cap ([Budget guard](/architecture/rules.md#budget-guard)) |
+| `CLASSIFIER_PROVIDER` | `LLM` | `JEV` or `LLM`: the classifier adapter ([ADR-02](/architecture/adrs/adr-02-classification-cascade.md)); set `JEV` once a quality check shows Jev passes the release gate |
+| `JEV_MODEL` | `typesafe/jev-1.13` | OpenRouter model id of the Jev adapter |
+| `JEV_DECISIONS_URL` | `https://openrouter.ai/api/alpha/decisions` | OpenRouter's Decisions API endpoint, which serves Jev |
+| `OPENROUTER_API_KEY` | unset | OpenRouter credentials; unset makes every LLM call unavailable |
+| `OPENROUTER_BASE_URL` | `https://openrouter.ai/api/v1` | OpenRouter API endpoint |
+| `LLM_CLASSIFIER_MODEL` | — (required with `OPENROUTER_API_KEY`) | OpenRouter model id, `organisation/model` such as `google/gemini-2.5-flash`, of the LLM classifier adapter |
+| `LLM_EVIDENCE_MODEL` | — (required with `OPENROUTER_API_KEY`) | OpenRouter model id of escalation, evidence and discovery extraction |
+| `LLM_OUTREACH_MODEL` | — (required with `OPENROUTER_API_KEY`) | OpenRouter model id of outreach drafting |
+| `LLM_DAILY_BUDGET_EUR` | `20` | Daily OpenRouter spend cap ([Budget guard](/architecture/rules.md#budget-guard)) |
 | `CLASSIFIER_TIMEOUT_S` | `10` | Timeout of one classifier call |
 | `AI_CALL_TIMEOUT_S` | `60` | Timeout of one LLM call |
 | `AI_TRANSPORT_RETRIES` | `2` | Retries of a transport error, `429` or `5xx` |

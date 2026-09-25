@@ -32,7 +32,7 @@ Rounding is half up, to an integer, wherever a rule says "rounded".
 
 **Crunchbase mapping.** Headquarters country → `country_code`; category → `industry` through the category table of the [Crunchbase adapter](/architecture/services/worker.md#source-plug-ins); the lower bound of the employee range → `employee_count`; the lower bound of the revenue range, converted at `USD_EUR_RATE` → `revenue_eur`.
 
-**Operational complexity.** When the attribute has no `MANUAL` or `CRUNCHBASE` value, the classifier answers the scale question "How complex are this company's operations, judged by countries, business units and employees?" with levels `LOW`, `MEDIUM`, `HIGH` over the profile or home page text. The most probable level is stored with origin `CLASSIFIER` when its probability is at least `ATTRIBUTE_MIN_P`; otherwise the attribute stays unknown.
+**Operational complexity.** When the attribute has no `MANUAL` or `CRUNCHBASE` value, the classifier answers the scale question "How complex are this company's operations, judged by the countries it operates in and its business units?" with levels `LOW`, `MEDIUM`, `HIGH`, each labelled with its meaning under [`account`](/architecture/sql-store.md#account) `operational_complexity`, over the profile or home page text. The most probable level is stored with origin `CLASSIFIER` when its probability is at least `ATTRIBUTE_MIN_P`; otherwise the attribute stays unknown.
 
 **After.** Any attribute change enqueues a `RESCORE` run with trigger `ACCOUNT_CHANGE` for every active service ([Rescoring](#rescoring)).
 
@@ -73,7 +73,7 @@ When `SERPAPI` is available and a kind is still missing, one web search `"{name}
 
 **Algorithm.**
 
-1. The window is the last `FETCH_LOOKBACK_DAYS` days. Per plug-in, the lower bound is raised to one day before the newest `published_at` of the account's documents from that plug-in, so a refresh asks only for new items.
+1. The window is the last `FETCH_LOOKBACK_DAYS` days. Per plug-in, the lower bound is raised to one day before the newest `published_at` of the account's documents from that plug-in, so a refresh asks only for new items. A provider whose search reaches back less far than the window is asked for what it holds; older company publications come from `WEBSITE`.
 2. A news plug-in (`GDELT`, `NEWSAPI`, `SERPAPI`) sends one query per active service: the account's name or any alias, combined with any `hint_terms` of that service's active questions whose `source_types` include `NEWS`; a service without such terms queries the name alone.
 3. `WEBSITE` reads the account's `WEBSITE`, `NEWSROOM` and `INVESTOR_RELATIONS` sources and same-host links, at most `CRAWL_MAX_PAGES_PER_SITE` pages to link depth 2, newest first by sitemap date when the site has a sitemap, plus at most `CRAWL_MAX_PDFS` of the newest linked PDF reports.
 4. `CAREERS` reads every posting listed on the account's `CAREERS` sources that was posted within the window.
@@ -100,11 +100,24 @@ When `SERPAPI` is available and a kind is still missing, one web search `"{name}
 
 ## Chunking and passage selection
 
-**Inputs.** A normalised document; the active questions of the services its triage kept.
+**Inputs.** A normalised document with its headings; the active questions of the services its triage kept; the account's name.
 
-**Chunking.** Split the text into passages of at most `CHUNK_TARGET_CHARS` characters with `CHUNK_OVERLAP_CHARS` of overlap, breaking at paragraph boundaries, then sentence boundaries, never inside a word. Record each passage's offsets. Embed every passage through the [embedder](/architecture/interfaces.md#embedder).
+**Sections.** The section path of a position in a document is the chain of headings above it: the `h1` to `h3` headings of an HTML page, or the outline of a PDF. A PDF without an outline uses its page, as `page N`. A document with neither has no sections.
 
-**Passage selection.** For each kept document and each service its triage kept: when the document has at most `MAX_PASSAGES_PER_DOCUMENT` passages, all are selected. Otherwise passages are ranked by their highest cosine similarity to the embeddings of the service's active questions (question text followed by its hint terms) and the top `MAX_PASSAGES_PER_DOCUMENT` are selected, ties broken by `ordinal`. This is what keeps a 300-page annual report to a bounded number of classifier calls.
+**Chunking.** A document whose text has at most `WHOLE_DOCUMENT_MAX_CHARS` characters is one passage, read whole: job postings, news articles, press releases and company profiles usually are. A longer document is split at its section boundaries first, then into passages of at most `CHUNK_TARGET_CHARS` characters with `CHUNK_OVERLAP_CHARS` of overlap inside a section, breaking at paragraph boundaries, then sentence boundaries, never inside a word. Each passage records its offsets and its section path. Every passage's text is embedded through the [embedder](/architecture/interfaces.md#embedder).
+
+**Passage header.** Every passage is read with a one-line header: the account's name, the document's title, the passage's section path when it has one, and the document's `published_at`, else its `fetched_at`, as a date — for example `Lufthansa Group · Annual Report 2025 · Strategy › Efficiency · 2026-03-06`. The header is the context of the classifier and LLM calls; it is never part of the passage, so no quote comes from it.
+
+**Question-scoped retrieval.** For one question and a set of passages, two rankings are made:
+
+- by keyword: the passages whose text matches at least one of the question's `hint_terms` as a phrase, in PostgreSQL's `simple` text search configuration, ordered by the match's rank; empty when the question has no hint terms;
+- by meaning: the passages ordered by cosine similarity of their embedding to the question's embedding (question text followed by its hint terms).
+
+Each ranking contributes its first `RETRIEVAL_CANDIDATES` passages. A passage's fused score is the sum, over the rankings it appears in, of `1 / (RETRIEVAL_RRF_K + rank)`, rank counted from 1. Passages are ordered by fused score, highest first, ties by `ordinal`.
+
+**Passage selection.** For each kept document and each service its triage kept: a document of one passage selects it. Otherwise, for each active question of the service whose `source_types` include the document's source type, question-scoped retrieval over the document's passages gives its first `PASSAGES_PER_QUESTION`; the selection is their union. When the union exceeds `MAX_PASSAGES_PER_DOCUMENT`, passages are kept in order of their best rank for any question, then their highest fused score, then `ordinal`, so every question keeps its best passage before any question keeps its second ([ADR-16](/architecture/adrs/adr-16-question-scoped-hybrid-passage-selection.md)).
+
+**Invariants.** Selection depends only on the stored passages and the active questions, so it is repeatable. A selected passage is asked each applicable question once per revision, all in one call ([Signal classification](#signal-classification)). A question with no passage among a long document's first `PASSAGES_PER_QUESTION` for another question still gets its own.
 
 ## Triage
 
@@ -129,7 +142,7 @@ The outcome is `NOT_ABOUT_ACCOUNT` when the probability of `ABOUT_ACCOUNT` is be
 |---|---|---|---|
 | `YES_NO` | the yes/no question, plus the scale "How strong is the evidence?" with levels `WEAK`, `MEDIUM`, `STRONG` | P(yes) | the most probable scale level |
 | `SCALE` | the question with levels `NONE`, `WEAK`, `MEDIUM`, `STRONG` | 1 − P(`NONE`) | the most probable level other than `NONE` |
-| `CHOICE` | the question with the question's `options` | sum of P over options whose strength is not `NONE` | the strength of the most probable such option |
+| `CHOICE` | the question with the question's `options` | sum of P over options whose strength is not `NONE` | the strength of the most probable such option, whose key the finding records |
 
 The route is then decided by [Escalation](#escalation).
 
@@ -169,13 +182,13 @@ The same band applies whichever classifier adapter is configured ([ADR-02](/arch
 
 **Algorithm.** The [LLM extract evidence](/architecture/interfaces.md#llm) call returns `quote`, `quote_en` and `rationale`. The output is valid when:
 
-- `quote`, after collapsing whitespace, is a substring of the passage text after collapsing whitespace, and is between 20 and `EVIDENCE_MAX_QUOTE_CHARS` characters;
+- `quote`, after collapsing whitespace and mapping typographic quotation marks, apostrophes, dashes and the ellipsis character to their ASCII forms, is a substring of the passage text normalised the same way, and is between 20 and `EVIDENCE_MAX_QUOTE_CHARS` characters;
 - `quote_en` is present when the document language is not `en`, and absent otherwise;
 - `rationale` is one sentence of at most 300 characters.
 
 An invalid output is requested again, up to `EVIDENCE_MAX_ATTEMPTS` attempts in total; after that the classification is `EVIDENCE_FAILED` and no finding is created. A later refresh retries `EVIDENCE_FAILED` pairs once more.
 
-**After.** One [`finding`](/architecture/sql-store.md#finding) with the strength, confidence, `decided_by`, quote, translation, rationale, `observed_at` = the document's `published_at`, else its `fetched_at`, and status `ACTIVE`.
+**After.** One [`finding`](/architecture/sql-store.md#finding) with the strength, confidence, `decided_by`, the quote as the passage writes it at the matched span, translation, rationale, `observed_at` = the document's `published_at`, else its `fetched_at`, and status `ACTIVE`.
 
 **Invariants.** No evidence, no finding ([RULE-02](/requirements/business.md#business-rules)): every finding's quote is verbatim from its passage.
 
@@ -186,21 +199,21 @@ An invalid output is requested again, up to `EVIDENCE_MAX_ATTEMPTS` attempts in 
 **Algorithm.** A `RECLASSIFY` run with trigger `QUESTION_CHANGE`:
 
 1. Mark the question's findings of an older revision `SUPERSEDED` and its evaluation items of an older revision `STALE`.
-2. For every non-purged, non-duplicate document of every active account: if its triage has no relevance for the question's service, answer that service's `RELEVANT` question now ([Triage](#triage)). For each document kept for the service, classify the selected passages for this question only ([Signal classification](#signal-classification)), then escalate and extract evidence as usual.
+2. For every non-purged, non-duplicate document of every active account: if its triage has no relevance for the question's service, answer that service's `RELEVANT` question now ([Triage](#triage)). For each document kept for the service, select its passages for this question alone — the document's one passage, or its first `PASSAGES_PER_QUESTION` by question-scoped retrieval over all its stored passages — and classify those without a classification at the question's current revision, for this question only ([Signal classification](#signal-classification)), then escalate and extract evidence as usual. Evidence for the question in a passage no earlier question selected is found this way.
 3. Rescore the service ([Rescoring](#rescoring)).
 
 **Invariants.** Nothing is fetched. No other question is reclassified. A change to weight, half-life or any other scoring setting never reclassifies ([ADR-09](/architecture/adrs/adr-09-findings-per-passage-and-question-revision.md)).
 
 ## Budget guard
 
-**Inputs.** `LLM_DAILY_BUDGET_EUR`; the `cost_eur` of today's `AI_CALL` rows with provider `ANTHROPIC` in [`audit_event`](/architecture/sql-store.md#audit_event); the clock.
+**Inputs.** `LLM_DAILY_BUDGET_EUR`; the `cost_eur` of today's `AI_CALL` rows with provider `OPENROUTER` in [`audit_event`](/architecture/sql-store.md#audit_event); the clock.
 
-**Algorithm.** Before every Anthropic call — escalation, evidence, discovery extraction, outreach, question preview, and classification when `CLASSIFIER_PROVIDER` is `LLM` — the spend since 00:00 UTC is summed. When it has reached `LLM_DAILY_BUDGET_EUR`:
+**Algorithm.** Before every LLM call — a call to OpenRouter's chat completions API: escalation, evidence, discovery extraction, outreach, question preview, and classification when `CLASSIFIER_PROVIDER` is `LLM` — the spend since 00:00 UTC is summed. Jev calls go to OpenRouter's Decisions API and are not LLM calls. When it has reached `LLM_DAILY_BUDGET_EUR`:
 
-- in the worker, the affected pairs stay `PENDING_LLM`, the run's `progress.pending_budget` counts them and the run finishes `PARTIAL`; the next refresh of each account resumes its `PENDING_LLM` pairs, so the budget reset at 00:00 UTC is picked up by the daily schedule;
+- in the worker, a stopped classifier call leaves its passages unclassified and a stopped escalation or evidence call leaves its pairs `PENDING_LLM`; the run's `progress.pending_budget` counts both and the run finishes `PARTIAL`; the account's next refresh resumes them, so the budget reset at 00:00 UTC is picked up by the next refresh after it;
 - in the api, the request answers `429 BUDGET_EXHAUSTED`.
 
-The cost of a call is its token counts times the model's price keys (`LLM_PRICE_*`). Jev calls are recorded with their cost but not capped by this key.
+The cost of a call is the `usage.cost` OpenRouter returns with it, in US dollars, converted at `USD_EUR_RATE`. Jev calls are costed the same way and recorded under provider `JEV`, but not capped by `LLM_DAILY_BUDGET_EUR`.
 
 **Invariants.** Classification by Jev continues while the budget is exhausted. Concurrent calls may overshoot the budget by at most the calls already in flight.
 
@@ -346,13 +359,15 @@ The cost of a call is its token counts times the model's price keys (`LLM_PRICE_
 | `escalation_rate` | Share of items that were escalated |
 | `classifier_only` | `precision` and `recall` of the classifier alone, positive when `p_positive ≥ 0.5`, no escalation |
 | `per_question` | Per question key: `items`, `precision`, `recall` |
+| `per_source_type` | Per document source type: `items`, `precision`, `recall` |
+| `missed_evidence` | Among items whose passage the current selection does not pick for the item's question: `items` and the share whose `expected_strength` is not `NONE`, null without such items — the evidence [Passage selection](#chunking-and-passage-selection) leaves unread |
 | `calibration` | Ten bins of `p_positive` (0–0.1, …, 0.9–1): `count`, `mean_p`, `positive_rate` |
 | `errors` | Up to 50 misclassified items: `item_id`, `expected`, `predicted`, `p_positive`, `escalated` |
 | `lead_verdicts` | Counts of in-force `RELEVANT` and `NOT_RELEVANT` lead feedback per current band |
 
 `passed` = `precision ≥ EVAL_MIN_PRECISION` and `items ≥ EVAL_MIN_ITEMS` ([ADR-14](/architecture/adrs/adr-14-labelled-set-and-precision-gate.md)). An evaluation whose classifier or LLM calls fail, or that the [Budget guard](#budget-guard) stops, ends `FAILED` with the reason and reports no metrics: a partial result is never reported as a quality check.
 
-**Label queue.** Pairs of a selected passage of a kept document of an active account and an applicable active question, without an active item, are split into three strata by their classification's `p_positive`: below `ESCALATION_LOWER`, inside the band, at or above `ESCALATION_UPPER`. The queue returns `LABEL_QUEUE_SIZE` pairs, as equal a share from each stratum as there are pairs, ordered within a stratum by the SHA-256 of the passage id and question id, so the order is stable.
+**Label queue.** Pairs of a passage of a kept document of an active account and an applicable active question, without an active item, are split into four strata: for a selected passage, by its classification's `p_positive` — below `ESCALATION_LOWER`, inside the band, at or above `ESCALATION_UPPER`; and **not selected**, a passage of a long document that selection did not pick for the question. The queue returns `LABEL_QUEUE_SIZE` pairs, as equal a share from each stratum as there are pairs, ordered within a stratum by the SHA-256 of the passage id and question id, so the order is stable.
 
 ## Outreach grounding
 

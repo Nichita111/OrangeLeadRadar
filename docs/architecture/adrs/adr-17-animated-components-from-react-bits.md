@@ -1,12 +1,12 @@
 ---
 type: Decision
-title: ADR-15 Animated components from React Bits
+title: ADR-17 Animated components from React Bits
 description: The frontend animates with the Motion library and takes its animated components from React Bits, copied into the repository as owned code and used only for the patterns its Motion section lists.
 status: draft
 tags: []
 ---
 
-# ADR-15 Animated components from React Bits
+# ADR-17 Animated components from React Bits
 
 ## Context
 
