@@ -87,6 +87,7 @@ WF-02 — Services
 | `FR-018` | The screen shall list every service with name, code, status, active scoring version with any draft version, and active question count; a row opens the [Service editor](#service-editor). |
 | `FR-019` | New service shall open a dialog with code, name, description and value proposition; the code field shall accept UPPER_SNAKE only and explain that it cannot be changed later. |
 | `FR-020` | A row menu shall offer Deactivate or Reactivate; deactivation shall confirm that the service will stop being refreshed, scored and listed, and that its data is kept. |
+| `FR-149` | Each row shall show the service's description, its status, its active scoring version with any draft as chips and its active question count, with links to its Signal questions and its Scoring. |
 
 Obligations: `S-CFG-01`.
 
@@ -99,23 +100,20 @@ Route `/services/:id`. Admin only. Tabs: Overview, Signal questions, and Scoring
 **Layout**
 
 ```text
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ Intelligent Automation                   [Overview] [Signal questions] [Scoring] │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ Signal questions                                            [ Add question ] │
-│ Key                 Question                              Type    Pol.  Sources     Signals │
-│ COST_PROGRAM        Does the company announce or run a …  Yes/no  +     News, Company  14 │
-│ AUTOMATION_HIRING   Is the company hiring for RPA …       Yes/no  +     Jobs            6 │
-│ IN_HOUSE_AUTOMATION Does the company describe a strong …  Scale   −     News, Company   3 │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ Edit COST_PROGRAM  (revision 2)                                              │
-│ Question  [ Does the company announce or run a cost-reduction, …          ]  │
-│ Answer    (•) Yes/no  ( ) Scale  ( ) Choice        Polarity: Positive (fixed) │
-│ Sources   [x] News [x] Company publication [ ] Job posting [ ] Company profile │
-│ Hints     [ cost reduction ][ Effizienzprogramm ][ + ]                        │
-│ ⚠ Changing the question, answer type or sources re-checks stored data.       │
-│                                            [ Try it ]  [ Cancel ]  [ Save ]  │
-└──────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────────────────────┐
+│ Intelligent Automation            [Overview] [Signal questions] [Scoring]             │
+├────────────────────────────────────────┬──────────────────────────────────────────────┤
+│ Signal questions       [ Add question ]│ COST_PROGRAM                    Revision 2   │
+│ [+] COST_PROGRAM         Yes/no    14  │ Question [ Does the company announce…    ]   │
+│ [+] AUTOMATION_HIRING    Yes/no     6  │ Answer   (•) Yes/no ( ) Scale ( ) Choice     │
+│ [-] IN_HOUSE_AUTOMATION  Scale      3  │ Polarity Positive (fixed)                    │
+│                                        │ Sources  [x] News [x] Company publication    │
+│                                        │ Hints    [ cost reduction ][ + ]             │
+│                                        │ ! Changing the question re-checks data       │
+│                                        │          [ Try it ] [ Cancel ] [ Save ]      │
+│                                        │ Try it: Strong · High confidence             │
+│                                        │   "Mit dem Programm Fit for Growth…"         │
+└────────────────────────────────────────┴──────────────────────────────────────────────┘
 ```
 
 WF-03 — Service editor, signal questions
@@ -144,6 +142,7 @@ WF-04 — Try it panel
 | `FR-025` | Saving shall show the new revision and a link to the `RECLASSIFY` run on [Runs](/features/signal-pipeline.md#runs) when one was queued. |
 | `FR-026` | Deactivate and Reactivate shall be row actions with confirmation; deactivation shall say the question's signals stop counting once scoring without it is activated. |
 | `FR-027` | Try it shall run the form's current, possibly unsaved, question against pasted text or a chosen account and show each result's strength label, confidence word, whether a detailed check was needed, the quote, its English translation and the source; it shall state that nothing is saved. |
+| `FR-150` | The Signal questions tab shall be two panes: the list at the left with polarity mark, key, one line of text, answer type and in-force signal count, and at the right the form of the selected question with Try it below it. |
 
 Obligations: `S-CFG-02`, `S-CFG-05`, `S-SIG-07`.
 
@@ -156,25 +155,22 @@ Route `/services/:id/scoring`. Admin only; Sales sees the effect of the active v
 **Layout**
 
 ```text
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ Intelligent Automation · Scoring       Active v3 · Draft v4 (unsaved changes) │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ Balance     Fit [■■■■□□□□□□] 40 %   Intent 60 %                               │
-│ Lines       Minimum fit [40]   Warm from [40]   Hot from [70]                 │
-│ ICP         SECTOR   Industry in Aviation, Logistics, …        High   [edit]  │
-│             REGION   Country in DE, AT, CH, …                  Medium [edit]  │
-│             SIZE     Employees ≥ 5 000                         Medium [edit]  │
-│             [ + criterion ]                                                   │
-│ Signals     COST_PROGRAM          + [High ▾]  half-life [default 90/365 d]    │
-│             IN_HOUSE_AUTOMATION   − [Medium ▾] half-life [ … ]                │
-│ Exclusions  OUTSIDE_EUROPE  "Outside the target region"  ICP mismatch: REGION │
-│             INSOLVENT       "In insolvency"  Signal INSOLVENCY ≥ Clear        │
-│             [ + disqualifier ]                                              │
-│ ▸ Advanced (weight values, strength values, half-lives, decay floor, …)       │
-│                         [ Save draft ]  [ Preview impact ]  [ Activate… ]     │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ Versions   v3 active · 2026-09-20 · "Hiring counts less"   v2 retired · …     │
-└──────────────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────┬────────────────────────────────┐
+│ Intelligent Automation · Scoring  v3 active, draft v4      │ Impact of this draft           │
+│ Balance    Fit share [30][40][50][60]  Intent 60 %         │ DHL Group          Hot to Hot  │
+│ Lines      Minimum fit [40] Warm from [40] Hot from [70]   │ Kuehne+Nagel      Warm to Hot  │
+│ ICP        SECTOR  Industry in Aviation, …   High [edit]   │ 17 accounts unchanged          │
+│            REGION  Country in DE, AT, CH, …  Medium [edit] │ Versions                       │
+│            SIZE    Employees ≥ 5 000         Medium [edit] │ v3 active, "Hiring counts less"│
+│            [ + criterion ]                                 │ v2 retired                     │
+│ Signals    COST_PROGRAM         + [High ▾]                 │ v1 retired                     │
+│            IN_HOUSE_AUTOMATION  - [Medium ▾]               │                                │
+│ Exclusions OUTSIDE_EUROPE  "Outside the target region"     │                                │
+│            INSOLVENT       "In insolvency"                 │                                │
+│            [ + disqualifier ]                              │                                │
+│ > Advanced (weights, half-lives, decay floor, …)           │                                │
+│   [ Save draft ] [ Preview impact ] [ Activate… ]          │                                │
+└────────────────────────────────────────────────────────────┴────────────────────────────────┘
 ```
 
 WF-05 — Scoring settings
@@ -193,6 +189,7 @@ WF-05 — Scoring settings
 | `FR-035` | Preview impact shall list the accounts whose rank, band or standing would change, current and proposed side by side, and the count of unchanged accounts. |
 | `FR-036` | Activate shall require a change note, confirm that every score of the service will be recomputed from stored signals, and then show the `RESCORE` run's progress. |
 | `FR-037` | Versions shall list every version with status, activation date, Admin and change note, and open a read-only view of a retired or active version's settings. |
+| `FR-151` | Balance shall offer Fit share as a segmented choice with the Intent share shown as its complement, and Preview impact and Versions shall appear in a panel at the right of the settings; Activate shall open a dialog requiring the change note ([FR-036](#scoring-settings)). |
 
 Obligations: `S-CFG-03`, `S-CFG-04`, `S-CFG-06`, `S-SCO-07`.
 

@@ -151,6 +151,7 @@ WF-11 — Source plug-ins
 | `FR-059` | The screen shall list every plug-in with whether it needs a key, whether the key is configured, the enabled switch, whether it is available now, requests today against the daily quota, the per-minute limit, the last success and the last error. |
 | `FR-060` | A plug-in whose key is missing shall say that it stays unavailable until the key is set in the deployment's configuration, whatever the switch says. |
 | `FR-061` | The switch and the limits shall save immediately and apply from the next fetch. |
+| `FR-143` | Each plug-in row shall say in words what it reads, and its availability shall be one of Available, Switched off, or Unavailable with the reason, such as the key being missing. |
 
 Obligations: `S-PIP-05`, `S-ING-01`.
 

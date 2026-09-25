@@ -99,6 +99,8 @@ WF-06 — Accounts
 | `FR-038` | The screen shall list accounts with name, domain, country, industry, origin, status and last refresh, marking an account whose refresh is running, and search name, alias or domain. |
 | `FR-039` | New account shall open a dialog with domain or URL and name, required, and the optional profile fields; a domain already used shall show the existing account with a link to it. |
 | `FR-040` | A row shall open the account's [Account detail](/features/prospect-dashboard.md#account-detail) for the selected service. |
+| `FR-137` | The name cell shall show the parent account as Part of its name, an inactive account with an Inactive chip and an account whose refresh is running with a Refreshing chip. |
+| `FR-138` | In the New account dialog the domain field shall show, under the field, that the domain is already an account, naming it, and the confirming button shall then read Open existing account. |
 
 Obligations: `S-ACC-01`, `S-ACC-05`.
 
@@ -132,6 +134,8 @@ WF-07 — Account import
 | `FR-041` | Choosing a file shall run a dry run and show the counts and every row's line, domain, outcome and errors; nothing is written until Import is pressed. |
 | `FR-042` | The screen shall offer the header row of [`AccountImportRow`](/architecture/interfaces.md#accountimportrow) as a downloadable template. |
 | `FR-043` | Import shall write the valid rows, show the result counts, and link to [Accounts](#accounts) filtered to the imported rows' origin. |
+| `FR-139` | Account import shall show its progress as three parts, Choose file, Review the check and Import, and after Import a callout shall state how many accounts were imported and that a refresh is queued for each new one. |
+| `FR-140` | The check shall show the number of new, updated, possible duplicate and invalid rows each with its meaning, then only the rows that need attention, each with an outcome chip and a sentence saying what will happen to it. |
 
 Obligations: `S-ACC-02`.
 
@@ -208,6 +212,8 @@ WF-09 — Suggested accounts
 | `FR-051` | The list shall show pending candidates by default, ordered by fit estimate, with country, industry, employees when known, and why each was suggested: the Crunchbase match or the news quote with a link to the article. |
 | `FR-052` | Accept shall ask for the website domain when the candidate has none, then open the new account; a domain that is already an account shall link to it instead. |
 | `FR-053` | Reject shall take an optional reason and remove the candidate from the pending list for good. |
+| `FR-141` | While a discovery run is active a callout shall show the news searched, the articles read and the companies found so far; the fit estimate of a candidate shall be shown as a score, and when no candidate is pending the empty state shall say how to find new ones. |
+| `FR-142` | Accepting a candidate shall mark it in place as Accepted with its refresh queued, and a candidate without a website shall say that the domain will be asked for. |
 
 Obligations: `S-DSC-01`, `S-DSC-02`.
 

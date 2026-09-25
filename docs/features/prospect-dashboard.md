@@ -18,7 +18,7 @@ This is where a sales manager spends the day. Prospects ranks a service's accoun
 
 1. Sales opens [Prospects](#prospects) for the selected service.
 2. The list shows ranked accounts by Priority with their band, Fit, Intent and top two signals; filters narrow it by band, country and industry, and a status filter shows accounts below fit, excluded or marked as customers with their reason.
-3. Sales opens an account's [Account detail](#account-detail).
+3. Sales selects a row to read the account's strongest signals in a drawer, and opens its [Account detail](#account-detail) for the full explanation.
 
 ### FL-12 Explain a lead
 
@@ -72,7 +72,7 @@ Route `/prospects`. Any signed-in user; shows the selected service.
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │ Prospects · Intelligent Automation                                          │
-│ Status [Ranked ▾]  Band [Hot][Warm][Cold]  Country ▾  Industry ▾  [ search ] │
+│ Status [Ranked ▾]  Band [All 6][Hot 1][Warm 2][Cold 3]  Country ▾  Industry ▾  [ search ] │
 ├───┬───────────────────┬───────┬──────────┬─────┬────────┬────────────────────┤
 │ # │ Account           │ Band  │ Priority │ Fit │ Intent │ Top signals        │
 ├───┼───────────────────┼───────┼──────────┼─────┼────────┼────────────────────┤
@@ -84,6 +84,21 @@ Route `/prospects`. Any signed-in user; shows the selected service.
 
 WF-12 — Prospects
 
+```text
+┌────────────────────────────────────────────────┬──────────────────────────────┐
+│ # Account         Band  Priority Fit Intent    │ DHL Group             [Hot]  │
+│ 1 DHL Group       Hot   78       88  72        │ Priority 78                  │
+│   selected row, top two signals shown          │ Fit 88, how well it matches  │
+│ 2 Lufthansa Group Warm  60       94  38        │ Intent 72, recent signals    │
+│ 3 Kuehne+Nagel    Warm  55       80  35        │ Strongest signals            │
+│                                                │ + AI projects, Strong, 3 wk  │
+│ Hot: Priority 70 or more. Warm: 40 to 69.      │ + Cost programme, Clear      │
+│ Cold: below 40.                                │ [ Open full explanation ] [x]│
+└────────────────────────────────────────────────┴──────────────────────────────┘
+```
+
+WF-25 — Prospects, account drawer
+
 **Behaviour**
 
 | ID | Requirement |
@@ -92,6 +107,8 @@ WF-12 — Prospects
 | `FR-063` | The default view shall be ranked accounts in ranking order; filters shall narrow by band, country and industry, and search by name; sorting by Intent, Fit, name or last refresh shall be available. |
 | `FR-064` | The status filter shall also show accounts below fit, excluded or marked as customers, each with its reason in one line — the minimum fit, the disqualifier's label, or who marked it a customer — and without a rank or band. |
 | `FR-065` | When the service has no scores yet, the empty state shall explain that accounts appear after their first refresh and link to [Accounts](/features/accounts-and-discovery.md#accounts). |
+| `FR-129` | The band filter shall show the number of ranked accounts in each band beside its label, with All first, and a legend under the list shall explain Hot, Warm and Cold, reading their thresholds as [FR-117](/architecture/services/frontend.md#score-presentation) states. |
+| `FR-130` | Selecting a row shall open a drawer over the right side of the list, without moving the rows, showing the account's name and band, Priority, Fit and Intent each with its meaning in words, its two strongest signals with strength and age, and Open full explanation to [Account detail](#account-detail); Escape or a close button shall dismiss it and return focus to the row. |
 
 Obligations: `S-PRO-01`, `S-SCO-05`, `N-01`, `N-10`, `N-13`.
 
@@ -165,6 +182,10 @@ WF-15 — Account detail, History tab
 | `FR-073` | Correct and Wrong on a signal shall record the verdict with an optional note, show it on the signal, and say that the score will be updated. |
 | `FR-074` | Evidence shall open the passage with surrounding text and the quote highlighted, and a link to the original page; for a purged document it shall show the quote, the link and a sentence that the full text is no longer stored. |
 | `FR-075` | The History tab shall list score changes newest first, each with when, the cause in words (refresh, scoring version with its change note, feedback, exception, account change, question change), the Priority and band before and after, the signals added and removed, and the exceptions changed. |
+| `FR-131` | Each counted signal on the Why tab shall offer Read the evidence, which opens the Signals tab on that signal with its evidence open. |
+| `FR-132` | The running state of [FR-067](#account-detail) shall be a callout below the header that lists the run's stages with done, current and pending marks and the current stage's counter, while the Refresh now button reads Refreshing. |
+| `FR-133` | The lead verdict shall be a segmented control; the note beside it shall say who recorded the verdict and when, and Already a customer shall say that the account leaves the ranking for this service. |
+| `FR-134` | Each History row shall carry an icon for its cause and, when the band changed, a chip for the band before and after. |
 
 Obligations: `S-PRO-02`, `S-PRO-03`, `S-PRO-04`, `S-PRO-05`, `S-PIP-01`, `S-SCO-04`, `S-SCO-06`, `S-SIG-09`, `S-EVL-01`, `S-EVL-02`, `N-13`.
 
@@ -194,6 +215,8 @@ WF-16 — Alerts
 |---|---|
 | `FR-076` | The screen shall list the selected service's alerts newest first, unread by default, each saying what happened in words — a strong new signal with its question and quote, or a band rise with the bands before and after — and when. |
 | `FR-077` | Open shall go to the account's [Account detail](#account-detail); Mark read shall acknowledge the alert for the whole team and show who read it. |
+| `FR-135` | Alerts shall offer a segmented control for Unread and All, showing the number of unread alerts, and when no alert is unread the empty state shall say that the user is all caught up and when new alerts appear. |
+| `FR-136` | An unread alert shall carry an accent edge; a read alert shall be dimmed and say who read it and when. |
 
 Obligations: `S-PRO-06`.
 

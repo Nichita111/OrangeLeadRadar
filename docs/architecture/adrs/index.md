@@ -14,3 +14,4 @@
 * [ADR-12 Suggested accounts need acceptance](adr-12-suggested-accounts-need-acceptance.md) - Discovery stores candidates apart from accounts; nothing is fetched or scored for a candidate until a person accepts it with a domain.
 * [ADR-13 Run progress by polling](adr-13-run-progress-by-polling.md) - The frontend follows a run by polling it every few seconds instead of a push channel.
 * [ADR-14 Labelled set and precision gate](adr-14-labelled-set-and-precision-gate.md) - Signal accuracy is measured on a labelled set built blind in the product, and a release requires the configured precision.
+* [ADR-15 Animated components from React Bits](adr-15-animated-components-from-react-bits.md) - The frontend animates with the Motion library and takes its animated components from React Bits, copied into the repository as owned code and used only for the patterns its Motion section lists.
