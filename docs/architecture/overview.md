@@ -44,7 +44,7 @@ flowchart LR
     EMB[embedder: TEI bge-m3]
   end
   subgraph External
-    JEV[Jev]
+    JEV[Jev on OpenRouter Decisions API]
     ANT[OpenRouter chat completions API]
     SRC[GDELT, company websites, career boards, RSS]
     PAID[Crunchbase, NewsAPI, SerpAPI]

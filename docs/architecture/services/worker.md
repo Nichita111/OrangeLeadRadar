@@ -25,7 +25,7 @@ The rules are pure functions in the product package's core module; the api impor
 ## Provides and consumes
 
 - Provides the [AI gateway](#ai-gateway) module that implements the [Classifier](/architecture/interfaces.md#classifier) and [LLM](/architecture/interfaces.md#llm) ports for both processes, and the [Source plug-ins](/architecture/interfaces.md#source-plug-ins) port.
-- Consumes the [Embedder](/architecture/interfaces.md#embedder), Jev, the OpenRouter chat completions API and the providers of the [source plug-ins](#source-plug-ins).
+- Consumes the [Embedder](/architecture/interfaces.md#embedder), OpenRouter's chat completions API and, for Jev, its Decisions API, and the providers of the [source plug-ins](#source-plug-ins).
 
 ## Design
 
@@ -106,9 +106,9 @@ One module owns every classifier and LLM call, for the worker and the api. For e
 2. in `replay` fixture mode answers from `FIXTURE_DIR`, or fails with `FIXTURE_MISSING`; in `record` mode stores the exchange;
 3. sends the request with `CLASSIFIER_TIMEOUT_S` or `AI_CALL_TIMEOUT_S`, retrying a transport error, `429` or `5xx` up to `AI_TRANSPORT_RETRIES` times with backoff;
 4. validates the output against the port's shape;
-5. writes the `AI_CALL` audit row with the payload of [Audit actions](/architecture/sql-store.md#audit-actions), computing `cost_eur` from the response's `usage.cost` at `USD_EUR_RATE`, or from `JEV_PRICE_EUR_PER_CALL`.
+5. writes the `AI_CALL` audit row with the payload of [Audit actions](/architecture/sql-store.md#audit-actions), computing `cost_eur` from the response's `usage.cost` at `USD_EUR_RATE`.
 
-**Jev adapter.** Maps a [`ClassifierRequest`](/architecture/interfaces.md#classifierrequest) to one Jev request: the passage and the context line are Jev's state, and each question becomes one of Jev's typed questions — `YES_NO` a yes/no question, `SCALE` a score question over its ordered levels, `CHOICE` a choice question over its options — so that one call answers them all. Jev's per-answer probabilities become the answer's `probabilities`. The request and response fields follow TypeSafe's API documentation for early-access customers.
+**Jev adapter.** Maps a [`ClassifierRequest`](/architecture/interfaces.md#classifierrequest) to one Jev request: the passage and the context line are Jev's state, and each question becomes one of Jev's typed questions — `YES_NO` a yes/no question, `SCALE` a score question over its ordered levels, `CHOICE` a choice question over its options — so that one call answers them all. Jev's per-answer probabilities become the answer's `probabilities`. Requests go to `JEV_DECISIONS_URL`, OpenRouter's Decisions API, for the model `JEV_MODEL` with the `OPENROUTER_API_KEY` bearer token, and the response's `usage.cost` is the call's cost ([ADR-15](/architecture/adrs/adr-15-openrouter-as-the-llm-provider.md)).
 
 **LLM classifier adapter.** Sends the same request through the OpenRouter adapter to `LLM_CLASSIFIER_MODEL`, with a response schema that requires a probability for every answer value of every question, and normalises each question's probabilities to sum to 1.
 
@@ -213,9 +213,9 @@ One worker at a time runs the scheduler: each loop takes a PostgreSQL advisory l
 
 | Key | Default | Meaning |
 |---|---|---|
-| `CLASSIFIER_PROVIDER` | `LLM` | `JEV` or `LLM`: the classifier adapter ([ADR-02](/architecture/adrs/adr-02-classification-cascade.md)); set `JEV` once a key is provisioned |
-| `JEV_API_KEY`, `JEV_BASE_URL` | unset | Jev credentials and endpoint |
-| `JEV_PRICE_EUR_PER_CALL` | `0` | Recorded cost of one Jev call |
+| `CLASSIFIER_PROVIDER` | `LLM` | `JEV` or `LLM`: the classifier adapter ([ADR-02](/architecture/adrs/adr-02-classification-cascade.md)); set `JEV` once a quality check shows Jev passes the release gate |
+| `JEV_MODEL` | `typesafe/jev-1.13` | OpenRouter model id of the Jev adapter |
+| `JEV_DECISIONS_URL` | `https://openrouter.ai/api/alpha/decisions` | OpenRouter's Decisions API endpoint, which serves Jev |
 | `OPENROUTER_API_KEY` | unset | OpenRouter credentials; unset makes every LLM call unavailable |
 | `OPENROUTER_BASE_URL` | `https://openrouter.ai/api/v1` | OpenRouter API endpoint |
 | `LLM_CLASSIFIER_MODEL` | — (required with `OPENROUTER_API_KEY`) | OpenRouter model id, `organisation/model` such as `google/gemini-2.5-flash`, of the LLM classifier adapter |

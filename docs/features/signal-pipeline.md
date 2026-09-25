@@ -158,5 +158,5 @@ Obligations: `S-PIP-05`, `S-ING-01`.
 
 ## Open questions
 
-- The exact Jev request and response fields, request size limits and language coverage are not yet published outside early access; the [Jev adapter](/architecture/services/worker.md#ai-gateway) is specified by the mapping it must perform. Missing: TypeSafe's API reference and a key. Decides: the team, once the key is provisioned; the quality check on the labelled set decides whether `CLASSIFIER_PROVIDER` becomes `JEV`.
+- Jev's language coverage is not published; the quality check on the labelled set, which includes German passages, decides whether `CLASSIFIER_PROVIDER` becomes `JEV`. Decides: the team.
 - Whether each demo account's careers source is one of the supported applicant-tracking hosts or needs crawling. Missing: the recording. Decides: the team while recording fixtures.

@@ -32,7 +32,7 @@ Rounding is half up, to an integer, wherever a rule says "rounded".
 
 **Crunchbase mapping.** Headquarters country → `country_code`; category → `industry` through the category table of the [Crunchbase adapter](/architecture/services/worker.md#source-plug-ins); the lower bound of the employee range → `employee_count`; the lower bound of the revenue range, converted at `USD_EUR_RATE` → `revenue_eur`.
 
-**Operational complexity.** When the attribute has no `MANUAL` or `CRUNCHBASE` value, the classifier answers the scale question "How complex are this company's operations, judged by countries, business units and employees?" with levels `LOW`, `MEDIUM`, `HIGH` over the profile or home page text. The most probable level is stored with origin `CLASSIFIER` when its probability is at least `ATTRIBUTE_MIN_P`; otherwise the attribute stays unknown.
+**Operational complexity.** When the attribute has no `MANUAL` or `CRUNCHBASE` value, the classifier answers the scale question "How complex are this company's operations, judged by the countries it operates in and its business units?" with levels `LOW`, `MEDIUM`, `HIGH`, each labelled with its meaning under [`account`](/architecture/sql-store.md#account) `operational_complexity`, over the profile or home page text. The most probable level is stored with origin `CLASSIFIER` when its probability is at least `ATTRIBUTE_MIN_P`; otherwise the attribute stays unknown.
 
 **After.** Any attribute change enqueues a `RESCORE` run with trigger `ACCOUNT_CHANGE` for every active service ([Rescoring](#rescoring)).
 
@@ -129,7 +129,7 @@ The outcome is `NOT_ABOUT_ACCOUNT` when the probability of `ABOUT_ACCOUNT` is be
 |---|---|---|---|
 | `YES_NO` | the yes/no question, plus the scale "How strong is the evidence?" with levels `WEAK`, `MEDIUM`, `STRONG` | P(yes) | the most probable scale level |
 | `SCALE` | the question with levels `NONE`, `WEAK`, `MEDIUM`, `STRONG` | 1 − P(`NONE`) | the most probable level other than `NONE` |
-| `CHOICE` | the question with the question's `options` | sum of P over options whose strength is not `NONE` | the strength of the most probable such option |
+| `CHOICE` | the question with the question's `options` | sum of P over options whose strength is not `NONE` | the strength of the most probable such option, whose key the finding records |
 
 The route is then decided by [Escalation](#escalation).
 
@@ -200,7 +200,7 @@ An invalid output is requested again, up to `EVIDENCE_MAX_ATTEMPTS` attempts in 
 - in the worker, a stopped classifier call leaves its passages unclassified and a stopped escalation or evidence call leaves its pairs `PENDING_LLM`; the run's `progress.pending_budget` counts both and the run finishes `PARTIAL`; the account's next refresh resumes them, so the budget reset at 00:00 UTC is picked up by the next refresh after it;
 - in the api, the request answers `429 BUDGET_EXHAUSTED`.
 
-The cost of a call is the `usage.cost` OpenRouter returns with it, in US dollars, converted at `USD_EUR_RATE`. Jev calls are recorded with their cost, `JEV_PRICE_EUR_PER_CALL`, but not capped by `LLM_DAILY_BUDGET_EUR`.
+The cost of a call is the `usage.cost` OpenRouter returns with it, in US dollars, converted at `USD_EUR_RATE`. Jev calls are costed the same way and recorded under provider `JEV`, but not capped by `LLM_DAILY_BUDGET_EUR`.
 
 **Invariants.** Classification by Jev continues while the budget is exhausted. Concurrent calls may overshoot the budget by at most the calls already in flight.
 

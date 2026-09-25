@@ -205,7 +205,7 @@ A company that may buy. Accounts are shared by the whole team.
 | `industry` | enum, null | One of the industry values below. |
 | `employee_count` | integer, null | Number of employees. |
 | `revenue_eur` | bigint, null | Annual revenue in EUR. |
-| `operational_complexity` | enum: `LOW`, `MEDIUM`, `HIGH`, null | How complex the company's operations are: countries, business units and headcount. Entered, or classified by [Account attributes](/architecture/rules.md#account-attributes). |
+| `operational_complexity` | enum: `LOW`, `MEDIUM`, `HIGH`, null | How complex the company's operations are, by the countries it operates in and its business units; headcount is `employee_count`. `LOW`: at most 2 countries and one business unit. `MEDIUM`: 3 to 10 countries, or 2 to 4 business units. `HIGH`: more than 10 countries, or 5 or more business units. Entered, or classified by [Account attributes](/architecture/rules.md#account-attributes). |
 | `attribute_origin` | jsonb | Object: attribute name → `MANUAL`, `CRUNCHBASE` or `CLASSIFIER`, for `country_code`, `industry`, `employee_count`, `revenue_eur` and `operational_complexity`. A `MANUAL` value is never overwritten by a plug-in or the classifier. |
 | `parent_account_id` | uuid FK → [`account`](#account), null | Group parent, e.g. SWISS → Lufthansa Group. Display and navigation only; findings are never inherited. |
 | `origin` | enum: `IMPORTED`, `MANUAL`, `DISCOVERED` | How the account entered: CSV import, manual entry, or an accepted [`discovery_candidate`](#discovery_candidate). |
@@ -533,6 +533,7 @@ A positive answer to a signal question, backed by a verbatim quote ([RULE-02](/r
 | `strength` | enum: `NONE`, `WEAK`, `MEDIUM`, `STRONG` | How strongly the passage answers the question. `NONE` means no signal and is never stored on a finding; it exists for [`classification`](#classification) and [`evaluation_item`](#evaluation_item). `WEAK`: mentioned or implied. `MEDIUM`: stated. `STRONG`: stated with commitment — a programme, budget, target, date, hire or appointment. |
 | `confidence` | numeric 0–1 | `p_positive` of the classification, or the LLM's confidence when escalated. |
 | `decided_by` | enum: `CLASSIFIER`, `LLM` | Whether the classifier's answer was accepted or the LLM decided after escalation. |
+| `option_key` | text, null | `CHOICE` questions only: the `key` of the option the passage matched, from the question's `options`; its strength is `strength`. |
 | `quote` | text | Verbatim substring of the passage, in the original language. |
 | `quote_en` | text, null | English translation of `quote`; null when the document language is `en`. |
 | `rationale` | text | One English sentence: why the quote answers the question. |
