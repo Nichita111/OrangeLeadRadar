@@ -55,15 +55,18 @@ A term is the one name of its concept in prose. **Identifier** is the name code,
 | Label queue | The stratified list of pairs offered for labelling. | — | [Evaluation metrics](/architecture/rules.md#evaluation-metrics) |
 | Lead feedback | A user's verdict on a lead: relevant, not relevant or already a customer. | `lead_feedback` | [`lead_feedback`](/architecture/sql-store.md#lead_feedback) |
 | LeadRadar | This product. | — | [Architecture overview](/architecture/overview.md#purpose) |
+| Missed evidence | The share of labelled passages the selection leaves unread that hold a signal. | `missed_evidence` | [Evaluation metrics](/architecture/rules.md#evaluation-metrics) |
 | Negative signal | A finding of a negative question, which lowers Intent. | `NEGATIVE` | [Intent score](/architecture/rules.md#intent-score) |
 | Outreach draft | A message a person may send, drafted from findings; never sent by the product. | `outreach_draft` | [`outreach_draft`](/architecture/sql-store.md#outreach_draft) |
 | Passage | A piece of a document: what the classifier reads and a finding quotes. | `chunk` | [`chunk`](/architecture/sql-store.md#chunk) |
+| Passage header | The line naming account, document, section and date that a passage is read with; never quoted. | — | [Chunking and passage selection](/architecture/rules.md#chunking-and-passage-selection) |
 | Persona | The role category of a contact, such as CIO or head of automation. | `persona` | [`contact`](/architecture/sql-store.md#contact) |
 | Polarity | Whether a question's findings raise or lower Intent. | `polarity` | [`signal_question`](/architecture/sql-store.md#signal_question) |
 | Precision | The share of predicted positives that the labels confirm. | `precision` | [Evaluation metrics](/architecture/rules.md#evaluation-metrics) |
 | Priority score | 0–100: the weighted combination of Fit and Intent that ranks accounts. | `priority` | [Priority, standing and band](/architecture/rules.md#priority-standing-and-band) |
 | Prospect | An account in a service's ranking. | `prospects` | [Prospects](/features/prospect-dashboard.md#prospects) |
 | Question revision | The version of a signal question's content; a new revision reclassifies. | `revision` | [`signal_question`](/architecture/sql-store.md#signal_question) |
+| Question-scoped retrieval | Ranking a long document's passages for one question by keyword and by meaning, fused by rank. | — | [Chunking and passage selection](/architecture/rules.md#chunking-and-passage-selection) |
 | Recall | The share of labelled positives that were predicted positive. | `recall` | [Evaluation metrics](/architecture/rules.md#evaluation-metrics) |
 | Recency decay | The halving of a finding's weight with every half-life of age. | `decay` | [Recency decay](/architecture/rules.md#recency-decay) |
 | Release gate | The criteria and scenarios a release must pass, including the precision threshold. | — | [Release gate](/requirements/acceptance.md#release-gate) |
@@ -73,6 +76,7 @@ A term is the one name of its concept in prose. **Identifier** is the name code,
 | Score breakdown | The stored attribution of every point of a score to a criterion or a finding. | `breakdown` | [Score breakdown](/architecture/rules.md#score-breakdown) |
 | Scoring settings | The configuration a service is scored with: ICP, weights, half-lives, disqualifiers, thresholds. | `settings` | [scoring settings document](/architecture/sql-store.md#scoring-settings-document) |
 | Scoring version | One immutable, numbered version of a service's scoring settings. | `scoring_config` | [`scoring_config`](/architecture/sql-store.md#scoring_config) |
+| Section path | The headings, or the page, above a passage in its document. | `section` | [`chunk`](/architecture/sql-store.md#chunk) |
 | Service | An Orange Systems service that accounts are scored for. | `service` | [`service`](/architecture/sql-store.md#service) |
 | Session | A signed-in browser session. | `auth_session` | [`auth_session`](/architecture/sql-store.md#auth_session) |
 | Signal question | A configurable question a passage can answer, revealing a need for a service. | `signal_question` | [`signal_question`](/architecture/sql-store.md#signal_question) |

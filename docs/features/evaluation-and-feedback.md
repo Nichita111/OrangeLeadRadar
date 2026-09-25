@@ -125,7 +125,7 @@ WF-18 — Quality report
 |---|---|
 | `FR-082` | Run quality check shall start an evaluation run and show its progress; while one runs the button shows it. |
 | `FR-083` | The latest result shall show pass or fail against the gate with the gate's values, precision, recall, strength agreement, escalation rate against `ESCALATION_RATE_TARGET`, the classifier-alone precision and recall, the classifier evaluated and the escalation band used. |
-| `FR-084` | The report shall show per-question results, a calibration chart of mean predicted confidence against the observed share of positives per bin, the misclassified pairs with a link to each passage, and lead verdicts by band. |
+| `FR-084` | The report shall show per-question and per-source-type results, the share of labelled passages the selection leaves unread that hold a signal, a calibration chart of mean predicted confidence against the observed share of positives per bin, the misclassified pairs with a link to each passage, and lead verdicts by band. |
 | `FR-085` | History shall list earlier quality checks with date, classifier, labels, precision and pass or fail, and open any of them. |
 
 Obligations: `S-EVL-04`, `N-03`.

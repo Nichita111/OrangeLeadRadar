@@ -450,8 +450,10 @@ A passage of a document: the unit the classifier reads and a finding quotes.
 | `ordinal` | integer | Position in the document, from 0. |
 | `char_start` | integer | Start offset in the document's text. |
 | `char_end` | integer | End offset, exclusive. |
+| `section` | text, null | Section path, headings joined with ` › `, or `page N` for a PDF without an outline; null when the document has no sections or is one passage ([Chunking and passage selection](/architecture/rules.md#chunking-and-passage-selection)). |
 | `text` | text, null | The passage; null once purged unless an [`evaluation_item`](#evaluation_item) references it. |
-| `embedding` | vector(`EMBEDDING_DIM`), null | Dense bge-m3 embedding ([ADR-08](/architecture/adrs/adr-08-multilingual-embeddings.md)); null once purged. |
+| `embedding` | vector(`EMBEDDING_DIM`), null | Dense bge-m3 embedding of `text` ([ADR-08](/architecture/adrs/adr-08-multilingual-embeddings.md)); null once purged. |
+| `lexemes` | tsvector, generated, null | `to_tsvector('simple', text)`, for the keyword ranking of question-scoped retrieval; null once `text` is purged. |
 
 ## Signals and scores
 
@@ -795,7 +797,7 @@ Only these tables have rows deleted:
 - `document (account_id, content_hash)` is unique with `NULLS NOT DISTINCT`, so discovery documents without an account are deduplicated too; the same canonical URL with new content is a new document ([Document normalisation](/architecture/rules.md#document-normalisation)).
 - Partial unique indexes: one `scoring_config` with `status = 'DRAFT'` and one with `status = 'ACTIVE'` per service; one `account_score` with `is_current` per account and service; one `pipeline_run` of kind `ACCOUNT_REFRESH` with status `QUEUED` or `RUNNING` per account; one `ACTIVE` `disqualifier_override` per account, service and rule key; one `ACTIVE` `evaluation_item` per passage, question and revision.
 - `finding.classification_id`, `alert.finding_id`, `alert.score_id`, `document_triage.document_id` and `evaluation_result.run_id` are unique.
-- `chunk.embedding` has an HNSW index with cosine distance.
+- `chunk.embedding` has an HNSW index with cosine distance; `chunk.lexemes` has a GIN index.
 - `job (status, priority, not_before)` is indexed for claiming; `audit_event (kind, occurred_at)` and `audit_event (run_id)` for filtering and the [Budget guard](/architecture/rules.md#budget-guard); `finding (account_id, status)` and `account_score (service_id, is_current, standing, priority)` for Prospects.
 - Check constraints: every 0–1 probability and every 0–100 score is within range; `account_score.band` is null unless `standing = 'RANKED'`; `signal_question.options` is non-null exactly when `answer_type = 'CHOICE'`.
 - The schema is created and changed only by Alembic migrations owned by the [api service](/architecture/services/api.md#owns).
