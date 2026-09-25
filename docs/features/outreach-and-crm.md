@@ -47,9 +47,9 @@ sequenceDiagram
 4. Rules: [Outreach grounding](/architecture/rules.md#outreach-grounding), [Budget guard](/architecture/rules.md#budget-guard).
 5. Interfaces: [Outreach and CRM](/architecture/interfaces.md#outreach-and-crm) (`API-56` to `API-59`), [LLM](/architecture/interfaces.md#llm) (`API-66`), [CRM](/architecture/interfaces.md#crm) (`API-70`).
 6. Services: the [api](/architecture/services/api.md) (`OUTREACH_MAX_FINDINGS`, `OUTREACH_EMAIL_MAX_CHARS`, `OUTREACH_INMAIL_MAX_CHARS`, `HUBSPOT_ACCESS_TOKEN`, `APP_BASE_URL` in its [runtime](/architecture/services/api.md#runtime)); the [AI gateway](/architecture/services/worker.md#ai-gateway); the [frontend](/architecture/services/frontend.md) shell; [AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries) and [Degradation](/architecture/overview.md#degradation).
-7. Decisions: [ADR-03](/architecture/adrs/adr-03-models-answer-rules-score.md), [ADR-10](/architecture/adrs/adr-10-minimal-contact-data.md).
+7. Decisions: [ADR-03](/architecture/adrs/adr-03-models-answer-rules-score.md), [ADR-10](/architecture/adrs/adr-10-minimal-contact-data.md), [ADR-15](/architecture/adrs/adr-15-openrouter-as-the-llm-provider.md).
 8. Screens: [Outreach composer](#outreach-composer), [HubSpot push dialog](#hubspot-push-dialog).
-9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-27`, `AC-50`, `AC-51`, `AC-62`.
+9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-27`, `AC-50`, `AC-51`, `AC-62`, `AC-70`.
 
 ## Outreach composer
 
