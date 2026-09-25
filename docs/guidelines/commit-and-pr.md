@@ -20,7 +20,7 @@ test(evaluation-and-feedback): cover AC-48 label queue strata
 chore(tooling): check flows named by no requirement
 ```
 
-Types: `feat`, `fix`, `docs`, `test`, `refactor`, `perf`, `chore`. The subject says what changed in the system. The body says why and names the identifiers the change serves (`S-SIG-03`, `AC-22`). A change to a table, rule, contract or screen carries its document change in the same commit; a change to a requirements register is a commit of its own.
+Types: `feat`, `fix`, `docs`, `test`, `refactor`, `perf`, `chore`. The subject says what changed in the system. The body says why and names the identifiers the change serves (`S-SIG-03`, `AC-22`). A change to a table, rule, contract or screen carries its document change in the same commit; a change to a requirements register is a commit of its own. Don't add the ai agent as co-author.
 
 ## Branches
 
