@@ -45,7 +45,7 @@ flowchart LR
   end
   subgraph External
     JEV[Jev]
-    ANT[Anthropic Messages API]
+    ANT[OpenRouter chat completions API]
     SRC[GDELT, company websites, career boards, RSS]
     PAID[Crunchbase, NewsAPI, SerpAPI]
     HUB[HubSpot]
@@ -109,7 +109,7 @@ The api service owns the schema and applies migrations; both processes write the
 
 ## AI roles and boundaries
 
-Every call goes through the one [AI gateway](/architecture/services/worker.md#ai-gateway), which applies the [Budget guard](/architecture/rules.md#budget-guard) to Anthropic calls, validates output, honours fixture mode and writes the `AI_CALL` audit row whose `ai_role` is one of the roles below. A role nothing calls does not exist (P-06).
+Every call goes through the one [AI gateway](/architecture/services/worker.md#ai-gateway), which applies the [Budget guard](/architecture/rules.md#budget-guard) to OpenRouter calls, validates output, honours fixture mode and writes the `AI_CALL` audit row whose `ai_role` is one of the roles below. A role nothing calls does not exist (P-06).
 
 | Role | Provider | Purpose | Allowed output | Validation |
 |---|---|---|---|---|
@@ -129,7 +129,7 @@ A failure is degrading when a deterministic path remains, blocking when it does 
 |---|---|---|
 | One source plug-in | Its fetch step fails; the run ends `PARTIAL` naming it | The other plug-ins, the rest of the pipeline, every screen |
 | Classifier | `SIGNAL` jobs fail and are retried; the run ends `PARTIAL`; question preview answers `503` | Fetching and processing; scoring from existing findings; every screen |
-| Anthropic API, or its daily budget reached | Escalation and evidence pairs wait as `PENDING_LLM`; preview and outreach answer `503` or `429` | Classification by Jev; confident negatives; scoring from existing findings; every screen |
+| OpenRouter, or its daily budget reached | Escalation and evidence pairs wait as `PENDING_LLM`; preview and outreach answer `503` or `429` | Classification by Jev; confident negatives; scoring from existing findings; every screen |
 | Embedder | `PROCESS` jobs fail and are retried; the run ends `PARTIAL`; question preview on an account answers `503` | Scoring, every screen, preview on pasted text |
 | HubSpot | The push answers `503`; the attempt is recorded | Everything else |
 | Database | Blocking: the api answers `503` and `/health` reports `DOWN`; the worker stops claiming jobs | Nothing |

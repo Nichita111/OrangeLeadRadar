@@ -193,14 +193,14 @@ An invalid output is requested again, up to `EVIDENCE_MAX_ATTEMPTS` attempts in 
 
 ## Budget guard
 
-**Inputs.** `LLM_DAILY_BUDGET_EUR`; the `cost_eur` of today's `AI_CALL` rows with provider `ANTHROPIC` in [`audit_event`](/architecture/sql-store.md#audit_event); the clock.
+**Inputs.** `LLM_DAILY_BUDGET_EUR`; the `cost_eur` of today's `AI_CALL` rows with provider `OPENROUTER` in [`audit_event`](/architecture/sql-store.md#audit_event); the clock.
 
-**Algorithm.** Before every Anthropic call — escalation, evidence, discovery extraction, outreach, question preview, and classification when `CLASSIFIER_PROVIDER` is `LLM` — the spend since 00:00 UTC is summed. When it has reached `LLM_DAILY_BUDGET_EUR`:
+**Algorithm.** Before every OpenRouter call — escalation, evidence, discovery extraction, outreach, question preview, and classification when `CLASSIFIER_PROVIDER` is `LLM` — the spend since 00:00 UTC is summed. When it has reached `LLM_DAILY_BUDGET_EUR`:
 
 - in the worker, a stopped classifier call leaves its passages unclassified and a stopped escalation or evidence call leaves its pairs `PENDING_LLM`; the run's `progress.pending_budget` counts both and the run finishes `PARTIAL`; the account's next refresh resumes them, so the budget reset at 00:00 UTC is picked up by the next refresh after it;
 - in the api, the request answers `429 BUDGET_EXHAUSTED`.
 
-The cost of a call is its token counts times the model's prices in `LLM_PRICES_EUR_PER_MTOK`. Jev calls are recorded with their cost, `JEV_PRICE_EUR_PER_CALL`, but not capped by `LLM_DAILY_BUDGET_EUR`.
+The cost of a call is the `usage.cost` OpenRouter returns with it, in US dollars, converted at `USD_EUR_RATE`. Jev calls are recorded with their cost, `JEV_PRICE_EUR_PER_CALL`, but not capped by `LLM_DAILY_BUDGET_EUR`.
 
 **Invariants.** Classification by Jev continues while the budget is exhausted. Concurrent calls may overshoot the budget by at most the calls already in flight.
 

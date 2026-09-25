@@ -26,7 +26,7 @@ sequenceDiagram
   participant P as source plug-ins
   participant E as embedder
   participant C as classifier (Jev or LLM)
-  participant L as Anthropic LLM
+  participant L as OpenRouter LLM
   Sales->>Web: Refresh now
   Web->>API: refresh (API-33)
   API->>DB: run QUEUED with one FETCH job per available plug-in

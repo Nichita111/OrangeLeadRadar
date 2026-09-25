@@ -21,7 +21,7 @@ sequenceDiagram
   actor Sales
   participant Web as Outreach composer
   participant API as api
-  participant L as Anthropic LLM
+  participant L as OpenRouter LLM
   Sales->>Web: choose channel and, optionally, a contact
   Web->>API: generate (API-56)
   API->>API: budget guard; select top signals of the service

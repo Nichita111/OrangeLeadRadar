@@ -742,7 +742,7 @@ The append-only record of who did what ([RULE-09](/requirements/business.md#busi
 
 ## Audit actions
 
-The closed vocabulary of `audit_event.action`. **AI call payload**: `ai_role` (a role of [AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries)), `provider` (`JEV` or `ANTHROPIC`), `model`, `prompt_version` (null for `JEV`), `items` (passages or questions in the call), `input_tokens`, `output_tokens`, `cost_eur`, `latency_ms`, `outcome` (`OK`, `TIMEOUT`, `ERROR`, `INVALID_OUTPUT`), `fixture` (true when replayed).
+The closed vocabulary of `audit_event.action`. **AI call payload**: `ai_role` (a role of [AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries)), `provider` (`JEV` or `OPENROUTER`), `model` (the OpenRouter model id for `OPENROUTER`), `prompt_version` (null for `JEV`), `items` (passages or questions in the call), `input_tokens`, `output_tokens`, `cost_eur`, `latency_ms`, `outcome` (`OK`, `TIMEOUT`, `ERROR`, `INVALID_OUTPUT`), `fixture` (true when replayed).
 
 | Action | Kind | Entity | Payload |
 |---|---|---|---|

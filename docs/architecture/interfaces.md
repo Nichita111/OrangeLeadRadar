@@ -793,7 +793,7 @@ The in-process port every classification goes through ([ADR-02](/architecture/ad
 
 ## LLM
 
-The in-process port for the four generation roles, all calling Anthropic's Messages API with a versioned prompt and structured output ([AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries)).
+The in-process port for the four generation roles, all calling OpenRouter's chat completions API with a versioned prompt and structured output ([AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries)).
 
 ### LLM contracts
 
