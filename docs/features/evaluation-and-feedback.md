@@ -50,9 +50,9 @@ sequenceDiagram
 4. Rules: [Feedback effects](/architecture/rules.md#feedback-effects), [Evaluation metrics](/architecture/rules.md#evaluation-metrics) with its label queue, [Signal classification](/architecture/rules.md#signal-classification), [Escalation](/architecture/rules.md#escalation), [Rescoring](/architecture/rules.md#rescoring).
 5. Interfaces: [Feedback and alerts](/architecture/interfaces.md#feedback-and-alerts) (`API-46`, `API-47`), [Evaluation](/architecture/interfaces.md#evaluation) (`API-50` to `API-55`), [Classifier](/architecture/interfaces.md#classifier).
 6. Services: the [api](/architecture/services/api.md) (`LABEL_QUEUE_SIZE`); the [worker](/architecture/services/worker.md) (`EVAL_MIN_PRECISION`, `EVAL_MIN_ITEMS`, `ESCALATION_LOWER`, `ESCALATION_UPPER`, `ESCALATION_RATE_TARGET`, `CLASSIFIER_PROVIDER` in its [runtime](/architecture/services/worker.md#runtime)); the [frontend](/architecture/services/frontend.md) shell; [AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries).
-7. Decisions: [ADR-14](/architecture/adrs/adr-14-labelled-set-and-precision-gate.md), [ADR-02](/architecture/adrs/adr-02-classification-cascade.md), [ADR-06](/architecture/adrs/adr-06-rule-based-scoring-with-versioned-settings.md).
+7. Decisions: [ADR-14](/architecture/adrs/adr-14-labelled-set-and-precision-gate.md), [ADR-02](/architecture/adrs/adr-02-classification-cascade.md), [ADR-06](/architecture/adrs/adr-06-rule-based-scoring-with-versioned-settings.md), [ADR-15](/architecture/adrs/adr-15-openrouter-as-the-llm-provider.md).
 8. Screens: [Labelling](#labelling), [Quality report](#quality-report); the feedback controls live on [Account detail](/features/prospect-dashboard.md#account-detail).
-9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-23`, `AC-46` to `AC-49`, `AC-58`.
+9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-21`, `AC-23`, `AC-46` to `AC-49`, `AC-58`.
 
 ## Labelling
 

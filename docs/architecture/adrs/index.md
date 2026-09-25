@@ -14,3 +14,4 @@
 * [ADR-12 Suggested accounts need acceptance](adr-12-suggested-accounts-need-acceptance.md) - Discovery stores candidates apart from accounts; nothing is fetched or scored for a candidate until a person accepts it with a domain.
 * [ADR-13 Run progress by polling](adr-13-run-progress-by-polling.md) - The frontend follows a run by polling it every few seconds instead of a push channel.
 * [ADR-14 Labelled set and precision gate](adr-14-labelled-set-and-precision-gate.md) - Signal accuracy is measured on a labelled set built blind in the product, and a release requires the configured precision.
+* [ADR-15 OpenRouter as the LLM provider](adr-15-openrouter-as-the-llm-provider.md) - Every LLM call goes through OpenRouter's chat completions API, each AI role's model is an OpenRouter model id chosen by configuration, and a call's cost is the cost OpenRouter reports.

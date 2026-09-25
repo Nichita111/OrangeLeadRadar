@@ -17,7 +17,7 @@ Everything LeadRadar looks for and how it weighs it is data an Admin edits: whic
 ### FL-01 Define a service and its signal questions
 
 1. The Admin opens [Services](#services) and creates a service with its code, name, description and value proposition (`API-08`). The service gets a scoring draft with the default settings.
-2. In the [Service editor](#service-editor) the Admin adds signal questions (`API-12`). Each new question joins the draft at weight `MEDIUM` and a `RECLASSIFY` run asks it of every stored passage of the service's accounts.
+2. In the [Service editor](#service-editor) the Admin adds signal questions (`API-12`). Each new question joins the draft at weight `MEDIUM` and a `RECLASSIFY` run asks it of every stored passage of the service's accounts; its signals count in scores once the Admin activates a scoring version that includes it ([FL-02](#fl-02-edit-and-activate-scoring-settings)).
 3. Editing a question's text, answer type, options or source types increments its revision and reclassifies it; editing only its hint terms does not (`API-13`).
 4. Deactivating a question removes it from the draft; its findings stop counting once a version without it is activated.
 
@@ -59,7 +59,7 @@ sequenceDiagram
 6. Services: the [api](/architecture/services/api.md) and its [runtime](/architecture/services/api.md#runtime) (`PREVIEW_MAX_PASSAGES`); the [worker](/architecture/services/worker.md) for the runs; the [frontend](/architecture/services/frontend.md) shell; the seeded services of the [demo dataset](/architecture/overview.md#demo-dataset).
 7. Decisions: [ADR-06](/architecture/adrs/adr-06-rule-based-scoring-with-versioned-settings.md), [ADR-09](/architecture/adrs/adr-09-findings-per-passage-and-question-revision.md), [ADR-03](/architecture/adrs/adr-03-models-answer-rules-score.md).
 8. Screens: [Services](#services), [Service editor](#service-editor), [Scoring settings](#scoring-settings).
-9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-01` to `AC-08`, `AC-26`, `AC-27`, `AC-39`, `AC-59`, `AC-62`, `AC-66`.
+9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-01` to `AC-08`, `AC-26`, `AC-27`, `AC-39`, `AC-70`, `AC-59`, `AC-62`, `AC-66`.
 
 ## Services
 

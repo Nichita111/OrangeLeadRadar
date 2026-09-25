@@ -25,7 +25,7 @@ A term is the one name of its concept in prose. **Identifier** is the name code,
 | Answer type | How a signal question is answered: yes/no, scale or choice. | `answer_type` | [`signal_question`](/architecture/sql-store.md#signal_question) |
 | Audit event | One append-only record of an action. | `audit_event` | [`audit_event`](/architecture/sql-store.md#audit_event) |
 | Band | Hot, Warm or Cold, from a ranked account's Priority. | `band` | [Priority, standing and band](/architecture/rules.md#priority-standing-and-band) |
-| Budget guard | The rule that stops Anthropic calls once the day's spend reaches its cap. | — | [Budget guard](/architecture/rules.md#budget-guard) |
+| Budget guard | The rule that stops LLM calls — OpenRouter chat completions — once the day's spend reaches its cap; Jev calls are not capped. | — | [Budget guard](/architecture/rules.md#budget-guard) |
 | Calibration | How closely classifier confidence matches the observed share of positives. | `calibration` | [Evaluation metrics](/architecture/rules.md#evaluation-metrics) |
 | Classification | The classifier's answer to one question on one passage at one question revision. | `classification` | [`classification`](/architecture/sql-store.md#classification) |
 | Classifier | The fast model that returns probabilities over fixed answers: Jev, or the LLM classifier adapter. | `CLASSIFIER` | [Classifier](/architecture/interfaces.md#classifier) |
@@ -51,7 +51,7 @@ A term is the one name of its concept in prose. **Identifier** is the name code,
 | ICP criterion | One weighted condition of the ICP: industry, geography, size, revenue or complexity. | `icp_criteria[]` | [scoring settings document](/architecture/sql-store.md#scoring-settings-document) |
 | In force | Counting now: an `ACTIVE` finding, the latest feedback row, an `ACTIVE` exception. | — | [`finding`](/architecture/sql-store.md#finding) |
 | Intent score | 0–100: how strongly an account's recent findings show a need for a service. | `intent` | [Intent score](/architecture/rules.md#intent-score) |
-| Jev | TypeSafe AI's classification model, one of the two classifier adapters. | `JEV` | [AI gateway](/architecture/services/worker.md#ai-gateway) |
+| Jev | TypeSafe AI's classification model, served through OpenRouter; one of the two classifier adapters. | `JEV` | [AI gateway](/architecture/services/worker.md#ai-gateway) |
 | Label queue | The stratified list of pairs offered for labelling. | — | [Evaluation metrics](/architecture/rules.md#evaluation-metrics) |
 | Lead feedback | A user's verdict on a lead: relevant, not relevant or already a customer. | `lead_feedback` | [`lead_feedback`](/architecture/sql-store.md#lead_feedback) |
 | LeadRadar | This product. | — | [Architecture overview](/architecture/overview.md#purpose) |
@@ -87,3 +87,10 @@ A term is the one name of its concept in prose. **Identifier** is the name code,
 ## Do not translate
 
 Evidence quotes are shown as written, with their translation beside them, never instead of them. Translations and screens keep these unchanged: the product name LeadRadar; Jev; company, product and person names inside quotes; service codes and question keys; enum values; configuration keys; identifiers of the `API-`, `AC-`, `FL-`, `FR-` and `WF-` families.
+
+## Retired identifiers
+
+| Identifier | Reason | Replaced by |
+|---|---|---|
+| `B-38` | Jev became available through OpenRouter, so keeping it classifying under an exhausted budget no longer needed its own should-have row | `B-33` through `S-SIG-08` |
+| `S-SIG-10` | The same obligation belongs to the budget guard, as first specified | `S-SIG-08` |

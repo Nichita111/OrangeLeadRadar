@@ -32,7 +32,7 @@ Rounding is half up, to an integer, wherever a rule says "rounded".
 
 **Crunchbase mapping.** Headquarters country → `country_code`; category → `industry` through the category table of the [Crunchbase adapter](/architecture/services/worker.md#source-plug-ins); the lower bound of the employee range → `employee_count`; the lower bound of the revenue range, converted at `USD_EUR_RATE` → `revenue_eur`.
 
-**Operational complexity.** When the attribute has no `MANUAL` or `CRUNCHBASE` value, the classifier answers the scale question "How complex are this company's operations, judged by countries, business units and employees?" with levels `LOW`, `MEDIUM`, `HIGH` over the profile or home page text. The most probable level is stored with origin `CLASSIFIER` when its probability is at least `ATTRIBUTE_MIN_P`; otherwise the attribute stays unknown.
+**Operational complexity.** When the attribute has no `MANUAL` or `CRUNCHBASE` value, the classifier answers the scale question "How complex are this company's operations, judged by the countries it operates in and its business units?" with levels `LOW`, `MEDIUM`, `HIGH`, each labelled with its meaning under [`account`](/architecture/sql-store.md#account) `operational_complexity`, over the profile or home page text. The most probable level is stored with origin `CLASSIFIER` when its probability is at least `ATTRIBUTE_MIN_P`; otherwise the attribute stays unknown.
 
 **After.** Any attribute change enqueues a `RESCORE` run with trigger `ACCOUNT_CHANGE` for every active service ([Rescoring](#rescoring)).
 
@@ -73,7 +73,7 @@ When `SERPAPI` is available and a kind is still missing, one web search `"{name}
 
 **Algorithm.**
 
-1. The window is the last `FETCH_LOOKBACK_DAYS` days. Per plug-in, the lower bound is raised to one day before the newest `published_at` of the account's documents from that plug-in, so a refresh asks only for new items.
+1. The window is the last `FETCH_LOOKBACK_DAYS` days. Per plug-in, the lower bound is raised to one day before the newest `published_at` of the account's documents from that plug-in, so a refresh asks only for new items. A provider whose search reaches back less far than the window is asked for what it holds; older company publications come from `WEBSITE`.
 2. A news plug-in (`GDELT`, `NEWSAPI`, `SERPAPI`) sends one query per active service: the account's name or any alias, combined with any `hint_terms` of that service's active questions whose `source_types` include `NEWS`; a service without such terms queries the name alone.
 3. `WEBSITE` reads the account's `WEBSITE`, `NEWSROOM` and `INVESTOR_RELATIONS` sources and same-host links, at most `CRAWL_MAX_PAGES_PER_SITE` pages to link depth 2, newest first by sitemap date when the site has a sitemap, plus at most `CRAWL_MAX_PDFS` of the newest linked PDF reports.
 4. `CAREERS` reads every posting listed on the account's `CAREERS` sources that was posted within the window.
@@ -129,7 +129,7 @@ The outcome is `NOT_ABOUT_ACCOUNT` when the probability of `ABOUT_ACCOUNT` is be
 |---|---|---|---|
 | `YES_NO` | the yes/no question, plus the scale "How strong is the evidence?" with levels `WEAK`, `MEDIUM`, `STRONG` | P(yes) | the most probable scale level |
 | `SCALE` | the question with levels `NONE`, `WEAK`, `MEDIUM`, `STRONG` | 1 − P(`NONE`) | the most probable level other than `NONE` |
-| `CHOICE` | the question with the question's `options` | sum of P over options whose strength is not `NONE` | the strength of the most probable such option |
+| `CHOICE` | the question with the question's `options` | sum of P over options whose strength is not `NONE` | the strength of the most probable such option, whose key the finding records |
 
 The route is then decided by [Escalation](#escalation).
 
@@ -169,13 +169,13 @@ The same band applies whichever classifier adapter is configured ([ADR-02](/arch
 
 **Algorithm.** The [LLM extract evidence](/architecture/interfaces.md#llm) call returns `quote`, `quote_en` and `rationale`. The output is valid when:
 
-- `quote`, after collapsing whitespace, is a substring of the passage text after collapsing whitespace, and is between 20 and `EVIDENCE_MAX_QUOTE_CHARS` characters;
+- `quote`, after collapsing whitespace and mapping typographic quotation marks, apostrophes, dashes and the ellipsis character to their ASCII forms, is a substring of the passage text normalised the same way, and is between 20 and `EVIDENCE_MAX_QUOTE_CHARS` characters;
 - `quote_en` is present when the document language is not `en`, and absent otherwise;
 - `rationale` is one sentence of at most 300 characters.
 
 An invalid output is requested again, up to `EVIDENCE_MAX_ATTEMPTS` attempts in total; after that the classification is `EVIDENCE_FAILED` and no finding is created. A later refresh retries `EVIDENCE_FAILED` pairs once more.
 
-**After.** One [`finding`](/architecture/sql-store.md#finding) with the strength, confidence, `decided_by`, quote, translation, rationale, `observed_at` = the document's `published_at`, else its `fetched_at`, and status `ACTIVE`.
+**After.** One [`finding`](/architecture/sql-store.md#finding) with the strength, confidence, `decided_by`, the quote as the passage writes it at the matched span, translation, rationale, `observed_at` = the document's `published_at`, else its `fetched_at`, and status `ACTIVE`.
 
 **Invariants.** No evidence, no finding ([RULE-02](/requirements/business.md#business-rules)): every finding's quote is verbatim from its passage.
 
@@ -193,14 +193,14 @@ An invalid output is requested again, up to `EVIDENCE_MAX_ATTEMPTS` attempts in 
 
 ## Budget guard
 
-**Inputs.** `LLM_DAILY_BUDGET_EUR`; the `cost_eur` of today's `AI_CALL` rows with provider `ANTHROPIC` in [`audit_event`](/architecture/sql-store.md#audit_event); the clock.
+**Inputs.** `LLM_DAILY_BUDGET_EUR`; the `cost_eur` of today's `AI_CALL` rows with provider `OPENROUTER` in [`audit_event`](/architecture/sql-store.md#audit_event); the clock.
 
-**Algorithm.** Before every Anthropic call — escalation, evidence, discovery extraction, outreach, question preview, and classification when `CLASSIFIER_PROVIDER` is `LLM` — the spend since 00:00 UTC is summed. When it has reached `LLM_DAILY_BUDGET_EUR`:
+**Algorithm.** Before every LLM call — a call to OpenRouter's chat completions API: escalation, evidence, discovery extraction, outreach, question preview, and classification when `CLASSIFIER_PROVIDER` is `LLM` — the spend since 00:00 UTC is summed. Jev calls go to OpenRouter's Decisions API and are not LLM calls. When it has reached `LLM_DAILY_BUDGET_EUR`:
 
-- in the worker, the affected pairs stay `PENDING_LLM`, the run's `progress.pending_budget` counts them and the run finishes `PARTIAL`; the next refresh of each account resumes its `PENDING_LLM` pairs, so the budget reset at 00:00 UTC is picked up by the daily schedule;
+- in the worker, a stopped classifier call leaves its passages unclassified and a stopped escalation or evidence call leaves its pairs `PENDING_LLM`; the run's `progress.pending_budget` counts both and the run finishes `PARTIAL`; the account's next refresh resumes them, so the budget reset at 00:00 UTC is picked up by the next refresh after it;
 - in the api, the request answers `429 BUDGET_EXHAUSTED`.
 
-The cost of a call is its token counts times the model's price keys (`LLM_PRICE_*`). Jev calls are recorded with their cost but not capped by this key.
+The cost of a call is the `usage.cost` OpenRouter returns with it, in US dollars, converted at `USD_EUR_RATE`. Jev calls are costed the same way and recorded under provider `JEV`, but not capped by `LLM_DAILY_BUDGET_EUR`.
 
 **Invariants.** Classification by Jev continues while the budget is exhausted. Concurrent calls may overshoot the budget by at most the calls already in flight.
 
