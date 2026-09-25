@@ -45,14 +45,14 @@ sequenceDiagram
 ## Reading order
 
 1. Terms in the [glossary](/requirements/glossary.md): Lead feedback, Finding feedback, Evaluation item, Evaluation run, Label queue, Precision, Recall, Escalation rate, Calibration, Release gate, Strength.
-2. Requirement rows: `S-EVL-01` to `S-EVL-04`, `S-SIG-04` in [system requirements](/requirements/system.md); `N-03`; `B-24`, `B-27`, `B-28` in [business requirements](/requirements/business.md).
+2. Requirement rows: `S-EVL-01` to `S-EVL-05`, `S-SIG-04` in [system requirements](/requirements/system.md); `N-03`; `B-24`, `B-27`, `B-28`, `B-40` in [business requirements](/requirements/business.md).
 3. Stores: [`lead_feedback`](/architecture/sql-store.md#lead_feedback), [`finding_feedback`](/architecture/sql-store.md#finding_feedback), [`evaluation_item`](/architecture/sql-store.md#evaluation_item), [`evaluation_result`](/architecture/sql-store.md#evaluation_result), [`finding`](/architecture/sql-store.md#finding), [`chunk`](/architecture/sql-store.md#chunk).
-4. Rules: [Feedback effects](/architecture/rules.md#feedback-effects), [Evaluation metrics](/architecture/rules.md#evaluation-metrics) with its label queue, [Signal classification](/architecture/rules.md#signal-classification), [Escalation](/architecture/rules.md#escalation), [Rescoring](/architecture/rules.md#rescoring).
-5. Interfaces: [Feedback and alerts](/architecture/interfaces.md#feedback-and-alerts) (`API-46`, `API-47`), [Evaluation](/architecture/interfaces.md#evaluation) (`API-50` to `API-55`), [Classifier](/architecture/interfaces.md#classifier).
+4. Rules: [Feedback effects](/architecture/rules.md#feedback-effects), [Evaluation metrics](/architecture/rules.md#evaluation-metrics) with its label queue, [Signal classification](/architecture/rules.md#signal-classification), [Escalation](/architecture/rules.md#escalation), [Rescoring](/architecture/rules.md#rescoring), [Impact](/architecture/rules.md#impact).
+5. Interfaces: [Feedback and alerts](/architecture/interfaces.md#feedback-and-alerts) (`API-46`, `API-47`), [Evaluation](/architecture/interfaces.md#evaluation) (`API-50` to `API-55`, `API-77`), [Classifier](/architecture/interfaces.md#classifier).
 6. Services: the [api](/architecture/services/api.md) (`LABEL_QUEUE_SIZE`); the [worker](/architecture/services/worker.md) (`EVAL_MIN_PRECISION`, `EVAL_MIN_ITEMS`, `ESCALATION_LOWER`, `ESCALATION_UPPER`, `ESCALATION_RATE_TARGET`, `CLASSIFIER_PROVIDER` in its [runtime](/architecture/services/worker.md#runtime)); the [frontend](/architecture/services/frontend.md) shell; [AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries).
 7. Decisions: [ADR-14](/architecture/adrs/adr-14-labelled-set-and-precision-gate.md), [ADR-02](/architecture/adrs/adr-02-classification-cascade.md), [ADR-06](/architecture/adrs/adr-06-rule-based-scoring-with-versioned-settings.md), [ADR-15](/architecture/adrs/adr-15-openrouter-as-the-llm-provider.md).
 8. Screens: [Labelling](#labelling), [Quality report](#quality-report); the feedback controls live on [Account detail](/features/prospect-dashboard.md#account-detail).
-9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-21`, `AC-23`, `AC-46` to `AC-49`, `AC-58`.
+9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-21`, `AC-23`, `AC-46` to `AC-49`, `AC-58`, `AC-75`.
 
 ## Labelling
 
@@ -126,11 +126,12 @@ WF-18 — Quality report
 | `FR-082` | Run quality check shall start an evaluation run and show its progress; while one runs the button shows it. |
 | `FR-083` | The latest result shall show pass or fail against the gate with the gate's values, precision, recall, strength agreement, escalation rate against `ESCALATION_RATE_TARGET`, the classifier-alone precision and recall, the classifier evaluated and the escalation band used. |
 | `FR-084` | The report shall show per-question and per-source-type results, the share of labelled passages the selection leaves unread that hold a signal, a calibration chart of mean predicted confidence against the observed share of positives per bin, the misclassified pairs with a link to each passage, and lead verdicts by band. |
+| `FR-104` | An Impact panel shall show, for the last `IMPACT_PERIOD_DAYS`, the accounts researched and the hours of manual research that replaces — naming `MANUAL_RESEARCH_MINUTES_PER_ACCOUNT` as the team's assumption — the AI cost and minutes per refresh, the signals found, and the latest passing precision with its label count, closing with one sentence a slide can quote. |
 | `FR-085` | History shall list earlier quality checks with date, classifier, labels, precision and pass or fail, and open any of them. |
 
-Obligations: `S-EVL-04`, `N-03`.
+Obligations: `S-EVL-04`, `S-EVL-05`, `N-03`.
 
-**Data**: `API-52`, `API-53`, `API-54`, `API-55`, `API-35`. **States**: [States](/architecture/services/frontend.md#states).
+**Data**: `API-52`, `API-53`, `API-54`, `API-55`, `API-77`, `API-35`. **States**: [States](/architecture/services/frontend.md#states).
 
 ## Open questions
 

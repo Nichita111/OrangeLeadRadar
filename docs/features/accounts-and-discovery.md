@@ -28,8 +28,8 @@ sequenceDiagram
   API-->>Web: per-row outcome: created, updated, possible duplicate, invalid
   Sales->>Web: Import
   Web->>API: import, dry_run = false (API-22)
-  API->>DB: accounts, aliases, sources; audit ACCOUNTS_IMPORTED; next_refresh_at = now
-  S->>DB: next tick enqueues a refresh for each new account
+  API->>DB: accounts, aliases, sources; audit ACCOUNTS_IMPORTED
+  S->>DB: next tick enqueues a refresh for each new account, due while next_refresh_at is null
 ```
 
 ### FL-05 Maintain an account and its contacts

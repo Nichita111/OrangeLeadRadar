@@ -45,4 +45,4 @@ The chain of `AGENTS.md` reviews in this order: the QA agent's acceptance and en
 
 ## Spec changes in a pull request
 
-When implementation shows the specification is wrong or incomplete, the change to the owning heading is made first, in its own commit, following [R7](/guidelines/documents/common.md#the-eight-rules), and reviewed by a human before the code that depends on it.
+A document change is **approved** before the code that depends on it and **committed** with that code, as [R7](/guidelines/documents/common.md#the-eight-rules) states. When implementation shows the specification is wrong or incomplete, the owning heading is changed following R7 and a human approves the change before any code relies on it — the docs phase of `/implement`. Only a change to a requirements register (`business.md`, `system.md`, `acceptance.md`, `glossary.md`) is committed on its own, before the rest of the change.

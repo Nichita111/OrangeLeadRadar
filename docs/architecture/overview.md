@@ -82,7 +82,7 @@ Configuration comes from environment variables only; secrets (API keys, the HubS
 
 **Fixture mode** ([ADR-11](/architecture/adrs/adr-11-recorded-fixtures.md)). `FIXTURE_MODE` is `off`, `record` or `replay`. In `record`, every source plug-in request and every classifier and LLM call is stored under `FIXTURE_DIR`, keyed by a SHA-256 of the adapter name and the normalised request. In `replay`, they are answered from those files; a request with no file fails its step with `FIXTURE_MISSING` and is never sent live. The embedder is local and runs in every mode. Replay reads the clock from `CLOCK_FILE`, set to the time of the recording, so that fetch windows match the recorded requests and decay gives the same scores on every replay. Replay is how the demo and the acceptance tests run offline and repeatably ([S-RUN-02](/requirements/system.md)).
 
-**Seeding.** `make seed-demo` loads the [demo dataset](#demo-dataset) into an empty database: users, services, questions, active scoring versions, and the accounts with their sources, imported from the demo account file by the rules of `API-22` and then linked to their parents ([S-RUN-03](/requirements/system.md)). It never fetches: refreshes run afterwards, in replay mode for the demo. Labels reference passages, which exist only after a refresh, so they are exported to `FIXTURE_DIR/evaluation_items.json` keyed by account domain, document content hash, passage ordinal, question key and revision, and `make seed-labels` loads them after the demo refresh, matching each to its passage; replay reproduces the same documents and passages, so every exported label finds its passage.
+**Seeding.** `make seed-demo` loads the [demo dataset](#demo-dataset) into an empty database: users, industries, markets, services, questions, active scoring versions, and the accounts with their sources, imported from the demo account file by the rules of `API-22` and then linked to their parents ([S-RUN-03](/requirements/system.md)). It never fetches: refreshes run afterwards, in replay mode for the demo. Labels reference passages, which exist only after a refresh, so they are exported to `FIXTURE_DIR/evaluation_items.json` keyed by account domain, document content hash, passage ordinal, question key and revision, and `make seed-labels` loads them after the demo refresh, matching each to its passage; replay reproduces the same documents and passages, so every exported label finds its passage.
 
 ## Store ownership
 
@@ -91,7 +91,7 @@ The api service owns the schema and applies migrations; both processes write the
 | Table | Written by the api | Written by the worker |
 |---|---|---|
 | [`app_user`](/architecture/sql-store.md#app_user), [`auth_session`](/architecture/sql-store.md#auth_session) | all | deletes expired sessions |
-| [`service`](/architecture/sql-store.md#service), [`signal_question`](/architecture/sql-store.md#signal_question), [`scoring_config`](/architecture/sql-store.md#scoring_config) | all | — |
+| [`service`](/architecture/sql-store.md#service), [`signal_question`](/architecture/sql-store.md#signal_question), [`scoring_config`](/architecture/sql-store.md#scoring_config), [`industry`](/architecture/sql-store.md#industry), [`market`](/architecture/sql-store.md#market) | all | — |
 | [`account`](/architecture/sql-store.md#account) | user-entered fields, `status` | `CRUNCHBASE` and `CLASSIFIER` attributes, `crunchbase_id`, `last_refreshed_at`, `next_refresh_at` |
 | [`account_alias`](/architecture/sql-store.md#account_alias) | all | — |
 | [`account_source`](/architecture/sql-store.md#account_source) | `MANUAL` rows, any row's `status` | `DETECTED` rows |
@@ -152,6 +152,34 @@ The seed is the acceptance tests' concrete data and the demo's walk-through. Its
 
 **Users.** `admin@leadradar.local` with role `ADMIN` and `sales@leadradar.local` with role `SALES`; passwords from `SEED_ADMIN_PASSWORD` and `SEED_SALES_PASSWORD`.
 
+**Industries.** Seeded as `ACTIVE` [`industry`](/architecture/sql-store.md#industry) rows; an Admin adds, renames and retires them afterwards.
+
+| Code | Label |
+|---|---|
+| `AEROSPACE_AVIATION` | Airlines, airports, aircraft and aviation services |
+| `AUTOMOTIVE` | Vehicle makers and automotive suppliers |
+| `BANKING` | Banks and payment institutions |
+| `INSURANCE` | Insurers and reinsurers |
+| `LOGISTICS_TRANSPORT` | Logistics, freight, postal and transport operators |
+| `MANUFACTURING` | Industrial manufacturing other than automotive |
+| `ENERGY_UTILITIES` | Energy producers, utilities and grid operators |
+| `TELECOM_MEDIA` | Telecommunications and media |
+| `RETAIL_CONSUMER` | Retail and consumer goods |
+| `HEALTHCARE_PHARMA` | Healthcare providers, pharmaceuticals and life sciences |
+| `PUBLIC_SECTOR` | Government and public administration |
+| `TECHNOLOGY` | Software and IT companies |
+| `PROFESSIONAL_SERVICES` | Consulting, legal, accounting and business services |
+| `OTHER` | Any other industry |
+
+**Markets.** Seeded as `ACTIVE` [`market`](/architecture/sql-store.md#market) rows.
+
+| Code | Name | Countries |
+|---|---|---|
+| `DACH` | DACH | `DE`, `AT`, `CH` |
+| `BENELUX` | Benelux | `BE`, `NL`, `LU` |
+| `NORDICS` | Nordics | `DK`, `SE`, `NO`, `FI` |
+| `EU` | European Union | `AT`, `BE`, `BG`, `HR`, `CY`, `CZ`, `DK`, `EE`, `FI`, `FR`, `DE`, `GR`, `HU`, `IE`, `IT`, `LV`, `LT`, `LU`, `MT`, `NL`, `PL`, `PT`, `RO`, `SK`, `SI`, `ES`, `SE` |
+
 **Accounts.**
 
 | Name | Domain | Country | Industry | Parent |
@@ -207,6 +235,24 @@ ICP: `SECTOR` (`INDUSTRY`: `AEROSPACE_AVIATION`, `LOGISTICS_TRANSPORT`, `MANUFAC
 | `MANAGED_SOC_IN_PLACE` | Does the company name an existing managed security or SOC provider? | `YES_NO` | `NEGATIVE` | `NEWS`, `COMPANY_PUBLICATION` | `MEDIUM` | managed SOC; MDR |
 | `INSOLVENCY` | Is the company in insolvency, restructuring under creditor protection, or being wound up? | `YES_NO` | `NEGATIVE` | `NEWS`, `COMPANY_PROFILE` | `NONE` | insolvency; Insolvenz |
 
-ICP: `SECTOR` (`INDUSTRY`: `BANKING`, `INSURANCE`, `ENERGY_UTILITIES`, `HEALTHCARE_PHARMA`, `MANUFACTURING`, `AUTOMOTIVE`, `LOGISTICS_TRANSPORT`, `AEROSPACE_AVIATION`; `HIGH`), `REGION` (as Intelligent Automation; `MEDIUM`), `SIZE` (`EMPLOYEE_RANGE` min 1000; `MEDIUM`). Exclusion rule: `INSOLVENT` as Intelligent Automation. All other settings are the defaults.
+ICP: `SECTOR` (`INDUSTRY`: `BANKING`, `INSURANCE`, `ENERGY_UTILITIES`, `HEALTHCARE_PHARMA`, `MANUFACTURING`, `AUTOMOTIVE`, `LOGISTICS_TRANSPORT`, `AEROSPACE_AVIATION`; `HIGH`), `REGION` (as Intelligent Automation; `MEDIUM`), `SIZE` (`EMPLOYEE_RANGE` min 1000; `MEDIUM`). Disqualifier: `INSOLVENT` as Intelligent Automation. All other settings are the defaults.
 
-**Fixtures.** `FIXTURE_DIR` holds a recording of one refresh of every demo account on the free core, made with `FIXTURE_MODE=record`, of the classifier and LLM calls it caused, and of one quality check over the exported labels under each classifier adapter. The acceptance criteria name this recording "the demo recording".
+**Fixtures.** `FIXTURE_DIR` holds a recording of one refresh of every demo account on the free core, made with `FIXTURE_MODE=record`, of the classifier and LLM calls it caused, and of one quality check over the exported labels under each classifier adapter. The acceptance criteria name this recording "the demo recording". It holds no Crunchbase exchange, since no Crunchbase key is expected ([ADR-18](/architecture/adrs/adr-18-source-provider-terms-and-limits.md)); only the P1 criterion `AC-69` needs one, recorded if a key becomes available.
+
+## Demo walkthrough
+
+The live demo is scenarios `SC-A` to `SC-D` in order, on the demo recording in replay mode with `CLOCK_FILE` set to the recording time, so every step shows the same data on every run. It takes about twelve minutes. The presenter signs in as `sales@leadradar.local` for steps 1 to 4 and as `admin@leadradar.local` from step 5. A step marked P1 depends on a P1 screen; when that screen is not built, the step is skipped and the next one still works.
+
+| Step | Minutes | Screen | What the audience sees | Scenario | Judging criterion |
+|---|---|---|---|---|---|
+| 1 | 0–1 | — | The problem in one sentence: a sales manager researches accounts by hand, from news, reports and job boards, and ranks them by feel ([Annex 1](/reference/annex-1-participant-reference-pack.md)). | — | Business impact |
+| 2 | 1–3 | [Prospects](/features/prospect-dashboard.md#prospects) | Intelligent Automation's ranked accounts with bands and top signals; Lufthansa Group and DHL Group near the top. | `SC-A` | Usability and UX |
+| 3 | 3–5 | [Account detail](/features/prospect-dashboard.md#account-detail) | DHL Group's Why tab: the ICP criteria it meets, German quotes with English translations, and its in-house automation counting against it; one signal opens the original press release. | `SC-A`, `SC-C` | Signal relevance and accuracy |
+| 4 | 5–6 | Account detail, [Runs](/features/signal-pipeline.md#runs) | Refresh now on Lufthansa Group: the run moves through fetch, triage, classify, evidence and score. | `SC-A` | Technical execution |
+| 5 | 6–8 | [Service editor](/features/service-configuration.md#service-editor) | The Admin adds a question — which automation or process platforms the company uses, with UiPath and Celonis as hint terms — and tries it on an account (P1); saving re-checks stored passages only. | `SC-B` | Configurability, AI/ML innovation |
+| 6 | 8–9 | [Scoring settings](/features/service-configuration.md#scoring-settings) | Hiring counts more: preview the change (P1), activate it with a note, and watch the ranking move without fetching anything. | `SC-B` | Configurability |
+| 7 | 9–10 | [Industries and markets](/features/service-configuration.md#industries-and-markets), Account detail | Add a market, use it in the ICP; an account outside the target region is excluded with its reason, returns with an Admin's exception, and is excluded again when it is revoked. | `SC-C` | Configurability, Business impact and scalability |
+| 8 | 10–11 | [Quality report](/features/evaluation-and-feedback.md#quality-report) | Precision against the gate on labelled passages, per question, the classifier alone against the cascade, and how much evidence the selection leaves unread. | `SC-D` | Signal relevance and accuracy, AI/ML innovation |
+| 9 | 11–12 | Quality report's Impact panel (P1) | The closing sentence, read from the panel: researching one account by hand takes `MANUAL_RESEARCH_MINUTES_PER_ACCOUNT` minutes; LeadRadar refreshed N accounts at €C and M minutes each, finding S signals, at P precision on L labelled passages. | — | Business impact |
+
+The closing sentence is built only from the [Impact](/architecture/rules.md#impact) values of the demo run, so every number the audience hears can be traced to stored data; the manual time is presented as the sales team's estimate.

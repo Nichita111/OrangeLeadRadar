@@ -44,6 +44,7 @@ React with TypeScript in strict mode, built by Vite; React Router for routes; Ta
 | `/services` | [Services](/features/service-configuration.md#services) | Admin | service-configuration |
 | `/services/:id` | [Service editor](/features/service-configuration.md#service-editor) | Admin | service-configuration |
 | `/services/:id/scoring` | [Scoring settings](/features/service-configuration.md#scoring-settings) | Admin | service-configuration |
+| `/settings/industries-markets` | [Industries and markets](/features/service-configuration.md#industries-and-markets) | Admin | service-configuration |
 | `/quality` | [Quality report](/features/evaluation-and-feedback.md#quality-report) | Admin | evaluation-and-feedback |
 | `/settings/source-plugins` | [Source plug-ins](/features/signal-pipeline.md#source-plug-ins) | Admin | signal-pipeline |
 | `/users` | [Users](/features/identity-and-access.md#users) | Admin | identity-and-access |
@@ -65,6 +66,7 @@ React with TypeScript in strict mode, built by Vite; React Router for routes; Ta
 │ Labelling     │                                                              │
 │ ─ Admin ─     │                                                              │
 │ Services      │                                                              │
+│ Industries    │                                                              │
 │ Quality       │                                                              │
 │ Source plug-ins│                                                             │
 │ Users         │                                                              │
@@ -76,7 +78,7 @@ WF-01 — application shell
 
 | ID | Requirement |
 |---|---|
-| `FR-001` | The shell shall show a left navigation with Prospects, Alerts, Accounts, Suggested accounts, Runs and Labelling for every user, and an Admin section with Services, Quality, Source plug-ins, Users and Audit log shown only to Admins. |
+| `FR-001` | The shell shall show a left navigation with Prospects, Alerts, Accounts, Suggested accounts, Runs and Labelling for every user, and an Admin section with Services, Industries and markets, Quality, Source plug-ins, Users and Audit log shown only to Admins. |
 | `FR-002` | The Alerts entry shall show the number of unread alerts of the selected service when it is greater than zero. |
 | `FR-003` | The header shall carry a service selector listing the active services; the selected service applies to Prospects, Alerts, Suggested accounts and Account detail, and is remembered in the browser's local storage per user, falling back to the first active service. |
 | `FR-004` | The user menu shall show the user's display name and role and offer Sign out. |
@@ -110,8 +112,8 @@ The words the screens show for glossary terms. A label is a presentation of the 
 
 | ID | Requirement |
 |---|---|
-| `FR-008` | Screens shall use the labels above and shall never show internal names such as `p_positive`, escalation, triage or token counts, except on the Admin screens Quality report, Runs details and Audit log. |
-| `FR-009` | A confidence shall be shown as a word: High at 0.85 or above, Medium at 0.65 or above, Low below; the number is shown only in a tooltip. |
+| `FR-008` | Screens shall use the labels above and shall never show internal names such as `p_positive`, escalation, triage or token counts, except on the Admin screens Quality report and Audit log and in the Admin-only details of Runs. |
+| `FR-009` | A confidence shall be shown as a word: High at `CONFIDENCE_HIGH_MIN` or above, Medium at `CONFIDENCE_MEDIUM_MIN` or above, Low below; the number is shown only in a tooltip. |
 
 ## Formatting
 
@@ -153,3 +155,5 @@ The words the screens show for glossary terms. A label is a presentation of the 
 | `API_UPSTREAM` | `http://api:8000` | Where the `web` container proxies `/api/v1` |
 | `RUN_POLL_INTERVAL_MS` | `2000` | Poll interval of a live run |
 | `ALERT_POLL_INTERVAL_MS` | `60000` | Poll interval of the unread-alert count |
+| `CONFIDENCE_HIGH_MIN` | `0.85` | Lowest confidence shown as High |
+| `CONFIDENCE_MEDIUM_MIN` | `0.65` | Lowest confidence shown as Medium |
