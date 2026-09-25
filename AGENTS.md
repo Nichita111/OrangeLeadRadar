@@ -1,6 +1,6 @@
 # Repository entry point
 
-LeadRadar is specified in `docs/`, the single source of truth. Start at `docs/index.md`. Code is built from the specification by a chain of four agents; this file is their contract.
+LeadRadar is specified in `docs/`, the single source of truth. Start at `docs/index.md`. Code is built from the specification by a chain of four agents; this file is their contract, and `.claude/` implements it (see [Running the chain](#running-the-chain)).
 
 ## Rules for every agent
 
@@ -27,14 +27,14 @@ task ─► Architect ─► design ─► Coder ─► code + unit, integration
 ### Architect
 
 - **Reads**: the task's requirement rows; the owning feature's reading order; the traceability matrix rows of those requirements; the linked store tables, rules, contracts, services and decisions.
-- **Produces** an implementation design, kept in the task or the pull request, never in `docs/`: the modules to add or change by capability; the contracts (`API-nn`), tables, rules and configuration keys involved, each by link; the order of work outside in; the unit, integration and contract tests to write; the `AC-` rows QA will cover; and every specification gap found, with a proposed document change.
+- **Produces** an implementation design in `.work/<task>/design.md`, never in `docs/`: the modules to add or change by capability; the contracts (`API-nn`), tables, rules and configuration keys involved, each by link; the order of work outside in; the unit, integration and contract tests to write; the `AC-` rows QA will cover; and every specification gap found, with a proposed document change.
 - **Must not** introduce a table, column, enum value, contract, configuration key or dependency the documents do not state. When the design needs one, it proposes the document change first, with an ADR when [R7](docs/guidelines/documents/common.md) requires one.
 
 ### Coder
 
 - **Reads**: the design and everything it links; `docs/guidelines/coding.md` and the language guideline.
 - **Produces**: code and its unit, integration and contract tests, written test first; the document changes the code requires, in the same commit; a green validation of the targets it touched.
-- **Must not** write acceptance or end-to-end tests, weaken or skip a test to reach green, or add behaviour beyond the design.
+- **Must not** write acceptance or end-to-end tests, weaken or skip a test to reach green, add behaviour beyond the design, or change `docs/` outside a docs phase — nor write code before a human has approved the docs diff.
 
 ### QA
 
@@ -55,3 +55,11 @@ task ─► Architect ─► design ─► Coder ─► code + unit, integration
 ## Human decisions
 
 A human owns: requirement registers, `draft → stable` document acceptance, ADR consolidation, specification gaps, and the release gate decision in `docs/requirements/acceptance.md`.
+
+## Running the chain
+
+- `/implement <rows or task>` — for example `/implement S-SCO-01 S-SCO-05` or `/implement the Prospects screen` — runs the chain on its own branch: Architect, a human approval of the design, Coder, QA, Critic, and up to three fix rounds, then commits once the Critic passes. It never pushes or opens a pull request without asking. The orchestrating procedure is `.claude/skills/implement/SKILL.md`.
+- Each task keeps its working notes in `.work/<task>/`, ignored by git: `task.md` (the orchestrator's: scope, decisions, status), `design.md` (Architect), `coder-notes.md` (Coder), `qa-report.md` (QA) and `review.md` (Critic), from the templates in `.claude/skills/implement/templates/`.
+- The agents are `.claude/agents/architect.md`, `coder.md`, `qa.md` and `critic.md`: Architect and Critic run on Opus, Coder and QA on Sonnet.
+- Documents change before code, and code waits for a human: the Coder first works in a docs phase in which it may change only `docs/`; the orchestrator shows the human the actual docs diff, and only after approval opens the code phase, in which `docs/` is frozen. A document change discovered later goes back through the same approval. The phase lives in `.work/gate.json`, written only by the orchestrator and enforced by the guard.
+- `.claude/hooks/guard.py` keeps every agent in its lane: QA cannot read `apps/`, `packages/` or the design and notes about the implementation; the Coder cannot touch `tests/acceptance/`, `tests/e2e/`, generated documents or the chain's files, and never commits; the Architect and the Critic write only their own note. `python3 .claude/hooks/test_guard.py` checks the guard.

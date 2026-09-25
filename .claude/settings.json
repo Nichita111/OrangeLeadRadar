@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv run --project scripts python scripts/build_indexes.py*)",
+      "Bash(uv run --project scripts python scripts/build_traceability.py*)",
+      "Bash(uv run --project scripts python scripts/check_docs.py*)",
+      "Bash(python3 .claude/hooks/test_guard.py)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git rev-parse*)",
+      "Bash(git branch --show-current)",
+      "Edit(/.work/**)"
+    ]
+  }
+}
