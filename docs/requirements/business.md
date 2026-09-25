@@ -17,7 +17,8 @@ LeadRadar helps Orange Systems find the right companies, in the right market, at
 3. answer every signal question against that information and keep each positive answer with a verbatim quote, its source and its date;
 4. score and rank the accounts with an explanation a sales manager can read, check and challenge;
 5. learn where it is wrong from the team's feedback and measure its own precision;
-6. help write a first message grounded in the evidence, and hand the lead to the CRM.
+6. help write a first message grounded in the evidence, and hand the lead to the CRM;
+7. show what it saves: the manual research it replaces, what a refresh costs, and the precision it has proven.
 
 ## Roles
 
@@ -53,11 +54,12 @@ Each requirement states one business obligation and carries a priority. `P0` is 
 | ID | Requirement | Priority |
 |---|---|---|
 | `B-01` | An Admin shall define the services accounts are scored for, each with a description and a value proposition, without code. | P0 |
-| `B-02` | An Admin shall define each service's ideal customer profile by industry, company size, revenue, geography and operational complexity, with a weight per criterion. | P0 |
+| `B-02` | An Admin shall define each service's ideal customer profile by industry, market, company size, revenue, geography and operational complexity, with a weight per criterion. | P0 |
 | `B-03` | An Admin shall define each service's signal questions, each with an answer type, a positive or negative direction and the kinds of source it applies to. | P0 |
 | `B-04` | An Admin shall set each question's weight and half-life, the rules that exclude an account, and the Fit, Intent and band settings, and apply them together as one versioned change. | P0 |
 | `B-05` | A scoring change shall re-rank accounts without collecting data again, and a new or changed question shall re-check stored data for that question only. | P0 |
 | `B-06` | An Admin shall try a question on sample text or an account, and see the effect of a scoring change on the ranking, before applying it. | P1 |
+| `B-39` | An Admin shall maintain the industries and markets the ideal customer profile is built from — add, rename, retire and restore them — without code. | P0 |
 
 ### Manage accounts
 
@@ -113,6 +115,7 @@ Each requirement states one business obligation and carries a priority. `P0` is 
 | `B-27` | The team shall label passages in the product and measure the precision of signal detection, and a release shall require the precision the release gate sets. | P0 |
 | `B-28` | Finding feedback shall add to the labelled set. | P1 |
 | `B-29` | Weights shall be learned from sales outcomes and proposed as a scoring draft. | P2 |
+| `B-40` | The product shall show its impact: the accounts it researched, the manual research time that replaces, its AI cost and time per refresh, and its proven precision. | P1 |
 
 ### Operate
 
@@ -143,7 +146,7 @@ The scenarios are the business definition of done. Each `SC-` row passes by the 
 |---|---|
 | Scope | The specification describes an MVP buildable during the hackathon plus a written [production path](/architecture/overview.md#production-path). P0 is the demo path end to end: configure a service, import accounts, refresh on demand, get findings with evidence, see the ranking and the explanation, and pass the quality gate. Scheduled refresh, automatic source detection, profile enrichment and the moderated usability walkthrough are P1. The hackathon date and team size are not known; if they cut scope further, P1 rows go first. |
 | Reference material | The files in `docs/reference/` are the external brief as received; requirements cite them and they are never edited to match the specification. |
-| ICP attributes | ICP criteria are industry, employee range, revenue range, countries and operational complexity; complexity is a classified level when no one entered it. |
+| ICP attributes | ICP criteria are industry and countries — industries and markets, named groups of countries, from lists an Admin maintains ([ADR-17](/architecture/adrs/adr-17-industries-and-markets-as-configuration.md)) — employee range, revenue range and operational complexity; complexity is a classified level when no one entered it. |
 | Question shape | Questions are yes/no, scale or choice, matching the classifier's question types; weight levels are High, Medium, Low and None. |
 | Priority | Priority is a weighted sum of Fit and Intent, shown only when Fit reaches a minimum; all its numbers are scoring settings. |
 | Suggested accounts | A suggested account is never refreshed or scored until a person accepts it. |
@@ -153,7 +156,8 @@ The scenarios are the business definition of done. Each `SC-` row passes by the 
 | Stored documents | For each fetched document the product stores its extracted text, address and dates for a retention period, and shows the text only as evidence. |
 | Crawling | The crawler obeys `robots.txt`, identifies itself and respects per-source limits; nothing reads LinkedIn automatically. |
 | Jev | Jev is served by OpenRouter as `typesafe/jev-1.13` and billed to the same OpenRouter key ([ADR-15](/architecture/adrs/adr-15-openrouter-as-the-llm-provider.md)). The LLM classifier is the default until a quality check shows Jev passes the gate. |
-| Data providers | Keys for Crunchbase, NewsAPI and SerpAPI are being requested; each is optional. |
+| Data providers | Crunchbase's API needs a paid enterprise licence and no key is expected, so account attributes come from users, the demo account file and the classifier; NewsAPI and SerpAPI keys are optional; GDELT needs no key but limits and credits its use; Google News is read only through SerpAPI ([ADR-18](/architecture/adrs/adr-18-source-provider-terms-and-limits.md)). |
+| Manual research time | `MANUAL_RESEARCH_MINUTES_PER_ACCOUNT`, the time a sales manager spends researching one account by hand, is an assumption until the Orange Systems sales team states it. |
 | LLM provider | An OpenRouter account with API access is available; the model of each AI role is chosen by configuration, and each call's price is the cost OpenRouter reports ([ADR-15](/architecture/adrs/adr-15-openrouter-as-the-llm-provider.md)). |
 | Hosting | The demo runs on one cloud machine in an EU region. |
 | Language | The interface is English only; sources may be in any language. |
