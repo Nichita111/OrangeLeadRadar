@@ -53,7 +53,7 @@ empty Flows, Entities or Acceptance cell.
 | `S-ING-01` | P0 | `B-11`, `RULE-08` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account) | [`source_plugin`](/architecture/sql-store.md#source_plugin) | `AC-16`, `AC-32` |
 | `S-ING-02` | P0 | `B-11`, `B-33` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account) | [`source_plugin`](/architecture/sql-store.md#source_plugin), [`plugin_usage`](/architecture/sql-store.md#plugin_usage), [`document`](/architecture/sql-store.md#document) | `AC-16` |
 | `S-ING-03` | P0 | `B-11` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account) | [`document`](/architecture/sql-store.md#document) | `AC-17` |
-| `S-ING-04` | P0 | `B-12` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account) | [`chunk`](/architecture/sql-store.md#chunk) | `AC-18` |
+| `S-ING-04` | P0 | `B-12` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account) | [`chunk`](/architecture/sql-store.md#chunk) | `AC-18`, `AC-71`, `AC-72` |
 | `S-ING-05` | P1 | `B-36` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account) | [`account_source`](/architecture/sql-store.md#account_source) | `AC-19` |
 | `S-ING-06` | P1 | `B-37` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account) | [`account`](/architecture/sql-store.md#account) | `AC-69` |
 | `S-OUT-01` | P1 | `B-25`, `RULE-06` | [FL-17](/features/outreach-and-crm.md#fl-17-draft-outreach) | [`outreach_draft`](/architecture/sql-store.md#outreach_draft), [`finding`](/architecture/sql-store.md#finding), [`contact`](/architecture/sql-store.md#contact) | `AC-50` |
@@ -89,7 +89,7 @@ empty Flows, Entities or Acceptance cell.
 | `S-SIG-04` | P0 | `B-12`, `RULE-04` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account), [FL-16](/features/evaluation-and-feedback.md#fl-16-label-passages-and-run-a-quality-check) | [`classification`](/architecture/sql-store.md#classification), [`evaluation_result`](/architecture/sql-store.md#evaluation_result) | `AC-21`, `AC-23` |
 | `S-SIG-05` | P0 | `B-12`, `RULE-02` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account) | [`finding`](/architecture/sql-store.md#finding), [`classification`](/architecture/sql-store.md#classification) | `AC-24` |
 | `S-SIG-06` | P0 | `B-12` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account), [FL-09](/features/signal-pipeline.md#fl-09-reclassify-after-a-question-change) | [`finding`](/architecture/sql-store.md#finding) | `AC-25`, `AC-26` |
-| `S-SIG-07` | P0 | `B-05` | [FL-09](/features/signal-pipeline.md#fl-09-reclassify-after-a-question-change) | [`classification`](/architecture/sql-store.md#classification), [`finding`](/architecture/sql-store.md#finding), [`document_triage`](/architecture/sql-store.md#document_triage), [`evaluation_item`](/architecture/sql-store.md#evaluation_item), [`pipeline_run`](/architecture/sql-store.md#pipeline_run) | `AC-03`, `AC-26` |
+| `S-SIG-07` | P0 | `B-05` | [FL-09](/features/signal-pipeline.md#fl-09-reclassify-after-a-question-change) | [`classification`](/architecture/sql-store.md#classification), [`finding`](/architecture/sql-store.md#finding), [`document_triage`](/architecture/sql-store.md#document_triage), [`evaluation_item`](/architecture/sql-store.md#evaluation_item), [`pipeline_run`](/architecture/sql-store.md#pipeline_run) | `AC-03`, `AC-26`, `AC-73` |
 | `S-SIG-08` | P0 | `B-33` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account), [FL-03](/features/service-configuration.md#fl-03-try-a-question), [FL-17](/features/outreach-and-crm.md#fl-17-draft-outreach) | [`classification`](/architecture/sql-store.md#classification), [`pipeline_run`](/architecture/sql-store.md#pipeline_run), [`audit_event`](/architecture/sql-store.md#audit_event) | `AC-27` |
 | `S-SIG-09` | P0 | `B-13` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account), [FL-12](/features/prospect-dashboard.md#fl-12-explain-a-lead) | [`document`](/architecture/sql-store.md#document), [`finding`](/architecture/sql-store.md#finding) | `AC-24` |
 | `S-SIG-10` | P1 | `B-38` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account), [FL-16](/features/evaluation-and-feedback.md#fl-16-label-passages-and-run-a-quality-check) | [`classification`](/architecture/sql-store.md#classification), [`evaluation_result`](/architecture/sql-store.md#evaluation_result) | `AC-70` |
@@ -104,9 +104,9 @@ empty Flows, Entities or Acceptance cell.
 | [FL-04](/features/accounts-and-discovery.md#fl-04-import-accounts-from-a-csv-file) | Import accounts from a CSV file | `S-ACC-02`, `S-RUN-03` | `AC-10`, `AC-59` |
 | [FL-05](/features/accounts-and-discovery.md#fl-05-maintain-an-account-and-its-contacts) | Maintain an account and its contacts | `N-08`, `S-ACC-01`, `S-ACC-03`, `S-ACC-04`, `S-ACC-05` | `AC-09`, `AC-11`, `AC-12`, `AC-13`, `AC-63` |
 | [FL-06](/features/accounts-and-discovery.md#fl-06-discover-and-accept-suggested-accounts) | Discover and accept suggested accounts | `S-DSC-01`, `S-DSC-02` | `AC-14`, `AC-15` |
-| [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account) | Refresh one account | `N-02`, `N-03`, `N-05`, `N-06`, `N-09`, `N-11`, `S-ING-01`, `S-ING-02`, `S-ING-03`, `S-ING-04`, `S-ING-05`, `S-ING-06`, `S-PIP-01`, `S-PIP-03`, `S-PIP-04`, `S-PIP-05`, `S-RUN-02`, `S-SCO-01`, `S-SCO-02`, `S-SCO-03`, `S-SCO-05`, `S-SCO-08`, `S-SIG-01`, `S-SIG-02`, `S-SIG-03`, `S-SIG-04`, `S-SIG-05`, `S-SIG-06`, `S-SIG-08`, `S-SIG-09`, `S-SIG-10` | `AC-16`, `AC-17`, `AC-18`, `AC-19`, `AC-20`, `AC-21`, `AC-22`, `AC-23`, `AC-24`, `AC-25`, `AC-26`, `AC-27`, `AC-28`, `AC-30`, `AC-31`, `AC-32`, `AC-33`, `AC-34`, `AC-35`, `AC-37`, `AC-40`, `AC-49`, `AC-58`, `AC-61`, `AC-62`, `AC-64`, `AC-66`, `AC-69`, `AC-70` |
+| [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account) | Refresh one account | `N-02`, `N-03`, `N-05`, `N-06`, `N-09`, `N-11`, `S-ING-01`, `S-ING-02`, `S-ING-03`, `S-ING-04`, `S-ING-05`, `S-ING-06`, `S-PIP-01`, `S-PIP-03`, `S-PIP-04`, `S-PIP-05`, `S-RUN-02`, `S-SCO-01`, `S-SCO-02`, `S-SCO-03`, `S-SCO-05`, `S-SCO-08`, `S-SIG-01`, `S-SIG-02`, `S-SIG-03`, `S-SIG-04`, `S-SIG-05`, `S-SIG-06`, `S-SIG-08`, `S-SIG-09`, `S-SIG-10` | `AC-16`, `AC-17`, `AC-18`, `AC-19`, `AC-20`, `AC-21`, `AC-22`, `AC-23`, `AC-24`, `AC-25`, `AC-26`, `AC-27`, `AC-28`, `AC-30`, `AC-31`, `AC-32`, `AC-33`, `AC-34`, `AC-35`, `AC-37`, `AC-40`, `AC-49`, `AC-58`, `AC-61`, `AC-62`, `AC-64`, `AC-66`, `AC-69`, `AC-70`, `AC-71`, `AC-72` |
 | [FL-08](/features/signal-pipeline.md#fl-08-scheduled-refresh-cycle) | Scheduled refresh cycle | `N-05`, `N-08`, `S-PIP-02`, `S-PIP-04` | `AC-29`, `AC-31`, `AC-58`, `AC-63` |
-| [FL-09](/features/signal-pipeline.md#fl-09-reclassify-after-a-question-change) | Reclassify after a question change | `S-CFG-02`, `S-SIG-06`, `S-SIG-07` | `AC-03`, `AC-04`, `AC-25`, `AC-26` |
+| [FL-09](/features/signal-pipeline.md#fl-09-reclassify-after-a-question-change) | Reclassify after a question change | `S-CFG-02`, `S-SIG-06`, `S-SIG-07` | `AC-03`, `AC-04`, `AC-25`, `AC-26`, `AC-73` |
 | [FL-10](/features/signal-pipeline.md#fl-10-rescore-after-a-scoring-or-data-change) | Rescore after a scoring or data change | `N-04`, `S-ACC-03`, `S-CFG-04`, `S-SCO-01`, `S-SCO-02`, `S-SCO-03`, `S-SCO-04`, `S-SCO-05`, `S-SCO-06`, `S-SCO-07`, `S-SCO-08` | `AC-06`, `AC-11`, `AC-33`, `AC-34`, `AC-35`, `AC-36`, `AC-37`, `AC-38`, `AC-39`, `AC-40` |
 | [FL-11](/features/prospect-dashboard.md#fl-11-work-the-prospect-list) | Work the prospect list | `N-01`, `N-10`, `N-13`, `S-PRO-01`, `S-SCO-05` | `AC-37`, `AC-41`, `AC-60`, `AC-65`, `AC-68` |
 | [FL-12](/features/prospect-dashboard.md#fl-12-explain-a-lead) | Explain a lead | `N-01`, `N-10`, `N-13`, `S-PRO-02`, `S-PRO-03`, `S-PRO-04`, `S-SCO-06`, `S-SIG-09` | `AC-24`, `AC-38`, `AC-42`, `AC-43`, `AC-44`, `AC-60`, `AC-65`, `AC-68` |
@@ -162,14 +162,14 @@ empty Flows, Entities or Acceptance cell.
 | `B-02` | `S-CFG-03` | `AC-05` |
 | `B-03` | `S-CFG-02` | `AC-03`, `AC-04` |
 | `B-04` | `S-CFG-03`, `S-CFG-04` | `AC-05`, `AC-06` |
-| `B-05` | `S-CFG-04`, `S-SCO-07`, `S-SIG-07` | `AC-03`, `AC-06`, `AC-26`, `AC-39` |
+| `B-05` | `S-CFG-04`, `S-SCO-07`, `S-SIG-07` | `AC-03`, `AC-06`, `AC-26`, `AC-39`, `AC-73` |
 | `B-06` | `S-CFG-05`, `S-CFG-06` | `AC-07`, `AC-08` |
 | `B-07` | `S-ACC-01`, `S-ACC-02` | `AC-09`, `AC-10` |
 | `B-08` | `S-ACC-03`, `S-ACC-05` | `AC-11`, `AC-12` |
 | `B-09` | `N-08`, `S-ACC-04` | `AC-13`, `AC-63` |
 | `B-10` | `S-DSC-01`, `S-DSC-02` | `AC-14`, `AC-15` |
 | `B-11` | `S-ING-01`, `S-ING-02`, `S-ING-03`, `S-PIP-05` | `AC-16`, `AC-17`, `AC-32` |
-| `B-12` | `S-ING-04`, `S-SIG-01`, `S-SIG-02`, `S-SIG-03`, `S-SIG-04`, `S-SIG-05`, `S-SIG-06` | `AC-18`, `AC-20`, `AC-21`, `AC-22`, `AC-23`, `AC-24`, `AC-25`, `AC-26` |
+| `B-12` | `S-ING-04`, `S-SIG-01`, `S-SIG-02`, `S-SIG-03`, `S-SIG-04`, `S-SIG-05`, `S-SIG-06` | `AC-18`, `AC-20`, `AC-21`, `AC-22`, `AC-23`, `AC-24`, `AC-25`, `AC-26`, `AC-71`, `AC-72` |
 | `B-13` | `S-SIG-09` | `AC-24` |
 | `B-14` | `N-02`, `N-05`, `N-06`, `S-PIP-01`, `S-PIP-03`, `S-PIP-04` | `AC-28`, `AC-30`, `AC-31`, `AC-58`, `AC-61`, `AC-62` |
 | `B-15` | `S-PIP-02` | `AC-29` |
