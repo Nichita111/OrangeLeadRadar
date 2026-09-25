@@ -59,6 +59,7 @@ WF-23 — Audit log
 | `FR-098` | The screen shall list entries newest first with time, actor or "system", action and a one-line subject built from the entity and payload; an `AI_CALL` line shows role, provider or model, prompt version, cost, latency and outcome. |
 | `FR-099` | Filters shall cover kind, action, user, entity, run and date range, defaulting to the last `AUDIT_DEFAULT_RANGE_DAYS` days. |
 | `FR-100` | Expanding an entry shall show its full payload; an entry with a run shall link to it on [Runs](/features/signal-pipeline.md#runs). |
+| `FR-153` | The kind filter shall be a segmented control with All, AI calls and Changes, and an entry shall expand in place to show its payload. |
 
 Obligations: `S-AUD-02`.
 

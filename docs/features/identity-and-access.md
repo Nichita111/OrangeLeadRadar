@@ -59,6 +59,7 @@ WF-21 — Sign in
 |---|---|
 | `FR-093` | Sign in shall submit email and password and, on success, go to the return path or `/prospects`. |
 | `FR-094` | A failure shall show the api's message: wrong credentials, account locked with the minutes remaining, or account disabled. |
+| `FR-152` | Each field of Sign in shall carry a hint under it: the email field says that it is the address the Admin created, and the password field says that repeated failures lock the account for a short time. |
 
 Obligations: `S-SEC-01`.
 

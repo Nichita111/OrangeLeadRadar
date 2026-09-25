@@ -37,7 +37,8 @@ apps/web/src/
 ├── api/                  generated client and query hooks per interface family
 ├── shell/                navigation, service selector, states, formatting, confirmation
 ├── features/<slug>/      one folder per feature file, one component folder per screen
-└── components/           shared primitives on Radix
+├── components/           shared primitives on Radix
+└── components/motion/    animated components copied from React Bits, owned like the primitives
 ```
 
 A screen's folder is named after its heading; its components carry the `FR-` identifiers they implement in their test names.
@@ -49,7 +50,10 @@ React Router with the routes of the frontend's [Routes](/architecture/services/f
 ## Styling and accessibility
 
 - Tailwind CSS with design tokens for colour, spacing and type; components built on Radix primitives for keyboard and screen-reader behaviour.
+- Colour, type and radius come from the tokens of the frontend's [Visual language](/architecture/services/frontend.md#visual-language); a component never names a literal colour.
+- Icons come from `@phosphor-icons/react` only; an icon-only button carries an accessible name.
 - Band and standing always carry a text label or shape besides colour.
+- Animation is limited to the patterns of the frontend's [Motion](/architecture/services/frontend.md#motion), each component reading `prefers-reduced-motion` and covered by a test of its reduced-motion state.
 - Every interactive element is reachable by keyboard with a visible focus ring.
 
 ## Tests

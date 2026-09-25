@@ -87,6 +87,8 @@ WF-17 — Labelling
 | `FR-079` | The answer buttons shall be No, Weak, Clear and Strong, operable with the keys 0 to 3, and Skip with S; answering saves the label and shows the next task. |
 | `FR-080` | The header shall show the number of active labels against `EVAL_MIN_ITEMS`. |
 | `FR-081` | When the queue is empty the screen shall say so and suggest refreshing more accounts. |
+| `FR-144` | The header shall show a progress bar of the active labels against `EVAL_MIN_ITEMS`, and a callout shall say that the classifier's answer is never shown. |
+| `FR-145` | A legend under the answer buttons shall say in one line what No, Weak, Clear and Strong each mean, and answering shall confirm with a toast before the next task appears. |
 
 Obligations: `S-EVL-03`.
 
@@ -127,6 +129,9 @@ WF-18 — Quality report
 | `FR-083` | The latest result shall show pass or fail against the gate with the gate's values, precision, recall, strength agreement, escalation rate against `ESCALATION_RATE_TARGET`, the classifier-alone precision and recall, the classifier evaluated and the escalation band used. |
 | `FR-084` | The report shall show per-question and per-source-type results, the share of labelled passages the selection leaves unread that hold a signal, a calibration chart of mean predicted confidence against the observed share of positives per bin, the misclassified pairs with a link to each passage, and lead verdicts by band. |
 | `FR-085` | History shall list earlier quality checks with date, classifier, labels, precision and pass or fail, and open any of them. |
+| `FR-146` | The latest result shall open with one sentence saying whether the release gate passes, and each metric shall carry a one-line meaning in words. |
+| `FR-147` | A question whose precision is below the gate shall be flagged in the per-question table, with a callout suggesting to reword it in the Service editor and run another quality check. |
+| `FR-148` | The calibration chart shall say how to read it, and lead verdicts by band shall be paired bars of relevant and not relevant with their counts. |
 
 Obligations: `S-EVL-04`, `N-03`.
 
