@@ -51,7 +51,7 @@ A term is the one name of its concept in prose. **Identifier** is the name code,
 | ICP criterion | One weighted condition of the ICP: industry, geography, size, revenue or complexity. | `icp_criteria[]` | [scoring settings document](/architecture/sql-store.md#scoring-settings-document) |
 | In force | Counting now: an `ACTIVE` finding, the latest feedback row, an `ACTIVE` exception. | — | [`finding`](/architecture/sql-store.md#finding) |
 | Intent score | 0–100: how strongly an account's recent findings show a need for a service. | `intent` | [Intent score](/architecture/rules.md#intent-score) |
-| Jev | TypeSafe AI's classification model, one of the two classifier adapters. | `JEV` | [AI gateway](/architecture/services/worker.md#ai-gateway) |
+| Jev | TypeSafe AI's classification model, served through OpenRouter; one of the two classifier adapters. | `JEV` | [AI gateway](/architecture/services/worker.md#ai-gateway) |
 | Label queue | The stratified list of pairs offered for labelling. | — | [Evaluation metrics](/architecture/rules.md#evaluation-metrics) |
 | Lead feedback | A user's verdict on a lead: relevant, not relevant or already a customer. | `lead_feedback` | [`lead_feedback`](/architecture/sql-store.md#lead_feedback) |
 | LeadRadar | This product. | — | [Architecture overview](/architecture/overview.md#purpose) |

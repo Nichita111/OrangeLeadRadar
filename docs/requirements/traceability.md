@@ -86,13 +86,13 @@ empty Flows, Entities or Acceptance cell.
 | `S-SIG-01` | P0 | `B-12` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account) | [`document_triage`](/architecture/sql-store.md#document_triage), [`document`](/architecture/sql-store.md#document) | `AC-20` |
 | `S-SIG-02` | P0 | `B-12` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account) | [`classification`](/architecture/sql-store.md#classification), [`chunk`](/architecture/sql-store.md#chunk), [`signal_question`](/architecture/sql-store.md#signal_question) | `AC-21` |
 | `S-SIG-03` | P0 | `B-12` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account) | [`classification`](/architecture/sql-store.md#classification) | `AC-22` |
-| `S-SIG-04` | P0 | `B-12`, `RULE-04` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account), [FL-16](/features/evaluation-and-feedback.md#fl-16-label-passages-and-run-a-quality-check) | [`classification`](/architecture/sql-store.md#classification), [`evaluation_result`](/architecture/sql-store.md#evaluation_result) | `AC-21` |
+| `S-SIG-04` | P0 | `B-12`, `RULE-04` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account), [FL-16](/features/evaluation-and-feedback.md#fl-16-label-passages-and-run-a-quality-check) | [`classification`](/architecture/sql-store.md#classification), [`evaluation_result`](/architecture/sql-store.md#evaluation_result) | `AC-21`, `AC-23` |
 | `S-SIG-05` | P0 | `B-12`, `RULE-02` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account) | [`finding`](/architecture/sql-store.md#finding), [`classification`](/architecture/sql-store.md#classification) | `AC-24` |
 | `S-SIG-06` | P0 | `B-12` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account), [FL-09](/features/signal-pipeline.md#fl-09-reclassify-after-a-question-change) | [`finding`](/architecture/sql-store.md#finding) | `AC-25`, `AC-26` |
 | `S-SIG-07` | P0 | `B-05` | [FL-09](/features/signal-pipeline.md#fl-09-reclassify-after-a-question-change) | [`classification`](/architecture/sql-store.md#classification), [`finding`](/architecture/sql-store.md#finding), [`document_triage`](/architecture/sql-store.md#document_triage), [`evaluation_item`](/architecture/sql-store.md#evaluation_item), [`pipeline_run`](/architecture/sql-store.md#pipeline_run) | `AC-03`, `AC-26` |
 | `S-SIG-08` | P0 | `B-33` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account), [FL-03](/features/service-configuration.md#fl-03-try-a-question), [FL-17](/features/outreach-and-crm.md#fl-17-draft-outreach) | [`classification`](/architecture/sql-store.md#classification), [`pipeline_run`](/architecture/sql-store.md#pipeline_run), [`audit_event`](/architecture/sql-store.md#audit_event) | `AC-27` |
 | `S-SIG-09` | P0 | `B-13` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account), [FL-12](/features/prospect-dashboard.md#fl-12-explain-a-lead) | [`document`](/architecture/sql-store.md#document), [`finding`](/architecture/sql-store.md#finding) | `AC-24` |
-| `S-SIG-10` | P1 | `B-38` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account), [FL-16](/features/evaluation-and-feedback.md#fl-16-label-passages-and-run-a-quality-check) | [`classification`](/architecture/sql-store.md#classification), [`evaluation_result`](/architecture/sql-store.md#evaluation_result) | `AC-23`, `AC-70` |
+| `S-SIG-10` | P1 | `B-38` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account), [FL-16](/features/evaluation-and-feedback.md#fl-16-label-passages-and-run-a-quality-check) | [`classification`](/architecture/sql-store.md#classification), [`evaluation_result`](/architecture/sql-store.md#evaluation_result) | `AC-70` |
 
 ## Flow coverage
 
@@ -169,7 +169,7 @@ empty Flows, Entities or Acceptance cell.
 | `B-09` | `N-08`, `S-ACC-04` | `AC-13`, `AC-63` |
 | `B-10` | `S-DSC-01`, `S-DSC-02` | `AC-14`, `AC-15` |
 | `B-11` | `S-ING-01`, `S-ING-02`, `S-ING-03`, `S-PIP-05` | `AC-16`, `AC-17`, `AC-32` |
-| `B-12` | `S-ING-04`, `S-SIG-01`, `S-SIG-02`, `S-SIG-03`, `S-SIG-04`, `S-SIG-05`, `S-SIG-06` | `AC-18`, `AC-20`, `AC-21`, `AC-22`, `AC-24`, `AC-25`, `AC-26` |
+| `B-12` | `S-ING-04`, `S-SIG-01`, `S-SIG-02`, `S-SIG-03`, `S-SIG-04`, `S-SIG-05`, `S-SIG-06` | `AC-18`, `AC-20`, `AC-21`, `AC-22`, `AC-23`, `AC-24`, `AC-25`, `AC-26` |
 | `B-13` | `S-SIG-09` | `AC-24` |
 | `B-14` | `N-02`, `N-05`, `N-06`, `S-PIP-01`, `S-PIP-03`, `S-PIP-04` | `AC-28`, `AC-30`, `AC-31`, `AC-58`, `AC-61`, `AC-62` |
 | `B-15` | `S-PIP-02` | `AC-29` |
@@ -194,11 +194,11 @@ empty Flows, Entities or Acceptance cell.
 | `B-35` | `S-RUN-02`, `S-RUN-03` | `AC-58`, `AC-59` |
 | `B-36` | `S-ING-05` | `AC-19` |
 | `B-37` | `S-ING-06` | `AC-69` |
-| `B-38` | `S-SIG-10` | `AC-23`, `AC-70` |
+| `B-38` | `S-SIG-10` | `AC-70` |
 | `RULE-01` | `N-09` | `AC-64` |
 | `RULE-02` | `N-06`, `S-SIG-05` | `AC-24`, `AC-62` |
 | `RULE-03` | `S-SCO-08` | `AC-40` |
-| `RULE-04` | `N-11`, `S-CFG-01`, `S-CFG-02`, `S-SIG-04` | `AC-01`, `AC-02`, `AC-03`, `AC-04`, `AC-21`, `AC-66` |
+| `RULE-04` | `N-11`, `S-CFG-01`, `S-CFG-02`, `S-SIG-04` | `AC-01`, `AC-02`, `AC-03`, `AC-04`, `AC-21`, `AC-23`, `AC-66` |
 | `RULE-05` | `N-04`, `S-CFG-04`, `S-SCO-07` | `AC-06`, `AC-39` |
 | `RULE-06` | `S-OUT-01` | `AC-50` |
 | `RULE-07` | `N-08`, `S-ACC-04` | `AC-13`, `AC-63` |

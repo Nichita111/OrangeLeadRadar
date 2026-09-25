@@ -79,7 +79,7 @@ Each requirement states one business obligation and carries a priority. `P0` is 
 | `B-14` | Sales shall refresh an account on demand and follow the progress live. | P0 |
 | `B-15` | Every account shall be refreshed on a schedule. | P1 |
 | `B-36` | The product shall find an account's newsroom, investor-relations, careers and feed addresses by itself. | P1 |
-| `B-38` | The product shall be able to classify with TypeSafe's Jev once a key is provisioned, switched by configuration. | P1 |
+| `B-38` | The product shall keep classifying with TypeSafe's Jev while the LLM budget is exhausted. | P1 |
 
 ### Score and prioritise
 
@@ -153,7 +153,7 @@ The scenarios are the business definition of done. Each `SC-` row passes by the 
 | Alerts | Alerts appear in the product only, with no email or chat delivery. |
 | Stored documents | For each fetched document the product stores its extracted text, address and dates for a retention period, and shows the text only as evidence. |
 | Crawling | The crawler obeys `robots.txt`, identifies itself and respects per-source limits; nothing reads LinkedIn automatically. |
-| Jev | Jev is in limited early access and no key is provisioned yet. The LLM classifier is the default until a key exists and a quality check shows Jev passes the gate; the Jev API's exact fields and language coverage are confirmed then. |
+| Jev | Jev is served by OpenRouter as `typesafe/jev-1.13` and billed to the same OpenRouter key ([ADR-15](/architecture/adrs/adr-15-openrouter-as-the-llm-provider.md)). The LLM classifier is the default until a quality check shows Jev passes the gate. |
 | Data providers | Keys for Crunchbase, NewsAPI and SerpAPI are being requested; each is optional. |
 | LLM provider | An OpenRouter account with API access is available; the model of each AI role is chosen by configuration, and each call's price is the cost OpenRouter reports ([ADR-15](/architecture/adrs/adr-15-openrouter-as-the-llm-provider.md)). |
 | Hosting | The demo runs on one cloud machine in an EU region. |
