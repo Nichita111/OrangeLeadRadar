@@ -81,7 +81,7 @@ When `SERPAPI` is available and a kind is still missing, one web search `"{name}
 6. `RSS` reads each `RSS_FEED` source.
 7. Across plug-ins at most `MAX_DOCUMENTS_PER_REFRESH` documents are kept per refresh, split evenly across the available plug-ins, newest first.
 
-**Invariants.** Nothing older than the window is fetched. No request goes to `linkedin.com`, and no Google News feed is read ([ADR-18](/architecture/adrs/adr-18-source-provider-terms-and-limits.md)). The crawler honours `robots.txt`, identifies itself with `CRAWLER_USER_AGENT` and waits `CRAWL_HOST_DELAY_MS` between requests to one host ([N-09](/requirements/system.md)).
+**Invariants.** Nothing older than the window is fetched. No request goes to `linkedin.com`, and no Google News feed is read ([ADR-19](/architecture/adrs/adr-19-source-provider-terms-and-limits.md)). The crawler honours `robots.txt`, identifies itself with `CRAWLER_USER_AGENT` and waits `CRAWL_HOST_DELAY_MS` between requests to one host ([N-09](/requirements/system.md)).
 
 ## Document normalisation
 

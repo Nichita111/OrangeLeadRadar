@@ -1,12 +1,12 @@
 ---
 type: Decision
-title: ADR-17 Industries and markets as configuration
+title: ADR-18 Industries and markets as configuration
 description: Industries and markets are lists an Admin maintains without code; a market is a shortcut stored as its countries, so scores stay reproducible.
 status: draft
 tags: [service-configuration]
 ---
 
-# ADR-17 Industries and markets as configuration
+# ADR-18 Industries and markets as configuration
 
 ## Context
 

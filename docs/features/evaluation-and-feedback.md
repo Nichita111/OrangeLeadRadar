@@ -126,7 +126,7 @@ WF-18 — Quality report
 | `FR-082` | Run quality check shall start an evaluation run and show its progress; while one runs the button shows it. |
 | `FR-083` | The latest result shall show pass or fail against the gate with the gate's values, precision, recall, strength agreement, escalation rate against `ESCALATION_RATE_TARGET`, the classifier-alone precision and recall, the classifier evaluated and the escalation band used. |
 | `FR-084` | The report shall show per-question and per-source-type results, the share of labelled passages the selection leaves unread that hold a signal, a calibration chart of mean predicted confidence against the observed share of positives per bin, the misclassified pairs with a link to each passage, and lead verdicts by band. |
-| `FR-104` | An Impact panel shall show, for the last `IMPACT_PERIOD_DAYS`, the accounts researched and the hours of manual research that replaces — naming `MANUAL_RESEARCH_MINUTES_PER_ACCOUNT` as the team's assumption — the AI cost and minutes per refresh, the signals found, and the latest passing precision with its label count, closing with one sentence a slide can quote. |
+| `FR-157` | An Impact panel shall show, for the last `IMPACT_PERIOD_DAYS`, the accounts researched and the hours of manual research that replaces — naming `MANUAL_RESEARCH_MINUTES_PER_ACCOUNT` as the team's assumption — the AI cost and minutes per refresh, the signals found, and the latest passing precision with its label count, closing with one sentence a slide can quote. |
 | `FR-085` | History shall list earlier quality checks with date, classifier, labels, precision and pass or fail, and open any of them. |
 
 Obligations: `S-EVL-04`, `S-EVL-05`, `N-03`.

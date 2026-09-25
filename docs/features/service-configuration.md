@@ -63,7 +63,7 @@ sequenceDiagram
 4. Rules: [Scoring settings validation](/architecture/rules.md#scoring-settings-validation), [Reclassification](/architecture/rules.md#reclassification), [Rescoring](/architecture/rules.md#rescoring), and for preview [Signal classification](/architecture/rules.md#signal-classification), [Escalation](/architecture/rules.md#escalation), [Evidence extraction](/architecture/rules.md#evidence-extraction), [Fit score](/architecture/rules.md#fit-score), [Intent score](/architecture/rules.md#intent-score), [Priority, standing and band](/architecture/rules.md#priority-standing-and-band).
 5. Interfaces: [Services and questions](/architecture/interfaces.md#services-and-questions) (`API-07` to `API-14`) [Scoring](/architecture/interfaces.md#scoring) (`API-15` to `API-19`) and [Industries and markets](/architecture/interfaces.md#industries-and-markets) (`API-71` to `API-76`).
 6. Services: the [api](/architecture/services/api.md) and its [runtime](/architecture/services/api.md#runtime) (`PREVIEW_MAX_PASSAGES`); the [worker](/architecture/services/worker.md) for the runs; the [frontend](/architecture/services/frontend.md) shell; the seeded services of the [demo dataset](/architecture/overview.md#demo-dataset).
-7. Decisions: [ADR-06](/architecture/adrs/adr-06-rule-based-scoring-with-versioned-settings.md), [ADR-09](/architecture/adrs/adr-09-findings-per-passage-and-question-revision.md), [ADR-03](/architecture/adrs/adr-03-models-answer-rules-score.md), [ADR-17](/architecture/adrs/adr-17-industries-and-markets-as-configuration.md).
+7. Decisions: [ADR-06](/architecture/adrs/adr-06-rule-based-scoring-with-versioned-settings.md), [ADR-09](/architecture/adrs/adr-09-findings-per-passage-and-question-revision.md), [ADR-03](/architecture/adrs/adr-03-models-answer-rules-score.md), [ADR-18](/architecture/adrs/adr-18-industries-and-markets-as-configuration.md).
 8. Screens: [Services](#services), [Service editor](#service-editor), [Scoring settings](#scoring-settings), [Industries and markets](#industries-and-markets).
 9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-01` to `AC-08`, `AC-26`, `AC-27`, `AC-39`, `AC-70`, `AC-59`, `AC-62`, `AC-66`, `AC-74`.
 
@@ -227,15 +227,15 @@ Route `/settings/industries-markets`. Admin only.
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-WF-24 — Industries and markets
+WF-26 — Industries and markets
 
 **Behaviour**
 
 | ID | Requirement |
 |---|---|
-| `FR-101` | The screen shall list the industries with code, label, status and the number of accounts that have each, and the markets with code, name, countries and status, active first. |
-| `FR-102` | New industry and New market shall open a dialog with a code that accepts UPPER_SNAKE only and says it cannot be changed later, a label or name, and for a market a multi-select of countries by English name. |
-| `FR-103` | A row menu shall offer Rename, and Retire or Restore with confirmation; retiring shall say that the entry leaves every picker while accounts and saved scoring versions that use it keep it. |
+| `FR-154` | The screen shall list the industries with code, label, status and the number of accounts that have each, and the markets with code, name, countries and status, active first. |
+| `FR-155` | New industry and New market shall open a dialog with a code that accepts UPPER_SNAKE only and says it cannot be changed later, a label or name, and for a market a multi-select of countries by English name. |
+| `FR-156` | A row menu shall offer Rename, and Retire or Restore with confirmation; retiring shall say that the entry leaves every picker while accounts and saved scoring versions that use it keep it. |
 
 Obligations: `S-CFG-07`.
 
