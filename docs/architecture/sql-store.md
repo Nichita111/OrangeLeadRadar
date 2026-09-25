@@ -104,7 +104,7 @@ One configurable question a passage can answer for a service. Weight and half-li
 | `text` | text | The question, in English, answerable from one passage, e.g. "Does the company announce a cost-reduction or operational-efficiency programme?". |
 | `answer_type` | enum: `YES_NO`, `SCALE`, `CHOICE` | `YES_NO`: yes or no, with the strength of a yes asked in the same classifier pass. `SCALE`: the answer is a [strength](#finding) level itself. `CHOICE`: one of `options`, each mapped to a strength. How each maps to a strength is [Signal classification](/architecture/rules.md#signal-classification). |
 | `options` | jsonb, null | `CHOICE` only: an array of `{key, label, strength}`, at least two, with at least one option of strength `NONE`; `key` is UPPER_SNAKE and unique within the question. Null for the other answer types. |
-| `polarity` | enum: `POSITIVE`, `NEGATIVE` | `POSITIVE` findings raise Intent; `NEGATIVE` findings lower it ([Intent score](/architecture/rules.md#intent-score)). |
+| `polarity` | enum: `POSITIVE`, `NEGATIVE` | `POSITIVE` findings raise Intent; `NEGATIVE` findings lower it ([Intent score](/architecture/rules.md#intent-score)). Immutable after creation, so that every score stays reproducible from its settings version; a question with the other polarity is a new question. |
 | `source_types` | text[] | The document source types the question is asked against; each element is a value of [`document`](#document) `source_type`. At least one. |
 | `hint_terms` | text[] | Optional search terms in any language. Used to build news queries and discovery searches ([Fetch window](/architecture/rules.md#fetch-window), [Discovery](/architecture/rules.md#discovery)); never used to decide an answer. |
 | `revision` | integer | 1 on creation; incremented by any change to `text`, `answer_type`, `options` or `source_types`, which triggers [Reclassification](/architecture/rules.md#reclassification). A change to `hint_terms` or `status` does not. |
@@ -303,6 +303,7 @@ A company proposed by [Discovery](/architecture/rules.md#discovery) that is not 
 | `employee_count` | integer, null | When known. |
 | `origin` | enum: `CRUNCHBASE_SEARCH`, `NEWS_MENTION` | Found by a Crunchbase organisation search, or named as the subject of a relevant news document. |
 | `document_id` | uuid FK → [`document`](#document), null | The news document that named it; `NEWS_MENTION` only. |
+| `quote` | text, null | Verbatim sentence of that document naming the company and its signal; `NEWS_MENTION` only. |
 | `fit_estimate` | integer 0–100 | The [Fit score](/architecture/rules.md#fit-score) over the known attributes, under the service's active settings at proposal time. |
 | `status` | enum: `PENDING`, `ACCEPTED`, `REJECTED` | `PENDING` until a user decides. |
 | `decided_by` | uuid FK → [`app_user`](#app_user), null | Who accepted or rejected it. |
@@ -393,7 +394,7 @@ A unit of background work a user can see: a refresh, a reclassification, a resco
 | `account_id` | uuid FK → [`account`](#account), null | `ACCOUNT_REFRESH`, and a `RESCORE` of one account. |
 | `service_id` | uuid FK → [`service`](#service), null | `RESCORE` of a whole service or of one account for one service, `DISCOVERY`, `RECLASSIFY`. |
 | `question_id` | uuid FK → [`signal_question`](#signal_question), null | `RECLASSIFY`. |
-| `status` | enum: `QUEUED`, `RUNNING`, `SUCCEEDED`, `PARTIAL`, `FAILED`, `CANCELLED` | `PARTIAL`: finished, but at least one plug-in or step failed or is waiting for budget, as `errors` and `progress` state. `FAILED`: nothing usable was produced. |
+| `status` | enum: `QUEUED`, `RUNNING`, `SUCCEEDED`, `PARTIAL`, `FAILED`, `CANCELLED` | `PARTIAL`: finished, but at least one plug-in or step failed, or pairs were left `PENDING_LLM`, as `errors` and `progress` state. `FAILED`: nothing usable was produced. |
 | `stage` | enum, null: `FETCH`, `PROCESS`, `TRIAGE`, `CLASSIFY`, `EVIDENCE`, `SCORE` | The stage in progress; null when queued or finished. The stages each kind passes through are the [run lifecycle](/architecture/services/worker.md#run-lifecycle). |
 | `progress` | jsonb | Counters: `documents_fetched`, `documents_new`, `documents_kept`, `passages`, `pairs_classified`, `pairs_escalated`, `findings_created`, `pending_budget`, `candidates`, `items_evaluated`. |
 | `errors` | jsonb | Array of `{stage, plugin_code?, code, message}`; `code` is an error code of [Conventions](/architecture/interfaces.md#conventions) or `FIXTURE_MISSING`. |
@@ -410,10 +411,10 @@ The work queue behind runs ([ADR-04](/architecture/adrs/adr-04-postgres-job-queu
 | `run_id` | uuid FK → [`pipeline_run`](#pipeline_run) | Owning run. |
 | `step` | enum: `FETCH`, `PROCESS`, `SIGNAL`, `SCORE`, `DISCOVER`, `EVALUATE` | `FETCH`: one plug-in for one account. `PROCESS`: normalise, deduplicate, chunk and embed a batch of fetched documents. `SIGNAL`: run the [signal graph](/architecture/services/worker.md#signal-graph) over a batch of documents or passages. `SCORE`: rescore. `DISCOVER`: one discovery source for one service. `EVALUATE`: a batch of labelled pairs. |
 | `payload` | jsonb | Step input: identifiers only, never document text. |
-| `status` | enum: `READY`, `RUNNING`, `DONE`, `FAILED`, `WAITING_BUDGET`, `CANCELLED` | `WAITING_BUDGET`: parked by the [Budget guard](/architecture/rules.md#budget-guard) until `not_before`. |
+| `status` | enum: `READY`, `RUNNING`, `DONE`, `FAILED`, `CANCELLED` | `FAILED` after `JOB_MAX_ATTEMPTS` attempts. |
 | `priority` | smallint | Lower runs first, as the [job queue](/architecture/services/worker.md#job-queue) assigns it. |
 | `attempts` | integer | Attempts started. |
-| `not_before` | timestamptz | Earliest start. |
+| `not_before` | timestamptz | Earliest start; pushed back by retry backoff. |
 | `locked_by` | text, null | Worker instance id while `RUNNING`. |
 | `locked_at` | timestamptz, null | When it was claimed. |
 | `last_error` | text, null | Message of the last failed attempt. |
