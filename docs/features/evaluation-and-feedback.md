@@ -45,7 +45,7 @@ sequenceDiagram
 ## Reading order
 
 1. Terms in the [glossary](/requirements/glossary.md): Lead feedback, Finding feedback, Evaluation item, Evaluation run, Label queue, Precision, Recall, Escalation rate, Calibration, Release gate, Strength.
-2. Requirement rows: `S-EVL-01` to `S-EVL-04`, `S-SIG-04` in [system requirements](/requirements/system.md); `N-03`; `B-24`, `B-27`, `B-28` in [business requirements](/requirements/business.md).
+2. Requirement rows: `S-EVL-01` to `S-EVL-04`, `S-SIG-04`, `S-SIG-10` in [system requirements](/requirements/system.md); `N-03`; `B-24`, `B-27`, `B-28`, `B-38` in [business requirements](/requirements/business.md).
 3. Stores: [`lead_feedback`](/architecture/sql-store.md#lead_feedback), [`finding_feedback`](/architecture/sql-store.md#finding_feedback), [`evaluation_item`](/architecture/sql-store.md#evaluation_item), [`evaluation_result`](/architecture/sql-store.md#evaluation_result), [`finding`](/architecture/sql-store.md#finding), [`chunk`](/architecture/sql-store.md#chunk).
 4. Rules: [Feedback effects](/architecture/rules.md#feedback-effects), [Evaluation metrics](/architecture/rules.md#evaluation-metrics) with its label queue, [Signal classification](/architecture/rules.md#signal-classification), [Escalation](/architecture/rules.md#escalation), [Rescoring](/architecture/rules.md#rescoring).
 5. Interfaces: [Feedback and alerts](/architecture/interfaces.md#feedback-and-alerts) (`API-46`, `API-47`), [Evaluation](/architecture/interfaces.md#evaluation) (`API-50` to `API-55`), [Classifier](/architecture/interfaces.md#classifier).

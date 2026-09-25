@@ -165,7 +165,7 @@ One worker at a time runs the scheduler: each loop takes a PostgreSQL advisory l
 | `SCHEDULER_MAX_ENQUEUE` | `20` | Refreshes enqueued per tick |
 | `REFRESH_INTERVAL_HOURS` | `24` | Time between refreshes of an account |
 | `HOUSEKEEPING_HOUR_UTC` | `3` | Hour of the daily housekeeping |
-| `CLOCK_FILE` | unset | Test only, honoured only when `FIXTURE_MODE` is `replay`: a file holding the current time as ISO-8601, read on every use of the clock; unset uses the system clock |
+| `CLOCK_FILE` | unset | For the acceptance tests and the demo, honoured only when `FIXTURE_MODE` is `replay`: a file holding the current time as ISO-8601, read on every use of the clock; unset uses the system clock |
 | `REFRESH_TARGET_MINUTES` | `10` | Target duration of one account refresh in replay mode ([N-02](/requirements/system.md)) |
 
 **Fetching and processing.**

@@ -17,7 +17,7 @@ Everything LeadRadar looks for and how it weighs it is data an Admin edits: whic
 ### FL-01 Define a service and its signal questions
 
 1. The Admin opens [Services](#services) and creates a service with its code, name, description and value proposition (`API-08`). The service gets a scoring draft with the default settings.
-2. In the [Service editor](#service-editor) the Admin adds signal questions (`API-12`). Each new question joins the draft at weight `MEDIUM` and a `RECLASSIFY` run asks it of every stored passage of the service's accounts.
+2. In the [Service editor](#service-editor) the Admin adds signal questions (`API-12`). Each new question joins the draft at weight `MEDIUM` and a `RECLASSIFY` run asks it of every stored passage of the service's accounts; its signals count in scores once the Admin activates a scoring version that includes it ([FL-02](#fl-02-edit-and-activate-scoring-settings)).
 3. Editing a question's text, answer type, options or source types increments its revision and reclassifies it; editing only its hint terms does not (`API-13`).
 4. Deactivating a question removes it from the draft; its findings stop counting once a version without it is activated.
 

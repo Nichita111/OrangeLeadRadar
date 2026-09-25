@@ -10,7 +10,7 @@ tags: [accounts-and-discovery, audit-trail, evaluation-and-feedback, identity-an
 
 LeadRadar has one store: PostgreSQL with the `pgvector` extension ([ADR-01](/architecture/adrs/adr-01-one-postgresql-store.md)). It holds configuration, accounts, fetched documents and their passages with embeddings, classifier answers, findings, scores, feedback, drafts, the job queue and the audit. Which service writes which table is the [store ownership](/architecture/overview.md#store-ownership) table.
 
-Every table has `id` (uuid), `created_at` and `updated_at` (timestamptz, UTC); they are omitted from the column tables below. Column types are PostgreSQL names. Foreign keys use `RESTRICT` on delete. Rows are deactivated or superseded, never deleted, except the tables of the [hard-delete allow-list](#hard-delete-allow-list). Each domain opens with a diagram of its tables and a selection of columns; only the column tables are complete. An enum is defined once, under the column that owns it, and every other column of that enum links there.
+Every table has `id` (uuid), `created_at` and `updated_at` (timestamptz, UTC); they are omitted from the column tables below. Column types are PostgreSQL names. Foreign keys use `RESTRICT` on delete, except [`outreach_draft`](#outreach_draft) `contact_id`, which uses `SET NULL` because a contact is erased. Rows are deactivated or superseded, never deleted, except the tables of the [hard-delete allow-list](#hard-delete-allow-list). Each domain opens with a diagram of its tables and a selection of columns; only the column tables are complete. An enum is defined once, under the column that owns it, and every other column of that enum links there.
 
 ## Identity
 
@@ -108,7 +108,7 @@ One configurable question a passage can answer for a service. Weight and half-li
 | `source_types` | text[] | The document source types the question is asked against; each element is a value of [`document`](#document) `source_type`. At least one. |
 | `hint_terms` | text[] | Optional search terms in any language. Used to build news queries and discovery searches ([Fetch window](/architecture/rules.md#fetch-window), [Discovery](/architecture/rules.md#discovery)); never used to decide an answer. |
 | `revision` | integer | 1 on creation; incremented by any change to `text`, `answer_type`, `options` or `source_types`, which triggers [Reclassification](/architecture/rules.md#reclassification). A change to `hint_terms` or `status` does not. |
-| `status` | enum: `ACTIVE`, `INACTIVE` | An inactive question is not classified or scored; its findings are kept. |
+| `status` | enum: `ACTIVE`, `INACTIVE` | An inactive question is not classified and is left out of the service's draft; its findings are kept and stop counting once a scoring version without it is activated. A new or reactivated question counts once a scoring version with it is activated. |
 
 ### scoring_config
 
@@ -516,7 +516,7 @@ The classifier's answer to one question on one passage, at one question revision
 | `answer` | jsonb | The classifier's probability for every answer value of the question. |
 | `p_positive` | numeric 0–1 | Probability mass of the answer values whose strength is not `NONE`. |
 | `escalated` | boolean | Whether [Escalation](/architecture/rules.md#escalation) sent the pair to the LLM. |
-| `strength` | enum | Final strength after escalation; a [`finding`](#finding) `strength` value. |
+| `strength` | enum, null | Final strength after escalation; a [`finding`](#finding) `strength` value. Null while `PENDING_LLM`. |
 | `status` | enum: `NEGATIVE`, `POSITIVE`, `PENDING_LLM`, `EVIDENCE_FAILED` | `NEGATIVE`: final, strength `NONE`, no finding. `POSITIVE`: final, a finding exists. `PENDING_LLM`: escalation or evidence is waiting for the LLM (budget or availability). `EVIDENCE_FAILED`: positive, but no verbatim quote could be obtained; retried by the next refresh. |
 
 ### finding
@@ -698,7 +698,7 @@ A message draft for a person to send themselves ([RULE-06](/requirements/busines
 |---|---|---|
 | `account_id` | uuid FK → [`account`](#account) | The account. |
 | `service_id` | uuid FK → [`service`](#service) | The service it proposes. |
-| `contact_id` | uuid FK → [`contact`](#contact), null | Addressee, when chosen; set to null if the contact is erased. |
+| `contact_id` | uuid FK → [`contact`](#contact), null, `ON DELETE SET NULL` | Addressee, when chosen; set to null when the contact is erased. |
 | `channel` | enum: `EMAIL`, `LINKEDIN_INMAIL` | Email (subject and body) or LinkedIn InMail (body only). |
 | `subject` | text, null | `EMAIL` only. |
 | `body` | text | Message text. |

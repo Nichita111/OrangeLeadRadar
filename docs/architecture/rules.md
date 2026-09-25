@@ -73,7 +73,7 @@ When `SERPAPI` is available and a kind is still missing, one web search `"{name}
 
 **Algorithm.**
 
-1. The window is the last `FETCH_LOOKBACK_DAYS` days. Per plug-in, the lower bound is raised to one day before the newest `published_at` of the account's documents from that plug-in, so a refresh asks only for new items.
+1. The window is the last `FETCH_LOOKBACK_DAYS` days. Per plug-in, the lower bound is raised to one day before the newest `published_at` of the account's documents from that plug-in, so a refresh asks only for new items. A provider whose search reaches back less far than the window is asked for what it holds; older company publications come from `WEBSITE`.
 2. A news plug-in (`GDELT`, `NEWSAPI`, `SERPAPI`) sends one query per active service: the account's name or any alias, combined with any `hint_terms` of that service's active questions whose `source_types` include `NEWS`; a service without such terms queries the name alone.
 3. `WEBSITE` reads the account's `WEBSITE`, `NEWSROOM` and `INVESTOR_RELATIONS` sources and same-host links, at most `CRAWL_MAX_PAGES_PER_SITE` pages to link depth 2, newest first by sitemap date when the site has a sitemap, plus at most `CRAWL_MAX_PDFS` of the newest linked PDF reports.
 4. `CAREERS` reads every posting listed on the account's `CAREERS` sources that was posted within the window.
@@ -169,13 +169,13 @@ The same band applies whichever classifier adapter is configured ([ADR-02](/arch
 
 **Algorithm.** The [LLM extract evidence](/architecture/interfaces.md#llm) call returns `quote`, `quote_en` and `rationale`. The output is valid when:
 
-- `quote`, after collapsing whitespace, is a substring of the passage text after collapsing whitespace, and is between 20 and `EVIDENCE_MAX_QUOTE_CHARS` characters;
+- `quote`, after collapsing whitespace and mapping typographic quotation marks, apostrophes, dashes and the ellipsis character to their ASCII forms, is a substring of the passage text normalised the same way, and is between 20 and `EVIDENCE_MAX_QUOTE_CHARS` characters;
 - `quote_en` is present when the document language is not `en`, and absent otherwise;
 - `rationale` is one sentence of at most 300 characters.
 
 An invalid output is requested again, up to `EVIDENCE_MAX_ATTEMPTS` attempts in total; after that the classification is `EVIDENCE_FAILED` and no finding is created. A later refresh retries `EVIDENCE_FAILED` pairs once more.
 
-**After.** One [`finding`](/architecture/sql-store.md#finding) with the strength, confidence, `decided_by`, quote, translation, rationale, `observed_at` = the document's `published_at`, else its `fetched_at`, and status `ACTIVE`.
+**After.** One [`finding`](/architecture/sql-store.md#finding) with the strength, confidence, `decided_by`, the quote as the passage writes it at the matched span, translation, rationale, `observed_at` = the document's `published_at`, else its `fetched_at`, and status `ACTIVE`.
 
 **Invariants.** No evidence, no finding ([RULE-02](/requirements/business.md#business-rules)): every finding's quote is verbatim from its passage.
 
@@ -197,10 +197,10 @@ An invalid output is requested again, up to `EVIDENCE_MAX_ATTEMPTS` attempts in 
 
 **Algorithm.** Before every Anthropic call — escalation, evidence, discovery extraction, outreach, question preview, and classification when `CLASSIFIER_PROVIDER` is `LLM` — the spend since 00:00 UTC is summed. When it has reached `LLM_DAILY_BUDGET_EUR`:
 
-- in the worker, the affected pairs stay `PENDING_LLM`, the run's `progress.pending_budget` counts them and the run finishes `PARTIAL`; the next refresh of each account resumes its `PENDING_LLM` pairs, so the budget reset at 00:00 UTC is picked up by the daily schedule;
+- in the worker, a stopped classifier call leaves its passages unclassified and a stopped escalation or evidence call leaves its pairs `PENDING_LLM`; the run's `progress.pending_budget` counts both and the run finishes `PARTIAL`; the account's next refresh resumes them, so the budget reset at 00:00 UTC is picked up by the next refresh after it;
 - in the api, the request answers `429 BUDGET_EXHAUSTED`.
 
-The cost of a call is its token counts times the model's price keys (`LLM_PRICE_*`). Jev calls are recorded with their cost but not capped by this key.
+The cost of a call is its token counts times the model's prices in `LLM_PRICES_EUR_PER_MTOK`. Jev calls are recorded with their cost, `JEV_PRICE_EUR_PER_CALL`, but not capped by `LLM_DAILY_BUDGET_EUR`.
 
 **Invariants.** Classification by Jev continues while the budget is exhausted. Concurrent calls may overshoot the budget by at most the calls already in flight.
 

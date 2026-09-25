@@ -358,6 +358,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `careers_url` | optional | [`account_source`](/architecture/sql-store.md#account_source) of kind `CAREERS` |
 | `investor_relations_url` | optional | [`account_source`](/architecture/sql-store.md#account_source) of kind `INVESTOR_RELATIONS` |
 | `rss_url` | optional | [`account_source`](/architecture/sql-store.md#account_source) of kind `RSS_FEED` |
+| `operational_complexity` | optional | [`account`](/architecture/sql-store.md#account) `operational_complexity` |
 | `linkedin_url` | optional | [`account`](/architecture/sql-store.md#account) |
 | `notes` | optional | [`account`](/architecture/sql-store.md#account) |
 
@@ -443,7 +444,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 
 - `API-33` — an inactive account answers `409`. The frontend polls `API-35` for progress ([ADR-13](/architecture/adrs/adr-13-run-progress-by-polling.md)).
 - `API-34` — newest first.
-- `API-36` — cancels its `READY` jobs; running jobs finish their current step; the run ends `CANCELLED`. A finished run answers `409`.
+- `API-36` — a `RECLASSIFY`, `RESCORE` or `EVALUATION` run can be cancelled by an Admin only (`403 FORBIDDEN` for Sales), so a user cannot leave a question's stored passages or a scoring version half applied. It cancels the run's `READY` jobs; running jobs finish their current step; the run ends `CANCELLED`. A finished run answers `409`.
 
 ### Runs and source plug-ins shapes
 
