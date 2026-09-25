@@ -1,12 +1,12 @@
 ---
 type: Decision
-title: ADR-18 Source provider terms and limits
+title: ADR-19 Source provider terms and limits
 description: What each news and company-data provider allows - GDELT free with credit and strict pacing, Google News only through SerpAPI, Crunchbase not expected, LinkedIn never - and how the plug-ins follow it.
 status: draft
 tags: [signal-pipeline]
 ---
 
-# ADR-18 Source provider terms and limits
+# ADR-19 Source provider terms and limits
 
 ## Context
 

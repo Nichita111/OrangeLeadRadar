@@ -126,7 +126,7 @@ One version of a service's scoring settings. A service has at most one `DRAFT` a
 
 ### industry
 
-A sector an account belongs to and an ICP criterion names. The list is configuration an Admin maintains ([ADR-17](/architecture/adrs/adr-17-industries-and-markets-as-configuration.md)); its first rows are seeded from the [demo dataset](/architecture/overview.md#demo-dataset).
+A sector an account belongs to and an ICP criterion names. The list is configuration an Admin maintains ([ADR-18](/architecture/adrs/adr-18-industries-and-markets-as-configuration.md)); its first rows are seeded from the [demo dataset](/architecture/overview.md#demo-dataset).
 
 | Column | Type | Notes |
 |---|---|---|
@@ -136,7 +136,7 @@ A sector an account belongs to and an ICP criterion names. The list is configura
 
 ### market
 
-A named group of countries, such as DACH. An Admin maintains the list ([ADR-17](/architecture/adrs/adr-17-industries-and-markets-as-configuration.md)). A market is a shortcut: choosing it in an ICP `GEOGRAPHY` criterion stores its countries, so a later change to the market never changes a saved scoring version.
+A named group of countries, such as DACH. An Admin maintains the list ([ADR-18](/architecture/adrs/adr-18-industries-and-markets-as-configuration.md)). A market is a shortcut: choosing it in an ICP `GEOGRAPHY` criterion stores its countries, so a later change to the market never changes a saved scoring version.
 
 | Column | Type | Notes |
 |---|---|---|
@@ -255,7 +255,7 @@ An address where an account publishes: the pages the website, careers and RSS pl
 |---|---|---|
 | `account_id` | uuid FK → [`account`](#account) | The account. |
 | `kind` | enum: `WEBSITE`, `NEWSROOM`, `INVESTOR_RELATIONS`, `CAREERS`, `RSS_FEED` | `WEBSITE`: home page. `NEWSROOM`: press releases. `INVESTOR_RELATIONS`: annual reports and strategy publications. `CAREERS`: job listings, including a public applicant-tracking board. `RSS_FEED`: a feed of the company's own news. |
-| `url` | text | Absolute URL; unique per account. A feed on `news.google.com` is refused: its terms allow personal use only ([ADR-18](/architecture/adrs/adr-18-source-provider-terms-and-limits.md)). |
+| `url` | text | Absolute URL; unique per account. A feed on `news.google.com` is refused: its terms allow personal use only ([ADR-19](/architecture/adrs/adr-19-source-provider-terms-and-limits.md)). |
 | `origin` | enum: `MANUAL`, `DETECTED` | Entered by a user, or found by [Source detection](/architecture/rules.md#source-detection). |
 | `status` | enum: `ACTIVE`, `INACTIVE` | An inactive source is not fetched. |
 
