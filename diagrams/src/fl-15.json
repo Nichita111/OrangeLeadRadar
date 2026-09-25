@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "FL-15 Give feedback on a lead or a signal",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      870,
+      530
+    ]
+  },
+  "participants": [
+    {
+      "id": "sales",
+      "type": "external",
+      "label": "Sales",
+      "sublabel": "user"
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "web",
+      "sublabel": "Account detail"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "api",
+      "sublabel": "FastAPI"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "store + job queue"
+    },
+    {
+      "id": "worker",
+      "type": "backend",
+      "label": "worker",
+      "sublabel": "job loop"
+    }
+  ],
+  "segments": [
+    {
+      "from": 156,
+      "to": 284,
+      "label": "Verdict"
+    },
+    {
+      "from": 308,
+      "to": 436,
+      "label": "Rescore"
+    }
+  ],
+  "messages": [
+    {
+      "from": "sales",
+      "to": "web",
+      "y": 186,
+      "label": "Wrong on a signal, or a lead verdict"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 228,
+      "label": "API-47 or API-46",
+      "variant": "emphasis"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 270,
+      "label": "feedback, REJECTED, label, RESCORE"
+    },
+    {
+      "from": "worker",
+      "to": "db",
+      "y": 338,
+      "label": "rescore without the signal",
+      "variant": "emphasis"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 380,
+      "label": "score view (API-40)"
+    },
+    {
+      "from": "api",
+      "to": "web",
+      "y": 422,
+      "label": "Intent without it",
+      "variant": "return"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Spec",
+      "items": [
+        "FL-15 in Evaluation and feedback",
+        "S-EVL-01, S-EVL-02 (P1)"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Feedback teaches",
+      "items": [
+        "A signal verdict becomes a label",
+        "Already a customer leaves the ranking"
+      ]
+    }
+  ]
+}

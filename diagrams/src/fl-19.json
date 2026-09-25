@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "FL-19 Sign in and sign out",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      820,
+      656
+    ]
+  },
+  "participants": [
+    {
+      "id": "user",
+      "type": "external",
+      "label": "User",
+      "sublabel": "Sales or Admin"
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "web",
+      "sublabel": "Sign in"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "api",
+      "sublabel": "FastAPI"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "store + job queue"
+    }
+  ],
+  "segments": [
+    {
+      "from": 156,
+      "to": 410,
+      "label": "Sign in"
+    },
+    {
+      "from": 434,
+      "to": 562,
+      "label": "Sign out"
+    }
+  ],
+  "messages": [
+    {
+      "from": "user",
+      "to": "web",
+      "y": 186,
+      "label": "open a page"
+    },
+    {
+      "from": "web",
+      "to": "user",
+      "y": 228,
+      "label": "Sign in, with return path",
+      "variant": "return"
+    },
+    {
+      "from": "user",
+      "to": "web",
+      "y": 270,
+      "label": "email and password",
+      "variant": "security"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 312,
+      "label": "sign in (API-01)",
+      "variant": "security"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 354,
+      "label": "argon2id check, lock on failures"
+    },
+    {
+      "from": "api",
+      "to": "web",
+      "y": 396,
+      "label": "HTTP-only session cookie",
+      "variant": "return"
+    },
+    {
+      "from": "user",
+      "to": "web",
+      "y": 464,
+      "label": "Sign out"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 506,
+      "label": "sign out (API-02)"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 548,
+      "label": "session revoked"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Spec",
+      "items": [
+        "FL-19 in Identity and access",
+        "S-SEC-01, S-SEC-02"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Security",
+      "items": [
+        "Only token hashes are stored",
+        "Locked after LOGIN_MAX_FAILURES failures"
+      ]
+    }
+  ]
+}

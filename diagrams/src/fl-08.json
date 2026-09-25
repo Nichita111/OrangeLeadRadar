@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "FL-08 Scheduled refresh cycle",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      820,
+      598
+    ]
+  },
+  "participants": [
+    {
+      "id": "sched",
+      "type": "backend",
+      "label": "scheduler",
+      "sublabel": "in the worker"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "store + job queue"
+    },
+    {
+      "id": "worker",
+      "type": "backend",
+      "label": "worker",
+      "sublabel": "job loop"
+    }
+  ],
+  "segments": [
+    {
+      "from": 156,
+      "to": 284,
+      "label": "Every tick"
+    },
+    {
+      "from": 308,
+      "to": 436,
+      "label": "Refresh"
+    },
+    {
+      "from": 460,
+      "to": 504,
+      "label": "Daily"
+    }
+  ],
+  "messages": [
+    {
+      "from": "sched",
+      "to": "db",
+      "y": 186,
+      "label": "take the advisory lock"
+    },
+    {
+      "from": "sched",
+      "to": "db",
+      "y": 228,
+      "label": "find due active accounts"
+    },
+    {
+      "from": "sched",
+      "to": "db",
+      "y": 270,
+      "label": "enqueue SCHEDULE refreshes",
+      "variant": "emphasis"
+    },
+    {
+      "from": "worker",
+      "to": "db",
+      "y": 338,
+      "label": "claim at lower priority",
+      "variant": "emphasis"
+    },
+    {
+      "from": "worker",
+      "to": "db",
+      "y": 380,
+      "label": "run the refresh as FL-07"
+    },
+    {
+      "from": "worker",
+      "to": "db",
+      "y": 422,
+      "label": "set next_refresh_at"
+    },
+    {
+      "from": "sched",
+      "to": "db",
+      "y": 490,
+      "label": "housekeeping: purge, erase",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Spec",
+      "items": [
+        "FL-08 in Signal pipeline",
+        "S-PIP-02 (P1)"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "One at a time",
+      "items": [
+        "Never a second refresh of one account",
+        "Decay is applied every interval"
+      ]
+    }
+  ]
+}

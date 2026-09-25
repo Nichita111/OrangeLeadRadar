@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "FL-17 Draft outreach",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      870,
+      614
+    ]
+  },
+  "participants": [
+    {
+      "id": "sales",
+      "type": "external",
+      "label": "Sales",
+      "sublabel": "user"
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "web",
+      "sublabel": "Outreach composer"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "api",
+      "sublabel": "FastAPI"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "store + job queue"
+    },
+    {
+      "id": "llm",
+      "type": "cloud",
+      "label": "OpenRouter",
+      "sublabel": "LLM + Jev"
+    }
+  ],
+  "segments": [
+    {
+      "from": 156,
+      "to": 410,
+      "label": "Generate"
+    },
+    {
+      "from": 434,
+      "to": 520,
+      "label": "Export"
+    }
+  ],
+  "messages": [
+    {
+      "from": "sales",
+      "to": "web",
+      "y": 186,
+      "label": "channel and optional contact"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 228,
+      "label": "generate (API-56)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 270,
+      "label": "budget guard, top signals"
+    },
+    {
+      "from": "api",
+      "to": "llm",
+      "y": 312,
+      "label": "draft from signals",
+      "variant": "emphasis"
+    },
+    {
+      "from": "llm",
+      "to": "api",
+      "y": 354,
+      "label": "subject, body, cited ids",
+      "variant": "return"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 396,
+      "label": "validated draft stored"
+    },
+    {
+      "from": "sales",
+      "to": "web",
+      "y": 464,
+      "label": "edit, Copy or Download"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 506,
+      "label": "update, EXPORTED (API-58)"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Spec",
+      "items": [
+        "FL-17 in Outreach and CRM",
+        "S-OUT-01 (P1)"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Never sent",
+      "items": [
+        "A person sends the message",
+        "Only the signals given may be cited"
+      ]
+    }
+  ]
+}

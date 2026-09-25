@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "FL-21 Review the audit trail",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      820,
+      530
+    ]
+  },
+  "participants": [
+    {
+      "id": "admin",
+      "type": "external",
+      "label": "Admin",
+      "sublabel": "user"
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "web",
+      "sublabel": "Audit log"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "api",
+      "sublabel": "FastAPI"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "store + job queue"
+    }
+  ],
+  "segments": [
+    {
+      "from": 156,
+      "to": 326,
+      "label": "Filter"
+    },
+    {
+      "from": 350,
+      "to": 436,
+      "label": "Follow"
+    }
+  ],
+  "messages": [
+    {
+      "from": "admin",
+      "to": "web",
+      "y": 186,
+      "label": "kind, action, user, run, dates"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 228,
+      "label": "audit (API-60)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 270,
+      "label": "append-only audit_event"
+    },
+    {
+      "from": "api",
+      "to": "web",
+      "y": 312,
+      "label": "entries, AI call costs",
+      "variant": "return"
+    },
+    {
+      "from": "admin",
+      "to": "web",
+      "y": 380,
+      "label": "expand an entry, open its run"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 422,
+      "label": "run (API-35)"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Spec",
+      "items": [
+        "FL-21 in Audit trail",
+        "S-AUD-02 (P1)"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Append-only",
+      "items": [
+        "No row is updated or deleted",
+        "No password, token or contact name"
+      ]
+    }
+  ]
+}

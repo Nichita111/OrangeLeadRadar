@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "FL-13 Override a disqualifier",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      870,
+      724
+    ]
+  },
+  "participants": [
+    {
+      "id": "admin",
+      "type": "external",
+      "label": "Admin",
+      "sublabel": "user"
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "web",
+      "sublabel": "Account detail"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "api",
+      "sublabel": "FastAPI"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "store + job queue"
+    },
+    {
+      "id": "worker",
+      "type": "backend",
+      "label": "worker",
+      "sublabel": "job loop"
+    }
+  ],
+  "segments": [
+    {
+      "from": 156,
+      "to": 284,
+      "label": "See why"
+    },
+    {
+      "from": 308,
+      "to": 478,
+      "label": "Exception"
+    },
+    {
+      "from": 502,
+      "to": 630,
+      "label": "Revoke"
+    }
+  ],
+  "messages": [
+    {
+      "from": "admin",
+      "to": "web",
+      "y": 186,
+      "label": "open an excluded account"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 228,
+      "label": "score view (API-40)"
+    },
+    {
+      "from": "api",
+      "to": "web",
+      "y": 270,
+      "label": "disqualifier and matching fact",
+      "variant": "return"
+    },
+    {
+      "from": "admin",
+      "to": "web",
+      "y": 338,
+      "label": "add exception with note",
+      "variant": "security"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 380,
+      "label": "override (API-44)",
+      "variant": "security"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 422,
+      "label": "ACTIVE override, audit, RESCORE"
+    },
+    {
+      "from": "worker",
+      "to": "db",
+      "y": 464,
+      "label": "account ranked again",
+      "variant": "emphasis"
+    },
+    {
+      "from": "admin",
+      "to": "web",
+      "y": 532,
+      "label": "revoke",
+      "variant": "security"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 574,
+      "label": "revoke (API-45)",
+      "variant": "security"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 616,
+      "label": "REVOKED, RESCORE"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Spec",
+      "items": [
+        "FL-13 in Prospect dashboard",
+        "S-PRO-05, S-SCO-04"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Admin only",
+      "items": [
+        "A note is required",
+        "Both changes are audited"
+      ]
+    }
+  ]
+}

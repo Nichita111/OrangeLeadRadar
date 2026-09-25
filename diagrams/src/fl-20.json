@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "FL-20 Manage users",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      820,
+      572
+    ]
+  },
+  "participants": [
+    {
+      "id": "admin",
+      "type": "external",
+      "label": "Admin",
+      "sublabel": "user"
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "web",
+      "sublabel": "Users"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "api",
+      "sublabel": "FastAPI"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "store + job queue"
+    }
+  ],
+  "segments": [
+    {
+      "from": 156,
+      "to": 284,
+      "label": "Create"
+    },
+    {
+      "from": 308,
+      "to": 478,
+      "label": "Change"
+    }
+  ],
+  "messages": [
+    {
+      "from": "admin",
+      "to": "web",
+      "y": 186,
+      "label": "New user"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 228,
+      "label": "create user (API-05)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 270,
+      "label": "user, password hash, audit"
+    },
+    {
+      "from": "admin",
+      "to": "web",
+      "y": 338,
+      "label": "role, disable, reset password"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 380,
+      "label": "update user (API-06)",
+      "variant": "security"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 422,
+      "label": "disabling revokes sessions"
+    },
+    {
+      "from": "api",
+      "to": "web",
+      "y": 464,
+      "label": "no self-demotion",
+      "variant": "return"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Spec",
+      "items": [
+        "FL-20 in Identity and access",
+        "S-SEC-03"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Admin only",
+      "items": [
+        "An Admin cannot demote or disable themselves",
+        "Every change is audited"
+      ]
+    }
+  ]
+}

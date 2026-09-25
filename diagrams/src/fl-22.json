@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "FL-22 Maintain industries and markets",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      820,
+      682
+    ]
+  },
+  "participants": [
+    {
+      "id": "admin",
+      "type": "external",
+      "label": "Admin",
+      "sublabel": "user"
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "web",
+      "sublabel": "Industries and markets"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "api",
+      "sublabel": "FastAPI"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "store + job queue"
+    }
+  ],
+  "segments": [
+    {
+      "from": 156,
+      "to": 284,
+      "label": "Add"
+    },
+    {
+      "from": 308,
+      "to": 436,
+      "label": "Use"
+    },
+    {
+      "from": 460,
+      "to": 588,
+      "label": "Retire"
+    }
+  ],
+  "messages": [
+    {
+      "from": "admin",
+      "to": "web",
+      "y": 186,
+      "label": "new industry or market"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 228,
+      "label": "API-72 or API-75",
+      "variant": "emphasis"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 270,
+      "label": "ACTIVE entry, audit"
+    },
+    {
+      "from": "admin",
+      "to": "web",
+      "y": 338,
+      "label": "choose a market in the ICP"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 380,
+      "label": "save draft (API-17)"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 422,
+      "label": "criterion stores its countries",
+      "variant": "emphasis"
+    },
+    {
+      "from": "admin",
+      "to": "web",
+      "y": 490,
+      "label": "retire"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 532,
+      "label": "API-73 or API-76"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 574,
+      "label": "leaves pickers, values kept"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Spec",
+      "items": [
+        "FL-22 in Service configuration",
+        "S-CFG-07"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Reproducible",
+      "items": [
+        "A market edit never changes a saved version",
+        "Retired industries stay on their accounts"
+      ]
+    }
+  ]
+}

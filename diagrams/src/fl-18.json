@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "FL-18 Push to HubSpot",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      870,
+      572
+    ]
+  },
+  "participants": [
+    {
+      "id": "sales",
+      "type": "external",
+      "label": "Sales",
+      "sublabel": "user"
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "web",
+      "sublabel": "HubSpot push dialog"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "api",
+      "sublabel": "FastAPI"
+    },
+    {
+      "id": "hub",
+      "type": "external",
+      "label": "HubSpot",
+      "sublabel": "CRM"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "store + job queue"
+    }
+  ],
+  "segments": [
+    {
+      "from": 156,
+      "to": 242,
+      "label": "Review"
+    },
+    {
+      "from": 266,
+      "to": 478,
+      "label": "Push"
+    }
+  ],
+  "messages": [
+    {
+      "from": "sales",
+      "to": "web",
+      "y": 186,
+      "label": "Push to HubSpot"
+    },
+    {
+      "from": "sales",
+      "to": "web",
+      "y": 228,
+      "label": "confirm the values",
+      "variant": "emphasis"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 296,
+      "label": "push (API-59)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "api",
+      "to": "hub",
+      "y": 338,
+      "label": "find by domain, update or create"
+    },
+    {
+      "from": "hub",
+      "to": "api",
+      "y": 380,
+      "label": "company id",
+      "variant": "return"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 422,
+      "label": "crm_sync outcome"
+    },
+    {
+      "from": "api",
+      "to": "web",
+      "y": 464,
+      "label": "outcome",
+      "variant": "return"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Spec",
+      "items": [
+        "FL-18 in Outreach and CRM",
+        "S-OUT-02 (P2)"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Optional",
+      "items": [
+        "Without a token the push answers NOT_CONFIGURED",
+        "Every attempt is recorded"
+      ]
+    }
+  ]
+}
