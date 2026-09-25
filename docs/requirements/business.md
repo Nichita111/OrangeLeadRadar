@@ -79,6 +79,7 @@ Each requirement states one business obligation and carries a priority. `P0` is 
 | `B-14` | Sales shall refresh an account on demand and follow the progress live. | P0 |
 | `B-15` | Every account shall be refreshed on a schedule. | P1 |
 | `B-36` | The product shall find an account's newsroom, investor-relations, careers and feed addresses by itself. | P1 |
+| `B-38` | The product shall be able to classify with TypeSafe's Jev once a key is provisioned, switched by configuration. | P1 |
 
 ### Score and prioritise
 
