@@ -84,7 +84,7 @@ After 3 fix rounds, stop and show the human what still fails, asking whether to 
 2. Commit, never including `.work/`:
    - if requirements registers changed (`docs/requirements/business.md`, `system.md`, `acceptance.md`, `glossary.md`), commit them and their generated files first as `docs(<feature-slug>): <what changed>`, naming the rows in the body;
    - then everything else as one commit `<type>(<feature-slug>): <what changed in the system>`, whose body lists the requirement rows implemented and the criteria that verify them.
-   End each message with the co-author trailer your session's attribution instructions require.
+   Add no co-author trailer and no generated-by line: the commits carry only the human's authorship (`docs/guidelines/commit-and-pr.md`).
 3. Delete `.work/gate.json`. Update **Status** in `task.md`, then report to the human: the branch, the commits, the criteria passed and deferred, the advisory findings left open, and the next task the traceability matrix suggests. Ask before pushing or opening a pull request; never do either unasked.
 
 ## Rules
