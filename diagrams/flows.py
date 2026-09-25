@@ -216,8 +216,10 @@ FLOWS = [
          ("api", "web", "band, Priority, Fit, Intent", "return")]),
       ("Narrow", [
          ("sales", "web", "filter band, country, industry"),
-         ("web", "api", "prospects with filters"),
-         ("sales", "web", "open an account", "emphasis")])],
+         ("web", "api", "prospects with filters")]),
+      ("Read", [
+         ("sales", "web", "select a row: signals drawer"),
+         ("sales", "web", "open Account detail", "emphasis")])],
      [("cyan", "Spec", ["FL-11 in Prospect dashboard", "S-PRO-01"]),
       ("amber", "Ranked only", ["Excluded and customer accounts show their reason", "Two top signals per row"])]),
 

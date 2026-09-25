@@ -7,7 +7,7 @@
     "column_fit": "spread",
     "viewBox": [
       820,
-      572
+      640
     ]
   },
   "participants": [
@@ -44,8 +44,13 @@
     },
     {
       "from": 350,
-      "to": 478,
+      "to": 436,
       "label": "Narrow"
+    },
+    {
+      "from": 460,
+      "to": 546,
+      "label": "Read"
     }
   ],
   "messages": [
@@ -90,8 +95,14 @@
     {
       "from": "sales",
       "to": "web",
-      "y": 464,
-      "label": "open an account",
+      "y": 490,
+      "label": "select a row: signals drawer"
+    },
+    {
+      "from": "sales",
+      "to": "web",
+      "y": 532,
+      "label": "open Account detail",
       "variant": "emphasis"
     }
   ],

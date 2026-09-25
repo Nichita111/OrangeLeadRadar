@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg viewBox="0 0 820 572" role="img" lang="en" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase" style="" width="820" height="572" xmlns="http://www.w3.org/2000/svg"><style>
+<svg viewBox="0 0 820 640" role="img" lang="en" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase" style="" width="820" height="640" xmlns="http://www.w3.org/2000/svg"><style>
 /*
 JetBrains Mono variable WOFF2 subsets from Google Fonts service revision v24.
 These fixed bytes are shared by the viewer and its SVG/raster exports.
@@ -443,13 +443,15 @@ rect.c-bg-rect { fill: var(--bg); }
         <!-- Time Segments -->
         <rect data-graph-role="structural-frame" data-composition-frame-kind="segment" data-composition-frame-id="0" x="48" y="156" width="724" height="170" rx="10" class="c-lane" stroke-width="1"/>
 
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="segment" data-composition-frame-id="1" x="48" y="350" width="724" height="128" rx="10" class="c-lane" stroke-width="1"/>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="segment" data-composition-frame-id="1" x="48" y="350" width="724" height="86" rx="10" class="c-lane" stroke-width="1"/>
+
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="segment" data-composition-frame-id="2" x="48" y="460" width="724" height="86" rx="10" class="c-lane" stroke-width="1"/>
 
         <!-- Lifelines -->
-        <path d="M 137 142 L 137 507" class="a-default" stroke-width="0.8" stroke-dasharray="3,7"/>
-        <path d="M 326.33333333333337 142 L 326.33333333333337 507" class="a-default" stroke-width="0.8" stroke-dasharray="3,7"/>
-        <path d="M 515.6666666666667 142 L 515.6666666666667 507" class="a-default" stroke-width="0.8" stroke-dasharray="3,7"/>
-        <path d="M 705 142 L 705 507" class="a-default" stroke-width="0.8" stroke-dasharray="3,7"/>
+        <path d="M 137 142 L 137 575" class="a-default" stroke-width="0.8" stroke-dasharray="3,7"/>
+        <path d="M 326.33333333333337 142 L 326.33333333333337 575" class="a-default" stroke-width="0.8" stroke-dasharray="3,7"/>
+        <path d="M 515.6666666666667 142 L 515.6666666666667 575" class="a-default" stroke-width="0.8" stroke-dasharray="3,7"/>
+        <path d="M 705 142 L 705 575" class="a-default" stroke-width="0.8" stroke-dasharray="3,7"/>
 
         <!-- Activations -->
 
@@ -503,11 +505,19 @@ rect.c-bg-rect { fill: var(--bg); }
         </g>
         </g>
 
-        <g data-edge-from="sales" data-edge-to="web" data-edge-label="open an account" data-edge-key="6">
-          <path data-composition-edge-from="sales" data-composition-edge-to="web" data-composition-points="144,464;319.33333333333337,464" d="M 144 464 L 319.33333333333337 464" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <g data-edge-from="sales" data-edge-to="web" data-edge-label="select a row: signals drawer" data-edge-key="6">
+          <path data-composition-edge-from="sales" data-composition-edge-to="web" data-composition-points="144,490;319.33333333333337,490" d="M 144 490 L 319.33333333333337 490" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
         <g>
-          <rect x="186.66666666666669" y="444" width="90" height="16" rx="3" class="c-mask"/>
-          <text x="231.66666666666669" y="454" class="t-backend" font-size="9" text-anchor="middle">open an account</text>
+          <rect x="152.86666666666667" y="470" width="157.6" height="16" rx="3" class="c-mask"/>
+          <text x="231.66666666666669" y="480" class="t-backend" font-size="9" text-anchor="middle">select a row: signals drawer</text>
+        </g>
+        </g>
+
+        <g data-edge-from="sales" data-edge-to="web" data-edge-label="open Account detail" data-edge-key="7">
+          <path data-composition-edge-from="sales" data-composition-edge-to="web" data-composition-points="144,532;319.33333333333337,532" d="M 144 532 L 319.33333333333337 532" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <g>
+          <rect x="176.26666666666668" y="512" width="110.8" height="16" rx="3" class="c-mask"/>
+          <text x="231.66666666666669" y="522" class="t-backend" font-size="9" text-anchor="middle">open Account detail</text>
         </g>
         </g>
 
@@ -519,6 +529,10 @@ rect.c-bg-rect { fill: var(--bg); }
         <g data-graph-role="segment-label" data-segment-id="1">
           <rect x="56" y="328" width="45.2" height="18" rx="3" class="c-mask"/>
           <text x="62" y="341" class="t-dim" font-size="9" font-weight="600">Narrow</text>
+        </g>
+        <g data-graph-role="segment-label" data-segment-id="2">
+          <rect x="56" y="438" width="42" height="18" rx="3" class="c-mask"/>
+          <text x="62" y="451" class="t-dim" font-size="9" font-weight="600">Read</text>
         </g>
 
         <!-- Participants -->
@@ -573,18 +587,18 @@ rect.c-bg-rect { fill: var(--bg); }
 
         <!-- Legend -->
         <g data-legend="">
-          <text x="40" y="498" class="t-primary" font-size="12" font-weight="650">Legend</text>
-          <g data-legend-semantic-kind="emphasis" data-legend-x="40" data-legend-baseline="518" data-legend-width="78">
-            <path d="M 40 515 L 74 515" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-            <text x="83" y="518" class="t-muted" font-size="10" font-weight="500">request</text>
+          <text x="40" y="566" class="t-primary" font-size="12" font-weight="650">Legend</text>
+          <g data-legend-semantic-kind="emphasis" data-legend-x="40" data-legend-baseline="586" data-legend-width="78">
+            <path d="M 40 583 L 74 583" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+            <text x="83" y="586" class="t-muted" font-size="10" font-weight="500">request</text>
           </g>
-          <g data-legend-semantic-kind="return" data-legend-x="140" data-legend-baseline="518" data-legend-width="73">
-            <path d="M 140 515 L 174 515" class="a-default" stroke-width="1.4" stroke-dasharray="3,5" marker-end="url(#arrowhead)"/>
-            <text x="183" y="518" class="t-muted" font-size="10" font-weight="500">return</text>
+          <g data-legend-semantic-kind="return" data-legend-x="140" data-legend-baseline="586" data-legend-width="73">
+            <path d="M 140 583 L 174 583" class="a-default" stroke-width="1.4" stroke-dasharray="3,5" marker-end="url(#arrowhead)"/>
+            <text x="183" y="586" class="t-muted" font-size="10" font-weight="500">return</text>
           </g>
-          <g data-legend-semantic-kind="default" data-legend-x="235" data-legend-baseline="518" data-legend-width="118">
-            <path d="M 235 515 L 269 515" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-            <text x="278" y="518" class="t-muted" font-size="10" font-weight="500">default message</text>
+          <g data-legend-semantic-kind="default" data-legend-x="235" data-legend-baseline="586" data-legend-width="118">
+            <path d="M 235 583 L 269 583" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+            <text x="278" y="586" class="t-muted" font-size="10" font-weight="500">default message</text>
           </g>
         </g>
       </svg>
