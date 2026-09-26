@@ -374,6 +374,18 @@ Plug-in values:
 
 `GDELT`, `RSS`, `WEBSITE` and `CAREERS` are the **free core** ([RULE-08](/requirements/business.md#business-rules), [ADR-07](/architecture/adrs/adr-07-source-plug-ins-with-a-free-core.md)).
 
+Seeded values (G6): a migration inserts one row per plug-in value with `enabled` true — a plug-in that needs a key stays unavailable until it is configured, whatever the switch says ([Plug-in availability](/architecture/rules.md#plug-in-availability)), so seeding every switch on is harmless. `rate_limit_per_minute` paces the free core gently and the keyed plug-ins within a typical free-tier allowance; `daily_quota` is null for the free core, which has no provider-side daily cap, and a conservative free-tier figure for the keyed plug-ins.
+
+| Value | `rate_limit_per_minute` | `daily_quota` |
+|---|---|---|
+| `GDELT` | 10 | null |
+| `RSS` | 30 | null |
+| `WEBSITE` | 30 | null |
+| `CAREERS` | 30 | null |
+| `CRUNCHBASE` | 20 | 200 |
+| `NEWSAPI` | 10 | 100 |
+| `SERPAPI` | 10 | 100 |
+
 ### plugin_usage
 
 Requests made to a plug-in's provider per UTC day, for the daily quota.
