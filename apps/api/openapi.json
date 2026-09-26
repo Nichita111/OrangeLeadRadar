@@ -2887,6 +2887,100 @@
         "title": "SignalQuestionUpdate",
         "type": "object"
       },
+      "SourcePlugin": {
+        "additionalProperties": false,
+        "description": "[`SourcePlugin`](/architecture/interfaces.md#sourceplugin).",
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "code": {
+            "$ref": "#/components/schemas/SourcePluginCode"
+          },
+          "daily_quota": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Daily Quota"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "key_configured": {
+            "title": "Key Configured",
+            "type": "boolean"
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error"
+          },
+          "last_error_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error At"
+          },
+          "last_success_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Success At"
+          },
+          "needs_key": {
+            "title": "Needs Key",
+            "type": "boolean"
+          },
+          "rate_limit_per_minute": {
+            "title": "Rate Limit Per Minute",
+            "type": "integer"
+          },
+          "requests_today": {
+            "title": "Requests Today",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "code",
+          "enabled",
+          "rate_limit_per_minute",
+          "daily_quota",
+          "needs_key",
+          "key_configured",
+          "available",
+          "requests_today",
+          "last_success_at",
+          "last_error",
+          "last_error_at"
+        ],
+        "title": "SourcePlugin",
+        "type": "object"
+      },
       "SourcePluginCode": {
         "description": "`source_plugin.code`; reused by `plugin_usage.plugin_code` and `document.plugin_code`.",
         "enum": [
@@ -2900,6 +2994,47 @@
         ],
         "title": "SourcePluginCode",
         "type": "string"
+      },
+      "SourcePluginUpdate": {
+        "additionalProperties": false,
+        "description": "[`SourcePluginUpdate`](/architecture/interfaces.md#sourcepluginupdate).",
+        "properties": {
+          "daily_quota": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Daily Quota"
+          },
+          "enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enabled"
+          },
+          "rate_limit_per_minute": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate Limit Per Minute"
+          }
+        },
+        "title": "SourcePluginUpdate",
+        "type": "object"
       },
       "User": {
         "additionalProperties": false,
@@ -5212,6 +5347,128 @@
         "summary": "Save Scoring Draft Route",
         "tags": [
           "configuration"
+        ]
+      }
+    },
+    "/api/v1/source-plugins": {
+      "get": {
+        "description": "`API-37`: every plug-in, Admin only.",
+        "operationId": "get_source_plugins_api_v1_source_plugins_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SourcePlugin"
+                  },
+                  "title": "Response Get Source Plugins Api V1 Source Plugins Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Source Plugins",
+        "tags": [
+          "runs-and-source-plugins"
+        ]
+      }
+    },
+    "/api/v1/source-plugins/{code}": {
+      "patch": {
+        "description": "`API-38`: saves the switch and limits, Admin only, with a `PLUGIN_UPDATED` audit row.",
+        "operationId": "patch_source_plugin_api_v1_source_plugins__code__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "code",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/SourcePluginCode"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourcePluginUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourcePlugin"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Patch Source Plugin",
+        "tags": [
+          "runs-and-source-plugins"
         ]
       }
     },

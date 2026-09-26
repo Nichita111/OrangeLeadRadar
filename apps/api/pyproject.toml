@@ -16,6 +16,10 @@ dependencies = [
   "argon2-cffi>=23.1",
   "publicsuffix2>=2.20191221",
   "python-multipart>=0.0.12",
+  "beautifulsoup4>=4.12",
+  "feedparser>=6.0",
+  "pypdf>=5.1",
+  "py3langid>=0.3",
 ]
 
 [dependency-groups]
@@ -67,6 +71,10 @@ plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
 module = "publicsuffix2"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["feedparser", "py3langid.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

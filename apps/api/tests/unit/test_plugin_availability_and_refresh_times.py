@@ -118,8 +118,6 @@ def test_due_account_selection_orders_oldest_due_first_and_caps_at_limit() -> No
     oldest_due = _candidate(next_refresh_at=_NOW - timedelta(hours=5))
     never_refreshed = _candidate(next_refresh_at=None)
 
-    selected = due_refresh_account_ids(
-        [newest_due, oldest_due, never_refreshed], now=_NOW, limit=2
-    )
+    selected = due_refresh_account_ids([newest_due, oldest_due, never_refreshed], now=_NOW, limit=2)
 
     assert selected == [never_refreshed.account_id, oldest_due.account_id]

@@ -34,6 +34,7 @@ from leadradar.runs.errors import (
     RefreshAccountNotFound,
     RunFinished,
     RunNotFound,
+    SourcePluginNotFound,
 )
 
 
@@ -243,4 +244,10 @@ def register_error_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(AccountNotFound)
     async def handle_account_not_found(request: Request, exc: AccountNotFound) -> Response:
+        return JSONResponse(status_code=404, content=envelope("NOT_FOUND", str(exc)))
+
+    @app.exception_handler(SourcePluginNotFound)
+    async def handle_source_plugin_not_found(
+        request: Request, exc: SourcePluginNotFound
+    ) -> Response:
         return JSONResponse(status_code=404, content=envelope("NOT_FOUND", str(exc)))

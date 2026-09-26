@@ -11,7 +11,7 @@ from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import datetime
 
-from sqlalchemy import update
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from leadradar.audit.events import append_audit_event
@@ -26,12 +26,25 @@ from leadradar.core.enums import (
     PipelineRunTrigger,
     SourcePluginCode,
 )
+from leadradar.core.sign_in import changed_fields
 from leadradar.db.models.accounts import Account
 from leadradar.db.models.identity import AppUser
-from leadradar.db.models.ingestion import Job, PipelineRun
+from leadradar.db.models.ingestion import Job, PipelineRun, SourcePlugin
 from leadradar.runs.enqueue import enqueue_account_refresh
-from leadradar.runs.errors import AccountInactive, RefreshAccountNotFound, RunFinished, RunNotFound
-from leadradar.runs.queries import RunView, available_refresh_plugins, read_run
+from leadradar.runs.errors import (
+    AccountInactive,
+    RefreshAccountNotFound,
+    RunFinished,
+    RunNotFound,
+    SourcePluginNotFound,
+)
+from leadradar.runs.queries import (
+    RunView,
+    SourcePluginView,
+    available_refresh_plugins,
+    get_source_plugin,
+    read_run,
+)
 
 # `API-36`: only an Admin cancels these kinds, so a user cannot leave a question's stored
 # passages or a scoring version half applied.
@@ -146,3 +159,57 @@ async def cancel_run(
     if view is None:
         raise RunNotFound(f"No run {run_id}.")
     return view
+
+
+async def update_source_plugin(
+    session: AsyncSession,
+    *,
+    code: SourcePluginCode,
+    enabled: bool | None,
+    rate_limit_per_minute: int | None,
+    daily_quota: int | None,
+    daily_quota_set: bool,
+    keys_configured: Collection[SourcePluginCode],
+    principal: AppUser,
+    now: datetime,
+) -> SourcePluginView:
+    """`API-38`: saves the Admin's switch and limits, in effect from the next fetch, with a
+    `PLUGIN_UPDATED` audit row. Raises `SourcePluginNotFound`."""
+    plugin = (
+        await session.execute(
+            select(SourcePlugin).where(SourcePlugin.code == code).with_for_update()
+        )
+    ).scalar_one_or_none()
+    if plugin is None:
+        raise SourcePluginNotFound(f"No source plugin {code}.")
+
+    sent: dict[str, object] = {}
+    if enabled is not None:
+        sent["enabled"] = enabled
+    if rate_limit_per_minute is not None:
+        sent["rate_limit_per_minute"] = rate_limit_per_minute
+    if daily_quota_set:
+        sent["daily_quota"] = daily_quota
+    changes = changed_fields(
+        {
+            "enabled": plugin.enabled,
+            "rate_limit_per_minute": plugin.rate_limit_per_minute,
+            "daily_quota": plugin.daily_quota,
+        },
+        sent,
+    )
+    for field, value in changes.items():
+        setattr(plugin, field, value)
+
+    if changes:
+        await append_audit_event(
+            session,
+            action=AuditAction.PLUGIN_UPDATED,
+            occurred_at=now,
+            actor_id=principal.id,
+            entity_type="source_plugin",
+            entity_id=plugin.id,
+            payload={"code": code.value, **changes},
+        )
+    await session.commit()
+    return await get_source_plugin(session, code, keys_configured=keys_configured, now=now)

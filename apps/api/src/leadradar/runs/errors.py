@@ -23,3 +23,7 @@ class AccountInactive(RunsError):
 
 class RunFinished(RunsError):
     """`API-36`: the run is already final (`409 CONFLICT`)."""
+
+
+class SourcePluginNotFound(RunsError):
+    """`API-38`: no `source_plugin` row has this code (`404 NOT_FOUND`)."""

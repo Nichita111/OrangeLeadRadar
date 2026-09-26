@@ -527,6 +527,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/source-plugins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Source Plugins
+         * @description `API-37`: every plug-in, Admin only.
+         */
+        get: operations["get_source_plugins_api_v1_source_plugins_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/source-plugins/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Patch Source Plugin
+         * @description `API-38`: saves the switch and limits, Admin only, with a `PLUGIN_UPDATED` audit row.
+         */
+        patch: operations["patch_source_plugin_api_v1_source_plugins__code__patch"];
+        trace?: never;
+    };
     "/api/v1/users": {
         parameters: {
             query?: never;
@@ -1655,11 +1695,50 @@ export interface components {
             text?: string | null;
         };
         /**
+         * SourcePlugin
+         * @description [`SourcePlugin`](/architecture/interfaces.md#sourceplugin).
+         */
+        SourcePlugin: {
+            /** Available */
+            available: boolean;
+            code: components["schemas"]["SourcePluginCode"];
+            /** Daily Quota */
+            daily_quota: number | null;
+            /** Enabled */
+            enabled: boolean;
+            /** Key Configured */
+            key_configured: boolean;
+            /** Last Error */
+            last_error: string | null;
+            /** Last Error At */
+            last_error_at: string | null;
+            /** Last Success At */
+            last_success_at: string | null;
+            /** Needs Key */
+            needs_key: boolean;
+            /** Rate Limit Per Minute */
+            rate_limit_per_minute: number;
+            /** Requests Today */
+            requests_today: number;
+        };
+        /**
          * SourcePluginCode
          * @description `source_plugin.code`; reused by `plugin_usage.plugin_code` and `document.plugin_code`.
          * @enum {string}
          */
         SourcePluginCode: "GDELT" | "RSS" | "WEBSITE" | "CAREERS" | "CRUNCHBASE" | "NEWSAPI" | "SERPAPI";
+        /**
+         * SourcePluginUpdate
+         * @description [`SourcePluginUpdate`](/architecture/interfaces.md#sourcepluginupdate).
+         */
+        SourcePluginUpdate: {
+            /** Daily Quota */
+            daily_quota?: number | null;
+            /** Enabled */
+            enabled?: boolean | null;
+            /** Rate Limit Per Minute */
+            rate_limit_per_minute?: number | null;
+        };
         /**
          * User
          * @description [`User`](/architecture/interfaces.md#user).
@@ -2840,6 +2919,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ScoringConfigModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_source_plugins_api_v1_source_plugins_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourcePlugin"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_source_plugin_api_v1_source_plugins__code__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["schemas"]["SourcePluginCode"];
+            };
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SourcePluginUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourcePlugin"];
                 };
             };
             /** @description Validation Error */

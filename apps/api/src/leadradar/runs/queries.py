@@ -21,13 +21,13 @@ from leadradar.core.enums import (
     PipelineRunTrigger,
     SourcePluginCode,
 )
-from leadradar.core.plugin_availability import is_plugin_available
+from leadradar.core.plugin_availability import PLUGINS_NEEDING_A_KEY, is_plugin_available
 from leadradar.db.models.accounts import Account
 from leadradar.db.models.audit import AuditEvent
 from leadradar.db.models.configuration import Service, SignalQuestion
 from leadradar.db.models.identity import AppUser
 from leadradar.db.models.ingestion import PipelineRun, PluginUsage, SourcePlugin
-from leadradar.runs.errors import RunNotFound
+from leadradar.runs.errors import RunNotFound, SourcePluginNotFound
 
 
 @dataclass(frozen=True)
@@ -196,3 +196,91 @@ async def available_refresh_plugins(
             daily_quota=plugin.daily_quota,
         )
     }
+
+
+@dataclass(frozen=True)
+class SourcePluginView:
+    """[`SourcePlugin`](/architecture/interfaces.md#sourceplugin)."""
+
+    code: SourcePluginCode
+    enabled: bool
+    rate_limit_per_minute: int
+    daily_quota: int | None
+    needs_key: bool
+    key_configured: bool
+    available: bool
+    requests_today: int
+    last_success_at: datetime | None
+    last_error: str | None
+    last_error_at: datetime | None
+
+
+def _to_source_plugin_view(
+    plugin: SourcePlugin, *, requests_today: int, key_configured: bool
+) -> SourcePluginView:
+    needs_key = plugin.code in PLUGINS_NEEDING_A_KEY
+    return SourcePluginView(
+        code=plugin.code,
+        enabled=plugin.enabled,
+        rate_limit_per_minute=plugin.rate_limit_per_minute,
+        daily_quota=plugin.daily_quota,
+        needs_key=needs_key,
+        key_configured=key_configured,
+        available=is_plugin_available(
+            code=plugin.code,
+            enabled=plugin.enabled,
+            key_configured=key_configured,
+            requests_today=requests_today,
+            daily_quota=plugin.daily_quota,
+        ),
+        requests_today=requests_today,
+        last_success_at=plugin.last_success_at,
+        last_error=plugin.last_error,
+        last_error_at=plugin.last_error_at,
+    )
+
+
+async def list_source_plugins(
+    session: AsyncSession, *, keys_configured: Collection[SourcePluginCode], now: datetime
+) -> list[SourcePluginView]:
+    """`API-37`: every plug-in, in the order of [`source_plugin`]
+    (/architecture/sql-store.md#source_plugin) plug-in values."""
+    rows = await session.execute(
+        select(SourcePlugin, PluginUsage.requests).outerjoin(
+            PluginUsage,
+            (PluginUsage.plugin_code == SourcePlugin.code) & (PluginUsage.day == now.date()),
+        )
+    )
+    order = list(SourcePluginCode)
+    views = [
+        _to_source_plugin_view(
+            plugin, requests_today=requests or 0, key_configured=plugin.code in keys_configured
+        )
+        for plugin, requests in rows
+    ]
+    return sorted(views, key=lambda view: order.index(view.code))
+
+
+async def get_source_plugin(
+    session: AsyncSession,
+    code: SourcePluginCode,
+    *,
+    keys_configured: Collection[SourcePluginCode],
+    now: datetime,
+) -> SourcePluginView:
+    """`API-38`'s response. Raises `SourcePluginNotFound`."""
+    plugin = (
+        await session.execute(select(SourcePlugin).where(SourcePlugin.code == code))
+    ).scalar_one_or_none()
+    if plugin is None:
+        raise SourcePluginNotFound(f"No source plugin {code}.")
+    requests_today = (
+        await session.execute(
+            select(PluginUsage.requests).where(
+                PluginUsage.plugin_code == code, PluginUsage.day == now.date()
+            )
+        )
+    ).scalar_one_or_none()
+    return _to_source_plugin_view(
+        plugin, requests_today=requests_today or 0, key_configured=code in keys_configured
+    )
