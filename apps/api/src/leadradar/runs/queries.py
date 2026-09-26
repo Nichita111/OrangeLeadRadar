@@ -5,7 +5,7 @@ store. Plain dataclasses; the Pydantic response model lives at the api boundary
 from __future__ import annotations
 
 import uuid
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -19,12 +19,14 @@ from leadradar.core.enums import (
     PipelineRunStage,
     PipelineRunStatus,
     PipelineRunTrigger,
+    SourcePluginCode,
 )
+from leadradar.core.plugin_availability import is_plugin_available
 from leadradar.db.models.accounts import Account
 from leadradar.db.models.audit import AuditEvent
 from leadradar.db.models.configuration import Service, SignalQuestion
 from leadradar.db.models.identity import AppUser
-from leadradar.db.models.ingestion import PipelineRun
+from leadradar.db.models.ingestion import PipelineRun, PluginUsage, SourcePlugin
 from leadradar.runs.errors import RunNotFound
 
 
@@ -169,3 +171,28 @@ async def get_runs_page(
 ) -> tuple[list[RunView], int]:
     """`API-34`."""
     return await list_runs(session, filters, page=page, page_size=page_size)
+
+
+async def available_refresh_plugins(
+    session: AsyncSession, *, keys_configured: Collection[SourcePluginCode], now: datetime
+) -> set[SourcePluginCode]:
+    """The plug-ins [Plug-in availability](/architecture/rules.md#plug-in-availability) allows
+    now: their switch, key and today's usage. Shared by `API-33` (`runs.commands`) and the
+    scheduler's own enqueueing (`worker.scheduler`)."""
+    rows = await session.execute(
+        select(SourcePlugin, PluginUsage.requests).outerjoin(
+            PluginUsage,
+            (PluginUsage.plugin_code == SourcePlugin.code) & (PluginUsage.day == now.date()),
+        )
+    )
+    return {
+        plugin.code
+        for plugin, requests_today in rows
+        if is_plugin_available(
+            code=plugin.code,
+            enabled=plugin.enabled,
+            key_configured=plugin.code in keys_configured,
+            requests_today=requests_today or 0,
+            daily_quota=plugin.daily_quota,
+        )
+    }

@@ -11,7 +11,7 @@ from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import datetime
 
-from sqlalchemy import select, update
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from leadradar.audit.events import append_audit_event
@@ -26,13 +26,12 @@ from leadradar.core.enums import (
     PipelineRunTrigger,
     SourcePluginCode,
 )
-from leadradar.core.plugin_availability import is_plugin_available
 from leadradar.db.models.accounts import Account
 from leadradar.db.models.identity import AppUser
-from leadradar.db.models.ingestion import Job, PipelineRun, PluginUsage, SourcePlugin
+from leadradar.db.models.ingestion import Job, PipelineRun
 from leadradar.runs.enqueue import enqueue_account_refresh
 from leadradar.runs.errors import AccountInactive, RefreshAccountNotFound, RunFinished, RunNotFound
-from leadradar.runs.queries import RunView, read_run
+from leadradar.runs.queries import RunView, available_refresh_plugins, read_run
 
 # `API-36`: only an Admin cancels these kinds, so a user cannot leave a question's stored
 # passages or a scoring version half applied.
@@ -49,30 +48,6 @@ class RefreshRequested:
 
     run: RunView
     created: bool
-
-
-async def _available_plugins(
-    session: AsyncSession, *, keys_configured: Collection[SourcePluginCode], now: datetime
-) -> set[SourcePluginCode]:
-    """The plug-ins [Plug-in availability](/architecture/rules.md#plug-in-availability) allows
-    now: their switch, key and today's usage."""
-    rows = await session.execute(
-        select(SourcePlugin, PluginUsage.requests).outerjoin(
-            PluginUsage,
-            (PluginUsage.plugin_code == SourcePlugin.code) & (PluginUsage.day == now.date()),
-        )
-    )
-    return {
-        plugin.code
-        for plugin, requests_today in rows
-        if is_plugin_available(
-            code=plugin.code,
-            enabled=plugin.enabled,
-            key_configured=plugin.code in keys_configured,
-            requests_today=requests_today or 0,
-            daily_quota=plugin.daily_quota,
-        )
-    }
 
 
 async def request_account_refresh(
@@ -97,7 +72,7 @@ async def request_account_refresh(
         account_id=account_id,
         trigger=PipelineRunTrigger.USER,
         requested_by=principal.id,
-        available_plugins=await _available_plugins(
+        available_plugins=await available_refresh_plugins(
             session, keys_configured=keys_configured, now=now
         ),
         now=now,

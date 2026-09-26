@@ -1,6 +1,7 @@
 """Entry point `leadradar-worker` ([Runtime](/architecture/services/worker.md#runtime)): starts
-`WORKER_CONCURRENCY` [job loops](/architecture/services/worker.md#job-queue) over one database
-engine, and on `SIGTERM` or `SIGINT` lets each finish the job in hand, then exits `0`."""
+`WORKER_CONCURRENCY` [job loops](/architecture/services/worker.md#job-queue) and the
+[scheduler loop](/architecture/services/worker.md#scheduler-and-housekeeping) over one database
+engine, and on `SIGTERM` or `SIGINT` lets each finish the job or tick in hand, then exits `0`."""
 
 from __future__ import annotations
 
@@ -16,6 +17,7 @@ from leadradar.clock import build_clock
 from leadradar.db.session import build_engine
 from leadradar.logs import configure_json_logging
 from leadradar.worker.loop import run_job_loop
+from leadradar.worker.scheduler import run_scheduler_loop
 from leadradar.worker.settings import WorkerSettings
 from leadradar.worker.steps import STEP_HANDLERS
 
@@ -50,6 +52,9 @@ async def _serve(settings: WorkerSettings) -> None:
                         stop=stop,
                     )
                 )
+            loops.create_task(
+                run_scheduler_loop(session_factory, clock=clock, settings=settings, stop=stop)
+            )
     finally:
         await engine.dispose()
 

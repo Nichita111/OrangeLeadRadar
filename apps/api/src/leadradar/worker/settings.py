@@ -25,3 +25,12 @@ class WorkerSettings(AiGatewaySettings):
     job_lock_timeout_s: int = 900
     job_poll_interval_s: int = 1
     refresh_interval_hours: int = 24
+    scheduler_tick_s: int = 60
+    scheduler_max_enqueue: int = 20
+
+    #: [Plug-in availability](/architecture/rules.md#plug-in-availability): unset by default;
+    #: a plug-in whose key is unset is unavailable. Declared here too, as `DATABASE_URL` is,
+    #: for the scheduler's own enqueueing of a refresh's first jobs.
+    crunchbase_api_key: SecretStr | None = None
+    newsapi_key: SecretStr | None = None
+    serpapi_key: SecretStr | None = None
