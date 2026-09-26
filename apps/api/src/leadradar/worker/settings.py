@@ -44,19 +44,12 @@ class WorkerSettings(AiGatewaySettings):
     discovery_max_candidates: int = 50
     discovery_lookback_days: int = 30
     discovery_max_documents: int = 100
-    eval_classifier_only_p: float = 0.5
-    eval_calibration_bins: int = 10
-    eval_max_errors: int = 50
-    eval_min_precision: float = 0.8
-    eval_min_items: int = 200
-    escalation_rate_target: float = 0.15
 
-    # SIGNAL step ([worker Configuration](/architecture/services/worker.md#runtime))
+    # SIGNAL step ([worker Configuration](/architecture/services/worker.md#runtime));
+    # `escalation_lower`, `escalation_upper` and `triage_relevance_min_p` come from
+    # `AiGatewaySettings`, read by the api as well (D7).
     triage_chars: int = 2000
     triage_about_min_p: float = 0.5
-    triage_relevance_min_p: float = 0.3
-    escalation_lower: float = 0.35
-    escalation_upper: float = 0.65
     evidence_max_attempts: int = 2
     evidence_min_quote_chars: int = 20
     evidence_max_quote_chars: int = 400
@@ -84,6 +77,15 @@ class WorkerSettings(AiGatewaySettings):
     near_duplicate_similarity: float = 0.95
     near_duplicate_window_days: int = 7
     document_retention_days: int = 730
+
+    # EVALUATE step ([Evaluation metrics](/architecture/rules.md#evaluation-metrics),
+    # [worker Runtime](/architecture/services/worker.md#runtime)); `eval_min_items` comes from
+    # `AiGatewaySettings`, read by the api as well.
+    eval_min_precision: float = 0.80
+    escalation_rate_target: float = 0.15
+    eval_classifier_only_p: float = 0.5
+    eval_calibration_bins: int = 10
+    eval_max_errors: int = 50
 
     def crawler_user_agent_or_default(self) -> str:
         """`CRAWLER_USER_AGENT`'s default names `APP_BASE_URL`, so an unset override is resolved

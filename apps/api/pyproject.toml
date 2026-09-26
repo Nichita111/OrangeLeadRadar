@@ -45,6 +45,8 @@ leadradar-api = "leadradar.api.main:run"
 leadradar-worker = "leadradar.worker.main:run"
 leadradar-seed-demo = "leadradar.seed.demo:run"
 leadradar-refresh-demo = "leadradar.seed.refresh:run"
+leadradar-seed-labels = "leadradar.seed.labels:run"
+leadradar-export-labels = "leadradar.seed.labels:export_run"
 
 [tool.ruff]
 line-length = 100

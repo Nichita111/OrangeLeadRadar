@@ -54,6 +54,5 @@ class ApiSettings(AiGatewaySettings):
     outreach_inmail_max_chars: int = 1900
     contact_retention_days: int = 730
     hubspot_access_token: SecretStr | None = None
-    eval_min_items: int = 200
     job_poll_interval_s: int = 1
     refresh_target_minutes: int = 10

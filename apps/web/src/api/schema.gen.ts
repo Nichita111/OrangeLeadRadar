@@ -268,6 +268,113 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/evaluation/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Evaluation Items
+         * @description `API-52`, Admin only.
+         */
+        get: operations["get_evaluation_items_api_v1_evaluation_items_get"];
+        put?: never;
+        /**
+         * Post Evaluation Item
+         * @description `API-51`: writes the `MANUAL` item for the passage, question and revision, updating the
+         *     pair's active item in place, whatever its origin, or writing one when none exists (D9).
+         */
+        post: operations["post_evaluation_item_api_v1_evaluation_items_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/evaluation/label-queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Label Queue
+         * @description `API-50`: the label queue of [Evaluation metrics]
+         *     (/architecture/rules.md#evaluation-metrics). A task never shows the classifier's answer.
+         */
+        get: operations["get_label_queue_api_v1_evaluation_label_queue_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/evaluation/results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Evaluation Results
+         * @description `API-54`: every quality check, newest first (D8).
+         */
+        get: operations["get_evaluation_results_api_v1_evaluation_results_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/evaluation/results/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Evaluation Result
+         * @description `API-55`.
+         */
+        get: operations["get_evaluation_result_api_v1_evaluation_results__run_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/evaluation/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Evaluation Run
+         * @description `API-53`: one queued or running evaluation at a time (D2): `202` with a new run, or `200`
+         *     with the one already queued or running.
+         */
+        post: operations["post_evaluation_run_api_v1_evaluation_runs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/findings/{id}/feedback": {
         parameters: {
             query?: never;
@@ -1185,6 +1292,128 @@ export interface components {
          * @enum {string}
          */
         DocumentSourceType: "NEWS" | "COMPANY_PUBLICATION" | "JOB_POSTING" | "COMPANY_PROFILE";
+        /**
+         * DocumentTriageClassifier
+         * @description `document_triage.classifier`; reused by `classification.classifier` and
+         *     `evaluation_result.classifier`.
+         * @enum {string}
+         */
+        DocumentTriageClassifier: "JEV" | "LLM";
+        /**
+         * EvaluationItem
+         * @description [`EvaluationItem`](/architecture/interfaces.md#evaluationitem).
+         */
+        EvaluationItem: {
+            /**
+             * Chunk Id
+             * Format: uuid
+             */
+            chunk_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            expected_strength: components["schemas"]["FindingStrength"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Labelled By Name */
+            labelled_by_name: string;
+            origin: components["schemas"]["EvaluationItemOrigin"];
+            /**
+             * Question Id
+             * Format: uuid
+             */
+            question_id: string;
+            /** Question Key */
+            question_key: string;
+            /** Question Revision */
+            question_revision: number;
+            status: components["schemas"]["EvaluationItemStatus"];
+        };
+        /**
+         * EvaluationItemOrigin
+         * @description `evaluation_item.origin`.
+         * @enum {string}
+         */
+        EvaluationItemOrigin: "MANUAL" | "FINDING_FEEDBACK";
+        /**
+         * EvaluationItemStatus
+         * @description `evaluation_item.status`.
+         * @enum {string}
+         */
+        EvaluationItemStatus: "ACTIVE" | "STALE";
+        /**
+         * EvaluationResult
+         * @description [`EvaluationResult`](/architecture/interfaces.md#evaluationresult).
+         */
+        EvaluationResult: {
+            classifier: components["schemas"]["DocumentTriageClassifier"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Escalation Lower */
+            escalation_lower: number;
+            /** Escalation Rate */
+            escalation_rate: number | null;
+            /** Escalation Rate Target */
+            escalation_rate_target: number;
+            /** Escalation Upper */
+            escalation_upper: number;
+            /** Items */
+            items: number;
+            /** Metrics */
+            metrics: {
+                [key: string]: unknown;
+            };
+            /** Min Items */
+            min_items: number;
+            /** Min Precision */
+            min_precision: number;
+            /** Passed */
+            passed: boolean;
+            /** Precision */
+            precision: number | null;
+            /** Recall */
+            recall: number | null;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+        };
+        /**
+         * EvaluationResultSummary
+         * @description [`EvaluationResultSummary`](/architecture/interfaces.md#evaluationresultsummary).
+         */
+        EvaluationResultSummary: {
+            classifier: components["schemas"]["DocumentTriageClassifier"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Escalation Rate */
+            escalation_rate: number | null;
+            /** Items */
+            items: number;
+            /** Passed */
+            passed: boolean;
+            /** Precision */
+            precision: number | null;
+            /** Recall */
+            recall: number | null;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+        };
         /** FeedbackCreate[FindingFeedbackVerdict] */
         FeedbackCreate_FindingFeedbackVerdict_: {
             /** Note */
@@ -1501,6 +1730,94 @@ export interface components {
             status?: components["schemas"]["IndustryStatus"] | null;
         };
         /**
+         * LabelCreate
+         * @description [`LabelCreate`](/architecture/interfaces.md#labelcreate), the request of `API-51`.
+         */
+        LabelCreate: {
+            /**
+             * Chunk Id
+             * Format: uuid
+             */
+            chunk_id: string;
+            expected_strength: components["schemas"]["FindingStrength"];
+            /**
+             * Question Id
+             * Format: uuid
+             */
+            question_id: string;
+            /** Question Revision */
+            question_revision: number;
+        };
+        /**
+         * LabelQueue
+         * @description [`LabelQueue`](/architecture/interfaces.md#labelqueue), the response of `API-50`.
+         */
+        LabelQueue: {
+            /** Active Items */
+            active_items: number;
+            /** Min Items */
+            min_items: number;
+            /** Tasks */
+            tasks: components["schemas"]["LabelTask"][];
+        };
+        /**
+         * LabelTask
+         * @description [`LabelTask`](/architecture/interfaces.md#labeltask).
+         */
+        LabelTask: {
+            account: components["schemas"]["LabelTaskAccount"];
+            /**
+             * Chunk Id
+             * Format: uuid
+             */
+            chunk_id: string;
+            document: components["schemas"]["LabelTaskDocument"];
+            /** Passage Text */
+            passage_text: string;
+            question: components["schemas"]["LabelTaskQuestion"];
+            /** Question Revision */
+            question_revision: number;
+        };
+        /** LabelTaskAccount */
+        LabelTaskAccount: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /** LabelTaskDocument */
+        LabelTaskDocument: {
+            /** Language */
+            language: string;
+            /** Published At */
+            published_at: string | null;
+            /** Title */
+            title: string | null;
+            /** Url */
+            url: string;
+        };
+        /** LabelTaskQuestion */
+        LabelTaskQuestion: {
+            answer_type: components["schemas"]["SignalQuestionAnswerType"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Key */
+            key: string;
+            /** Options */
+            options: {
+                [key: string]: unknown;
+            }[] | null;
+            polarity: components["schemas"]["SignalQuestionPolarity"];
+            /** Text */
+            text: string;
+        };
+        /**
          * LeadFeedback
          * @description [`LeadFeedback`](/architecture/interfaces.md#leadfeedback), the response of `API-46`.
          */
@@ -1608,6 +1925,17 @@ export interface components {
         Page_AuditEntry_: {
             /** Items */
             items: components["schemas"]["AuditEntry"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /** Page[EvaluationItem] */
+        Page_EvaluationItem_: {
+            /** Items */
+            items: components["schemas"]["EvaluationItem"][];
             /** Page */
             page: number;
             /** Page Size */
@@ -2724,6 +3052,215 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuthenticatedUser"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_evaluation_items_api_v1_evaluation_items_get: {
+        parameters: {
+            query?: {
+                question_id?: string | null;
+                origin?: components["schemas"]["EvaluationItemOrigin"] | null;
+                status?: components["schemas"]["EvaluationItemStatus"] | null;
+                page?: number;
+                page_size?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_EvaluationItem_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_evaluation_item_api_v1_evaluation_items_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LabelCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationItem"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_label_queue_api_v1_evaluation_label_queue_get: {
+        parameters: {
+            query: {
+                service_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabelQueue"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_evaluation_results_api_v1_evaluation_results_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationResultSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_evaluation_result_api_v1_evaluation_results__run_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_evaluation_run_api_v1_evaluation_runs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The evaluation already queued */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Run"];
+                };
+            };
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Run"];
                 };
             };
             /** @description Validation Error */

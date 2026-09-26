@@ -46,6 +46,18 @@ export function countryName(code: string): string {
   return regionNames.of(code) ?? code;
 }
 
+const languageNames = new Intl.DisplayNames(["en"], { type: "language" });
+
+/** FR-010: an ISO 639-1 language code as its English name, for the Labelling screen's source
+ * line. */
+export function languageName(code: string): string {
+  try {
+    return languageNames.of(code) ?? code;
+  } catch {
+    return code;
+  }
+}
+
 // Screen labels of frontend Screen labels for the enums whose contexts are unambiguous. Strength
 // is left to the task whose contract brings it: its `MEDIUM` is also a weight level.
 const LABELS: Record<string, string> = {

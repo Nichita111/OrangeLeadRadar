@@ -85,7 +85,7 @@ WF-01 — application shell
 |---|---|
 | `FR-001` | The shell shall show a left navigation with Prospects, Alerts, Accounts, Suggested accounts, Runs and Labelling for every user, and an Admin section with Services, Industries and markets, Quality, Source plug-ins, Users and Audit log shown only to Admins. |
 | `FR-002` | The Alerts entry shall show the number of unread alerts of the selected service when it is greater than zero. |
-| `FR-003` | The header shall carry a service selector listing the active services; the selected service applies to Prospects, Alerts, Suggested accounts and Account detail, and is remembered in the browser's local storage per user, falling back to the first active service. |
+| `FR-003` | The header shall carry a service selector listing the active services; the selected service applies to Prospects, Alerts, Suggested accounts, Account detail and Labelling, and is remembered in the browser's local storage per user, falling back to the first active service. |
 | `FR-004` | The user card at the foot of the navigation shall show the user's display name and role and offer Sign out. |
 | `FR-101` | The navigation shall group its entries under the headings Work and Admin only, every entry carrying an icon and its label; the entry of the current screen shall be marked with a tint and the accessible current-page state, never by colour alone. |
 | `FR-102` | The header shall show the current screen as a breadcrumb, with the parent screen as a link on a nested screen such as Account detail, and every Admin screen shall carry an Admin only chip. |
