@@ -106,7 +106,7 @@ WF-06 — Accounts
 
 Obligations: `S-ACC-01`, `S-ACC-05`.
 
-**Data**: `API-20`, `API-21`. **States**: [States](/architecture/services/frontend.md#states); the empty state offers Import CSV and New account.
+**Data**: `API-20`, `API-21`, `API-71`. **States**: [States](/architecture/services/frontend.md#states); the empty state offers Import CSV and New account.
 
 ## Account import
 
@@ -136,7 +136,7 @@ WF-07 — Account import
 | `FR-041` | Choosing a file shall run a dry run and show the counts and every row's line, domain, outcome and errors; nothing is written until Import is pressed. |
 | `FR-042` | The screen shall offer the header row of [`AccountImportRow`](/architecture/interfaces.md#accountimportrow) as a downloadable template. |
 | `FR-043` | Import shall write the valid rows, show the result counts, and link to [Accounts](#accounts) filtered to the imported rows' origin. |
-| `FR-139` | Account import shall show its progress as three parts, Choose file, Review the check and Import, and after Import a callout shall state how many accounts were imported and that a refresh is queued for each new one. |
+| `FR-139` | Account import shall show its progress as three parts, Choose file, Review the check and Import, and after Import a callout shall state how many accounts were imported and that each new one gets its first refresh from Refresh now on its Account detail or from the scheduler. |
 | `FR-140` | The check shall show the number of new, updated, possible duplicate and invalid rows each with its meaning, then only the rows that need attention, each with an outcome chip and a sentence saying what will happen to it. |
 
 Obligations: `S-ACC-02`.
@@ -184,7 +184,7 @@ WF-08 — Account profile
 
 Obligations: `S-ACC-03`, `S-ACC-04`, `S-ING-06`.
 
-**Data**: `API-23`, `API-24`, `API-25`, `API-26`, `API-27`, `API-28`. **States**: [States](/architecture/services/frontend.md#states).
+**Data**: `API-23`, `API-24`, `API-25`, `API-26`, `API-27`, `API-28`, `API-71`. **States**: [States](/architecture/services/frontend.md#states).
 
 ## Suggested accounts
 
@@ -219,7 +219,7 @@ WF-09 — Suggested accounts
 
 Obligations: `S-DSC-01`, `S-DSC-02`.
 
-**Data**: `API-29`, `API-30`, `API-31`, `API-32`, `API-35`. **States**: [States](/architecture/services/frontend.md#states); without Crunchbase the screen states that suggestions come from news only.
+**Data**: `API-29`, `API-30`, `API-31`, `API-32`, `API-35`, `API-71`. **States**: [States](/architecture/services/frontend.md#states); without Crunchbase the screen states that suggestions come from news only.
 
 ## Open questions
 

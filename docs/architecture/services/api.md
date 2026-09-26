@@ -10,7 +10,7 @@ tags: [accounts-and-discovery, audit-trail, evaluation-and-feedback, identity-an
 
 ## Responsibilities
 
-The api answers every REST contract of [interfaces](/architecture/interfaces.md): sign-in and users, configuration, accounts and contacts, run requests, prospects, evidence, overrides, feedback, labels, outreach drafts, the HubSpot push, the audit and health. It validates input, writes what a user changed, enqueues the background work the change requires, and makes the two interactive AI calls: question preview and outreach drafting. It owns the schema and applies migrations at start.
+The api answers every REST contract of [interfaces](/architecture/interfaces.md): sign-in and users, configuration, accounts and contacts, run requests, prospects, evidence, overrides, feedback, labels, outreach drafts, the HubSpot push, the audit and health. It validates input, writes what a user changed, enqueues the background work the change requires, and makes the interactive AI calls: question preview, outreach drafting, and persona mapping when a contact is added without a persona. It owns the schema and applies migrations at start.
 
 It never fetches from a source, never classifies in batch, never writes a score, and never sends a message to anyone outside the product.
 
@@ -22,18 +22,18 @@ It never fetches from a source, never classifies in batch, never writes a score,
 
 ## Provides and consumes
 
-- Provides every REST family of [interfaces](/architecture/interfaces.md), `API-01` to `API-61`.
+- Provides every REST family of [interfaces](/architecture/interfaces.md), `API-01` to `API-61` and `API-71` to `API-77`.
 - Consumes the [Classifier](/architecture/interfaces.md#classifier) and [LLM](/architecture/interfaces.md#llm) ports through the worker's [AI gateway](/architecture/services/worker.md#ai-gateway) module, the [Embedder](/architecture/interfaces.md#embedder) and the [CRM](/architecture/interfaces.md#crm) port.
 
 ## Design
 
-**Layering.** A route validates its input into a Pydantic model, calls one function of the capability it belongs to, and shapes the response; that function owns the transaction and is the only code that touches the database for the request. Capabilities follow the interface families: auth and users, services and questions, scoring, accounts and contacts, discovery, runs and plug-ins, prospects and evidence, feedback and alerts, evaluation, outreach and CRM, audit. Errors are typed per capability and mapped once, at the edge, onto the envelope of [Conventions](/architecture/interfaces.md#conventions).
+**Layering.** A route validates its input into a Pydantic model, calls one function of the capability it belongs to, and shapes the response; that function owns the transaction and is the only code that touches the database for the request. Capabilities follow the interface families: auth and users, services and questions, scoring, industries and markets, accounts and contacts, discovery, runs and plug-ins, prospects and evidence, feedback and alerts, evaluation, outreach and CRM, audit. Errors are typed per capability and mapped once, at the edge, onto the envelope of [Conventions](/architecture/interfaces.md#conventions).
 
 **Transactions.** One transaction per request. A change and the work it triggers commit together: the row the user changed, its audit row, and any `pipeline_run` with its first `job` rows are written in the same transaction, so a crash never leaves a change without its reclassification or rescore, or the reverse. The partial unique indexes of [constraints](/architecture/sql-store.md#constraints-and-indexes) make a concurrent duplicate refresh or discovery answer with the existing run.
 
 **Enqueueing.** The api creates a run in status `QUEUED` with the jobs of its first stage, at the priority the [job queue](/architecture/services/worker.md#job-queue) assigns to its trigger. It never waits for a job.
 
-**Interactive AI calls.** Question preview (`API-14`) and outreach drafting (`API-56`) call the AI gateway in the request, bounded by `AI_CALL_TIMEOUT_S`. Both pass the [Budget guard](/architecture/rules.md#budget-guard) and write `AI_CALL` audit rows. Preview writes nothing else.
+**Interactive AI calls.** Question preview (`API-14`), outreach drafting (`API-56`) and persona mapping (`API-26`, `API-27`, when no persona is given) call the AI gateway in the request, bounded by `CLASSIFIER_TIMEOUT_S` or `AI_CALL_TIMEOUT_S`. Their LLM calls pass the [Budget guard](/architecture/rules.md#budget-guard), and every call writes its `AI_CALL` audit row. Preview writes nothing else.
 
 **Sessions and passwords.** Passwords are hashed with argon2id. The session token is 32 random bytes, sent only in the cookie; the database holds its SHA-256.
 
@@ -74,7 +74,7 @@ It never fetches from a source, never classifies in batch, never writes a score,
 | `SEED_ADMIN_PASSWORD`, `SEED_SALES_PASSWORD` | — (required by `make seed-demo`) | Passwords of the demo users |
 | `LOG_LEVEL` | `INFO` | Log level; logs are JSON lines |
 
-The api also reads the AI gateway, embedder, fixture and `CLOCK_FILE` keys of the [worker runtime](/architecture/services/worker.md#runtime).
+The api also reads the AI gateway, embedder, fixture and `CLOCK_FILE` keys and `EVAL_MIN_ITEMS` of the [worker runtime](/architecture/services/worker.md#runtime).
 
 ## Examples
 

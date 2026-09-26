@@ -186,7 +186,7 @@ The same band applies whichever classifier adapter is configured ([ADR-02](/arch
 - `quote_en` is present when the document language is not `en`, and absent otherwise;
 - `rationale` is one sentence of at most `EVIDENCE_MAX_RATIONALE_CHARS` characters.
 
-An invalid output is requested again, up to `EVIDENCE_MAX_ATTEMPTS` attempts in total; after that the classification is `EVIDENCE_FAILED` and no finding is created. A later refresh retries `EVIDENCE_FAILED` pairs once more.
+An invalid output is requested again, up to `EVIDENCE_MAX_ATTEMPTS` attempts in total; after that the classification is `EVIDENCE_FAILED` and no finding is created. The account's next refresh retries an `EVIDENCE_FAILED` pair once more and sets its `evidence_retried`; a pair that fails again is not retried.
 
 **After.** One [`finding`](/architecture/sql-store.md#finding) with the strength, confidence, `decided_by`, the quote as the passage writes it at the matched span, translation, rationale, `observed_at` = the document's `published_at`, else its `fetched_at`, and status `ACTIVE`.
 
@@ -288,6 +288,8 @@ The cost of a call is the `usage.cost` OpenRouter returns with it, in US dollars
 
 **Triggers.** The `SCORE` stage of every account refresh, for every active service; a `RESCORE` run for scoring activation (whole service), an account change (the account, every service), feedback or an override (the account, one service); the end of a `RECLASSIFY` run (whole service).
 
+**Services.** Only a service with an `ACTIVE` scoring version is scored. A new service is skipped until its first activation, whose `RESCORE` run gives its accounts their first scores; its questions are classified meanwhile.
+
 **Algorithm.** Compute the score and its breakdown. Compare it with the current row on `scoring_config_id`, `fit`, `intent`, `priority`, `standing`, `band`, and the sets of finding ids and override ids in the breakdown. If all are equal, write nothing. Otherwise insert the new row as current and clear `is_current` on the previous one in the same transaction, then apply [Alerts](#alerts).
 
 **Invariants.** Only the worker writes [`account_score`](/architecture/sql-store.md#account_score). Recomputing with the same inputs and `as_of` gives an identical row ([RULE-05](/requirements/business.md#business-rules)). Previous rows are kept: they are the score history. Rescoring fetches nothing and classifies nothing.
@@ -365,7 +367,7 @@ The cost of a call is the `usage.cost` OpenRouter returns with it, in US dollars
 | `errors` | Up to `EVAL_MAX_ERRORS` misclassified items: `item_id`, `expected`, `predicted`, `p_positive`, `escalated` |
 | `lead_verdicts` | Counts of in-force `RELEVANT` and `NOT_RELEVANT` lead feedback per current band |
 
-`passed` = `precision ≥ EVAL_MIN_PRECISION` and `items ≥ EVAL_MIN_ITEMS` ([ADR-14](/architecture/adrs/adr-14-labelled-set-and-precision-gate.md)). An evaluation whose classifier or LLM calls fail, or that the [Budget guard](#budget-guard) stops, ends `FAILED` with the reason and reports no metrics: a partial result is never reported as a quality check.
+`passed` = `precision ≥ EVAL_MIN_PRECISION` and `items ≥ EVAL_MIN_ITEMS` ([ADR-14](/architecture/adrs/adr-14-labelled-set-and-precision-gate.md)). The result stores these values, `ESCALATION_RATE_TARGET` and the escalation band as they were for the run, so a report always shows the gate it was judged by. An evaluation whose classifier or LLM calls fail, or that the [Budget guard](#budget-guard) stops, ends `FAILED` with the reason and reports no metrics: a partial result is never reported as a quality check.
 
 **Label queue.** Pairs of a passage of a kept document of an active account and an applicable active question, without an active item, are split into four strata: for a selected passage, by its classification's `p_positive` — below `ESCALATION_LOWER`, inside the band, at or above `ESCALATION_UPPER`; and **not selected**, a passage of a long document that selection did not pick for the question. The queue returns `LABEL_QUEUE_SIZE` pairs, as equal a share from each stratum as there are pairs, ordered within a stratum by the SHA-256 of the passage id and question id, so the order is stable.
 

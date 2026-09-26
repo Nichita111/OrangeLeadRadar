@@ -228,7 +228,7 @@ FLOWS = [
          ("sales", "web", "select a row: signals drawer"),
          ("sales", "web", "open Account detail", "emphasis")])],
      [("cyan", "Spec", ["FL-11 in Prospect dashboard", "S-PRO-01"]),
-      ("amber", "Ranked only", ["Excluded and customer accounts show their reason", "Two top signals per row"])]),
+      ("amber", "Ranked only", ["Excluded and customer accounts show their reason", "PROSPECT_TOP_SIGNALS top signals per row"])]),
 
     ("fl-12", "Explain a lead", "prospect-dashboard", "Account detail",
      ["sales", "web", "api", "db"],
@@ -407,7 +407,7 @@ FLOWS = [
 # Fingerprint of the spec text each diagram was last checked against. The architecture diagram,
 # diagrams/src/architecture.json, is written by hand and follows the Topology section of the overview.
 REVIEWED = {
-    "architecture": "00e0ebc3733a",
+    "architecture": "a335367c905d",
     "FL-01": "81661c1aec6d",
     "FL-02": "9e5f8067e7c5",
     "FL-03": "0e87d6c00566",
@@ -418,7 +418,7 @@ REVIEWED = {
     "FL-08": "40129c19a522",
     "FL-09": "4fb45cdc9d22",
     "FL-10": "7fb7e28f6846",
-    "FL-11": "826448b42bc6",
+    "FL-11": "49f4a6795655",
     "FL-12": "53d70b3fdd00",
     "FL-13": "37f31fa5fc7c",
     "FL-14": "5b118e45f35b",

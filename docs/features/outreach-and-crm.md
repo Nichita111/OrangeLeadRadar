@@ -78,7 +78,7 @@ WF-19 — Outreach composer
 
 | ID | Requirement |
 |---|---|
-| `FR-086` | The left panel shall list the signals a draft may use, in the order they will be given, and the account's earlier drafts for the service with channel, age and status. |
+| `FR-086` | The left panel shall list the account's counted positive signals for the service, most points first, and mark the ones a generated draft cites; below them, the account's earlier drafts for the service with channel, age and status. |
 | `FR-087` | Generate shall take the channel and an optional contact of the account, and show the subject (email only), the body and which signals it cites. |
 | `FR-088` | The subject and body shall be editable and saved with Save; the screen shall state that nothing is sent from LeadRadar. |
 | `FR-089` | Copy and Download .txt shall export the draft and mark it exported. |

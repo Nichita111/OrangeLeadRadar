@@ -263,7 +263,7 @@
       "id": "api-openrouter",
       "from": "api",
       "to": "openrouter",
-      "label": "preview + outreach",
+      "label": "interactive AI calls",
       "fromSide": "top",
       "toSide": "left"
     },

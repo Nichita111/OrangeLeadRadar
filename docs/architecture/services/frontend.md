@@ -24,7 +24,7 @@ Consumes every REST family of [interfaces](/architecture/interfaces.md) through 
 
 ## Design
 
-React with TypeScript in strict mode, built by Vite; React Router for routes; TanStack Query for server state, caching and polling; a typed client generated with `openapi-typescript`; Tailwind CSS with Radix-based components for accessible primitives. Icons come from one family, Phosphor (`@phosphor-icons/react`), at one stroke weight. Type is Geist and Geist Mono, self-hosted by the `web` container. Animation uses `motion`, and the animated components of [Motion](#motion) are copied from React Bits ([ADR-17](/architecture/adrs/adr-17-animated-components-from-react-bits.md)). The build is static files served by the `web` container, which proxies `/api/v1` to `API_UPSTREAM`.
+React with TypeScript in strict mode, built by Vite; React Router for routes; TanStack Query for server state, caching and polling; a typed client generated with `openapi-typescript`; Tailwind CSS with Radix-based components for accessible primitives. Icons come from one family, Phosphor (`@phosphor-icons/react`), at one stroke weight. Type is Geist and Geist Mono, self-hosted by the `web` container. Animation uses `motion`, and the animated components of [Motion](#motion) are copied from React Bits ([ADR-17](/architecture/adrs/adr-17-animated-components-from-react-bits.md)). The build is static files served by the `web` container, which proxies `/api/v1` to `API_UPSTREAM`. The other keys of [Runtime](#runtime) reach the client at run time: the `web` container writes them to `/config.json` when it starts, and the client reads that file before its first render, so changing one needs a restart, not a rebuild.
 
 ## Routes
 
@@ -293,6 +293,6 @@ Motion tells a user that something changed. It never carries meaning alone, neve
 
 ## Examples
 
-**A rescore lands on Account detail.** DHL Group was Warm with Priority 61. A refresh finds a strong signal and the `RESCORE` run ends. The header counts Priority from 61 to 78 over the count-up time and the band chip changes from a soft sun chip to a filled flame chip; the History tab gains a row naming the refresh and the signal added ([FR-111](#score-presentation), [FR-124](#motion)). With `prefers-reduced-motion` the header shows 78 and Hot at once.
+**A rescore lands on Account detail.** DHL Group was Warm with Priority 61. A refresh finds a strong signal and its run ends. The header counts Priority from 61 to 78 over the count-up time and the band chip changes from a soft sun chip to a filled flame chip; the History tab gains a row naming the refresh and the signal added ([FR-111](#score-presentation), [FR-124](#motion)). With `prefers-reduced-motion` the header shows 78 and Hot at once.
 
 **A user marks a signal wrong.** The signal shows a chip saying it is marked wrong and no longer counts, and a callout saying the account is being rescored ([FR-122](#messages-and-feedback)). No toast is used, because the state stays true until the run ends. When the run ends the header numbers update as in the example above.

@@ -60,7 +60,7 @@ stateDiagram-v2
 
 | Kind | Stages, in order | Jobs |
 |---|---|---|
-| `ACCOUNT_REFRESH` | `FETCH` → `PROCESS` → `TRIAGE` → `CLASSIFY` → `EVIDENCE` → `SCORE` | one `FETCH` per available plug-in; `PROCESS` per batch of fetched documents; `SIGNAL` per batch of the account's documents with pending work — newly processed documents, kept documents whose selected passages lack a classification at a current revision, `PENDING_LLM` pairs, and `EVIDENCE_FAILED` pairs not yet retried — covering triage, classification and evidence; one `SCORE` for all active services |
+| `ACCOUNT_REFRESH` | `FETCH` → `PROCESS` → `TRIAGE` → `CLASSIFY` → `EVIDENCE` → `SCORE` | one `FETCH` per available plug-in; `PROCESS` per batch of fetched documents; `SIGNAL` per batch of the account's documents with pending work — newly processed documents, kept documents whose selected passages lack a classification at a current revision, `PENDING_LLM` pairs, and `EVIDENCE_FAILED` pairs whose `evidence_retried` is false — covering triage, classification and evidence; one `SCORE` for all active services |
 | `RECLASSIFY` | `TRIAGE` → `CLASSIFY` → `EVIDENCE` → `SCORE` | `SIGNAL` per batch of the service's documents; one `SCORE` for the service |
 | `RESCORE` | `SCORE` | one `SCORE` |
 | `DISCOVERY` | `FETCH` → `TRIAGE` → `SCORE` | one `DISCOVER` per available discovery source; the last one ranks and caps candidates |
@@ -193,7 +193,7 @@ One worker at a time runs the scheduler: each loop takes a PostgreSQL advisory l
 | `RETRIEVAL_RRF_K` | `60` | Rank constant of the fused score of question-scoped retrieval |
 | `NEAR_DUPLICATE_SIMILARITY` | `0.95` | Cosine similarity of a near duplicate |
 | `NEAR_DUPLICATE_WINDOW_DAYS` | `7` | Date window of near-duplicate search |
-| `USD_EUR_RATE` | `0.92` | Conversion of Crunchbase revenue ranges |
+| `USD_EUR_RATE` | `0.92` | USD to EUR rate for Crunchbase revenue ranges and AI call costs |
 | `DOCUMENT_RETENTION_DAYS` | `730` | Sets a document's `purge_after` |
 
 **Classification, evidence and scoring.**
@@ -228,7 +228,7 @@ One worker at a time runs the scheduler: each loop takes a PostgreSQL advisory l
 | `CLASSIFIER_PROVIDER` | `LLM` | `JEV` or `LLM`: the classifier adapter ([ADR-02](/architecture/adrs/adr-02-classification-cascade.md)); set `JEV` once a quality check shows Jev passes the release gate |
 | `JEV_MODEL` | `typesafe/jev-1.13` | OpenRouter model id of the Jev adapter |
 | `JEV_DECISIONS_URL` | `https://openrouter.ai/api/alpha/decisions` | OpenRouter's Decisions API endpoint, which serves Jev |
-| `OPENROUTER_API_KEY` | unset | OpenRouter credentials; unset makes every LLM call unavailable |
+| `OPENROUTER_API_KEY` | unset | OpenRouter credentials; unset makes every Jev and LLM call unavailable, except in `replay` fixture mode |
 | `OPENROUTER_BASE_URL` | `https://openrouter.ai/api/v1` | OpenRouter API endpoint |
 | `LLM_CLASSIFIER_MODEL` | — (required with `OPENROUTER_API_KEY`) | OpenRouter model id, `organisation/model` such as `google/gemini-2.5-flash`, of the LLM classifier adapter |
 | `LLM_EVIDENCE_MODEL` | — (required with `OPENROUTER_API_KEY`) | OpenRouter model id of escalation, evidence and discovery extraction |
