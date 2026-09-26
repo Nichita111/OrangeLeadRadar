@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { axe } from "vitest-axe";
 import type { components } from "../../api/schema.gen";
+import { ConfigProvider, type ClientConfig } from "../../shell/config";
 import {
   BandChip,
   BandLegend,
@@ -81,8 +82,15 @@ it("FR-111 through FR-117 render the contract's score anatomy", async () => {
     warm_threshold: 50,
     weight_values: {},
   };
+  const config: ClientConfig = {
+    RUN_POLL_INTERVAL_MS: 2_000,
+    ALERT_POLL_INTERVAL_MS: 60_000,
+    CONFIDENCE_HIGH_MIN: 0.85,
+    CONFIDENCE_MEDIUM_MIN: 0.65,
+    MOCK_API: false,
+  };
   const { container } = render(
-    <>
+    <ConfigProvider value={config}>
       <BandChip band="HOT" />
       <BandChip band="WARM" />
       <BandChip band="COLD" />
@@ -104,7 +112,7 @@ it("FR-111 through FR-117 render the contract's score anatomy", async () => {
         }}
       />
       <BandLegend settings={settings} />
-    </>,
+    </ConfigProvider>,
   );
   for (const label of [
     "Hot",

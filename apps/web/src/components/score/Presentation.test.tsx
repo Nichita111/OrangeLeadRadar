@@ -44,23 +44,39 @@ const finding: components["schemas"]["FindingView"] = {
   strength: "STRONG",
 };
 
-it("FR-009 FR-010 presents confidence and age with numeric and absolute tooltips", async () => {
-  const user = userEvent.setup();
-  const observedAt = new Date(finding.observed_at);
-  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const { container } = render(
+function renderQuoteBlock() {
+  return render(
     <ConfigProvider value={config}>
       <QuoteBlock finding={finding} now={new Date("2026-09-26T00:00:00Z")} />
     </ConfigProvider>,
   );
+}
+
+it("FR-009 shows the confidence word, with the number only on hover", async () => {
+  const user = userEvent.setup();
+  const { container } = renderQuoteBlock();
 
   expect(screen.getByText("High")).toBeVisible();
   expect(screen.queryByText("0.9")).not.toBeInTheDocument();
   await user.hover(screen.getByText("High"));
   expect(await screen.findByRole("tooltip")).toHaveTextContent("0.9");
+  expect(
+    (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+  ).toEqual([]);
+});
 
-  await user.unhover(screen.getByText("High"));
+it("FR-010 shows the relative age, with the absolute date and time only on hover", async () => {
+  const user = userEvent.setup();
+  const observedAt = new Date(finding.observed_at);
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const { container } = renderQuoteBlock();
+
+  expect(screen.getByText("21 days ago")).toBeVisible();
   await user.hover(screen.getByText("21 days ago"));
-  expect(await screen.findByRole("tooltip")).toHaveTextContent(absoluteTooltip(observedAt, timeZone));
-  expect((await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations).toEqual([]);
+  expect(await screen.findByRole("tooltip")).toHaveTextContent(
+    absoluteTooltip(observedAt, timeZone),
+  );
+  expect(
+    (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+  ).toEqual([]);
 });

@@ -19,7 +19,9 @@ describe("DataState", () => {
     rerender(<DataState {...base} loading={false} error={undefined} empty />);
     fireEvent.click(screen.getByRole("button", { name: "Import accounts" }));
     expect(base.onEmptyAction).toHaveBeenCalled();
-    expect(screen.getByRole("heading", { name: "No accounts" }).querySelector("span")).not.toBeNull();
+    expect(
+      screen.getByRole("heading", { name: "No accounts" }).querySelector("span"),
+    ).not.toBeNull();
   });
   it("FR-005 shows the error message and retries", () => {
     render(<DataState {...base} loading={false} error={new Error("Try later")} empty={false} />);
@@ -58,9 +60,9 @@ describe("DataState", () => {
   });
 
   it("has no accessibility violations", async () => {
-    const { container } = render(
-      <DataState {...base} loading={false} error={undefined} empty />,
-    );
-    expect((await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations).toEqual([]);
+    const { container } = render(<DataState {...base} loading={false} error={undefined} empty />);
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 });

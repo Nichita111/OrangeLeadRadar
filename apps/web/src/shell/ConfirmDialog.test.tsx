@@ -1,9 +1,11 @@
 // `FR-015`, `FR-123`: Cancel comes before the confirm verb; Escape closes; focus returns to the
-// opener.
+// opener. The reduced-motion overlay/motion-end-state case lives in
+// `ConfirmDialog.reducedMotion.test.tsx`: `motion`'s reduced-motion detection reads and caches
+// `matchMedia` once per module instance, so it needs a file of its own where that cache starts
+// fresh, ahead of the plain-render tests below which never stub `matchMedia`.
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { axe } from "vitest-axe";
 
 import { ConfirmDialog } from "./ConfirmDialog";
 
@@ -56,31 +58,5 @@ describe("ConfirmDialog", () => {
     if (confirmButton !== undefined) await user.click(confirmButton);
 
     expect(onConfirm).toHaveBeenCalledTimes(1);
-  });
-
-  it("FR-106 FR-125 uses a token overlay and the motion end state when motion is reduced", async () => {
-    vi.stubGlobal(
-      "matchMedia",
-      vi.fn().mockReturnValue({
-        matches: true,
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-      }),
-    );
-    const { container } = render(
-      <ConfirmDialog
-        open
-        title="Disable user?"
-        description="The user keeps their history and can no longer sign in."
-        confirmLabel="Disable user"
-        onConfirm={vi.fn()}
-      />,
-    );
-    const overlay = container.ownerDocument.querySelector("[data-state='open'][data-overlay]");
-    expect(overlay).toHaveClass("bg-text/40");
-    expect(overlay).toHaveStyle({ opacity: "1" });
-    expect(screen.getByRole("alertdialog")).toHaveStyle({ opacity: "1" });
-    expect((await axe(document.body, { rules: { "color-contrast": { enabled: false } } })).violations).toEqual([]);
-    vi.unstubAllGlobals();
   });
 });

@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 import { useSignOut } from "../api/auth";
 import { UserCard } from "./UserCard";
 
@@ -16,7 +17,7 @@ describe("UserCard", () => {
         onSuccess?.();
       },
     } as ReturnType<typeof useSignOut>);
-    render(
+    const { container } = render(
       <MemoryRouter initialEntries={["/prospects"]}>
         <Routes>
           <Route
@@ -38,6 +39,9 @@ describe("UserCard", () => {
     );
     expect(screen.getByText("Ana Sales")).toBeInTheDocument();
     expect(screen.getByText("Sales")).toBeInTheDocument();
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
     await userEvent.click(screen.getByRole("button", { name: "Sign out" }));
     expect(screen.getByText("Sign in")).toBeInTheDocument();
   });

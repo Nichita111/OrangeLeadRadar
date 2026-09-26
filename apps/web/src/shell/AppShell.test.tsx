@@ -60,7 +60,9 @@ describe("AppShell", () => {
     >);
     const { container } = renderShell();
     expect(screen.getByRole("status", { name: "Loading" })).toBeInTheDocument();
-    expect((await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations).toEqual([]);
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 
   it("FR-005 preserves the unread-alert error and retries", () => {
@@ -69,7 +71,7 @@ describe("AppShell", () => {
       isPending: false,
       error: new Error("Alerts failed"),
       refetch,
-    } as ReturnType<typeof useUnreadAlertCount>);
+    } as unknown as ReturnType<typeof useUnreadAlertCount>);
     renderShell();
     expect(screen.getByText("Alerts failed")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));

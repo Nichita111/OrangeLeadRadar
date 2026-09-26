@@ -1438,10 +1438,8 @@ export interface components {
          * @description `AlertView.band_change`.
          */
         AlertBandChange: {
-            /** From */
-            from: string;
-            /** To */
-            to: string;
+            from: components["schemas"]["AccountScoreBand"];
+            to: components["schemas"]["AccountScoreBand"];
         };
         /**
          * AlertFinding
@@ -1903,8 +1901,7 @@ export interface components {
         FeedbackCreate: {
             /** Note */
             note?: string | null;
-            /** Verdict */
-            verdict: components["schemas"]["LeadFeedbackVerdict"] | components["schemas"]["FindingFeedbackVerdict"];
+            verdict: components["schemas"]["LeadFeedbackVerdict"];
         };
         /**
          * FindingDecidedBy
@@ -1939,6 +1936,15 @@ export interface components {
             created_at: string;
             /** User Name */
             user_name: string;
+            verdict: components["schemas"]["FindingFeedbackVerdict"];
+        };
+        /**
+         * FeedbackCreate
+         * @description `FeedbackCreate` specialized for `API-47`'s finding verdicts.
+         */
+        FindingFeedbackCreate: {
+            /** Note */
+            note?: string | null;
             verdict: components["schemas"]["FindingFeedbackVerdict"];
         };
         /**
@@ -2180,8 +2186,11 @@ export interface components {
             }[];
             /** Line */
             line: number;
-            /** Outcome */
-            outcome: string;
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "CREATED" | "UPDATED" | "POSSIBLE_DUPLICATE" | "INVALID";
         };
         /**
          * Industry
@@ -2821,8 +2830,7 @@ export interface components {
             /** Scoring Version */
             scoring_version: number;
             standing: components["schemas"]["AccountScoreStanding"];
-            /** Trigger */
-            trigger: string;
+            trigger: components["schemas"]["PipelineRunTrigger"];
         };
         /**
          * ScoreChangeFinding
@@ -4802,7 +4810,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["FeedbackCreate"];
+                "application/json": components["schemas"]["FindingFeedbackCreate"];
             };
         };
         responses: {
@@ -5785,7 +5793,7 @@ export interface operations {
                 country_code?: string[] | null;
                 industry?: string[] | null;
                 q?: string | null;
-                sort?: string | null;
+                sort?: ("priority" | "intent" | "fit" | "name" | "last_refreshed") | null;
                 page?: number;
                 page_size?: number | null;
             };

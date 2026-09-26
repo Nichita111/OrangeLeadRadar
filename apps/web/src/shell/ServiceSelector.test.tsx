@@ -101,7 +101,7 @@ describe("ServiceSelector", () => {
       isPending: false,
       error: new Error("Services failed"),
       refetch,
-    } as ReturnType<typeof useServices>);
+    } as unknown as ReturnType<typeof useServices>);
     rerender(
       <ServiceSelectorProvider userId="user-1">
         <Selected />
@@ -110,6 +110,8 @@ describe("ServiceSelector", () => {
     expect(screen.getByText("Services failed")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(refetch).toHaveBeenCalledOnce();
-    expect((await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations).toEqual([]);
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
   });
 });
