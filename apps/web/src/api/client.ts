@@ -69,10 +69,15 @@ async function parseBody(response: Response): Promise<unknown> {
 export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
   const method = options.method ?? "GET";
   const headers: Record<string, string> = { "X-Requested-With": "XMLHttpRequest" };
-  let body: string | undefined;
+  let body: BodyInit | undefined;
   if (options.body !== undefined) {
-    headers["Content-Type"] = "application/json";
-    body = JSON.stringify(options.body);
+    if (options.body instanceof FormData) {
+      // `API-22`'s multipart upload: the browser sets its own boundary `Content-Type`.
+      body = options.body;
+    } else {
+      headers["Content-Type"] = "application/json";
+      body = JSON.stringify(options.body);
+    }
   }
 
   const response = await fetch(`${BASE_PATH}${path}`, {
