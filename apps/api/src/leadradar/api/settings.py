@@ -16,7 +16,7 @@ FixtureMode = Literal["off", "record", "replay"]
 class ApiSettings(BaseSettings):
     """The api process's configuration."""
 
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(extra="ignore")
 
     database_url: SecretStr
     log_level: str = "INFO"

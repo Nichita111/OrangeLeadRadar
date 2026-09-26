@@ -5,11 +5,12 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any
+from typing import Any, cast
 
 import httpx
 import pytest
 from pydantic import SecretStr
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from leadradar.api.settings import ApiSettings
 from leadradar.audit import health as health_module
@@ -24,7 +25,13 @@ pytestmark = pytest.mark.unit
 
 
 class _FakeEngine:
-    """Stands in for the `AsyncEngine` in tests that never reach the database check's assertion."""
+    """Stands in for the `AsyncEngine` in tests that assert on a check other than `database`:
+    calling it raises, and `_bounded` reports that as `DOWN`, same as any other check failure
+    (P-10, no fallback result)."""
+
+
+def _fake_engine() -> AsyncEngine:
+    return cast(AsyncEngine, _FakeEngine())
 
 
 def make_settings(**overrides: Any) -> ApiSettings:
@@ -101,7 +108,7 @@ async def test_a_slow_check_reports_down_within_the_timeout_and_others_still_rep
     settings = make_settings(health_timeout_ms=10)
 
     async with httpx.AsyncClient(transport=transport) as http:
-        result = await read_health(settings, _FakeEngine(), http)
+        result = await read_health(settings, _fake_engine(), http)
 
     assert result.checks["database"] == HealthCheckStatus.DOWN
     assert result.checks["embedder"] == HealthCheckStatus.OK
@@ -118,7 +125,7 @@ async def test_a_raising_check_reports_down_and_does_not_raise_out_of_read_healt
     settings = make_settings()
 
     async with httpx.AsyncClient(transport=transport) as http:
-        result = await read_health(settings, _FakeEngine(), http)
+        result = await read_health(settings, _fake_engine(), http)
 
     assert result.checks["embedder"] == HealthCheckStatus.DOWN
 
@@ -136,7 +143,7 @@ async def test_replay_reports_ok_for_a_readable_fixture_dir_with_no_network_call
 
     settings = make_settings(fixture_mode="replay", fixture_dir=tmp_path)
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
-        result = await read_health(settings, _FakeEngine(), http)
+        result = await read_health(settings, _fake_engine(), http)
 
     assert result.checks["classifier"] == HealthCheckStatus.OK
     assert result.checks["llm"] == HealthCheckStatus.OK
@@ -147,7 +154,7 @@ async def test_replay_reports_down_for_a_missing_fixture_dir(tmp_path: Any) -> N
     transport = httpx.MockTransport(lambda request: httpx.Response(200))
 
     async with httpx.AsyncClient(transport=transport) as http:
-        result = await read_health(settings, _FakeEngine(), http)
+        result = await read_health(settings, _fake_engine(), http)
 
     assert result.checks["classifier"] == HealthCheckStatus.DOWN
     assert result.checks["llm"] == HealthCheckStatus.DOWN
@@ -164,7 +171,7 @@ async def test_no_key_reports_not_configured_with_no_call() -> None:
 
     settings = make_settings()  # openrouter_api_key defaults to None
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
-        result = await read_health(settings, _FakeEngine(), http)
+        result = await read_health(settings, _fake_engine(), http)
 
     assert result.checks["classifier"] == HealthCheckStatus.NOT_CONFIGURED
     assert result.checks["llm"] == HealthCheckStatus.NOT_CONFIGURED
@@ -182,7 +189,7 @@ async def test_with_a_key_calls_the_key_endpoint_with_the_bearer_token_and_repor
 
     settings = make_settings(openrouter_api_key=SecretStr("sekret-token"))
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
-        result = await read_health(settings, _FakeEngine(), http)
+        result = await read_health(settings, _fake_engine(), http)
 
     assert result.checks["classifier"] == HealthCheckStatus.OK
     assert result.checks["llm"] == HealthCheckStatus.OK
@@ -199,7 +206,7 @@ async def test_with_a_key_a_non_2xx_answer_reports_down(status_code: int) -> Non
 
     settings = make_settings(openrouter_api_key=SecretStr("sekret-token"))
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
-        result = await read_health(settings, _FakeEngine(), http)
+        result = await read_health(settings, _fake_engine(), http)
 
     assert result.checks["classifier"] == HealthCheckStatus.DOWN
     assert result.checks["llm"] == HealthCheckStatus.DOWN
@@ -219,7 +226,7 @@ async def test_embedder_check_reports_from_the_status_code(
 
     settings = make_settings()
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
-        result = await read_health(settings, _FakeEngine(), http)
+        result = await read_health(settings, _fake_engine(), http)
 
     assert result.checks["embedder"] == expected
 
@@ -230,6 +237,6 @@ async def test_embedder_check_reports_down_on_a_refused_connection() -> None:
 
     settings = make_settings()
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
-        result = await read_health(settings, _FakeEngine(), http)
+        result = await read_health(settings, _fake_engine(), http)
 
     assert result.checks["embedder"] == HealthCheckStatus.DOWN

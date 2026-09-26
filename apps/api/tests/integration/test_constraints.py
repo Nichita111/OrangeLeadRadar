@@ -18,6 +18,7 @@ from leadradar.core.enums import (
     PipelineRunKind,
     PipelineRunStatus,
     ScoringConfigStatus,
+    SourcePluginCode,
 )
 from leadradar.db.models.accounts import DiscoveryCandidate
 from leadradar.db.models.feedback import EvaluationResult
@@ -105,6 +106,101 @@ def _duplicate_classification(connection: Connection) -> None:
     f.make_classification(connection, chunk_id, question_id, run_id)
 
 
+def _duplicate_service_code(connection: Connection) -> None:
+    code = f"SERVICE_{uuid.uuid4().hex[:8].upper()}"
+    f.make_service(connection, code=code)
+    f.make_service(connection, code=code)
+
+
+def _duplicate_service_name(connection: Connection) -> None:
+    name = f"Service {uuid.uuid4().hex[:8]}"
+    f.make_service(connection, name=name)
+    f.make_service(connection, name=name)
+
+
+def _duplicate_industry_code(connection: Connection) -> None:
+    code = f"IND_{uuid.uuid4().hex[:8].upper()}"
+    f.make_industry(connection, code=code)
+    f.make_industry(connection, code=code)
+
+
+def _duplicate_industry_label(connection: Connection) -> None:
+    label = f"Label {uuid.uuid4().hex[:8]}"
+    f.make_industry(connection, label=label)
+    f.make_industry(connection, label=label)
+
+
+def _duplicate_market_code(connection: Connection) -> None:
+    code = f"MARKET_{uuid.uuid4().hex[:8].upper()}"
+    f.make_market(connection, code=code)
+    f.make_market(connection, code=code)
+
+
+def _duplicate_market_name(connection: Connection) -> None:
+    name = f"Market {uuid.uuid4().hex[:8]}"
+    f.make_market(connection, name=name)
+    f.make_market(connection, name=name)
+
+
+def _duplicate_account_domain(connection: Connection) -> None:
+    domain = f"{uuid.uuid4().hex[:12]}.example.com"
+    f.make_account(connection, domain=domain)
+    f.make_account(connection, domain=domain)
+
+
+def _duplicate_source_plugin_code(connection: Connection) -> None:
+    f.make_source_plugin(connection, code=SourcePluginCode.GDELT)
+    f.make_source_plugin(connection, code=SourcePluginCode.GDELT)
+
+
+def _duplicate_finding_classification_id(connection: Connection) -> None:
+    run_id = f.make_pipeline_run(connection)
+    document_id = f.make_document(connection, run_id)
+    chunk_id = f.make_chunk(connection, document_id)
+    service_id = f.make_service(connection)
+    question_id = f.make_signal_question(connection, service_id)
+    classification_id = f.make_classification(connection, chunk_id, question_id, run_id)
+    account_id = f.make_account(connection)
+    f.make_finding(connection, account_id, question_id, classification_id, chunk_id)
+    f.make_finding(connection, account_id, question_id, classification_id, chunk_id)
+
+
+def _duplicate_alert_finding_id(connection: Connection) -> None:
+    run_id = f.make_pipeline_run(connection)
+    document_id = f.make_document(connection, run_id)
+    chunk_id = f.make_chunk(connection, document_id)
+    service_id = f.make_service(connection)
+    question_id = f.make_signal_question(connection, service_id)
+    classification_id = f.make_classification(connection, chunk_id, question_id, run_id)
+    account_id = f.make_account(connection)
+    finding_id = f.make_finding(connection, account_id, question_id, classification_id, chunk_id)
+    f.make_alert(connection, account_id, service_id, finding_id=finding_id)
+    f.make_alert(connection, account_id, service_id, finding_id=finding_id)
+
+
+def _duplicate_alert_score_id(connection: Connection) -> None:
+    account_id = f.make_account(connection)
+    service_id = f.make_service(connection)
+    scoring_config_id = f.make_scoring_config(connection, service_id)
+    run_id = f.make_pipeline_run(connection)
+    score_id = f.make_account_score(connection, account_id, service_id, scoring_config_id, run_id)
+    f.make_alert(connection, account_id, service_id, score_id=score_id)
+    f.make_alert(connection, account_id, service_id, score_id=score_id)
+
+
+def _duplicate_document_triage_document_id(connection: Connection) -> None:
+    run_id = f.make_pipeline_run(connection)
+    document_id = f.make_document(connection, run_id)
+    f.make_document_triage(connection, document_id)
+    f.make_document_triage(connection, document_id)
+
+
+def _duplicate_evaluation_result_run_id(connection: Connection) -> None:
+    run_id = f.make_pipeline_run(connection)
+    f.make_evaluation_result(connection, run_id)
+    f.make_evaluation_result(connection, run_id)
+
+
 UNIQUE_CONSTRAINT_CASES: dict[str, Callable[[Connection], None]] = {
     "signal_question(service_id, key)": _duplicate_signal_question,
     "scoring_config(service_id, version)": _duplicate_scoring_config_version,
@@ -113,6 +209,19 @@ UNIQUE_CONSTRAINT_CASES: dict[str, Callable[[Connection], None]] = {
     "plugin_usage(plugin_code, day)": _duplicate_plugin_usage,
     "chunk(document_id, ordinal)": _duplicate_chunk_ordinal,
     "classification(chunk_id, question_id, question_revision)": _duplicate_classification,
+    "service.code": _duplicate_service_code,
+    "service.name": _duplicate_service_name,
+    "industry.code": _duplicate_industry_code,
+    "industry.label": _duplicate_industry_label,
+    "market.code": _duplicate_market_code,
+    "market.name": _duplicate_market_name,
+    "account.domain": _duplicate_account_domain,
+    "source_plugin.code": _duplicate_source_plugin_code,
+    "finding.classification_id": _duplicate_finding_classification_id,
+    "alert.finding_id": _duplicate_alert_finding_id,
+    "alert.score_id": _duplicate_alert_score_id,
+    "document_triage.document_id": _duplicate_document_triage_document_id,
+    "evaluation_result.run_id": _duplicate_evaluation_result_run_id,
 }
 
 
@@ -368,7 +477,7 @@ def _account_score_row(column: str) -> Callable[[Connection, float], None]:
         service_id = f.make_service(connection)
         scoring_config_id = f.make_scoring_config(connection, service_id)
         run_id = f.make_pipeline_run(connection)
-        base = {"fit": 50, "intent": 50, "priority": 50}
+        base: dict[str, float] = {"fit": 50, "intent": 50, "priority": 50}
         base[column] = value
         connection.execute(
             insert(AccountScore).values(

@@ -7,7 +7,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import MetaData, Text, func
+from sqlalchemy import DateTime, MetaData, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -25,7 +25,7 @@ class Base(DeclarativeBase):
     [SQL store](/architecture/sql-store.md)'s column type, never a length-bounded `varchar`."""
 
     metadata = MetaData(naming_convention=NAMING_CONVENTION)
-    type_annotation_map = {str: Text}
+    type_annotation_map = {str: Text, datetime: DateTime(timezone=True)}
 
 
 class TimestampedBase(Base):

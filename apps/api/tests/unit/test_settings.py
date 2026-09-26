@@ -18,15 +18,17 @@ pytestmark = pytest.mark.unit
 def test_settings_refuse_to_start_without_database_url(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("DATABASE_URL", raising=False)
     with pytest.raises(ValidationError) as excinfo:
-        ApiSettings(_env_file=None)  # type: ignore[call-arg]
+        ApiSettings()
     assert "database_url" in str(excinfo.value).lower()
 
 
 def test_settings_reject_an_unknown_fixture_mode() -> None:
     with pytest.raises(ValidationError):
-        ApiSettings(
-            database_url=SecretStr("postgresql://u:p@localhost/db"),
-            fixture_mode="bogus",  # type: ignore[arg-type]
+        ApiSettings.model_validate(
+            {
+                "database_url": "postgresql://u:p@localhost/db",
+                "fixture_mode": "bogus",
+            }
         )
 
 

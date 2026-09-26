@@ -91,3 +91,13 @@ async def test_an_unknown_path_answers_404_with_the_not_found_envelope(
     assert response.json() == {
         "error": {"code": "NOT_FOUND", "message": "The resource does not exist."}
     }
+
+
+async def test_a_non_404_http_exception_keeps_its_own_status_and_is_not_mapped_to_internal(
+    client: httpx.AsyncClient,
+) -> None:
+    """ "No other codes are mapped yet" (design): a `405` stays a `405`, not `500 INTERNAL`."""
+    response = await client.post("/api/v1/health")
+
+    assert response.status_code == 405
+    assert response.json() != {"error": {"code": "INTERNAL", "message": "Method Not Allowed"}}

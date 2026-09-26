@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import os
-from collections.abc import Mapping
+from collections.abc import Awaitable, Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -19,8 +19,6 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from leadradar.api.settings import ApiSettings
-
-HEALTH_CHECK_NAMES = ("database", "embedder", "classifier", "llm")
 
 
 class HealthCheckStatus(StrEnum):
@@ -57,10 +55,10 @@ def derive_health_status(checks: Mapping[str, HealthCheckStatus]) -> HealthStatu
     return HealthStatus.OK
 
 
-async def _bounded(coro: object, timeout_s: float) -> HealthCheckStatus:
+async def _bounded(coro: Awaitable[HealthCheckStatus], timeout_s: float) -> HealthCheckStatus:
     try:
-        return await asyncio.wait_for(coro, timeout=timeout_s)  # type: ignore[arg-type]
-    except Exception:  # noqa: BLE001 - any failure of a dependency check reports DOWN
+        return await asyncio.wait_for(coro, timeout=timeout_s)
+    except Exception:
         return HealthCheckStatus.DOWN
 
 

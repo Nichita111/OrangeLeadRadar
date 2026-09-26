@@ -5,7 +5,7 @@ a transaction that is rolled back, so tests stay independent."""
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import AsyncIterator, Iterator
 
 import pytest
 from alembic.config import Config
@@ -60,7 +60,7 @@ def sync_connection(database_url: str) -> Iterator[Connection]:
 
 
 @pytest.fixture
-async def async_engine(api_settings: ApiSettings) -> AsyncEngine:
+async def async_engine(api_settings: ApiSettings) -> AsyncIterator[AsyncEngine]:
     engine = build_engine(api_settings.database_url.get_secret_value())
     yield engine
     await engine.dispose()

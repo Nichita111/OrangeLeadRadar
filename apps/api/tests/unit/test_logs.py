@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Iterator
 
 import pytest
 
@@ -14,7 +15,7 @@ pytestmark = pytest.mark.unit
 
 
 @pytest.fixture(autouse=True)
-def _reset_context_vars() -> None:
+def _reset_context_vars() -> Iterator[None]:
     request_token = request_id_var.set(None)
     run_token = run_id_var.set(None)
     yield

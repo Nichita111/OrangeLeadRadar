@@ -8,23 +8,26 @@ adds and would send its response without `X-Request-Id`. No other code is mapped
 from __future__ import annotations
 
 from fastapi import FastAPI, Request
+from fastapi.exception_handlers import http_exception_handler
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.responses import Response
 
 
-def _envelope(code: str, message: str) -> dict[str, object]:
+def envelope(code: str, message: str) -> dict[str, object]:
+    """The one `{"error": {"code", "message"}}` shape of
+    [Conventions](/architecture/interfaces.md#conventions)."""
     return {"error": {"code": code, "message": message}}
 
 
 def register_error_handlers(app: FastAPI) -> None:
-    """Registers the `NOT_FOUND` handler for an unknown path."""
+    """Registers the `NOT_FOUND` handler for an unknown path. Every other `HTTPException`
+    goes to Starlette's own default handler: "No other codes are mapped yet" (design)."""
 
     @app.exception_handler(StarletteHTTPException)
-    async def handle_http_exception(request: Request, exc: StarletteHTTPException) -> JSONResponse:
+    async def handle_http_exception(request: Request, exc: StarletteHTTPException) -> Response:
         if exc.status_code == 404:
             return JSONResponse(
-                status_code=404, content=_envelope("NOT_FOUND", "The resource does not exist.")
+                status_code=404, content=envelope("NOT_FOUND", "The resource does not exist.")
             )
-        return JSONResponse(
-            status_code=exc.status_code, content=_envelope("INTERNAL", str(exc.detail))
-        )
+        return await http_exception_handler(request, exc)
