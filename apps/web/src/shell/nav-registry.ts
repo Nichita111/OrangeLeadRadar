@@ -9,6 +9,7 @@
 import {
   ArrowsClockwiseIcon,
   BuildingsIcon,
+  ClipboardTextIcon,
   GearIcon,
   UsersIcon,
   type Icon,
@@ -35,4 +36,5 @@ export const navRegistry: NavEntry[] = [
   { to: "/accounts", label: "Accounts", icon: BuildingsIcon, group: "work", roles: "any" },
   { to: "/runs", label: "Runs", icon: ArrowsClockwiseIcon, group: "work", roles: "any" },
   { to: "/services", label: "Services", icon: GearIcon, group: "admin", roles: "admin" },
+  { to: "/audit", label: "Audit log", icon: ClipboardTextIcon, group: "admin", roles: "admin" },
 ];

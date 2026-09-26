@@ -42,3 +42,4 @@ class ApiSettings(AiGatewaySettings):
     newsapi_key: SecretStr | None = None
     serpapi_key: SecretStr | None = None
     import_max_rows: int = 2000
+    audit_default_range_days: int = 30
