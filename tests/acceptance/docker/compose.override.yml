@@ -1,0 +1,29 @@
+# Adds the acceptance run's configuration to ../../../compose.yaml (docs/architecture/overview.md#runtime)
+# without changing it: FIXTURE_MODE=replay and CLOCK_FILE per the testing guideline
+# (docs/guidelines/testing.md#acceptance-tests), and an OpenRouter key so that the classifier
+# and llm health checks take the "configured" branch and, in replay mode, report FIXTURE_DIR's
+# readability instead of calling out (docs/architecture/interfaces.md#audit-and-health-shapes).
+# No value here is read by any test; the tests assert only what the acceptance criteria state.
+services:
+  api:
+    environment:
+      FIXTURE_MODE: replay
+      CLOCK_FILE: /app/clock/now.txt
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      LLM_CLASSIFIER_MODEL: ${LLM_CLASSIFIER_MODEL}
+      LLM_EVIDENCE_MODEL: ${LLM_EVIDENCE_MODEL}
+      LLM_OUTREACH_MODEL: ${LLM_OUTREACH_MODEL}
+      LOG_LEVEL: INFO
+    volumes:
+      - ./tests/acceptance/docker/clock:/app/clock:ro
+  worker:
+    environment:
+      FIXTURE_MODE: replay
+      CLOCK_FILE: /app/clock/now.txt
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      LLM_CLASSIFIER_MODEL: ${LLM_CLASSIFIER_MODEL}
+      LLM_EVIDENCE_MODEL: ${LLM_EVIDENCE_MODEL}
+      LLM_OUTREACH_MODEL: ${LLM_OUTREACH_MODEL}
+      LOG_LEVEL: INFO
+    volumes:
+      - ./tests/acceptance/docker/clock:/app/clock:ro
