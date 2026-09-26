@@ -26,6 +26,7 @@ from leadradar.auth.errors import (
     Unauthenticated,
     UserNotFound,
 )
+from leadradar.configuration.errors import Conflict, DraftInvalid, NotFound, QuestionInvalid
 from leadradar.feedback.errors import FeedbackError
 
 
@@ -154,3 +155,38 @@ def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(FeedbackError)
     async def handle_feedback_error(request: Request, exc: FeedbackError) -> Response:
         return JSONResponse(status_code=404, content=envelope("NOT_FOUND", str(exc)))
+
+    @app.exception_handler(NotFound)
+    async def handle_configuration_not_found(request: Request, exc: NotFound) -> Response:
+        return JSONResponse(
+            status_code=404, content=envelope("NOT_FOUND", "The resource does not exist.")
+        )
+
+    @app.exception_handler(Conflict)
+    async def handle_configuration_conflict(request: Request, exc: Conflict) -> Response:
+        return JSONResponse(
+            status_code=409,
+            content=envelope("CONFLICT", str(exc), {"entity_id": exc.entity_id}),
+        )
+
+    @app.exception_handler(DraftInvalid)
+    async def handle_draft_invalid(request: Request, exc: DraftInvalid) -> Response:
+        return JSONResponse(
+            status_code=422,
+            content=envelope(
+                "VALIDATION",
+                "The input is invalid.",
+                {"fields": [{"field": e.field, "message": e.message} for e in exc.fields]},
+            ),
+        )
+
+    @app.exception_handler(QuestionInvalid)
+    async def handle_question_invalid(request: Request, exc: QuestionInvalid) -> Response:
+        return JSONResponse(
+            status_code=422,
+            content=envelope(
+                "VALIDATION",
+                "The input is invalid.",
+                {"fields": [{"field": e.field, "message": e.message} for e in exc.fields]},
+            ),
+        )

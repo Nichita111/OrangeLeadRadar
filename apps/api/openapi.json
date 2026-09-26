@@ -49,6 +49,71 @@
         "title": "AuthenticatedUser",
         "type": "object"
       },
+      "Disqualifier": {
+        "additionalProperties": false,
+        "description": "One entry of `disqualifiers`.",
+        "properties": {
+          "criterion_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Criterion Key"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/DisqualifierKind"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "min_strength": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FindingStrength"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "question_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question Key"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "kind"
+        ],
+        "title": "Disqualifier",
+        "type": "object"
+      },
+      "DisqualifierKind": {
+        "description": "The `kind` of a disqualifier of the [scoring settings document]\n(/architecture/sql-store.md#scoring-settings-document).",
+        "enum": [
+          "ICP_MISMATCH",
+          "SIGNAL"
+        ],
+        "title": "DisqualifierKind",
+        "type": "string"
+      },
       "DocumentSourceType": {
         "description": "`document.source_type`.",
         "enum": [
@@ -478,6 +543,77 @@
         "title": "HealthStatus",
         "type": "string"
       },
+      "ICPCriterion": {
+        "additionalProperties": false,
+        "description": "One entry of `icp_criteria`. Kind-specific operand validity is [Scoring settings\nvalidation](#validate_scoring_settings), not a type, because it depends on the service's\nactive industries.",
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ICPCriterionKind"
+          },
+          "max": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max"
+          },
+          "min": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min"
+          },
+          "values": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Values"
+          },
+          "weight": {
+            "$ref": "#/components/schemas/WeightLevel"
+          }
+        },
+        "required": [
+          "key",
+          "kind",
+          "weight"
+        ],
+        "title": "ICPCriterion",
+        "type": "object"
+      },
+      "ICPCriterionKind": {
+        "description": "The `kind` of an ICP criterion of the [scoring settings document]\n(/architecture/sql-store.md#scoring-settings-document).",
+        "enum": [
+          "INDUSTRY",
+          "GEOGRAPHY",
+          "EMPLOYEE_RANGE",
+          "REVENUE_RANGE",
+          "OPERATIONAL_COMPLEXITY"
+        ],
+        "title": "ICPCriterionKind",
+        "type": "string"
+      },
       "Impact": {
         "additionalProperties": false,
         "description": "[`Impact`](/architecture/interfaces.md#impact), the response of `API-77`.",
@@ -566,6 +702,94 @@
         "title": "Impact",
         "type": "object"
       },
+      "Industry": {
+        "additionalProperties": false,
+        "description": "[`Industry`](/architecture/interfaces.md#industry).",
+        "properties": {
+          "account_count": {
+            "title": "Account Count",
+            "type": "integer"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/IndustryStatus"
+          }
+        },
+        "required": [
+          "code",
+          "label",
+          "status",
+          "account_count"
+        ],
+        "title": "Industry",
+        "type": "object"
+      },
+      "IndustryCreate": {
+        "additionalProperties": false,
+        "description": "[`IndustryCreate`](/architecture/interfaces.md#industrycreate).",
+        "properties": {
+          "code": {
+            "pattern": "^[A-Z][A-Z0-9_]*$",
+            "title": "Code",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "label"
+        ],
+        "title": "IndustryCreate",
+        "type": "object"
+      },
+      "IndustryStatus": {
+        "description": "`industry.status`.",
+        "enum": [
+          "ACTIVE",
+          "INACTIVE"
+        ],
+        "title": "IndustryStatus",
+        "type": "string"
+      },
+      "IndustryUpdate": {
+        "additionalProperties": false,
+        "description": "[`IndustryUpdate`](/architecture/interfaces.md#industryupdate).",
+        "properties": {
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IndustryStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "IndustryUpdate",
+        "type": "object"
+      },
       "LeadFeedback": {
         "additionalProperties": false,
         "description": "[`LeadFeedback`](/architecture/interfaces.md#leadfeedback), the response of `API-46`.",
@@ -641,6 +865,771 @@
         "title": "LoginRequest",
         "type": "object"
       },
+      "Market": {
+        "additionalProperties": false,
+        "description": "[`Market`](/architecture/interfaces.md#market).",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "country_codes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Country Codes",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MarketStatus"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "country_codes",
+          "status"
+        ],
+        "title": "Market",
+        "type": "object"
+      },
+      "MarketCreate": {
+        "additionalProperties": false,
+        "description": "[`MarketCreate`](/architecture/interfaces.md#marketcreate).",
+        "properties": {
+          "code": {
+            "pattern": "^[A-Z][A-Z0-9_]*$",
+            "title": "Code",
+            "type": "string"
+          },
+          "country_codes": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Country Codes",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "country_codes"
+        ],
+        "title": "MarketCreate",
+        "type": "object"
+      },
+      "MarketStatus": {
+        "description": "`market.status`.",
+        "enum": [
+          "ACTIVE",
+          "INACTIVE"
+        ],
+        "title": "MarketStatus",
+        "type": "string"
+      },
+      "MarketUpdate": {
+        "additionalProperties": false,
+        "description": "[`MarketUpdate`](/architecture/interfaces.md#marketupdate).",
+        "properties": {
+          "country_codes": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country Codes"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MarketStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "MarketUpdate",
+        "type": "object"
+      },
+      "QuestionOption": {
+        "additionalProperties": false,
+        "description": "One entry of [`SignalQuestion`](/architecture/interfaces.md#signalquestion) `options`.",
+        "properties": {
+          "key": {
+            "pattern": "^[A-Z][A-Z0-9_]*$",
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "strength": {
+            "$ref": "#/components/schemas/FindingStrength"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "strength"
+        ],
+        "title": "QuestionOption",
+        "type": "object"
+      },
+      "QuestionSetting": {
+        "additionalProperties": false,
+        "description": "One entry of `questions`.",
+        "properties": {
+          "half_life_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Half Life Days"
+          },
+          "question_key": {
+            "title": "Question Key",
+            "type": "string"
+          },
+          "weight": {
+            "$ref": "#/components/schemas/WeightLevel"
+          }
+        },
+        "required": [
+          "question_key",
+          "weight"
+        ],
+        "title": "QuestionSetting",
+        "type": "object"
+      },
+      "ScoringConfigModel": {
+        "additionalProperties": false,
+        "description": "[`ScoringConfig`](/architecture/interfaces.md#scoringconfig).",
+        "properties": {
+          "activated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activated At"
+          },
+          "activated_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activated By Name"
+          },
+          "change_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Note"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "service_id": {
+            "format": "uuid",
+            "title": "Service Id",
+            "type": "string"
+          },
+          "settings": {
+            "additionalProperties": true,
+            "title": "Settings",
+            "type": "object"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ScoringConfigStatus"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "service_id",
+          "version",
+          "status",
+          "change_note",
+          "activated_at",
+          "activated_by_name",
+          "settings"
+        ],
+        "title": "ScoringConfigModel",
+        "type": "object"
+      },
+      "ScoringConfigStatus": {
+        "description": "`scoring_config.status`.",
+        "enum": [
+          "DRAFT",
+          "ACTIVE",
+          "RETIRED"
+        ],
+        "title": "ScoringConfigStatus",
+        "type": "string"
+      },
+      "ScoringConfigSummaryModel": {
+        "additionalProperties": false,
+        "description": "[`ScoringConfigSummary`](/architecture/interfaces.md#scoringconfigsummary).",
+        "properties": {
+          "activated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activated At"
+          },
+          "activated_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activated By Name"
+          },
+          "change_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Note"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "service_id": {
+            "format": "uuid",
+            "title": "Service Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ScoringConfigStatus"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "service_id",
+          "version",
+          "status",
+          "change_note",
+          "activated_at",
+          "activated_by_name"
+        ],
+        "title": "ScoringConfigSummaryModel",
+        "type": "object"
+      },
+      "ScoringDraftUpdate": {
+        "additionalProperties": false,
+        "description": "[`ScoringDraftUpdate`](/architecture/interfaces.md#scoringdraftupdate).",
+        "properties": {
+          "change_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Note"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/ScoringSettingsDocument"
+          }
+        },
+        "required": [
+          "settings"
+        ],
+        "title": "ScoringDraftUpdate",
+        "type": "object"
+      },
+      "ScoringSettingsDocument": {
+        "additionalProperties": false,
+        "description": "The `settings` column of [`scoring_config`](/architecture/sql-store.md#scoring_config).",
+        "properties": {
+          "default_half_life_days": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Default Half Life Days",
+            "type": "object"
+          },
+          "disqualifiers": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Disqualifier"
+            },
+            "title": "Disqualifiers",
+            "type": "array"
+          },
+          "fit_weight": {
+            "title": "Fit Weight",
+            "type": "number"
+          },
+          "hot_threshold": {
+            "title": "Hot Threshold",
+            "type": "integer"
+          },
+          "icp_criteria": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ICPCriterion"
+            },
+            "title": "Icp Criteria",
+            "type": "array"
+          },
+          "intent_saturation": {
+            "title": "Intent Saturation",
+            "type": "number"
+          },
+          "intent_weight": {
+            "title": "Intent Weight",
+            "type": "number"
+          },
+          "min_decay": {
+            "title": "Min Decay",
+            "type": "number"
+          },
+          "min_fit": {
+            "title": "Min Fit",
+            "type": "integer"
+          },
+          "negative_factor": {
+            "title": "Negative Factor",
+            "type": "number"
+          },
+          "questions": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/QuestionSetting"
+            },
+            "title": "Questions",
+            "type": "array"
+          },
+          "strength_values": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Strength Values",
+            "type": "object"
+          },
+          "unknown_match": {
+            "title": "Unknown Match",
+            "type": "number"
+          },
+          "warm_threshold": {
+            "title": "Warm Threshold",
+            "type": "integer"
+          },
+          "weight_values": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Weight Values",
+            "type": "object"
+          }
+        },
+        "required": [
+          "fit_weight",
+          "intent_weight",
+          "min_fit",
+          "hot_threshold",
+          "warm_threshold",
+          "weight_values",
+          "strength_values",
+          "default_half_life_days",
+          "min_decay",
+          "negative_factor",
+          "intent_saturation",
+          "unknown_match"
+        ],
+        "title": "ScoringSettingsDocument",
+        "type": "object"
+      },
+      "Service": {
+        "additionalProperties": false,
+        "description": "[`Service`](/architecture/interfaces.md#service).",
+        "properties": {
+          "active_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Version"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "draft_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Version"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "question_count": {
+            "title": "Question Count",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ServiceStatus"
+          },
+          "value_proposition": {
+            "title": "Value Proposition",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "description",
+          "value_proposition",
+          "status",
+          "active_version",
+          "draft_version",
+          "question_count"
+        ],
+        "title": "Service",
+        "type": "object"
+      },
+      "ServiceCreate": {
+        "additionalProperties": false,
+        "description": "[`ServiceCreate`](/architecture/interfaces.md#servicecreate).",
+        "properties": {
+          "code": {
+            "pattern": "^[A-Z][A-Z0-9_]*$",
+            "title": "Code",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "value_proposition": {
+            "title": "Value Proposition",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "description",
+          "value_proposition"
+        ],
+        "title": "ServiceCreate",
+        "type": "object"
+      },
+      "ServiceStatus": {
+        "description": "`service.status`.",
+        "enum": [
+          "ACTIVE",
+          "INACTIVE"
+        ],
+        "title": "ServiceStatus",
+        "type": "string"
+      },
+      "ServiceUpdate": {
+        "additionalProperties": false,
+        "description": "[`ServiceUpdate`](/architecture/interfaces.md#serviceupdate).",
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ServiceStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "value_proposition": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value Proposition"
+          }
+        },
+        "title": "ServiceUpdate",
+        "type": "object"
+      },
+      "SignalQuestion": {
+        "additionalProperties": false,
+        "description": "[`SignalQuestion`](/architecture/interfaces.md#signalquestion).",
+        "properties": {
+          "answer_type": {
+            "$ref": "#/components/schemas/SignalQuestionAnswerType"
+          },
+          "finding_count": {
+            "title": "Finding Count",
+            "type": "integer"
+          },
+          "hint_terms": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Hint Terms",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "options": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/QuestionOption"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Options"
+          },
+          "polarity": {
+            "$ref": "#/components/schemas/SignalQuestionPolarity"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "service_id": {
+            "format": "uuid",
+            "title": "Service Id",
+            "type": "string"
+          },
+          "source_types": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentSourceType"
+            },
+            "title": "Source Types",
+            "type": "array"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SignalQuestionStatus"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "service_id",
+          "key",
+          "text",
+          "answer_type",
+          "options",
+          "polarity",
+          "source_types",
+          "hint_terms",
+          "revision",
+          "status",
+          "finding_count"
+        ],
+        "title": "SignalQuestion",
+        "type": "object"
+      },
+      "SignalQuestionAnswerType": {
+        "description": "`signal_question.answer_type`.",
+        "enum": [
+          "YES_NO",
+          "SCALE",
+          "CHOICE"
+        ],
+        "title": "SignalQuestionAnswerType",
+        "type": "string"
+      },
+      "SignalQuestionCreate": {
+        "additionalProperties": false,
+        "description": "[`SignalQuestionCreate`](/architecture/interfaces.md#signalquestioncreate).",
+        "properties": {
+          "answer_type": {
+            "$ref": "#/components/schemas/SignalQuestionAnswerType"
+          },
+          "hint_terms": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Hint Terms",
+            "type": "array"
+          },
+          "key": {
+            "pattern": "^[A-Z][A-Z0-9_]*$",
+            "title": "Key",
+            "type": "string"
+          },
+          "options": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/QuestionOption"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Options"
+          },
+          "polarity": {
+            "$ref": "#/components/schemas/SignalQuestionPolarity"
+          },
+          "source_types": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentSourceType"
+            },
+            "minItems": 1,
+            "title": "Source Types",
+            "type": "array"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "text",
+          "answer_type",
+          "polarity",
+          "source_types"
+        ],
+        "title": "SignalQuestionCreate",
+        "type": "object"
+      },
       "SignalQuestionPolarity": {
         "description": "`signal_question.polarity`.",
         "enum": [
@@ -649,6 +1638,96 @@
         ],
         "title": "SignalQuestionPolarity",
         "type": "string"
+      },
+      "SignalQuestionStatus": {
+        "description": "`signal_question.status`.",
+        "enum": [
+          "ACTIVE",
+          "INACTIVE"
+        ],
+        "title": "SignalQuestionStatus",
+        "type": "string"
+      },
+      "SignalQuestionUpdate": {
+        "additionalProperties": false,
+        "description": "[`SignalQuestionUpdate`](/architecture/interfaces.md#signalquestionupdate).",
+        "properties": {
+          "answer_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SignalQuestionAnswerType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "hint_terms": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hint Terms"
+          },
+          "options": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/QuestionOption"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Options"
+          },
+          "source_types": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/DocumentSourceType"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Types"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SignalQuestionStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          }
+        },
+        "title": "SignalQuestionUpdate",
+        "type": "object"
       },
       "SourcePluginCode": {
         "description": "`source_plugin.code`; reused by `plugin_usage.plugin_code` and `document.plugin_code`.",
@@ -833,6 +1912,17 @@
         ],
         "title": "ValidationError",
         "type": "object"
+      },
+      "WeightLevel": {
+        "description": "A weight level of the [scoring settings document]\n(/architecture/sql-store.md#scoring-settings-document): `weight_values`, and the `weight` of\nan ICP criterion or a question setting. `NONE` keeps a question out of Intent while a\ndisqualifier still reads it.",
+        "enum": [
+          "HIGH",
+          "MEDIUM",
+          "LOW",
+          "NONE"
+        ],
+        "title": "WeightLevel",
+        "type": "string"
       }
     }
   },
@@ -1196,6 +2286,1036 @@
         "summary": "Get Impact",
         "tags": [
           "evaluation"
+        ]
+      }
+    },
+    "/api/v1/industries": {
+      "get": {
+        "description": "`API-71`.",
+        "operationId": "list_industries_route_api_v1_industries_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/IndustryStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Industry"
+                  },
+                  "title": "Response List Industries Route Api V1 Industries Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Industries Route",
+        "tags": [
+          "configuration"
+        ]
+      },
+      "post": {
+        "description": "`API-72`.",
+        "operationId": "create_industry_route_api_v1_industries_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IndustryCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Industry"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Industry Route",
+        "tags": [
+          "configuration"
+        ]
+      }
+    },
+    "/api/v1/industries/{code}": {
+      "patch": {
+        "description": "`API-73`.",
+        "operationId": "update_industry_route_api_v1_industries__code__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "code",
+            "required": true,
+            "schema": {
+              "title": "Code",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IndustryUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Industry"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Industry Route",
+        "tags": [
+          "configuration"
+        ]
+      }
+    },
+    "/api/v1/markets": {
+      "get": {
+        "description": "`API-74`.",
+        "operationId": "list_markets_route_api_v1_markets_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/MarketStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Market"
+                  },
+                  "title": "Response List Markets Route Api V1 Markets Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Markets Route",
+        "tags": [
+          "configuration"
+        ]
+      },
+      "post": {
+        "description": "`API-75`.",
+        "operationId": "create_market_route_api_v1_markets_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarketCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Market"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Market Route",
+        "tags": [
+          "configuration"
+        ]
+      }
+    },
+    "/api/v1/markets/{code}": {
+      "patch": {
+        "description": "`API-76`.",
+        "operationId": "update_market_route_api_v1_markets__code__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "code",
+            "required": true,
+            "schema": {
+              "title": "Code",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarketUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Market"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Market Route",
+        "tags": [
+          "configuration"
+        ]
+      }
+    },
+    "/api/v1/questions/{id}": {
+      "patch": {
+        "description": "`API-13`.",
+        "operationId": "update_question_route_api_v1_questions__id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignalQuestionUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignalQuestion"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Question Route",
+        "tags": [
+          "configuration"
+        ]
+      }
+    },
+    "/api/v1/scoring-configs/{id}": {
+      "get": {
+        "description": "`API-16`.",
+        "operationId": "get_scoring_config_route_api_v1_scoring_configs__id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoringConfigModel"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Scoring Config Route",
+        "tags": [
+          "configuration"
+        ]
+      }
+    },
+    "/api/v1/services": {
+      "get": {
+        "description": "`API-07`.",
+        "operationId": "list_services_api_v1_services_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Service"
+                  },
+                  "title": "Response List Services Api V1 Services Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Services",
+        "tags": [
+          "configuration"
+        ]
+      },
+      "post": {
+        "description": "`API-08`.",
+        "operationId": "create_service_route_api_v1_services_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Service"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Service Route",
+        "tags": [
+          "configuration"
+        ]
+      }
+    },
+    "/api/v1/services/{id}": {
+      "get": {
+        "description": "`API-09`.",
+        "operationId": "get_service_route_api_v1_services__id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Service"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Service Route",
+        "tags": [
+          "configuration"
+        ]
+      },
+      "patch": {
+        "description": "`API-10`.",
+        "operationId": "update_service_route_api_v1_services__id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Service"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Service Route",
+        "tags": [
+          "configuration"
+        ]
+      }
+    },
+    "/api/v1/services/{id}/questions": {
+      "get": {
+        "description": "`API-11`.",
+        "operationId": "list_questions_route_api_v1_services__id__questions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SignalQuestion"
+                  },
+                  "title": "Response List Questions Route Api V1 Services  Id  Questions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Questions Route",
+        "tags": [
+          "configuration"
+        ]
+      },
+      "post": {
+        "description": "`API-12`.",
+        "operationId": "create_question_route_api_v1_services__id__questions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignalQuestionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignalQuestion"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Question Route",
+        "tags": [
+          "configuration"
+        ]
+      }
+    },
+    "/api/v1/services/{id}/scoring-configs": {
+      "get": {
+        "description": "`API-15`.",
+        "operationId": "list_scoring_configs_route_api_v1_services__id__scoring_configs_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ScoringConfigSummaryModel"
+                  },
+                  "title": "Response List Scoring Configs Route Api V1 Services  Id  Scoring Configs Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Scoring Configs Route",
+        "tags": [
+          "configuration"
+        ]
+      }
+    },
+    "/api/v1/services/{id}/scoring-configs/draft": {
+      "put": {
+        "description": "`API-17`.",
+        "operationId": "save_scoring_draft_route_api_v1_services__id__scoring_configs_draft_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScoringDraftUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoringConfigModel"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Scoring Draft Route",
+        "tags": [
+          "configuration"
         ]
       }
     },
