@@ -441,3 +441,33 @@ class AuditEventAction(StrEnum):
     DRAFT_EXPORTED = "DRAFT_EXPORTED"
     CRM_PUSHED = "CRM_PUSHED"
     AI_CALL = "AI_CALL"
+
+
+class AiRole(StrEnum):
+    """`ai_role` of the AI call payload of [Audit actions]
+    (/architecture/sql-store.md#audit-actions): a role of [AI roles and boundaries]
+    (/architecture/overview.md#ai-roles-and-boundaries)."""
+
+    CLASSIFIER = "CLASSIFIER"
+    ESCALATION = "ESCALATION"
+    EVIDENCE = "EVIDENCE"
+    DISCOVERY_EXTRACTION = "DISCOVERY_EXTRACTION"
+    OUTREACH = "OUTREACH"
+
+
+class AiCallProvider(StrEnum):
+    """`provider` of the AI call payload of [Audit actions]
+    (/architecture/sql-store.md#audit-actions)."""
+
+    JEV = "JEV"
+    OPENROUTER = "OPENROUTER"
+
+
+class AiCallOutcome(StrEnum):
+    """`outcome` of the AI call payload of [Audit actions]
+    (/architecture/sql-store.md#audit-actions)."""
+
+    OK = "OK"
+    TIMEOUT = "TIMEOUT"
+    ERROR = "ERROR"
+    INVALID_OUTPUT = "INVALID_OUTPUT"

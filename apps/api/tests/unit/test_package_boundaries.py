@@ -53,7 +53,7 @@ def test_core_has_no_forbidden_import() -> None:
         assert not forbidden, f"{path} imports forbidden module(s): {forbidden}"
 
 
-@pytest.mark.parametrize("package", ["db", "audit", "evaluation", "auth", "feedback", "runs"])
+@pytest.mark.parametrize("package", ["db", "audit", "evaluation", "auth", "feedback", "runs", "ai"])
 def test_store_and_capability_packages_do_not_import_api(package: str) -> None:
     python_files = list((SRC_DIR / package).rglob("*.py"))
     assert python_files, f"expected {package}/ to contain modules"

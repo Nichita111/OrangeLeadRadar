@@ -4,11 +4,14 @@ that first reads it ([S-PIP-01])."""
 
 from __future__ import annotations
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import SettingsConfigDict
+
+from leadradar.ai.settings import AiGatewaySettings
 
 
-class WorkerSettings(BaseSettings):
-    """The worker process's configuration."""
+class WorkerSettings(AiGatewaySettings):
+    """The worker process's configuration; fixture mode, `CLOCK_FILE` and the AI gateway's keys
+    come from `AiGatewaySettings`."""
 
     model_config = SettingsConfigDict(extra="ignore")
 
