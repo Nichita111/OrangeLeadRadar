@@ -46,13 +46,15 @@ sequenceDiagram
   actor Sales
   participant Web as Suggested accounts
   participant API as api
+  participant DB as database
   participant W as worker
   participant P as Crunchbase and news plug-ins
   Sales->>Web: Find new accounts (selected service)
   Web->>API: discovery run (API-29)
+  API->>DB: DISCOVERY run queued
   W->>P: organisation search with the ICP; news search with hint terms
   W->>W: triage news, extract named companies, drop known ones, estimate fit
-  W-->>API: candidates stored PENDING
+  W->>DB: candidates stored PENDING
   Web->>API: list candidates (API-30)
   Sales->>Web: Accept (domain if missing) or Reject (reason)
   Web->>API: accept (API-31) or reject (API-32)
