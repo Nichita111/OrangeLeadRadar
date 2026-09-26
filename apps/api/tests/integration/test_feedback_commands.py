@@ -682,8 +682,11 @@ async def test_a_failure_inside_the_transaction_persists_nothing(
     user_id = await _make_user(async_connection)
     # `_make_finding` itself inserts one `pipeline_run` for the document's classification, so the
     # runs and jobs the write under test would add are counted as a delta, not an absolute zero.
+    # Audit rows too: `audit_event` is append-only and other tests of the session (the AI
+    # gateway's `AI_CALL` rows) commit rows that cannot be deleted.
     runs_before = await _count(async_connection, PipelineRun)
     jobs_before = await _count(async_connection, Job)
+    audit_before = await _count(async_connection, AuditEvent)
 
     async def boom(*args: object, **kwargs: object) -> None:
         raise RuntimeError("boom")
@@ -706,7 +709,7 @@ async def test_a_failure_inside_the_transaction_persists_nothing(
     assert finding.status == FindingStatus.ACTIVE
     assert await _count(async_connection, FindingFeedback) == 0
     assert await _count(async_connection, EvaluationItem) == 0
-    assert await _count(async_connection, AuditEvent) == 0
+    assert await _count(async_connection, AuditEvent) == audit_before
     assert await _count(async_connection, PipelineRun) == runs_before
     assert await _count(async_connection, Job) == jobs_before
 
