@@ -251,7 +251,13 @@ The diagrams are generated with [Archify](https://github.com/tt-a1i/archify) 2.1
 - `diagrams/svg/` holds the static, dual-theme images shown above; they follow the reader's light or dark preference.
 - `diagrams/html/` receives the interactive versions, with pan, zoom, search, focus and export. They are build output: git ignores them, so generate them to browse locally.
 
-The flow sources are not read from the specification: [`diagrams/flows.py`](diagrams/flows.py) restates each flow by hand. When a flow changes in the specification, change its entry in `flows.py` first, then regenerate:
+The diagrams are not read from the specification: [`diagrams/flows.py`](diagrams/flows.py) restates each flow by hand, and [`architecture.json`](diagrams/src/architecture.json) restates the [Topology](docs/architecture/overview.md#topology) of the architecture overview. `flows.py` records a fingerprint of the specification text each diagram was last checked against, so a diagram a specification change leaves behind shows up:
+
+```bash
+python3 diagrams/flows.py --check
+```
+
+It lists every diagram whose flow heading or topology changed since. Update that diagram's entry in `flows.py` (or `architecture.json`), record the fingerprint the check prints in `REVIEWED`, then regenerate:
 
 ```bash
 python3 diagrams/flows.py
@@ -265,7 +271,7 @@ for f in diagrams/src/*.json; do n=$(basename "$f" .json); t=sequence; [ "$n" = 
 node diagrams/export-svg.mjs <archify> diagrams/html diagrams/svg
 ```
 
-`<archify>` is the Archify skill directory. Every diagram passes Archify's `showcase` validation.
+`<archify>` is the Archify skill directory. Every diagram must pass Archify's `showcase` validation.
 
 ## Repository
 
@@ -277,8 +283,12 @@ node diagrams/export-svg.mjs <archify> diagrams/html diagrams/svg
 | [`scripts/`](scripts/) | The documentation checker and generators |
 | [`diagrams/`](diagrams/) | Architecture and flow diagrams |
 
-Check the specification after changing it:
+Check the specification after changing it, and whether a diagram now lags behind it:
 
 ```bash
 uv run --project scripts python scripts/check_docs.py
+```
+
+```bash
+python3 diagrams/flows.py --check
 ```

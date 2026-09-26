@@ -1,9 +1,16 @@
 """Source of the per-flow sequence diagrams: python3 diagrams/flows.py writes diagrams/src/fl-nn.json.
 
-Each flow restates the steps of its FL- heading in docs/features/; the spec stays the source of truth.
+Each flow restates the steps of its FL- heading in docs/features/ by hand; the spec stays the source of truth.
+REVIEWED records the spec text each diagram was last checked against, and
+python3 diagrams/flows.py --check lists the diagrams whose spec text has changed since.
 """
+import hashlib
 import json
 import pathlib
+import re
+import sys
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 P = {
     "sales": ("external", "Sales", "user"),
@@ -88,7 +95,7 @@ FLOWS = [
          ("llm", "api", "strength, confidence, quote", "return"),
          ("api", "db", "AI_CALL audit rows only", "dashed"),
          ("api", "web", "top PREVIEW_MAX_PASSAGES", "return")])],
-     [("cyan", "Spec", ["FL-03 in Service configuration", "S-CFG-05"]),
+     [("cyan", "Spec", ["FL-03 in Service configuration", "S-CFG-05 (P1)"]),
       ("amber", "Stores nothing", ["The same rules as the pipeline", "Only the audit of its AI calls is written"])]),
 
     ("fl-04", "Import accounts from a CSV file", "accounts-and-discovery", "Account import",
@@ -397,6 +404,34 @@ FLOWS = [
       ("emerald", "Reproducible", ["A market edit never changes a saved version", "Retired industries stay on their accounts"])]),
 ]
 
+# Fingerprint of the spec text each diagram was last checked against. The architecture diagram,
+# diagrams/src/architecture.json, is written by hand and follows the Topology section of the overview.
+REVIEWED = {
+    "architecture": "00e0ebc3733a",
+    "FL-01": "81661c1aec6d",
+    "FL-02": "9e5f8067e7c5",
+    "FL-03": "0e87d6c00566",
+    "FL-04": "4f9968b69aa1",
+    "FL-05": "88939004fd9b",
+    "FL-06": "f1091f5001d8",
+    "FL-07": "01b6d83be6ae",
+    "FL-08": "40129c19a522",
+    "FL-09": "4fb45cdc9d22",
+    "FL-10": "7fb7e28f6846",
+    "FL-11": "826448b42bc6",
+    "FL-12": "53d70b3fdd00",
+    "FL-13": "37f31fa5fc7c",
+    "FL-14": "5b118e45f35b",
+    "FL-15": "12b50b475bb7",
+    "FL-16": "dbd06d6f2c00",
+    "FL-17": "c01c69a93d92",
+    "FL-18": "73c8a881a844",
+    "FL-19": "03cb2ac514f8",
+    "FL-20": "623a8ba73703",
+    "FL-21": "11d8217fdecb",
+    "FL-22": "cef19bb5e843",
+}
+
 STEP = 42
 SEG_GAP = 26
 TOP = 186
@@ -441,7 +476,49 @@ def build(flow):
     }
 
 
+def sections(path, level):
+    """Heading -> body of every heading of the given level in a Markdown file, code fences skipped."""
+    out, key, fence = {}, None, False
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.startswith("```"):
+            fence = not fence
+        elif not fence and line.startswith("#"):
+            key = line[level + 1:] if line.startswith("#" * level + " ") else None
+            if key is not None:
+                out[key] = []
+            continue
+        if key is not None:
+            out[key].append(line.rstrip())
+    return {k: "\n".join(v).strip() for k, v in out.items()}
+
+
+def spec_fingerprints():
+    """Diagram id -> fingerprint of the spec text it restates, heading title included."""
+    text = {"architecture": sections(ROOT / "docs/architecture/overview.md", 2)["Topology"]}
+    for path in sorted((ROOT / "docs/features").glob("*.md")):
+        for heading, body in sections(path, 3).items():
+            if re.fullmatch(r"FL-\d\d .+", heading):
+                text[heading[:5]] = f"{heading}\n{body}"
+    return {k: hashlib.sha256(v.encode("utf-8")).hexdigest()[:12] for k, v in text.items()}
+
+
+def check():
+    current = spec_fingerprints()
+    behind = sorted(k for k in current.keys() | REVIEWED.keys() if current.get(k) != REVIEWED.get(k))
+    for k in behind:
+        if k not in current:
+            print(f"{k}: no longer in the specification; remove its diagram and its REVIEWED entry")
+        elif k not in REVIEWED:
+            print(f"{k}: no diagram yet; add it, then record {current[k]} in REVIEWED")
+        else:
+            print(f"{k}: the specification changed; update the diagram, then record {current[k]} in REVIEWED")
+    print(f"{len(current)} diagrams, {len(behind)} behind the specification")
+    return 1 if behind else 0
+
+
 if __name__ == "__main__":
+    if sys.argv[1:] == ["--check"]:
+        sys.exit(check())
     out = pathlib.Path(__file__).parent / "src"
     out.mkdir(exist_ok=True)
     for flow in FLOWS:
