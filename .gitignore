@@ -12,3 +12,4 @@ node_modules/
 apps/web/dist/
 apps/web/coverage/
 apps/web/*.tsbuildinfo
+.embedder-cache/
