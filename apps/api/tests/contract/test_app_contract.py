@@ -196,7 +196,7 @@ async def test_a_non_404_http_exception_keeps_its_own_status_and_is_not_mapped_t
     client: httpx.AsyncClient,
 ) -> None:
     """No code but `NOT_FOUND` is mapped yet: a `405` stays a `405`, not `500 INTERNAL`."""
-    response = await client.post("/api/v1/health")
+    response = await client.post("/api/v1/health", headers={"X-Requested-With": "XMLHttpRequest"})
 
     assert response.status_code == 405
     assert response.json().get("error", {}).get("code") != "INTERNAL"

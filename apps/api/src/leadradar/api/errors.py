@@ -1,28 +1,51 @@
-"""Maps an unknown path onto the `NOT_FOUND` envelope of
-[Conventions](/architecture/interfaces.md#conventions). An unhandled exception is caught by the
+"""Maps every typed error onto the envelope of
+[Conventions](/architecture/interfaces.md#conventions), once, at the edge
+([coding Errors](/guidelines/coding.md#errors)). An unhandled exception is caught by the
 outermost middleware ([`request_identity.py`](request_identity.py)) instead of a registered
 handler here, because Starlette's `ServerErrorMiddleware` sits outside every layer `add_middleware`
-adds and would send its response without `X-Request-Id`. No other code is mapped yet.
+adds and would send its response without `X-Request-Id`.
 """
 
 from __future__ import annotations
 
 from fastapi import FastAPI, Request
 from fastapi.exception_handlers import http_exception_handler
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.responses import Response
 
+from leadradar.auth.errors import (
+    AccountDisabled,
+    AccountLocked,
+    EmailTaken,
+    Forbidden,
+    InvalidCredentials,
+    PasswordTooShort,
+    SelfChangeRefused,
+    Unauthenticated,
+    UserNotFound,
+)
 
-def envelope(code: str, message: str) -> dict[str, object]:
-    """The one `{"error": {"code", "message"}}` shape of
+
+def envelope(
+    code: str, message: str, details: dict[str, object] | None = None
+) -> dict[str, object]:
+    """The one `{"error": {"code", "message", "details"?}}` shape of
     [Conventions](/architecture/interfaces.md#conventions)."""
-    return {"error": {"code": code, "message": message}}
+    error: dict[str, object] = {"code": code, "message": message}
+    if details is not None:
+        error["details"] = details
+    return {"error": error}
+
+
+_INVALID_CREDENTIALS_MESSAGE = "Incorrect email or password."
+_UNAUTHENTICATED_MESSAGE = "Sign-in required."
 
 
 def register_error_handlers(app: FastAPI) -> None:
-    """Registers the `NOT_FOUND` handler for an unknown path. Every other `HTTPException`
-    goes to Starlette's own default handler: no other code of the envelope is mapped yet."""
+    """Registers every typed capability error and `RequestValidationError`; every other
+    `HTTPException` (only `404` today) goes to Starlette's own default handler."""
 
     @app.exception_handler(StarletteHTTPException)
     async def handle_http_exception(request: Request, exc: StarletteHTTPException) -> Response:
@@ -31,3 +54,87 @@ def register_error_handlers(app: FastAPI) -> None:
                 status_code=404, content=envelope("NOT_FOUND", "The resource does not exist.")
             )
         return await http_exception_handler(request, exc)
+
+    @app.exception_handler(InvalidCredentials)
+    async def handle_invalid_credentials(request: Request, exc: InvalidCredentials) -> Response:
+        return JSONResponse(
+            status_code=401, content=envelope("UNAUTHENTICATED", _INVALID_CREDENTIALS_MESSAGE)
+        )
+
+    @app.exception_handler(Unauthenticated)
+    async def handle_unauthenticated(request: Request, exc: Unauthenticated) -> Response:
+        return JSONResponse(
+            status_code=401, content=envelope("UNAUTHENTICATED", _UNAUTHENTICATED_MESSAGE)
+        )
+
+    @app.exception_handler(Forbidden)
+    @app.exception_handler(AccountDisabled)
+    async def handle_forbidden(request: Request, exc: Exception) -> Response:
+        return JSONResponse(
+            status_code=403, content=envelope("FORBIDDEN", "Not allowed for this account.")
+        )
+
+    @app.exception_handler(UserNotFound)
+    async def handle_user_not_found(request: Request, exc: UserNotFound) -> Response:
+        return JSONResponse(
+            status_code=404, content=envelope("NOT_FOUND", "The resource does not exist.")
+        )
+
+    @app.exception_handler(EmailTaken)
+    async def handle_email_taken(request: Request, exc: EmailTaken) -> Response:
+        return JSONResponse(
+            status_code=409,
+            content=envelope(
+                "CONFLICT", "Email already in use.", {"entity_id": str(exc.entity_id)}
+            ),
+        )
+
+    @app.exception_handler(SelfChangeRefused)
+    async def handle_self_change_refused(request: Request, exc: SelfChangeRefused) -> Response:
+        return JSONResponse(
+            status_code=409,
+            content=envelope("CONFLICT", "An Admin cannot change their own role or status."),
+        )
+
+    @app.exception_handler(AccountLocked)
+    async def handle_account_locked(request: Request, exc: AccountLocked) -> Response:
+        return JSONResponse(
+            status_code=423,
+            content=envelope(
+                "LOCKED", "Too many failed sign-ins.", {"retry_after_min": exc.retry_after_min}
+            ),
+        )
+
+    @app.exception_handler(PasswordTooShort)
+    async def handle_password_too_short(request: Request, exc: PasswordTooShort) -> Response:
+        return JSONResponse(
+            status_code=422,
+            content=envelope(
+                "VALIDATION",
+                "The input is invalid.",
+                {
+                    "fields": [
+                        {
+                            "field": "password",
+                            "message": (f"String should have at least {exc.minimum} characters"),
+                        }
+                    ]
+                },
+            ),
+        )
+
+    @app.exception_handler(RequestValidationError)
+    async def handle_validation_error(request: Request, exc: RequestValidationError) -> Response:
+        # Pydantic's `input` and `ctx` are dropped: they can carry the submitted value (for
+        # example a password), which must never reach a response or a log (N-07).
+        fields = [
+            {
+                "field": ".".join(str(part) for part in error["loc"] if part != "body"),
+                "message": error["msg"],
+            }
+            for error in exc.errors()
+        ]
+        return JSONResponse(
+            status_code=422,
+            content=envelope("VALIDATION", "The input is invalid.", {"fields": fields}),
+        )

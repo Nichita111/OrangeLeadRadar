@@ -47,8 +47,10 @@ It never fetches from a source, never classifies in batch, never writes a score,
 
 | Key | Default | Meaning |
 |---|---|---|
-| `DATABASE_URL` | — (required) | PostgreSQL connection string |
-| `POSTGRES_PASSWORD` | — (required by the Compose file) | Password of the `db` container's database user; the Compose file builds `DATABASE_URL` from it |
+| `DATABASE_URL` | — (required) | PostgreSQL connection string, as the application role of [Runtime](/architecture/overview.md#runtime) |
+| `POSTGRES_PASSWORD` | — (required by the Compose file) | Password of the `db` container's database user, the owner; the Compose file builds `MIGRATION_DATABASE_URL` from it |
+| `MIGRATION_DATABASE_URL` | — (required) | PostgreSQL connection string as the owner; used only to apply migrations at start |
+| `APP_DB_PASSWORD` | — (required by the Compose file) | Password of the application role; the `db` init script creates the role with it and the Compose file builds `DATABASE_URL` from it |
 | `APP_BASE_URL` | `http://localhost:8080` | Public base URL of the frontend, used in HubSpot links and the crawler's user agent |
 | `SESSION_TTL_HOURS` | `12` | Session lifetime |
 | `LOGIN_MAX_FAILURES` | `5` | Consecutive failed sign-ins before a lock |

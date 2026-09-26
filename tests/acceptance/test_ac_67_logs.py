@@ -4,17 +4,19 @@ scanned, then every line is JSON, every line written while serving a request car
 `request_id` and every line written for a run its `run_id`, and none contains a password, a
 session token or an API key."
 
-The `run_id` half is deferred, by decision of this task: no run exists until the worker's job
-loop lands with `S-PIP-01`.
+The `run_id` half is deferred by `.work/auth-and-audit/task.md`, carried over from
+`stack-foundation`: no run exists until the worker's job loop lands with `S-PIP-01`; it is
+verified by the task that implements it.
 
-Sign-in (`API-01`, `/auth/login`) is not built in this task, so this test never calls it;
-without it, no session token is ever created, so this test cannot exercise that half of "none
-contains a password, a session token or an API key". The password half is testable without
-sign-in: the `POSTGRES_PASSWORD` the harness sets reaches both containers through
-`DATABASE_URL`, which the Compose file builds from it
-(docs/architecture/services/api.md#runtime; the worker reuses the api's `DATABASE_URL` per its
-own Runtime section) - so this test asserts that value appears in no log line. Only the
-session-token third stays uncovered this task.
+Sign-in (`API-01`, `/auth/login`) is built by this task
+(docs/architecture/interfaces.md#authentication-and-users-contracts), seeded by
+`make seed-demo` (docs/architecture/overview.md#demo-dataset), so this test now signs in with
+both a wrong and the right password for the seeded Sales user and checks that neither the
+submitted password nor the session cookie's token ever appears in a log line. The
+`POSTGRES_PASSWORD` the harness sets reaches both containers through `DATABASE_URL`, which the
+Compose file builds from it (docs/architecture/services/api.md#runtime; the worker reuses the
+api's `DATABASE_URL` per its own Runtime section) - so this test asserts that value appears in
+no log line too.
 
 "A line written while serving a request" is identified without guessing at the log line's
 shape: "Request identity" (docs/architecture/services/api.md#design) says every request gets a
@@ -29,18 +31,31 @@ import json
 
 import pytest
 
-from conftest import api_get, compose
+from conftest import api_get, api_post, compose, login
+
+SALES_EMAIL = "sales@leadradar.local"
 
 
 @pytest.mark.ac("AC-67")
-def test_api_and_worker_logs_are_json_and_carry_the_served_requests_request_id(stack):
-    project = stack["project"]
-    env = stack["env"]
+def test_api_and_worker_logs_are_json_and_carry_the_served_requests_request_id(seeded):
+    project = seeded["project"]
+    env = seeded["env"]
+    sales_password = env["SEED_SALES_PASSWORD"]
 
     health_response = api_get("/health")
     assert health_response.status_code in (200, 503)
     request_id = health_response.headers.get("X-Request-Id")
     assert request_id, "API-61 must return an X-Request-Id header (Request identity)"
+
+    # A wrong-password and then a right-password sign-in, so a submitted password and an issued
+    # session token both exist in the api's activity before the logs are scanned.
+    wrong_login = api_post("/auth/login", json={"email": SALES_EMAIL, "password": "not-the-password"})
+    assert wrong_login.status_code == 401, wrong_login.text
+
+    right_login_response, client = login(SALES_EMAIL, sales_password)
+    assert right_login_response.status_code == 200, right_login_response.text
+    assert client is not None
+    session_token = client.cookie_value
 
     logs = compose(
         project, "logs", "--no-color", "--no-log-prefix", "api", "worker",
@@ -66,11 +81,15 @@ def test_api_and_worker_logs_are_json_and_carry_the_served_requests_request_id(s
     )
 
     # "none contains a password" - POSTGRES_PASSWORD reaches both api and worker through
-    # DATABASE_URL, which the Compose file builds from it (api Runtime; the worker reuses the
-    # api's DATABASE_URL per its own Runtime section), so this is testable now.
-    password = env["POSTGRES_PASSWORD"]
+    # DATABASE_URL (api Runtime; the worker reuses the api's DATABASE_URL), and the wrong and
+    # right passwords were just submitted to /auth/login.
+    for secret in (env["POSTGRES_PASSWORD"], sales_password, "not-the-password"):
+        for line in lines:
+            assert secret not in line, f"log line leaks a password ({secret!r}): {line!r}"
+
+    # "none contains ... a session token" - the cookie value just issued by the right sign-in.
     for line in lines:
-        assert password not in line, f"log line leaks the database password: {line!r}"
+        assert session_token not in line, f"log line leaks the session token: {line!r}"
 
     # "none contains ... an API key" - the key the acceptance harness configures
     # (docs/architecture/interfaces.md#audit-and-health-shapes); never a real one.

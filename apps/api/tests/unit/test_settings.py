@@ -35,6 +35,7 @@ def test_settings_reject_an_unknown_fixture_mode() -> None:
 def test_repr_of_settings_never_contains_the_password_or_the_openrouter_key() -> None:
     settings = ApiSettings(
         database_url=SecretStr("postgresql://u:s3cret-db-password@localhost/db"),
+        migration_database_url=SecretStr("postgresql://u:s3cret-db-password@localhost/db"),
         openrouter_api_key=SecretStr("s3cret-openrouter-key"),
     )
     assert "s3cret-db-password" not in repr(settings)
@@ -48,6 +49,7 @@ def test_a_logged_settings_object_never_contains_the_password_or_the_key(
 ) -> None:
     settings = ApiSettings(
         database_url=SecretStr("postgresql://u:s3cret-db-password@localhost/db"),
+        migration_database_url=SecretStr("postgresql://u:s3cret-db-password@localhost/db"),
         openrouter_api_key=SecretStr("s3cret-openrouter-key"),
     )
     record = logging.LogRecord(
