@@ -30,4 +30,8 @@ def register_error_handlers(app: FastAPI) -> None:
             return JSONResponse(
                 status_code=404, content=envelope("NOT_FOUND", "The resource does not exist.")
             )
+        # When the detail is already an envelope dict, pass it through directly
+        # so the response body is {"error": {...}} per the Conventions contract.
+        if isinstance(exc.detail, dict) and "error" in exc.detail:
+            return JSONResponse(status_code=exc.status_code, content=exc.detail)
         return await http_exception_handler(request, exc)

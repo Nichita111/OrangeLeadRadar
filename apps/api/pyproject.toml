@@ -43,6 +43,14 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = [
+  # FastAPI `Depends()` in function signatures is the canonical pattern; not a real call-in-default.
+  "B008",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Test files frequently need long lines for dict literals in function calls.
+"tests/**" = ["E501"]
 
 [tool.mypy]
 strict = true
