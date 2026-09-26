@@ -17,6 +17,7 @@ from leadradar.core.enums import (
     AlertKind,
     AppUserRole,
     AppUserStatus,
+    AuditEventKind,
     ClassificationStatus,
     DisqualifierOverrideStatus,
     DocumentSourceType,
@@ -40,6 +41,7 @@ from leadradar.core.enums import (
     SourcePluginCode,
 )
 from leadradar.db.models.accounts import Account
+from leadradar.db.models.audit import AuditEvent
 from leadradar.db.models.configuration import (
     Industry,
     Market,
@@ -394,6 +396,22 @@ def make_evaluation_result(
     }
     values.update(overrides)
     return _insert(connection, EvaluationResult.__table__, **values)
+
+
+def make_audit_event(connection: Connection, **overrides: Any) -> uuid.UUID:
+    values: dict[str, Any] = {
+        "occurred_at": NOW,
+        "actor_id": None,
+        "kind": AuditEventKind.AI_CALL,
+        "action": "AI_CALL",
+        "entity_type": None,
+        "entity_id": None,
+        "run_id": None,
+        "request_id": None,
+        "payload": {},
+    }
+    values.update(overrides)
+    return _insert(connection, AuditEvent.__table__, **values)
 
 
 def make_disqualifier_override(

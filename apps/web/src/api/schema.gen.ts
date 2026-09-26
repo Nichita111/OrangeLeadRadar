@@ -24,6 +24,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Impact
+         * @description `API-77`: computed on read by [Impact](/architecture/rules.md#impact); writes nothing.
+         */
+        get: operations["get_impact_api_v1_impact_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -58,6 +78,32 @@ export interface components {
          * @enum {string}
          */
         HealthStatus: "OK" | "DEGRADED" | "DOWN";
+        /**
+         * Impact
+         * @description [`Impact`](/architecture/interfaces.md#impact), the response of `API-77`.
+         */
+        Impact: {
+            /** Accounts Refreshed */
+            accounts_refreshed: number;
+            /** Cost Per Refresh Eur */
+            cost_per_refresh_eur: number | null;
+            /** Findings Created */
+            findings_created: number;
+            /** Labelled Items */
+            labelled_items: number | null;
+            /** Manual Hours Replaced */
+            manual_hours_replaced: number;
+            /** Manual Minutes Per Account */
+            manual_minutes_per_account: number;
+            /** Minutes Per Refresh */
+            minutes_per_refresh: number | null;
+            /** Period Days */
+            period_days: number;
+            /** Precision */
+            precision: number | null;
+            /** Refreshes */
+            refreshes: number;
+        };
     };
     responses: never;
     parameters: never;
@@ -92,6 +138,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Health"];
+                };
+            };
+        };
+    };
+    get_impact_api_v1_impact_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Impact"];
                 };
             };
         };

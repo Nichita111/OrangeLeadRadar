@@ -11,7 +11,7 @@ from contextlib import AbstractAsyncContextManager, asynccontextmanager
 import httpx
 from fastapi import FastAPI
 
-from leadradar.api import audit_and_health
+from leadradar.api import audit_and_health, evaluation
 from leadradar.api.errors import register_error_handlers
 from leadradar.api.request_identity import RequestIdentityMiddleware
 from leadradar.db.session import build_engine
@@ -49,4 +49,5 @@ def create_app(settings: ApiSettings) -> FastAPI:
     app.add_middleware(RequestIdentityMiddleware)
     register_error_handlers(app)
     app.include_router(audit_and_health.router, prefix=API_PREFIX)
+    app.include_router(evaluation.router, prefix=API_PREFIX)
     return app

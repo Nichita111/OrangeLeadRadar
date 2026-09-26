@@ -64,6 +64,94 @@
         ],
         "title": "HealthStatus",
         "type": "string"
+      },
+      "Impact": {
+        "additionalProperties": false,
+        "description": "[`Impact`](/architecture/interfaces.md#impact), the response of `API-77`.",
+        "properties": {
+          "accounts_refreshed": {
+            "title": "Accounts Refreshed",
+            "type": "integer"
+          },
+          "cost_per_refresh_eur": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Per Refresh Eur"
+          },
+          "findings_created": {
+            "title": "Findings Created",
+            "type": "integer"
+          },
+          "labelled_items": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Labelled Items"
+          },
+          "manual_hours_replaced": {
+            "title": "Manual Hours Replaced",
+            "type": "number"
+          },
+          "manual_minutes_per_account": {
+            "title": "Manual Minutes Per Account",
+            "type": "integer"
+          },
+          "minutes_per_refresh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minutes Per Refresh"
+          },
+          "period_days": {
+            "title": "Period Days",
+            "type": "integer"
+          },
+          "precision": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Precision"
+          },
+          "refreshes": {
+            "title": "Refreshes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "period_days",
+          "accounts_refreshed",
+          "refreshes",
+          "cost_per_refresh_eur",
+          "minutes_per_refresh",
+          "findings_created",
+          "precision",
+          "labelled_items",
+          "manual_minutes_per_account",
+          "manual_hours_replaced"
+        ],
+        "title": "Impact",
+        "type": "object"
       }
     }
   },
@@ -102,6 +190,28 @@
         "summary": "Get Health",
         "tags": [
           "audit-and-health"
+        ]
+      }
+    },
+    "/api/v1/impact": {
+      "get": {
+        "description": "`API-77`: computed on read by [Impact](/architecture/rules.md#impact); writes nothing.",
+        "operationId": "get_impact_api_v1_impact_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Impact"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Impact",
+        "tags": [
+          "evaluation"
         ]
       }
     }
