@@ -4,17 +4,21 @@
 from __future__ import annotations
 
 import json
+import uuid
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from pypdf import PdfWriter
 
 from leadradar.core.document_normalisation import (
+    DatedVector,
     canonicalize_url,
     content_hash,
     detect_language,
     extract_html,
     extract_pdf,
     is_near_duplicate,
+    near_duplicate_of,
     normalise_item,
     normalise_text,
 )
@@ -232,3 +236,51 @@ def test_normalise_item_gives_the_same_hash_for_the_same_text() -> None:
 
     assert first is not None and second is not None
     assert first.content_hash == second.content_hash
+
+
+_DAY0 = datetime(2026, 9, 20, tzinfo=UTC)
+_THRESHOLD = 0.95
+_WINDOW_DAYS = 7
+
+
+def _doc(days: float, vector: list[float], content_hash: str = "h") -> DatedVector:
+    return DatedVector(uuid.uuid4(), _DAY0 + timedelta(days=days), content_hash, vector)
+
+
+def _original_of(document: DatedVector, candidates: list[DatedVector]) -> uuid.UUID | None:
+    return near_duplicate_of(document, candidates, similarity=_THRESHOLD, window_days=_WINDOW_DAYS)
+
+
+def test_a_first_passage_at_the_threshold_within_the_window_is_a_near_duplicate() -> None:
+    original = _doc(0, [1.0, 0.0])
+    at_threshold = [_THRESHOLD, (1 - _THRESHOLD**2) ** 0.5]
+    assert _original_of(_doc(1, at_threshold), [original]) == original.id
+
+
+def test_below_the_threshold_or_beyond_the_window_is_not_a_near_duplicate() -> None:
+    original = _doc(0, [1.0, 0.0])
+    below = [0.94, (1 - 0.94**2) ** 0.5]
+    assert _original_of(_doc(1, below), [original]) is None
+    assert _original_of(_doc(_WINDOW_DAYS, [1.0, 0.0]), [original]) == original.id
+    assert _original_of(_doc(_WINDOW_DAYS + 1, [1.0, 0.0]), [original]) is None
+
+
+def test_the_earliest_qualifying_document_is_the_original() -> None:
+    first, second = _doc(0, [1.0, 0.0]), _doc(1, [1.0, 0.0])
+    assert _original_of(_doc(2, [1.0, 0.0]), [second, first]) == first.id
+
+
+def test_a_later_document_is_never_the_original_of_an_earlier_one() -> None:
+    later = _doc(2, [1.0, 0.0])
+    assert _original_of(_doc(0, [1.0, 0.0]), [later]) is None
+
+
+def test_the_document_is_not_its_own_original() -> None:
+    document = _doc(0, [1.0, 0.0])
+    assert _original_of(document, [document]) is None
+
+
+def test_equal_dates_order_by_content_hash() -> None:
+    a, b = _doc(0, [1.0, 0.0], "a"), _doc(0, [1.0, 0.0], "b")
+    assert _original_of(b, [a]) == a.id
+    assert _original_of(a, [b]) is None

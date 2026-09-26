@@ -6,14 +6,16 @@ records triage, classifications and findings, not the AI answers themselves.
 
 from __future__ import annotations
 
+import json
 import uuid
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 from typing import Any
 
+import httpx
 import pytest
 from pydantic import SecretStr
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from leadradar.ai.audit import AiCallContext
@@ -34,7 +36,8 @@ from leadradar.core.enums import (
     PipelineRunStage,
 )
 from leadradar.core.signal.triage import ABOUT_ACCOUNT_QUESTION_ID
-from leadradar.db.models.ingestion import Job, PipelineRun
+from leadradar.db.models.configuration import SignalQuestion
+from leadradar.db.models.ingestion import Chunk, Document, Job, PipelineRun
 from leadradar.db.models.signals import Classification, DocumentTriage, Finding
 from leadradar.worker.settings import WorkerSettings
 from leadradar.worker.steps.signal import run_signal_job, supersede_old_revision_findings
@@ -111,7 +114,11 @@ class FakeGateway:
 
 
 async def _run_job(
-    session: AsyncSession, ids: dict[str, uuid.UUID], gateway: FakeGateway, **payload: Any
+    session: AsyncSession,
+    ids: dict[str, uuid.UUID],
+    gateway: FakeGateway,
+    embedder: httpx.AsyncClient | None = None,
+    **payload: Any,
 ) -> None:
     run = await session.get(PipelineRun, ids["run"])
     assert run is not None
@@ -127,6 +134,7 @@ async def _run_job(
         alert_max_age_days=14,
         settings=WorkerSettings(database_url=SecretStr("postgresql://unused@localhost/unused")),
         gateway=gateway,
+        embedder=embedder or httpx.AsyncClient(),
         now=datetime(2026, 9, 26, tzinfo=UTC),
     )
     await session.flush()
@@ -216,3 +224,105 @@ async def test_findings_of_an_older_revision_become_superseded(
     assert finding is not None
     await async_session.refresh(finding)
     assert finding.status == FindingStatus.SUPERSEDED
+
+
+class FakeEmbedder:
+    """`API-67`: every text embeds to the vector `(1, 0, …)`, and every call is recorded."""
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def __call__(self, request: httpx.Request) -> httpx.Response:
+        self.calls += 1
+        texts = json.loads(request.content)["inputs"]
+        return httpx.Response(200, json=[[1.0] + [0.0] * 1023 for _ in texts])
+
+
+async def test_a_long_document_is_classified_only_on_the_selected_passages(
+    async_session: AsyncSession,
+) -> None:
+    ids = await _arrange(async_session)
+    await async_session.execute(delete(Chunk).where(Chunk.document_id == ids["doc"]))
+    await async_session.execute(delete(SignalQuestion).where(SignalQuestion.id == ids["q"]))
+    question = await _seed(
+        async_session, factories.make_signal_question, ids["svc"], hint_terms=["Celonis"]
+    )
+    chunks: list[uuid.UUID] = []
+    for ordinal in range(6):
+        text = "Celonis was named." if ordinal == 5 else f"Passage {ordinal} about logistics."
+        vector = [1.0 - 0.1 * ordinal, 0.1 * ordinal] + [0.0] * 1022
+        chunks.append(
+            await _seed(
+                async_session,
+                factories.make_chunk,
+                ids["doc"],
+                ordinal=ordinal,
+                text=text,
+                embedding=vector,
+            )
+        )
+    embedder = FakeEmbedder()
+
+    await _run_job(
+        async_session,
+        ids,
+        FakeGateway(about_p=0.9, p_positive=0.9),
+        embedder=httpx.AsyncClient(transport=httpx.MockTransport(embedder)),
+    )
+
+    classified = set(
+        (
+            await async_session.execute(
+                select(Classification.chunk_id).where(Classification.question_id == question)
+            )
+        ).scalars()
+    )
+    assert chunks[5] in classified
+    assert len(classified) == 3
+    assert embedder.calls == 1
+
+
+async def test_a_one_passage_document_is_classified_without_calling_the_embedder(
+    async_session: AsyncSession,
+) -> None:
+    ids = await _arrange(async_session)
+    embedder = FakeEmbedder()
+
+    await _run_job(
+        async_session,
+        ids,
+        FakeGateway(about_p=0.9, p_positive=0.9),
+        embedder=httpx.AsyncClient(transport=httpx.MockTransport(embedder)),
+    )
+
+    assert await _count(async_session, Classification, chunk_id=ids["chunk"]) == 1
+    assert embedder.calls == 0
+
+
+async def test_a_document_marked_a_duplicate_is_neither_triaged_nor_classified(
+    async_session: AsyncSession,
+) -> None:
+    ids = await _arrange(async_session)
+    translation = await _seed(
+        async_session,
+        factories.make_document,
+        ids["run"],
+        account_id=await async_session.scalar(
+            select(Document.account_id).where(Document.id == ids["doc"])
+        ),
+        text=PASSAGE,
+        duplicate_of_id=ids["doc"],
+    )
+    translation_chunk = await _seed(async_session, factories.make_chunk, translation, text=PASSAGE)
+
+    await _run_job(
+        async_session,
+        ids,
+        FakeGateway(about_p=0.9, p_positive=0.9),
+        document_ids=[],
+    )
+
+    assert await _count(async_session, DocumentTriage, document_id=ids["doc"]) == 1
+    assert await _count(async_session, Classification, chunk_id=ids["chunk"]) == 1
+    assert await _count(async_session, DocumentTriage, document_id=translation) == 0
+    assert await _count(async_session, Classification, chunk_id=translation_chunk) == 0

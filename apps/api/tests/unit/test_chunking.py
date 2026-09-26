@@ -6,8 +6,11 @@ from __future__ import annotations
 import pytest
 
 from leadradar.core.chunking import (
+    cosine_similarity,
     fuse_rankings,
     passage_header,
+    rank_by_meaning,
+    select_for_questions,
     select_passages,
     split_into_passages,
 )
@@ -127,3 +130,53 @@ def test_select_passages_caps_at_max_passages_per_document() -> None:
     per_question = {"A": [(1, 0.9), (2, 0.8), (3, 0.7)]}
     selected = select_passages(per_question, max_passages_per_document=2)
     assert selected == [1, 2]
+
+
+def test_cosine_similarity_of_identical_orthogonal_and_symmetric_vectors() -> None:
+    assert cosine_similarity([1.0, 2.0], [1.0, 2.0]) == pytest.approx(1.0)
+    assert cosine_similarity([1.0, 0.0], [0.0, 3.0]) == pytest.approx(0.0)
+    assert cosine_similarity([1.0, 2.0], [3.0, 1.0]) == cosine_similarity([3.0, 1.0], [1.0, 2.0])
+
+
+def test_rank_by_meaning_orders_by_similarity_then_ordinal() -> None:
+    passages = [(0, [0.0, 1.0]), (1, [1.0, 0.0]), (2, [1.0, 0.0]), (3, [1.0, 1.0])]
+    assert rank_by_meaning(passages, [1.0, 0.0]) == [1, 2, 3, 0]
+
+
+def test_a_keyword_first_passage_survives_a_low_meaning_rank() -> None:
+    meaning = {"q": [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]}
+    keyword = {"q": [0]}
+    selected = select_for_questions(
+        keyword,
+        meaning,
+        passages_per_question=3,
+        candidates=50,
+        rrf_k=60,
+        max_passages_per_document=20,
+    )
+    assert 0 in selected
+    assert len(selected) == 3
+
+
+def test_a_question_without_hint_terms_selects_by_meaning_alone() -> None:
+    selected = select_for_questions(
+        {"q": []},
+        {"q": [4, 2, 9, 1]},
+        passages_per_question=3,
+        candidates=50,
+        rrf_k=60,
+        max_passages_per_document=20,
+    )
+    assert selected == [4, 2, 9]
+
+
+def test_each_question_keeps_its_best_passage_before_the_cap_drops_the_rest() -> None:
+    selected = select_for_questions(
+        {"a": [], "b": [], "c": []},
+        {"a": [1, 2], "b": [5, 6], "c": [8, 9]},
+        passages_per_question=2,
+        candidates=50,
+        rrf_k=60,
+        max_passages_per_document=2,
+    )
+    assert selected == [1, 5]

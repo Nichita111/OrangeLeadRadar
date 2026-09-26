@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal
 
+import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from leadradar.ai.gateway import AiGateway
@@ -58,6 +59,9 @@ class StepContext:
     now: datetime
     settings: WorkerSettings
     gateway: AiGateway | None = None
+    #: The client of the [Embedder](/architecture/interfaces.md#embedder), for `PROCESS` and for
+    #: the question vectors of `SIGNAL`'s passage selection.
+    embedder: httpx.AsyncClient | None = None
     #: Opens a session of its own, for a step whose work must not share the step's fate: the
     #: `FETCH` step reads its inputs before it uses the network, and commits its usage and
     #: errors whether or not the step later fails.
@@ -90,6 +94,8 @@ async def _run_signal(context: StepContext) -> None:
     job, run = await _load_job_and_run(context)
     if context.gateway is None:
         raise RuntimeError("The SIGNAL step requires the AI gateway")
+    if context.embedder is None:
+        raise RuntimeError("The SIGNAL step requires the embedder client")
     await run_signal_job(
         context.session,
         job=job,
@@ -98,6 +104,7 @@ async def _run_signal(context: StepContext) -> None:
         alert_max_age_days=context.settings.alert_max_age_days,
         settings=context.settings,
         gateway=context.gateway,
+        embedder=context.embedder,
         now=context.now,
     )
 
@@ -123,8 +130,15 @@ async def _run_fetch(context: StepContext) -> None:
     await run_fetch_step(context)
 
 
+async def _run_process(context: StepContext) -> None:
+    from leadradar.worker.steps.process import run_process_step
+
+    await run_process_step(context)
+
+
 STEP_HANDLERS: Mapping[JobStep, StepHandler] = {
     JobStep.FETCH: _run_fetch,
+    JobStep.PROCESS: _run_process,
     JobStep.SIGNAL: _run_signal,
     JobStep.SCORE: _run_score,
 }

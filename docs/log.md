@@ -2,6 +2,7 @@
 
 ## 2026-09-27
 
+* **Update**: PROCESS stage (`S-ING-03`, `S-ING-04`, `S-PIP-04`): [Document normalisation](/architecture/rules.md#document-normalisation) step 6 dates a document by `published_at`, else `fetched_at`, orders by date then `content_hash`, and takes only an earlier document as the original; the [worker](/architecture/services/worker.md#run-lifecycle) states that a `PROCESS` job failing after its retries leaves its run's documents stored without embeddings and not triaged or classified.
 * **Update**: FETCH stage (`S-ING-01`, `S-ING-02`, `S-PIP-03`, `S-PIP-05`, `N-09`): [`job`](/architecture/sql-store.md#job) and the [worker](/architecture/services/worker.md#examples) state that `FETCH` stores normalised documents with their passages and `PROCESS` embeds them; the [Job queue](/architecture/services/worker.md#job-queue) owes the `PROCESS` job like `SCORE`; [Plug-in availability](/architecture/rules.md#plug-in-availability) limits run errors to a failed fetch and re-checks availability at job start.
 
 ## 2026-09-26

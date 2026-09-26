@@ -24,15 +24,18 @@ The SIGNAL step does not fetch or chunk — it receives already-selected passage
 from __future__ import annotations
 
 import uuid
+from collections.abc import Awaitable, Callable, Collection
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Protocol
 
+import httpx
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from leadradar.ai.audit import AiCallContext
-from leadradar.ai.errors import BudgetExhausted
+from leadradar.ai.embedder import embed
+from leadradar.ai.errors import BudgetExhausted, UpstreamUnavailable
 from leadradar.ai.fixtures import FixtureMissing
 from leadradar.ai.shapes import (
     ClassifierAnswer,
@@ -69,6 +72,8 @@ from leadradar.db.models.configuration import Service, SignalQuestion
 from leadradar.db.models.ingestion import Chunk, Document, Job, PipelineRun
 from leadradar.db.models.signals import Classification, DocumentTriage, Finding
 from leadradar.worker.settings import WorkerSettings
+from leadradar.worker.steps import StepFailed
+from leadradar.worker.steps.passage_selection import select_document_passages
 
 # ── State ──────────────────────────────────────────────────────────────────────
 
@@ -119,11 +124,19 @@ class SignalBatch:
     evidence_min_quote_chars: int
     evidence_max_quote_chars: int
     evidence_max_rationale_chars: int
+    #: Embeds question texts for passage selection (`API-67`).
+    embed: Callable[[list[str]], Awaitable[list[list[float]]]]
+    passages_per_question: int
+    max_passages_per_document: int
+    retrieval_candidates: int
+    retrieval_rrf_k: int
 
     # Outputs accumulated by nodes
     triage_results: dict[str, TriageResult] = field(default_factory=dict)  # doc_id → result
     # classification_id for pairs that reached POSITIVE
     finding_inputs: list[dict[str, Any]] = field(default_factory=list)
+    # (document_id, service_id) → ordinals of the passages selected for that service's questions
+    selected: dict[tuple[str, str], set[int]] = field(default_factory=dict)
 
 
 # ── Node: triage ────────────────────────────────────────────────────────────────
@@ -229,6 +242,67 @@ async def _node_triage(state: SignalBatch, session: AsyncSession) -> None:
     await session.flush()
 
 
+# ── Node: select passages ───────────────────────────────────────────────────────
+
+
+async def _node_select(state: SignalBatch, session: AsyncSession) -> None:
+    """Select, for each kept document and each service it kept, the passages its applicable
+    questions are asked on ([Passage selection]
+    (/architecture/rules.md#chunking-and-passage-selection)): the only passage of a one-passage
+    document, else the union of each question's best passages."""
+    ordinals_by_document: dict[str, list[int]] = {}
+    for passage in state.passages:
+        ordinals_by_document.setdefault(passage["document_id"], []).append(passage["ordinal"])
+    vectors: dict[str, list[float]] = {}
+
+    for document in state.documents:
+        document_id = document["document_id"]
+        result = state.triage_results.get(document_id)
+        ordinals = ordinals_by_document.get(document_id, [])
+        if result is None or not ordinals:
+            continue
+        for service_id in result.kept_service_ids:
+            if len(ordinals) == 1:
+                state.selected[(document_id, service_id)] = set(ordinals)
+                continue
+            applicable = _applicable_questions(state, document["source_type"], {service_id})
+            if not applicable:
+                continue
+            missing = [q for q in applicable if q["id"] not in vectors]
+            if missing:
+                try:
+                    embedded = await state.embed(
+                        [" ".join([q["text"], *q["hint_terms"]]) for q in missing]
+                    )
+                except UpstreamUnavailable as error:
+                    raise StepFailed("UPSTREAM_UNAVAILABLE", str(error)) from error
+                vectors.update(
+                    {q["id"]: vector for q, vector in zip(missing, embedded, strict=True)}
+                )
+            state.selected[(document_id, service_id)] = set(
+                await select_document_passages(
+                    session,
+                    document_id=uuid.UUID(document_id),
+                    questions=[(q["id"], q["hint_terms"], vectors[q["id"]]) for q in applicable],
+                    passages_per_question=state.passages_per_question,
+                    candidates=state.retrieval_candidates,
+                    rrf_k=state.retrieval_rrf_k,
+                    max_passages_per_document=state.max_passages_per_document,
+                )
+            )
+
+
+def _applicable_questions(
+    state: SignalBatch, source_type: str, service_ids: Collection[str]
+) -> list[dict[str, Any]]:
+    """The questions of the given services whose `source_types` include the source type."""
+    return [
+        q
+        for q in state.questions
+        if q["service_id"] in service_ids and source_type in q["source_types"]
+    ]
+
+
 # ── Node: classify passages ─────────────────────────────────────────────────────
 
 
@@ -239,9 +313,7 @@ async def _node_classify(state: SignalBatch, session: AsyncSession) -> None:
     via the unique key ``(chunk_id, question_id, question_revision)``.
     """
     # Build lookup: document_id → source_type and triage kept-service set
-    doc_source_type: dict[str, str] = {
-        d["document_id"]: d.get("source_type", "NEWS") for d in state.documents
-    }
+    doc_source_type: dict[str, str] = {d["document_id"]: d["source_type"] for d in state.documents}
     doc_kept_services: dict[str, frozenset[str]] = {}
     for doc_id, tr in state.triage_results.items():
         doc_kept_services[doc_id] = tr.kept_service_ids
@@ -257,11 +329,10 @@ async def _node_classify(state: SignalBatch, session: AsyncSession) -> None:
         if not kept_services:
             continue  # Document not kept or not triaged
 
-        source_type = doc_source_type.get(doc_id, "NEWS")
         applicable_questions = [
             q
-            for q in state.questions
-            if (q["service_id"] in kept_services and source_type in q.get("source_types", []))
+            for q in _applicable_questions(state, doc_source_type[doc_id], kept_services)
+            if passage["ordinal"] in state.selected.get((doc_id, q["service_id"]), ())
         ]
         if not applicable_questions:
             continue
@@ -784,6 +855,7 @@ async def run_signal_step(
     await _set_stage(session, batch.run_id, PipelineRunStage.TRIAGE)
     await _node_triage(batch, session)
     await _set_stage(session, batch.run_id, PipelineRunStage.CLASSIFY)
+    await _node_select(batch, session)
     await _node_classify(batch, session)
     await _set_stage(session, batch.run_id, PipelineRunStage.EVIDENCE)
     await _node_evidence(batch, session)
@@ -805,6 +877,7 @@ async def run_signal_job(
     alert_max_age_days: int,
     settings: WorkerSettings,
     gateway: SignalGateway,
+    embedder: httpx.AsyncClient,
     now: datetime,
 ) -> None:
     """Adapter that wires a SIGNAL ``Job`` into the generic job-loop handler protocol.
@@ -874,6 +947,7 @@ async def run_signal_job(
             "options": q.options if isinstance(q.options, list) else None,
             "revision": q.revision,
             "source_types": list(q.source_types),
+            "hint_terms": list(q.hint_terms),
         }
         for q in questions_rows
     ]
@@ -928,6 +1002,15 @@ async def run_signal_job(
             for c in chunks
         ]
 
+    async def embed_texts(texts: list[str]) -> list[list[float]]:
+        return await embed(
+            embedder,
+            embedder_url=cfg.embedder_url,
+            dim=cfg.embedding_dim,
+            batch_size=cfg.embed_batch_size,
+            texts=texts,
+        )
+
     batch = SignalBatch(
         account_id=account_id,
         account_name=account.name,
@@ -950,6 +1033,11 @@ async def run_signal_job(
         evidence_min_quote_chars=cfg.evidence_min_quote_chars,
         evidence_max_quote_chars=cfg.evidence_max_quote_chars,
         evidence_max_rationale_chars=cfg.evidence_max_rationale_chars,
+        embed=embed_texts,
+        passages_per_question=cfg.passages_per_question,
+        max_passages_per_document=cfg.max_passages_per_document,
+        retrieval_candidates=cfg.retrieval_candidates,
+        retrieval_rrf_k=cfg.retrieval_rrf_k,
     )
 
     await run_signal_step(session, batch=batch)

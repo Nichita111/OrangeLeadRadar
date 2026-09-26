@@ -13,6 +13,7 @@ import socket
 
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
+from leadradar.ai.embedder import build_embedder_client
 from leadradar.ai.gateway import AiGateway, build_ai_http_client
 from leadradar.clock import build_clock
 from leadradar.db.session import build_engine
@@ -41,7 +42,11 @@ async def _serve(settings: WorkerSettings) -> None:
     clock = build_clock(settings)
     instance = f"{socket.gethostname()}:{os.getpid()}"
     try:
-        async with build_ai_http_client(settings) as http, asyncio.TaskGroup() as loops:
+        async with (
+            build_ai_http_client(settings) as http,
+            build_embedder_client() as embedder,
+            asyncio.TaskGroup() as loops,
+        ):
             gateway = AiGateway(settings, http=http, sessions=session_factory)
             for index in range(settings.worker_concurrency):
                 loops.create_task(
@@ -53,6 +58,7 @@ async def _serve(settings: WorkerSettings) -> None:
                         worker_id=f"{instance}:{index}",
                         stop=stop,
                         gateway=gateway,
+                        embedder=embedder,
                     )
                 )
             loops.create_task(
