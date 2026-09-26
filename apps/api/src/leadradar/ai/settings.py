@@ -40,3 +40,13 @@ class AiGatewaySettings(BaseSettings):
     ai_transport_backoff_ms: int = 500
     ai_concurrency: int = 8
     usd_eur_rate: float = 0.92
+
+    #: [Embedder](/architecture/services/worker.md#runtime); read by the api as well, so it lives
+    #: here rather than in either process's own settings.
+    embedder_url: str = "http://embedder:80"
+    embedding_dim: int = 1024
+    embed_batch_size: int = 32
+
+    #: [api Runtime](/architecture/services/api.md#runtime): public base URL of the frontend,
+    #: used in HubSpot links and the crawler's user agent, so both processes read it from here.
+    app_base_url: str = "http://localhost:8080"
