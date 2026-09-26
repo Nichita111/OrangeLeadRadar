@@ -4,6 +4,48 @@
  */
 
 export interface paths {
+    "/api/v1/accounts/{id}/scores/{service_id}/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Lead Feedback
+         * @description `API-46`: applies the api's half of [Feedback effects]
+         *     (/architecture/rules.md#feedback-effects) to the account's lead.
+         */
+        post: operations["post_lead_feedback_api_v1_accounts__id__scores__service_id__feedback_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/findings/{id}/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Finding Feedback
+         * @description `API-47`: applies the api's half of [Feedback effects]
+         *     (/architecture/rules.md#feedback-effects) to one finding.
+         */
+        post: operations["post_finding_feedback_api_v1_findings__id__feedback_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health": {
         parameters: {
             query?: never;
@@ -48,6 +90,163 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * DocumentSourceType
+         * @description `document.source_type`.
+         * @enum {string}
+         */
+        DocumentSourceType: "NEWS" | "COMPANY_PUBLICATION" | "JOB_POSTING" | "COMPANY_PROFILE";
+        /** FeedbackCreate[FindingFeedbackVerdict] */
+        FeedbackCreate_FindingFeedbackVerdict_: {
+            /** Note */
+            note?: string | null;
+            verdict: components["schemas"]["FindingFeedbackVerdict"];
+        };
+        /** FeedbackCreate[LeadFeedbackVerdict] */
+        FeedbackCreate_LeadFeedbackVerdict_: {
+            /** Note */
+            note?: string | null;
+            verdict: components["schemas"]["LeadFeedbackVerdict"];
+        };
+        /**
+         * FindingDecidedBy
+         * @description `finding.decided_by`.
+         * @enum {string}
+         */
+        FindingDecidedBy: "CLASSIFIER" | "LLM";
+        /**
+         * FindingFeedbackVerdict
+         * @description `finding_feedback.verdict`.
+         * @enum {string}
+         */
+        FindingFeedbackVerdict: "CORRECT" | "WRONG";
+        /**
+         * FindingStatus
+         * @description `finding.status`.
+         * @enum {string}
+         */
+        FindingStatus: "ACTIVE" | "SUPERSEDED" | "REJECTED";
+        /**
+         * FindingStrength
+         * @description `finding.strength`; reused by `classification.strength` and
+         *     `evaluation_item.expected_strength`.
+         * @enum {string}
+         */
+        FindingStrength: "NONE" | "WEAK" | "MEDIUM" | "STRONG";
+        /**
+         * FindingView
+         * @description [`FindingView`](/architecture/interfaces.md#findingview), the response of `API-47`. Also
+         *     plan task 13's `API-42` response shape; that task imports this model and must not define a
+         *     second one.
+         */
+        FindingView: {
+            /**
+             * Account Id
+             * Format: uuid
+             */
+            account_id: string;
+            /** Confidence */
+            confidence: number;
+            decided_by: components["schemas"]["FindingDecidedBy"];
+            document: components["schemas"]["FindingViewDocument"];
+            feedback: components["schemas"]["FindingViewFeedback"] | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+            option: components["schemas"]["FindingViewOption"] | null;
+            /** Points */
+            points: number | null;
+            question: components["schemas"]["FindingViewQuestion"];
+            /** Question Revision */
+            question_revision: number;
+            /** Quote */
+            quote: string;
+            /** Quote En */
+            quote_en: string | null;
+            /** Rationale */
+            rationale: string;
+            /**
+             * Service Id
+             * Format: uuid
+             */
+            service_id: string;
+            status: components["schemas"]["FindingStatus"];
+            strength: components["schemas"]["FindingStrength"];
+        };
+        /**
+         * FindingViewDocument
+         * @description `FindingView.document`.
+         */
+        FindingViewDocument: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Language */
+            language: string;
+            plugin_code: components["schemas"]["SourcePluginCode"];
+            /** Published At */
+            published_at: string | null;
+            source_type: components["schemas"]["DocumentSourceType"];
+            /** Title */
+            title: string | null;
+            /** Url */
+            url: string;
+        };
+        /**
+         * FindingViewFeedback
+         * @description `FindingView.feedback`: the in-force [`finding_feedback`]
+         *     (/architecture/sql-store.md#finding_feedback).
+         */
+        FindingViewFeedback: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** User Name */
+            user_name: string;
+            verdict: components["schemas"]["FindingFeedbackVerdict"];
+        };
+        /**
+         * FindingViewOption
+         * @description `FindingView.option`; `CHOICE` questions only.
+         */
+        FindingViewOption: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+        };
+        /**
+         * FindingViewQuestion
+         * @description `FindingView.question`.
+         */
+        FindingViewQuestion: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Key */
+            key: string;
+            polarity: components["schemas"]["SignalQuestionPolarity"];
+            /** Text */
+            text: string;
+        };
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
+        };
         /**
          * Health
          * @description [Health](/architecture/interfaces.md#health), the response of `API-61`.
@@ -104,6 +303,58 @@ export interface components {
             /** Refreshes */
             refreshes: number;
         };
+        /**
+         * LeadFeedback
+         * @description [`LeadFeedback`](/architecture/interfaces.md#leadfeedback), the response of `API-46`.
+         */
+        LeadFeedback: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Note */
+            note: string | null;
+            /** User Name */
+            user_name: string;
+            verdict: components["schemas"]["LeadFeedbackVerdict"];
+        };
+        /**
+         * LeadFeedbackVerdict
+         * @description `lead_feedback.verdict`.
+         * @enum {string}
+         */
+        LeadFeedbackVerdict: "RELEVANT" | "NOT_RELEVANT" | "ALREADY_CUSTOMER";
+        /**
+         * SignalQuestionPolarity
+         * @description `signal_question.polarity`.
+         * @enum {string}
+         */
+        SignalQuestionPolarity: "POSITIVE" | "NEGATIVE";
+        /**
+         * SourcePluginCode
+         * @description `source_plugin.code`; reused by `plugin_usage.plugin_code` and `document.plugin_code`.
+         * @enum {string}
+         */
+        SourcePluginCode: "GDELT" | "RSS" | "WEBSITE" | "CAREERS" | "CRUNCHBASE" | "NEWSAPI" | "SERPAPI";
+        /** ValidationError */
+        ValidationError: {
+            /** Context */
+            ctx?: Record<string, never>;
+            /** Input */
+            input?: unknown;
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -113,6 +364,81 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    post_lead_feedback_api_v1_accounts__id__scores__service_id__feedback_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                service_id: string;
+            };
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeedbackCreate_LeadFeedbackVerdict_"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadFeedback"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_finding_feedback_api_v1_findings__id__feedback_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeedbackCreate_FindingFeedbackVerdict_"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FindingView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_health_api_v1_health_get: {
         parameters: {
             query?: never;

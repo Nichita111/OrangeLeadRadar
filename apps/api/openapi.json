@@ -1,6 +1,371 @@
 {
   "components": {
     "schemas": {
+      "DocumentSourceType": {
+        "description": "`document.source_type`.",
+        "enum": [
+          "NEWS",
+          "COMPANY_PUBLICATION",
+          "JOB_POSTING",
+          "COMPANY_PROFILE"
+        ],
+        "title": "DocumentSourceType",
+        "type": "string"
+      },
+      "FeedbackCreate_FindingFeedbackVerdict_": {
+        "additionalProperties": false,
+        "properties": {
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "verdict": {
+            "$ref": "#/components/schemas/FindingFeedbackVerdict"
+          }
+        },
+        "required": [
+          "verdict"
+        ],
+        "title": "FeedbackCreate[FindingFeedbackVerdict]",
+        "type": "object"
+      },
+      "FeedbackCreate_LeadFeedbackVerdict_": {
+        "additionalProperties": false,
+        "properties": {
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "verdict": {
+            "$ref": "#/components/schemas/LeadFeedbackVerdict"
+          }
+        },
+        "required": [
+          "verdict"
+        ],
+        "title": "FeedbackCreate[LeadFeedbackVerdict]",
+        "type": "object"
+      },
+      "FindingDecidedBy": {
+        "description": "`finding.decided_by`.",
+        "enum": [
+          "CLASSIFIER",
+          "LLM"
+        ],
+        "title": "FindingDecidedBy",
+        "type": "string"
+      },
+      "FindingFeedbackVerdict": {
+        "description": "`finding_feedback.verdict`.",
+        "enum": [
+          "CORRECT",
+          "WRONG"
+        ],
+        "title": "FindingFeedbackVerdict",
+        "type": "string"
+      },
+      "FindingStatus": {
+        "description": "`finding.status`.",
+        "enum": [
+          "ACTIVE",
+          "SUPERSEDED",
+          "REJECTED"
+        ],
+        "title": "FindingStatus",
+        "type": "string"
+      },
+      "FindingStrength": {
+        "description": "`finding.strength`; reused by `classification.strength` and\n`evaluation_item.expected_strength`.",
+        "enum": [
+          "NONE",
+          "WEAK",
+          "MEDIUM",
+          "STRONG"
+        ],
+        "title": "FindingStrength",
+        "type": "string"
+      },
+      "FindingView": {
+        "additionalProperties": false,
+        "description": "[`FindingView`](/architecture/interfaces.md#findingview), the response of `API-47`. Also\nplan task 13's `API-42` response shape; that task imports this model and must not define a\nsecond one.",
+        "properties": {
+          "account_id": {
+            "format": "uuid",
+            "title": "Account Id",
+            "type": "string"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "decided_by": {
+            "$ref": "#/components/schemas/FindingDecidedBy"
+          },
+          "document": {
+            "$ref": "#/components/schemas/FindingViewDocument"
+          },
+          "feedback": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FindingViewFeedback"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "option": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FindingViewOption"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "points": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Points"
+          },
+          "question": {
+            "$ref": "#/components/schemas/FindingViewQuestion"
+          },
+          "question_revision": {
+            "title": "Question Revision",
+            "type": "integer"
+          },
+          "quote": {
+            "title": "Quote",
+            "type": "string"
+          },
+          "quote_en": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quote En"
+          },
+          "rationale": {
+            "title": "Rationale",
+            "type": "string"
+          },
+          "service_id": {
+            "format": "uuid",
+            "title": "Service Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/FindingStatus"
+          },
+          "strength": {
+            "$ref": "#/components/schemas/FindingStrength"
+          }
+        },
+        "required": [
+          "id",
+          "account_id",
+          "service_id",
+          "question",
+          "question_revision",
+          "confidence",
+          "quote",
+          "quote_en",
+          "rationale",
+          "observed_at",
+          "strength",
+          "decided_by",
+          "status",
+          "option",
+          "document",
+          "points",
+          "feedback"
+        ],
+        "title": "FindingView",
+        "type": "object"
+      },
+      "FindingViewDocument": {
+        "additionalProperties": false,
+        "description": "`FindingView.document`.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "plugin_code": {
+            "$ref": "#/components/schemas/SourcePluginCode"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "source_type": {
+            "$ref": "#/components/schemas/DocumentSourceType"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "url",
+          "source_type",
+          "plugin_code",
+          "language",
+          "published_at"
+        ],
+        "title": "FindingViewDocument",
+        "type": "object"
+      },
+      "FindingViewFeedback": {
+        "additionalProperties": false,
+        "description": "`FindingView.feedback`: the in-force [`finding_feedback`]\n(/architecture/sql-store.md#finding_feedback).",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "user_name": {
+            "title": "User Name",
+            "type": "string"
+          },
+          "verdict": {
+            "$ref": "#/components/schemas/FindingFeedbackVerdict"
+          }
+        },
+        "required": [
+          "verdict",
+          "user_name",
+          "created_at"
+        ],
+        "title": "FindingViewFeedback",
+        "type": "object"
+      },
+      "FindingViewOption": {
+        "additionalProperties": false,
+        "description": "`FindingView.option`; `CHOICE` questions only.",
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label"
+        ],
+        "title": "FindingViewOption",
+        "type": "object"
+      },
+      "FindingViewQuestion": {
+        "additionalProperties": false,
+        "description": "`FindingView.question`.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "polarity": {
+            "$ref": "#/components/schemas/SignalQuestionPolarity"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "text",
+          "polarity"
+        ],
+        "title": "FindingViewQuestion",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
       "Health": {
         "additionalProperties": false,
         "description": "[Health](/architecture/interfaces.md#health), the response of `API-61`.",
@@ -152,6 +517,122 @@
         ],
         "title": "Impact",
         "type": "object"
+      },
+      "LeadFeedback": {
+        "additionalProperties": false,
+        "description": "[`LeadFeedback`](/architecture/interfaces.md#leadfeedback), the response of `API-46`.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "user_name": {
+            "title": "User Name",
+            "type": "string"
+          },
+          "verdict": {
+            "$ref": "#/components/schemas/LeadFeedbackVerdict"
+          }
+        },
+        "required": [
+          "id",
+          "verdict",
+          "note",
+          "created_at",
+          "user_name"
+        ],
+        "title": "LeadFeedback",
+        "type": "object"
+      },
+      "LeadFeedbackVerdict": {
+        "description": "`lead_feedback.verdict`.",
+        "enum": [
+          "RELEVANT",
+          "NOT_RELEVANT",
+          "ALREADY_CUSTOMER"
+        ],
+        "title": "LeadFeedbackVerdict",
+        "type": "string"
+      },
+      "SignalQuestionPolarity": {
+        "description": "`signal_question.polarity`.",
+        "enum": [
+          "POSITIVE",
+          "NEGATIVE"
+        ],
+        "title": "SignalQuestionPolarity",
+        "type": "string"
+      },
+      "SourcePluginCode": {
+        "description": "`source_plugin.code`; reused by `plugin_usage.plugin_code` and `document.plugin_code`.",
+        "enum": [
+          "GDELT",
+          "RSS",
+          "WEBSITE",
+          "CAREERS",
+          "CRUNCHBASE",
+          "NEWSAPI",
+          "SERPAPI"
+        ],
+        "title": "SourcePluginCode",
+        "type": "string"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
       }
     }
   },
@@ -161,6 +642,156 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/accounts/{id}/scores/{service_id}/feedback": {
+      "post": {
+        "description": "`API-46`: applies the api's half of [Feedback effects]\n(/architecture/rules.md#feedback-effects) to the account's lead.",
+        "operationId": "post_lead_feedback_api_v1_accounts__id__scores__service_id__feedback_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Service Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackCreate_LeadFeedbackVerdict_"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadFeedback"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Post Lead Feedback",
+        "tags": [
+          "feedback-and-alerts"
+        ]
+      }
+    },
+    "/api/v1/findings/{id}/feedback": {
+      "post": {
+        "description": "`API-47`: applies the api's half of [Feedback effects]\n(/architecture/rules.md#feedback-effects) to one finding.",
+        "operationId": "post_finding_feedback_api_v1_findings__id__feedback_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackCreate_FindingFeedbackVerdict_"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FindingView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Post Finding Feedback",
+        "tags": [
+          "feedback-and-alerts"
+        ]
+      }
+    },
     "/api/v1/health": {
       "get": {
         "description": "`API-61`: anonymous, `200` when the database check is `OK`, else `503`.",
