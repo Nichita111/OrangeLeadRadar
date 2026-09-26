@@ -690,3 +690,66 @@ async def import_accounts(
         duplicates=duplicates,
         invalid=invalid,
     )
+
+
+async def create_discovered_account(
+    session: AsyncSession,
+    *,
+    domain: str,
+    name: str,
+    country_code: str | None,
+    industry: str | None,
+    employee_count: int | None,
+    actor_id: uuid.UUID,
+    now: datetime,
+) -> Account:
+    """[Discovery](/architecture/rules.md#discovery) Acceptance (`API-31`, `S-DSC-02`): creates
+    the account with origin `DISCOVERED` from the accepted candidate's known attributes, exactly
+    as `create_account` does for a `MANUAL` one, minus its own commit — the caller
+    (`leadradar.discovery.commands.accept_candidate`) continues the same transaction to link the
+    candidate and enqueue its refresh. Raises `InvalidAccountDomain`, `DomainConflict`
+    (`details.entity_id` names the existing account), `UnknownIndustry`."""
+    try:
+        normalised_domain = normalise_domain(domain)
+    except InvalidDomain as exc:
+        raise InvalidAccountDomain("domain", str(exc)) from exc
+
+    existing = await _find_account_by_domain(session, normalised_domain)
+    if existing is not None:
+        raise DomainConflict(existing.id, f"An account for {normalised_domain} already exists.")
+
+    if industry is not None:
+        await _ensure_active_industry(session, industry)
+
+    try:
+        account = await _insert_new_account(
+            session,
+            domain=normalised_domain,
+            name=name,
+            origin=AccountOrigin.DISCOVERED,
+            country_code=country_code,
+            industry=industry,
+            employee_count=employee_count,
+            revenue_eur=None,
+            operational_complexity=None,
+            aliases=(),
+            sources=(),
+        )
+    except IntegrityError:
+        await session.rollback()
+        conflicting = await _find_account_by_domain(session, normalised_domain)
+        assert conflicting is not None
+        raise DomainConflict(
+            conflicting.id, f"An account for {normalised_domain} already exists."
+        ) from None
+
+    await append_audit_event(
+        session,
+        action=AuditAction.ACCOUNT_CREATED,
+        occurred_at=now,
+        actor_id=actor_id,
+        entity_type="account",
+        entity_id=account.id,
+        payload={"domain": normalised_domain, "origin": AccountOrigin.DISCOVERED.value},
+    )
+    return account
