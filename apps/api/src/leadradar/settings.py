@@ -26,9 +26,6 @@ class ApiSettings(AiGatewaySettings):
     log_level: str = "INFO"
     health_timeout_ms: int = 2000
 
-    embedder_url: str = "http://embedder:80"
-    embedding_dim: int = 1024
-
     impact_period_days: int = 30
     manual_research_minutes_per_account: int = 120
     session_ttl_hours: int = 12
@@ -42,3 +39,4 @@ class ApiSettings(AiGatewaySettings):
     newsapi_key: SecretStr | None = None
     serpapi_key: SecretStr | None = None
     import_max_rows: int = 2000
+    audit_default_range_days: int = 30

@@ -1,5 +1,6 @@
 import { Navigate, createBrowserRouter, type RouteObject } from "react-router";
 
+import { AuditLogScreen } from "./features/audit-trail/AuditLogScreen";
 import { AccountDetailScreen } from "./features/prospect-dashboard/account-detail/AccountDetailScreen";
 import { ProspectsScreen } from "./features/prospect-dashboard/prospects/ProspectsScreen";
 import { SignIn } from "./features/identity-and-access/sign-in/SignIn";
@@ -45,6 +46,15 @@ export const routes: RouteObject[] = [
               </RequireAdmin>
             ),
             handle: handle({ title: "Users", adminOnly: true }),
+          },
+          {
+            path: "/audit",
+            element: (
+              <RequireAdmin>
+                <AuditLogScreen />
+              </RequireAdmin>
+            ),
+            handle: handle({ title: "Audit log", adminOnly: true }),
           },
           { path: "*", element: <NotFound />, handle: handle({ title: "Page not found" }) },
         ],

@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Literal
 
 # `details.dependency` of `UPSTREAM_UNAVAILABLE`: the names of the Health checks.
-AiDependency = Literal["classifier", "llm"]
+AiDependency = Literal["classifier", "llm", "embedder"]
 
 # `details.reason`: the call's `outcome`, or `NOT_CONFIGURED` for an unset key or model id.
 UnavailableReason = Literal["TIMEOUT", "ERROR", "INVALID_OUTPUT", "NOT_CONFIGURED"]

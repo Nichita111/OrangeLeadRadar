@@ -49,3 +49,27 @@ class WorkerSettings(AiGatewaySettings):
     evidence_min_quote_chars: int = 20
     evidence_max_quote_chars: int = 400
     evidence_max_rationale_chars: int = 300
+    #: Fetching and processing ([worker Runtime](/architecture/services/worker.md#runtime)).
+    fetch_lookback_days: int = 365
+    max_documents_per_refresh: int = 100
+    crawl_max_pages_per_site: int = 30
+    crawl_max_pdfs: int = 3
+    crawl_host_delay_ms: int = 1000
+    crawler_user_agent: str | None = None
+    website_render_js: bool = False
+    http_timeout_s: float = 20.0
+    gdelt_max_records: int = 250
+    gdelt_min_interval_s: float = 6.0
+    gdelt_backoff_s: int = 60
+    min_document_chars: int = 200
+    whole_document_max_chars: int = 8000
+    chunk_target_chars: int = 1600
+    chunk_overlap_chars: int = 200
+    near_duplicate_similarity: float = 0.95
+    near_duplicate_window_days: int = 7
+    document_retention_days: int = 730
+
+    def crawler_user_agent_or_default(self) -> str:
+        """`CRAWLER_USER_AGENT`'s default names `APP_BASE_URL`, so an unset override is resolved
+        against it rather than baked into a second literal."""
+        return self.crawler_user_agent or f"LeadRadar/0.1 (+{self.app_base_url}/crawler)"
