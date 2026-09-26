@@ -13,12 +13,19 @@ from alembic.config import Config
 from alembic.migration import MigrationContext
 from pydantic import SecretStr
 from sqlalchemy import create_engine, inspect, text
+<<<<<<< HEAD
+=======
+from testcontainers.community.postgres import PostgresContainer
+>>>>>>> origin/main
 
 from alembic import command
 from leadradar.api.main import _API_ROOT, apply_migrations
-from leadradar.api.settings import ApiSettings
 from leadradar.db.base import Base
 from leadradar.logs import configure_json_logging
+from leadradar.settings import ApiSettings
+
+# Imported for its side effect: populates Base.metadata with every model.
+importlib.import_module("leadradar.db.models")
 
 # Imported for its side effect: populates Base.metadata with every model.
 importlib.import_module("leadradar.db.models")
@@ -106,6 +113,43 @@ def test_a_second_start_applies_no_further_migration(database_url: str) -> None:
         assert before == after == "0001"
     finally:
         engine.dispose()
+
+
+def test_a_non_default_embedding_dim_is_the_migrated_vector_dimension() -> None:
+    """[`embedding`](/architecture/sql-store.md#chunk) is `vector(EMBEDDING_DIM)`, frozen by the
+    migration at the value in force when it runs ([Runtime](/architecture/services/api.md#runtime)).
+    `chunk.embedding`'s model column declares a dimensionless `Vector()` (R-5: the model reads no
+    configuration of its own); this confirms a non-default `EMBEDDING_DIM` still reaches the
+    migrated column, and that the model still matches the migrated schema at that dimension."""
+    non_default_dim = 512
+    assert non_default_dim != ApiSettings.model_fields["embedding_dim"].default
+
+    with PostgresContainer("pgvector/pgvector:pg16", driver=None) as container:
+        host = container.get_container_host_ip()
+        port = container.get_exposed_port(container.port)
+        url = (
+            f"postgresql://{container.username}:{container.password}@{host}:{port}"
+            f"/{container.dbname}"
+        )
+        settings = ApiSettings(database_url=SecretStr(url), embedding_dim=non_default_dim)
+        apply_migrations(settings)
+
+        engine = create_engine(url.replace("postgresql://", "postgresql+psycopg://"))
+        try:
+            with engine.connect() as connection:
+                migrated_type: str = connection.execute(
+                    text(
+                        "SELECT format_type(atttypid, atttypmod) FROM pg_attribute "
+                        "WHERE attrelid = 'chunk'::regclass AND attname = 'embedding'"
+                    )
+                ).scalar_one()
+                assert migrated_type == f"vector({non_default_dim})"
+
+                context = MigrationContext.configure(connection)
+                diff = compare_metadata(context, Base.metadata)
+            assert diff == []
+        finally:
+            engine.dispose()
 
 
 def test_a_migration_failure_from_an_unreachable_database_is_one_json_line_without_the_password(

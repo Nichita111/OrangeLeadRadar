@@ -1,11 +1,18 @@
 """Builds the api's async database engine from `DATABASE_URL`
-([SQLAlchemy and Alembic](/guidelines/python.md#sqlalchemy-and-alembic))."""
+([SQLAlchemy and Alembic](/guidelines/python.md#sqlalchemy-and-alembic)), and the per-request
+session dependency of [api Design](/architecture/services/api.md#design) ("one transaction per
+request")."""
 
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
+<<<<<<< HEAD
 from contextlib import asynccontextmanager
 
+=======
+
+from fastapi import Request
+>>>>>>> origin/main
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -21,6 +28,7 @@ def build_engine(database_url: str) -> AsyncEngine:
     return create_async_engine(url)
 
 
+<<<<<<< HEAD
 @asynccontextmanager
 async def get_session(engine: AsyncEngine) -> AsyncIterator[AsyncSession]:
     """Yield one `AsyncSession` bound to `engine`.
@@ -29,4 +37,12 @@ async def get_session(engine: AsyncEngine) -> AsyncIterator[AsyncSession]:
     """
     factory = async_sessionmaker(engine, expire_on_commit=False)
     async with factory() as session:
+=======
+async def get_session(request: Request) -> AsyncIterator[AsyncSession]:
+    """One `AsyncSession` on `app.state.engine` per request. The transaction itself is opened by
+    the capability function the route calls ([api Design]
+    (/architecture/services/api.md#design), "that function owns the transaction")."""
+    session_factory = async_sessionmaker(request.app.state.engine, expire_on_commit=False)
+    async with session_factory() as session:
+>>>>>>> origin/main
         yield session

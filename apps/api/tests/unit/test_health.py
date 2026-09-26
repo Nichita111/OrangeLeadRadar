@@ -12,7 +12,6 @@ import pytest
 from pydantic import SecretStr
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from leadradar.api.settings import ApiSettings
 from leadradar.audit import health as health_module
 from leadradar.audit.health import (
     HealthCheckStatus,
@@ -20,6 +19,7 @@ from leadradar.audit.health import (
     derive_health_status,
     read_health,
 )
+from leadradar.settings import ApiSettings
 
 pytestmark = pytest.mark.unit
 

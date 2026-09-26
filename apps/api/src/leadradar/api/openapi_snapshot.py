@@ -10,7 +10,7 @@ from pathlib import Path
 from pydantic import SecretStr
 
 from leadradar.api.app import create_app
-from leadradar.api.settings import ApiSettings
+from leadradar.settings import ApiSettings
 
 SNAPSHOT_PATH = Path(__file__).resolve().parents[3] / "openapi.json"
 

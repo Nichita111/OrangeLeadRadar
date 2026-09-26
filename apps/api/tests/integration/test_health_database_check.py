@@ -7,8 +7,8 @@ import httpx
 import pytest
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from leadradar.api.settings import ApiSettings
 from leadradar.audit.health import HealthCheckStatus, read_health
+from leadradar.settings import ApiSettings
 
 pytestmark = pytest.mark.integration
 

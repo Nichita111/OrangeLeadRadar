@@ -17,6 +17,7 @@ from leadradar.core.enums import (
     AlertKind,
     AppUserRole,
     AppUserStatus,
+    AuditEventKind,
     ClassificationStatus,
     DisqualifierOverrideStatus,
     DocumentSourceType,
@@ -25,9 +26,19 @@ from leadradar.core.enums import (
     EvaluationItemOrigin,
     EvaluationItemStatus,
     FindingDecidedBy,
+<<<<<<< HEAD
     FindingStatus,
     FindingStrength,
     IndustryStatus,
+=======
+    FindingFeedbackVerdict,
+    FindingStatus,
+    FindingStrength,
+    IndustryStatus,
+    JobStatus,
+    JobStep,
+    LeadFeedbackVerdict,
+>>>>>>> origin/main
     MarketStatus,
     PipelineRunKind,
     PipelineRunStatus,
@@ -40,6 +51,10 @@ from leadradar.core.enums import (
     SourcePluginCode,
 )
 from leadradar.db.models.accounts import Account
+<<<<<<< HEAD
+=======
+from leadradar.db.models.audit import AuditEvent
+>>>>>>> origin/main
 from leadradar.db.models.configuration import (
     Industry,
     Market,
@@ -47,9 +62,20 @@ from leadradar.db.models.configuration import (
     Service,
     SignalQuestion,
 )
+<<<<<<< HEAD
 from leadradar.db.models.feedback import EvaluationItem, EvaluationResult
 from leadradar.db.models.identity import AppUser
 from leadradar.db.models.ingestion import Chunk, Document, PipelineRun, SourcePlugin
+=======
+from leadradar.db.models.feedback import (
+    EvaluationItem,
+    EvaluationResult,
+    FindingFeedback,
+    LeadFeedback,
+)
+from leadradar.db.models.identity import AppUser, AuthSession
+from leadradar.db.models.ingestion import Chunk, Document, Job, PipelineRun, SourcePlugin
+>>>>>>> origin/main
 from leadradar.db.models.signals import (
     AccountScore,
     Alert,
@@ -396,6 +422,86 @@ def make_evaluation_result(
     return _insert(connection, EvaluationResult.__table__, **values)
 
 
+<<<<<<< HEAD
+=======
+def make_audit_event(connection: Connection, **overrides: Any) -> uuid.UUID:
+    values: dict[str, Any] = {
+        "occurred_at": NOW,
+        "actor_id": None,
+        "kind": AuditEventKind.AI_CALL,
+        "action": "AI_CALL",
+        "entity_type": None,
+        "entity_id": None,
+        "run_id": None,
+        "request_id": None,
+        "payload": {},
+    }
+    values.update(overrides)
+    return _insert(connection, AuditEvent.__table__, **values)
+
+
+def make_auth_session(connection: Connection, user_id: uuid.UUID, **overrides: Any) -> uuid.UUID:
+    values: dict[str, Any] = {
+        "user_id": user_id,
+        "token_hash": uuid.uuid4().hex,
+        "expires_at": NOW + timedelta(hours=12),
+        "revoked_at": None,
+    }
+    values.update(overrides)
+    return _insert(connection, AuthSession.__table__, **values)
+
+
+def make_lead_feedback(
+    connection: Connection,
+    account_id: uuid.UUID,
+    service_id: uuid.UUID,
+    user_id: uuid.UUID,
+    score_id: uuid.UUID,
+    **overrides: Any,
+) -> uuid.UUID:
+    values: dict[str, Any] = {
+        "account_id": account_id,
+        "service_id": service_id,
+        "user_id": user_id,
+        "score_id": score_id,
+        "verdict": LeadFeedbackVerdict.RELEVANT,
+        "note": None,
+    }
+    values.update(overrides)
+    return _insert(connection, LeadFeedback.__table__, **values)
+
+
+def make_finding_feedback(
+    connection: Connection, finding_id: uuid.UUID, user_id: uuid.UUID, **overrides: Any
+) -> uuid.UUID:
+    values: dict[str, Any] = {
+        "finding_id": finding_id,
+        "user_id": user_id,
+        "verdict": FindingFeedbackVerdict.CORRECT,
+        "note": None,
+    }
+    values.update(overrides)
+    return _insert(connection, FindingFeedback.__table__, **values)
+
+
+def make_job(connection: Connection, run_id: uuid.UUID, **overrides: Any) -> uuid.UUID:
+    values: dict[str, Any] = {
+        "run_id": run_id,
+        "step": JobStep.SCORE,
+        "payload": {},
+        "status": JobStatus.READY,
+        "priority": 0,
+        "attempts": 0,
+        "not_before": NOW,
+        "locked_by": None,
+        "locked_at": None,
+        "last_error": None,
+    }
+    values.update(overrides)
+    return _insert(connection, Job.__table__, **values)
+
+
+>>>>>>> origin/main
 def make_disqualifier_override(
     connection: Connection,
     account_id: uuid.UUID,

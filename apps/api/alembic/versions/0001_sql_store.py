@@ -1,7 +1,7 @@
 """The whole SQL store ([sql-store.md](/architecture/sql-store.md)), as one migration.
 
 This is the first migration: it creates every table, enum, constraint and index of the store
-in one pass, and provides no `downgrade()` (see The first migration, [design](/.work/stack-foundation/design.md)).
+in one pass, and provides no `downgrade()`: a schema change goes forward, in a new migration.
 Enum values are spelled literally here rather than imported from `leadradar.core.enums`,
 because a migration is a frozen snapshot that must not change when the code does; the
 integration test "models match the migrated schema" catches any drift between the two.

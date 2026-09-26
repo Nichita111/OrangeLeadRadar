@@ -18,11 +18,14 @@ services:
 
   embedder:
     image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.6
-    # linux/amd64 only (see Risks, design); runs under emulation on Apple Silicon.
+    # linux/amd64 only: the CPU image has no arm64 build, so it runs under emulation on Apple Silicon.
     platform: linux/amd64
     command: ["--model-id", "BAAI/bge-m3", "--json-output"]
     volumes:
-      - embedder-cache:/data
+      # A host directory, not a named volume: it survives `docker compose down -v` (the
+      # acceptance and QA harness's teardown), so `BAAI/bge-m3` is downloaded once and every
+      # later `up` loads it from here instead of the network. Git-ignored (.gitignore).
+      - ./.embedder-cache:/data
 
   api:
     build:
@@ -63,8 +66,6 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
-    environment:
-      API_UPSTREAM: http://api:8000
     ports:
       - "8080:80"
     depends_on:
@@ -72,4 +73,3 @@ services:
 
 volumes:
   db-data:
-  embedder-cache:
