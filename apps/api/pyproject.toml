@@ -40,6 +40,7 @@ packages = ["src/leadradar"]
 leadradar-api = "leadradar.api.main:run"
 leadradar-worker = "leadradar.worker.main:run"
 leadradar-seed-demo = "leadradar.seed.demo:run"
+leadradar-refresh-demo = "leadradar.seed.refresh:run"
 
 [tool.ruff]
 line-length = 100

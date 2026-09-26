@@ -77,7 +77,7 @@ It never fetches from a source, never classifies in batch, never writes a score,
 | `SEED_ADMIN_PASSWORD`, `SEED_SALES_PASSWORD` | — (required by `make seed-demo`) | Passwords of the demo users |
 | `LOG_LEVEL` | `INFO` | Log level; logs are JSON lines |
 
-The api also reads the AI gateway, embedder, fixture and `CLOCK_FILE` keys, the source plug-in keys, which decide the [Plug-in availability](/architecture/rules.md#plug-in-availability) of a refresh's first jobs, and `EVAL_MIN_ITEMS` of the [worker runtime](/architecture/services/worker.md#runtime).
+The api also reads the AI gateway, embedder, fixture and `CLOCK_FILE` keys, the source plug-in keys, which decide the [Plug-in availability](/architecture/rules.md#plug-in-availability) of a refresh's first jobs, and `EVAL_MIN_ITEMS`, `JOB_POLL_INTERVAL_S` and `REFRESH_TARGET_MINUTES` of the [worker runtime](/architecture/services/worker.md#runtime), the last two for `make refresh-demo`'s wait until every run it queued is final.
 
 ## Examples
 
