@@ -37,6 +37,7 @@ from leadradar.core.enums import (
     FindingDecidedBy,
     FindingStatus,
     FindingStrength,
+    PipelineRunStage,
     ServiceStatus,
     SignalQuestionAnswerType,
     SignalQuestionStatus,
@@ -68,6 +69,7 @@ from leadradar.worker.ai.llm import (
     EvidenceInput,
     EvidenceOutput,
 )
+from leadradar.worker.settings import WorkerSettings
 
 # ── State ──────────────────────────────────────────────────────────────────────
 
@@ -782,9 +784,16 @@ async def run_signal_step(
     Nodes run in order; each writes to the database before the next starts.
     An interrupted job resumes from what is already recorded.
     """
+    await _set_stage(session, batch.run_id, PipelineRunStage.TRIAGE)
     await _node_triage(batch, session)
+    await _set_stage(session, batch.run_id, PipelineRunStage.CLASSIFY)
     await _node_classify(batch, session)
+    await _set_stage(session, batch.run_id, PipelineRunStage.EVIDENCE)
     await _node_evidence(batch, session)
+
+
+async def _set_stage(session: AsyncSession, run_id: uuid.UUID, stage: PipelineRunStage) -> None:
+    await session.execute(update(PipelineRun).where(PipelineRun.id == run_id).values(stage=stage))
 
 
 # ── Job-loop adapter ────────────────────────────────────────────────────────────
@@ -797,13 +806,11 @@ async def run_signal_job(
     run: PipelineRun,
     worker_instance_id: str,
     alert_max_age_days: int,
-    settings: Any = None,
 ) -> None:
     """Adapter that wires a SIGNAL ``Job`` into the generic job-loop handler protocol.
 
     Loads account, services, questions, documents and passages from the database,
-    builds a ``SignalBatch`` using config from ``settings`` (a ``WorkerSettings``),
-    and calls ``run_signal_step``.
+    builds a ``SignalBatch`` from ``WorkerSettings`` and calls ``run_signal_step``.
 
     Job payload keys (all optional, fallback to run context):
     - ``document_ids``: list of document id strings to process; if absent all
@@ -812,10 +819,7 @@ async def run_signal_job(
       ACTIVE services are used.
     - ``question_id``: single question id string for RECLASSIFY runs.
     """
-    # Import here to avoid a cycle: settings lives in worker.settings which is fine.
-    from leadradar.worker.settings import WorkerSettings
-
-    cfg: WorkerSettings = settings if isinstance(settings, WorkerSettings) else WorkerSettings()
+    cfg = WorkerSettings()
 
     account_id = run.account_id
     if account_id is None:
@@ -851,16 +855,11 @@ async def run_signal_job(
     if reclassify_question_id_raw is not None:
         reclassify_qid = uuid.UUID(str(reclassify_question_id_raw))
         q_stmt = q_stmt.where(SignalQuestion.id == reclassify_qid)
-        # Supersede old revision findings before classifying
-        await supersede_old_revision_findings(
-            session, question_id=reclassify_qid, current_revision=0
-        )
         questions_rows = list((await session.execute(q_stmt)).scalars())
         if questions_rows:
-            # Use the current revision of the question
-            current_rev = max(q.revision for q in questions_rows)
+            # Supersede findings of older revisions before classifying
             await supersede_old_revision_findings(
-                session, question_id=reclassify_qid, current_revision=current_rev
+                session, question_id=reclassify_qid, current_revision=questions_rows[0].revision
             )
     else:
         questions_rows = list((await session.execute(q_stmt)).scalars())

@@ -1,4 +1,4 @@
-"""Contract tests for ``API-62`` classify in ``replay`` fixture mode.
+"""Tests of ``API-62`` classify in ``replay`` fixture mode.
 
 Covers:
   - In replay, returns one ``ClassifierAnswer`` per question with probabilities summing to 1
@@ -8,7 +8,6 @@ Covers:
 
 from __future__ import annotations
 
-import uuid
 from pathlib import Path
 
 import pytest
@@ -18,8 +17,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from leadradar.db.models.audit import AuditEvent
 from leadradar.worker.ai.classifier import ClassifierQuestion, ClassifierRequest
 from leadradar.worker.ai.gateway import FixtureMissingError, classify
+from tests.integration.factories import make_pipeline_run
 
-pytestmark = pytest.mark.contract
+pytestmark = pytest.mark.integration
 
 # Shared fixture directory
 FIXTURE_DIR = str(Path(__file__).resolve().parents[2] / "fixtures")
@@ -78,7 +78,7 @@ async def test_classify_replay_writes_ai_call_audit_row(
     async_session: AsyncSession,
 ) -> None:
     """``API-62``: each classify call writes one ``AI_CALL`` audit row with role CLASSIFIER."""
-    run_id = uuid.uuid4()
+    run_id = await async_session.run_sync(lambda s: make_pipeline_run(s.connection()))
     await classify(
         _CLASSIFIER_REQUEST,
         session=async_session,

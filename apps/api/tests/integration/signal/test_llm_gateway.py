@@ -1,4 +1,4 @@
-"""Contract tests for ``API-63`` escalate / ``API-64`` extract_evidence in replay mode.
+"""Tests of ``API-63`` escalate / ``API-64`` extract_evidence in replay mode.
 
 Covers:
   - In replay, returns the port shape and writes one ``AI_CALL`` row (role ESCALATION/EVIDENCE)
@@ -7,7 +7,6 @@ Covers:
 
 from __future__ import annotations
 
-import uuid
 from pathlib import Path
 
 import pytest
@@ -18,8 +17,9 @@ from leadradar.core.enums import FindingStrength
 from leadradar.db.models.audit import AuditEvent
 from leadradar.worker.ai.gateway import BudgetExhaustedError, escalate, extract_evidence
 from leadradar.worker.ai.llm import EscalationInput, EscalationOutput, EvidenceInput, EvidenceOutput
+from tests.integration.factories import make_pipeline_run
 
-pytestmark = pytest.mark.contract
+pytestmark = pytest.mark.integration
 
 FIXTURE_DIR = str(Path(__file__).resolve().parents[2] / "fixtures")
 PASSAGE = (
@@ -64,7 +64,7 @@ async def test_escalate_replay_writes_ai_call_audit_row(
     async_session: AsyncSession,
 ) -> None:
     """``API-63``: each escalate call writes one ``AI_CALL`` audit row with role ESCALATION."""
-    run_id = uuid.uuid4()
+    run_id = await async_session.run_sync(lambda s: make_pipeline_run(s.connection()))
     inp = EscalationInput(
         account_name="Lufthansa Group",
         question=QUESTION,
@@ -122,7 +122,7 @@ async def test_extract_evidence_replay_writes_ai_call_audit_row(
     async_session: AsyncSession,
 ) -> None:
     """``API-64``: each extract_evidence call writes one ``AI_CALL`` row with role EVIDENCE."""
-    run_id = uuid.uuid4()
+    run_id = await async_session.run_sync(lambda s: make_pipeline_run(s.connection()))
     inp = EvidenceInput(
         account_name="Lufthansa Group",
         question=QUESTION,

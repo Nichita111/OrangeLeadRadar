@@ -6,6 +6,7 @@ No I/O.
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -27,7 +28,7 @@ def map_answer(
     *,
     answer_type: SignalQuestionAnswerType,
     probabilities: dict[str, float],
-    options: list[dict[str, object]] | None = None,
+    options: Sequence[Mapping[str, object]] | None = None,
 ) -> AnswerMapping:
     """Map a classifier's raw answer to ``p_positive`` and candidate strength.
 
@@ -96,7 +97,7 @@ def _map_scale(probs: dict[str, float]) -> AnswerMapping:
     )
 
 
-def _map_choice(probs: dict[str, float], options: list[dict[str, object]]) -> AnswerMapping:
+def _map_choice(probs: dict[str, float], options: Sequence[Mapping[str, object]]) -> AnswerMapping:
     """CHOICE: p_positive = sum of P(option) for non-NONE options; strength = most probable
     non-NONE option's strength; option_key = that option's key."""
     p_positive = 0.0

@@ -4,7 +4,8 @@ Claims one `READY` job per loop iteration with `SELECT … FOR UPDATE SKIP LOCKE
 runs the registered step, marks `DONE` on success or retries/fails on error.
 Reclaims `RUNNING` jobs past `JOB_LOCK_TIMEOUT_S`.
 
-Only the `SCORE` step is registered; other steps are registered by their own tasks (P-06).
+The `SIGNAL` and `SCORE` steps are registered; other steps are registered by their own tasks
+(P-06).
 
 See [Job queue](/architecture/services/worker.md#job-queue) and
 [ADR-04](/architecture/adrs/adr-04-postgres-job-queue-and-a-worker.md).
@@ -24,12 +25,20 @@ from leadradar.core.enums import JobStatus, JobStep, PipelineRunStage, PipelineR
 from leadradar.db.models.ingestion import Job, PipelineRun
 from leadradar.worker.settings import WorkerSettings
 from leadradar.worker.steps.score import run_score_step
+from leadradar.worker.steps.signal import run_signal_job
 
 logger = logging.getLogger(__name__)
 
 # Registry of step handlers; extended by other tasks (P-06).
 _STEP_HANDLERS: dict[str, object] = {
+    JobStep.SIGNAL: run_signal_job,
     JobStep.SCORE: run_score_step,
+}
+
+# Stage a run enters when its first job of a step is claimed.
+_FIRST_STAGE: dict[str, PipelineRunStage] = {
+    JobStep.SIGNAL: PipelineRunStage.TRIAGE,
+    JobStep.SCORE: PipelineRunStage.SCORE,
 }
 
 
@@ -72,7 +81,7 @@ async def _claim_job(session: AsyncSession, worker_id: str, now: datetime) -> Jo
         .values(
             status=PipelineRunStatus.RUNNING,
             started_at=now,
-            stage=PipelineRunStage.SCORE,
+            stage=_FIRST_STAGE.get(str(job.step), PipelineRunStage.SCORE),
         )
     )
     await session.commit()
@@ -103,9 +112,7 @@ async def _reclaim_stale_jobs(
 
 
 async def _mark_done(session: AsyncSession, job_id: uuid.UUID) -> None:
-    await session.execute(
-        update(Job).where(Job.id == job_id).values(status=JobStatus.DONE)
-    )
+    await session.execute(update(Job).where(Job.id == job_id).values(status=JobStatus.DONE))
     await session.commit()
 
 
@@ -120,9 +127,7 @@ async def _mark_failed_or_retry(
 ) -> None:
     if attempts >= max_attempts:
         await session.execute(
-            update(Job)
-            .where(Job.id == job_id)
-            .values(status=JobStatus.FAILED, last_error=error)
+            update(Job).where(Job.id == job_id).values(status=JobStatus.FAILED, last_error=error)
         )
     else:
         # Exponential backoff: backoff_s × 2^(attempts−1)
@@ -170,8 +175,13 @@ async def _run_one(
         if run is None:
             logger.error("Job %s references unknown run %s; marking FAILED", job_id, run_id)
             await _mark_failed_or_retry(
-                session, job_id, "run not found", attempts,
-                settings.job_max_attempts, settings.job_retry_backoff_s, now,
+                session,
+                job_id,
+                "run not found",
+                attempts,
+                settings.job_max_attempts,
+                settings.job_retry_backoff_s,
+                now,
             )
             return True
 
@@ -179,15 +189,22 @@ async def _run_one(
         if handler is None:
             logger.error("No handler for step %s; marking FAILED", job.step)
             await _mark_failed_or_retry(
-                session, job_id, f"no handler for step {job.step}",
-                attempts, settings.job_max_attempts, settings.job_retry_backoff_s, now,
+                session,
+                job_id,
+                f"no handler for step {job.step}",
+                attempts,
+                settings.job_max_attempts,
+                settings.job_retry_backoff_s,
+                now,
             )
             return True
 
         try:
             import inspect
+
             if inspect.iscoroutinefunction(handler):
                 import typing
+
                 coro_fn: typing.Any = handler
                 await coro_fn(
                     session,
@@ -203,8 +220,13 @@ async def _run_one(
             await session.rollback()
             async with factory() as err_session:
                 await _mark_failed_or_retry(
-                    err_session, job_id, str(exc), attempts,
-                    settings.job_max_attempts, settings.job_retry_backoff_s, now,
+                    err_session,
+                    job_id,
+                    str(exc),
+                    attempts,
+                    settings.job_max_attempts,
+                    settings.job_retry_backoff_s,
+                    now,
                 )
 
     return True
