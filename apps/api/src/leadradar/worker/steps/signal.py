@@ -42,7 +42,14 @@ from leadradar.core.enums import (
     SignalQuestionAnswerType,
     SignalQuestionStatus,
 )
-from leadradar.core.signal.classification import AnswerMapping, map_answer, observed_at
+from leadradar.core.signal.classification import (
+    SCALE_SUFFIX,
+    AnswerMapping,
+    classifier_questions_for,
+    map_answer,
+    merge_yes_no_probabilities,
+    observed_at,
+)
 from leadradar.core.signal.escalation import Route, post_escalation_route, route
 from leadradar.core.signal.evidence import validate_quote
 from leadradar.core.signal.triage import (
@@ -289,54 +296,30 @@ async def _node_classify(state: SignalBatch, session: AsyncSession) -> None:
             fetched_at=doc.get("fetched_at"),
         )
 
-        # Build classifier questions
-        clf_questions: list[ClassifierQuestion] = []
-        for q in questions_to_ask:
-            question_text = f"About {state.account_name}: {q['text']}"
-            kind = q["answer_type"]
-            opts: list[dict[str, str]] | None = None
-            if kind == SignalQuestionAnswerType.SCALE.value:
-                opts = [
-                    {"key": "NONE", "label": "No signal"},
-                    {"key": "WEAK", "label": "Weak"},
-                    {"key": "MEDIUM", "label": "Medium"},
-                    {"key": "STRONG", "label": "Strong"},
-                ]
-            elif kind == SignalQuestionAnswerType.YES_NO.value:
-                # Also send the scale sub-question
-                clf_questions.append(
-                    ClassifierQuestion(
-                        id=q["id"],
-                        kind="YES_NO",
-                        text=question_text,
-                        options=None,
-                    )
-                )
-                clf_questions.append(
-                    ClassifierQuestion(
-                        id=f"{q['id']}__SCALE",
-                        kind="SCALE",
-                        text="How strong is the evidence?",
-                        options=[
-                            {"key": "WEAK", "label": "Weak"},
-                            {"key": "MEDIUM", "label": "Medium"},
-                            {"key": "STRONG", "label": "Strong"},
-                        ],
-                    )
-                )
-                continue  # already appended both; skip the generic append below
-            elif kind == SignalQuestionAnswerType.CHOICE.value:
-                raw_opts = q.get("options") or []
-                opts = [{"key": str(o["key"]), "label": str(o["label"])} for o in raw_opts]
-
-            clf_questions.append(
-                ClassifierQuestion(
-                    id=q["id"],
-                    kind=kind,
-                    text=question_text,
-                    options=opts,
-                )
+        # Build classifier questions from the shared, pure builder ([Signal classification]
+        # (/architecture/rules.md#signal-classification), row 4 of design.md): the EVALUATE step
+        # calls the same functions, so the framing and the strength-scale sub-question exist in
+        # one place.
+        clf_questions: list[ClassifierQuestion] = [
+            ClassifierQuestion(
+                id=spec.id,
+                kind=spec.answer_type.value,
+                text=spec.text,
+                options=(
+                    None
+                    if spec.options is None
+                    else [{"key": option.key, "label": option.label} for option in spec.options]
+                ),
             )
+            for q in questions_to_ask
+            for spec in classifier_questions_for(
+                question_id=q["id"],
+                account_name=state.account_name,
+                question_text=q["text"],
+                answer_type=SignalQuestionAnswerType(q["answer_type"]),
+                options=q.get("options"),
+            )
+        ]
 
         req = ClassifierRequest(
             state=passage_text,
@@ -362,8 +345,8 @@ async def _node_classify(state: SignalBatch, session: AsyncSession) -> None:
 
             # For YES_NO, merge scale sub-question probabilities
             if at == SignalQuestionAnswerType.YES_NO.value:
-                scale_probs = answers_by_qid.get(f"{q['id']}__SCALE", {})
-                merged = {**main_probs, **scale_probs}
+                scale_probs = answers_by_qid.get(f"{q['id']}{SCALE_SUFFIX}", {})
+                merged = merge_yes_no_probabilities(main_probs, scale_probs)
             else:
                 merged = main_probs
 

@@ -1208,6 +1208,269 @@
         "title": "DocumentSourceType",
         "type": "string"
       },
+      "DocumentTriageClassifier": {
+        "description": "`document_triage.classifier`; reused by `classification.classifier` and\n`evaluation_result.classifier`.",
+        "enum": [
+          "JEV",
+          "LLM"
+        ],
+        "title": "DocumentTriageClassifier",
+        "type": "string"
+      },
+      "EvaluationItem": {
+        "additionalProperties": false,
+        "description": "[`EvaluationItem`](/architecture/interfaces.md#evaluationitem).",
+        "properties": {
+          "chunk_id": {
+            "format": "uuid",
+            "title": "Chunk Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "expected_strength": {
+            "$ref": "#/components/schemas/FindingStrength"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "labelled_by_name": {
+            "title": "Labelled By Name",
+            "type": "string"
+          },
+          "origin": {
+            "$ref": "#/components/schemas/EvaluationItemOrigin"
+          },
+          "question_id": {
+            "format": "uuid",
+            "title": "Question Id",
+            "type": "string"
+          },
+          "question_key": {
+            "title": "Question Key",
+            "type": "string"
+          },
+          "question_revision": {
+            "title": "Question Revision",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/EvaluationItemStatus"
+          }
+        },
+        "required": [
+          "id",
+          "chunk_id",
+          "question_id",
+          "question_revision",
+          "created_at",
+          "question_key",
+          "expected_strength",
+          "origin",
+          "status",
+          "labelled_by_name"
+        ],
+        "title": "EvaluationItem",
+        "type": "object"
+      },
+      "EvaluationItemOrigin": {
+        "description": "`evaluation_item.origin`.",
+        "enum": [
+          "MANUAL",
+          "FINDING_FEEDBACK"
+        ],
+        "title": "EvaluationItemOrigin",
+        "type": "string"
+      },
+      "EvaluationItemStatus": {
+        "description": "`evaluation_item.status`.",
+        "enum": [
+          "ACTIVE",
+          "STALE"
+        ],
+        "title": "EvaluationItemStatus",
+        "type": "string"
+      },
+      "EvaluationResult": {
+        "additionalProperties": false,
+        "description": "[`EvaluationResult`](/architecture/interfaces.md#evaluationresult).",
+        "properties": {
+          "classifier": {
+            "$ref": "#/components/schemas/DocumentTriageClassifier"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "escalation_lower": {
+            "title": "Escalation Lower",
+            "type": "number"
+          },
+          "escalation_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Escalation Rate"
+          },
+          "escalation_rate_target": {
+            "title": "Escalation Rate Target",
+            "type": "number"
+          },
+          "escalation_upper": {
+            "title": "Escalation Upper",
+            "type": "number"
+          },
+          "items": {
+            "title": "Items",
+            "type": "integer"
+          },
+          "metrics": {
+            "additionalProperties": true,
+            "title": "Metrics",
+            "type": "object"
+          },
+          "min_items": {
+            "title": "Min Items",
+            "type": "integer"
+          },
+          "min_precision": {
+            "title": "Min Precision",
+            "type": "number"
+          },
+          "passed": {
+            "title": "Passed",
+            "type": "boolean"
+          },
+          "precision": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Precision"
+          },
+          "recall": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recall"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "created_at",
+          "classifier",
+          "items",
+          "passed",
+          "precision",
+          "recall",
+          "escalation_rate",
+          "escalation_lower",
+          "escalation_upper",
+          "min_precision",
+          "min_items",
+          "escalation_rate_target",
+          "metrics"
+        ],
+        "title": "EvaluationResult",
+        "type": "object"
+      },
+      "EvaluationResultSummary": {
+        "additionalProperties": false,
+        "description": "[`EvaluationResultSummary`](/architecture/interfaces.md#evaluationresultsummary).",
+        "properties": {
+          "classifier": {
+            "$ref": "#/components/schemas/DocumentTriageClassifier"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "escalation_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Escalation Rate"
+          },
+          "items": {
+            "title": "Items",
+            "type": "integer"
+          },
+          "passed": {
+            "title": "Passed",
+            "type": "boolean"
+          },
+          "precision": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Precision"
+          },
+          "recall": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recall"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "created_at",
+          "classifier",
+          "items",
+          "passed",
+          "precision",
+          "recall",
+          "escalation_rate"
+        ],
+        "title": "EvaluationResultSummary",
+        "type": "object"
+      },
       "FeedbackCreate_FindingFeedbackVerdict_": {
         "additionalProperties": false,
         "properties": {
@@ -1989,6 +2252,216 @@
         "title": "IndustryUpdate",
         "type": "object"
       },
+      "LabelCreate": {
+        "additionalProperties": false,
+        "description": "[`LabelCreate`](/architecture/interfaces.md#labelcreate), the request of `API-51`.",
+        "properties": {
+          "chunk_id": {
+            "format": "uuid",
+            "title": "Chunk Id",
+            "type": "string"
+          },
+          "expected_strength": {
+            "$ref": "#/components/schemas/FindingStrength"
+          },
+          "question_id": {
+            "format": "uuid",
+            "title": "Question Id",
+            "type": "string"
+          },
+          "question_revision": {
+            "title": "Question Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chunk_id",
+          "question_id",
+          "question_revision",
+          "expected_strength"
+        ],
+        "title": "LabelCreate",
+        "type": "object"
+      },
+      "LabelQueue": {
+        "additionalProperties": false,
+        "description": "[`LabelQueue`](/architecture/interfaces.md#labelqueue), the response of `API-50`.",
+        "properties": {
+          "active_items": {
+            "title": "Active Items",
+            "type": "integer"
+          },
+          "min_items": {
+            "title": "Min Items",
+            "type": "integer"
+          },
+          "tasks": {
+            "items": {
+              "$ref": "#/components/schemas/LabelTask"
+            },
+            "title": "Tasks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "tasks",
+          "active_items",
+          "min_items"
+        ],
+        "title": "LabelQueue",
+        "type": "object"
+      },
+      "LabelTask": {
+        "additionalProperties": false,
+        "description": "[`LabelTask`](/architecture/interfaces.md#labeltask).",
+        "properties": {
+          "account": {
+            "$ref": "#/components/schemas/LabelTaskAccount"
+          },
+          "chunk_id": {
+            "format": "uuid",
+            "title": "Chunk Id",
+            "type": "string"
+          },
+          "document": {
+            "$ref": "#/components/schemas/LabelTaskDocument"
+          },
+          "passage_text": {
+            "title": "Passage Text",
+            "type": "string"
+          },
+          "question": {
+            "$ref": "#/components/schemas/LabelTaskQuestion"
+          },
+          "question_revision": {
+            "title": "Question Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chunk_id",
+          "passage_text",
+          "question",
+          "question_revision",
+          "account",
+          "document"
+        ],
+        "title": "LabelTask",
+        "type": "object"
+      },
+      "LabelTaskAccount": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "LabelTaskAccount",
+        "type": "object"
+      },
+      "LabelTaskDocument": {
+        "additionalProperties": false,
+        "properties": {
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "url",
+          "language",
+          "published_at"
+        ],
+        "title": "LabelTaskDocument",
+        "type": "object"
+      },
+      "LabelTaskQuestion": {
+        "additionalProperties": false,
+        "properties": {
+          "answer_type": {
+            "$ref": "#/components/schemas/SignalQuestionAnswerType"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "options": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Options"
+          },
+          "polarity": {
+            "$ref": "#/components/schemas/SignalQuestionPolarity"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "text",
+          "answer_type",
+          "options",
+          "polarity"
+        ],
+        "title": "LabelTaskQuestion",
+        "type": "object"
+      },
       "LeadFeedback": {
         "additionalProperties": false,
         "description": "[`LeadFeedback`](/architecture/interfaces.md#leadfeedback), the response of `API-46`.",
@@ -2273,6 +2746,38 @@
           "total"
         ],
         "title": "Page[AuditEntry]",
+        "type": "object"
+      },
+      "Page_EvaluationItem_": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/EvaluationItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "title": "Page Size",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "page",
+          "page_size",
+          "total"
+        ],
+        "title": "Page[EvaluationItem]",
         "type": "object"
       },
       "Page_Run_": {
@@ -4922,6 +5427,425 @@
         "summary": "Me",
         "tags": [
           "authentication-and-users"
+        ]
+      }
+    },
+    "/api/v1/evaluation/items": {
+      "get": {
+        "description": "`API-52`, Admin only.",
+        "operationId": "get_evaluation_items_api_v1_evaluation_items_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "question_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Question Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "origin",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/EvaluationItemOrigin"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Origin"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/EvaluationItemStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Page Size"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_EvaluationItem_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Evaluation Items",
+        "tags": [
+          "evaluation"
+        ]
+      },
+      "post": {
+        "description": "`API-51`: writes the `MANUAL` item for the passage, question and revision, updating the\npair's active item in place, whatever its origin, or writing one when none exists (D9).",
+        "operationId": "post_evaluation_item_api_v1_evaluation_items_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LabelCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationItem"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Post Evaluation Item",
+        "tags": [
+          "evaluation"
+        ]
+      }
+    },
+    "/api/v1/evaluation/label-queue": {
+      "get": {
+        "description": "`API-50`: the label queue of [Evaluation metrics]\n(/architecture/rules.md#evaluation-metrics). A task never shows the classifier's answer.",
+        "operationId": "get_label_queue_api_v1_evaluation_label_queue_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Service Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabelQueue"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Label Queue",
+        "tags": [
+          "evaluation"
+        ]
+      }
+    },
+    "/api/v1/evaluation/results": {
+      "get": {
+        "description": "`API-54`: every quality check, newest first (D8).",
+        "operationId": "get_evaluation_results_api_v1_evaluation_results_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EvaluationResultSummary"
+                  },
+                  "title": "Response Get Evaluation Results Api V1 Evaluation Results Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Evaluation Results",
+        "tags": [
+          "evaluation"
+        ]
+      }
+    },
+    "/api/v1/evaluation/results/{run_id}": {
+      "get": {
+        "description": "`API-55`.",
+        "operationId": "get_evaluation_result_api_v1_evaluation_results__run_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Evaluation Result",
+        "tags": [
+          "evaluation"
+        ]
+      }
+    },
+    "/api/v1/evaluation/runs": {
+      "post": {
+        "description": "`API-53`: one queued or running evaluation at a time (D2): `202` with a new run, or `200`\nwith the one already queued or running.",
+        "operationId": "post_evaluation_run_api_v1_evaluation_runs_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Run"
+                }
+              }
+            },
+            "description": "The evaluation already queued"
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Run"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Post Evaluation Run",
+        "tags": [
+          "evaluation"
         ]
       }
     },

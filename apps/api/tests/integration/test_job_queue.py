@@ -17,8 +17,9 @@ from typing import Any
 import pytest
 from pydantic import SecretStr
 from sqlalchemy import Connection, delete, insert, select, update
-from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, AsyncSession, async_sessionmaker
 
+from leadradar.ai.gateway import AiGateway, build_ai_http_client
 from leadradar.core.enums import (
     AccountStatus,
     AppUserRole,
@@ -82,6 +83,15 @@ def _session_factory(connection: AsyncConnection) -> Callable[[], AsyncSession]:
     return make
 
 
+def _ai_gateway(connection: AsyncConnection, settings: WorkerSettings) -> AiGateway:
+    """None of these tests exercise a step that calls the AI gateway; it is built only because
+    `StepContext` always carries one."""
+    sessions = async_sessionmaker(
+        bind=connection, join_transaction_mode="create_savepoint", expire_on_commit=False
+    )
+    return AiGateway(settings, http=build_ai_http_client(settings), sessions=sessions)
+
+
 async def _process(
     connection: AsyncConnection,
     handlers: dict[JobStep, StepHandler],
@@ -95,6 +105,7 @@ async def _process(
         settings=settings,
         clock=clock,
         worker_id=worker_id,
+        ai=_ai_gateway(connection, settings),
     )
 
 

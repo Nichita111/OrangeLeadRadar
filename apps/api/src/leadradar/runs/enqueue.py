@@ -149,6 +149,58 @@ async def enqueue_account_refresh(
     return run_id, True
 
 
+async def enqueue_evaluation(
+    session: AsyncSession, *, requested_by: uuid.UUID, now: datetime
+) -> tuple[uuid.UUID, bool]:
+    """Inserts a `QUEUED` `EVALUATION` run with its one `EVALUATE` job and returns
+    `(run_id, True)`; when one is already queued or running, inserts nothing and returns
+    `(that run's id, False)` (D2: "one queued or running evaluation at a time"). The partial
+    unique index `uq_pipeline_run_evaluation_active` decides, so two concurrent requests converge
+    on one run, as `enqueue_account_refresh` and `enqueue_service_discovery` do for theirs."""
+    inserted = await session.execute(
+        insert(PipelineRun)
+        .values(
+            kind=PipelineRunKind.EVALUATION,
+            trigger=PipelineRunTrigger.USER,
+            account_id=None,
+            service_id=None,
+            question_id=None,
+            status=PipelineRunStatus.QUEUED,
+            stage=None,
+            progress={},
+            errors=[],
+            requested_by=requested_by,
+            started_at=None,
+            finished_at=None,
+        )
+        .on_conflict_do_nothing(
+            index_elements=["kind"],
+            index_where=text("kind = 'EVALUATION' AND status IN ('QUEUED', 'RUNNING')"),
+        )
+        .returning(PipelineRun.id)
+    )
+    run_id = inserted.scalar_one_or_none()
+    if run_id is None:
+        existing = await session.execute(
+            select(PipelineRun.id).where(
+                PipelineRun.kind == PipelineRunKind.EVALUATION,
+                PipelineRun.status.in_(_ACTIVE_STATUSES),
+            )
+        )
+        return existing.scalar_one(), False
+
+    add_job(
+        session,
+        run_id=run_id,
+        step=JobStep.EVALUATE,
+        payload={},
+        priority=job_priority(PipelineRunKind.EVALUATION, PipelineRunTrigger.USER),
+        now=now,
+    )
+    await session.flush()
+    return run_id, True
+
+
 async def enqueue_service_discovery(
     session: AsyncSession, *, service_id: uuid.UUID, requested_by: uuid.UUID, now: datetime
 ) -> tuple[uuid.UUID, bool]:

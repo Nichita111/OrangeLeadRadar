@@ -40,3 +40,4 @@ class ApiSettings(AiGatewaySettings):
     serpapi_key: SecretStr | None = None
     import_max_rows: int = 2000
     audit_default_range_days: int = 30
+    label_queue_size: int = 20

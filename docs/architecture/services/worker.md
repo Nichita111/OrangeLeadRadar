@@ -64,7 +64,7 @@ stateDiagram-v2
 | `RECLASSIFY` | `TRIAGE` → `CLASSIFY` → `EVIDENCE` → `SCORE` | `SIGNAL` per batch of the service's documents; one `SCORE` for the service |
 | `RESCORE` | `SCORE` | one `SCORE` |
 | `DISCOVERY` | `FETCH` → `TRIAGE` → `SCORE` | one `DISCOVER` per available discovery source; the last one ranks and caps candidates |
-| `EVALUATION` | `CLASSIFY` | `EVALUATE` per batch of items; the last one writes the [`evaluation_result`](/architecture/sql-store.md#evaluation_result) |
+| `EVALUATION` | `CLASSIFY` | one `EVALUATE` over every active item of an active question; it writes the [`evaluation_result`](/architecture/sql-store.md#evaluation_result) |
 
 A `SCORE` job's `payload` is `{}`: its scope is its run's `account_id` and `service_id`, as the Jobs column states. A `FETCH` job's `payload` is `{plugin_code}`: its account is its run's `account_id`. A refresh requested when no plug-in is available starts with its `SCORE` job.
 

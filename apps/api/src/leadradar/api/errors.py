@@ -29,6 +29,13 @@ from leadradar.auth.errors import (
     UserNotFound,
 )
 from leadradar.configuration.errors import Conflict, DraftInvalid, NotFound, QuestionInvalid
+from leadradar.evaluation.errors import (
+    ChunkNotFound,
+    QuestionNotFound,
+    ResultNotFound,
+    RevisionNotCurrent,
+    ServiceNotFound,
+)
 from leadradar.feedback.errors import FeedbackError
 from leadradar.runs.errors import (
     AccountInactive,
@@ -256,3 +263,14 @@ def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(AlertNotFound)
     async def handle_alert_not_found(request: Request, exc: AlertNotFound) -> Response:
         return JSONResponse(status_code=404, content=envelope("NOT_FOUND", str(exc)))
+
+    @app.exception_handler(ServiceNotFound)
+    @app.exception_handler(ChunkNotFound)
+    @app.exception_handler(QuestionNotFound)
+    @app.exception_handler(ResultNotFound)
+    async def handle_evaluation_not_found(request: Request, exc: Exception) -> Response:
+        return JSONResponse(status_code=404, content=envelope("NOT_FOUND", str(exc)))
+
+    @app.exception_handler(RevisionNotCurrent)
+    async def handle_revision_not_current(request: Request, exc: RevisionNotCurrent) -> Response:
+        return JSONResponse(status_code=409, content=envelope("CONFLICT", str(exc)))

@@ -11,21 +11,25 @@ function run(env: Record<string, string>) {
   });
 }
 
+const FULL_ENV = {
+  CONFIDENCE_HIGH_MIN: "0.85",
+  CONFIDENCE_MEDIUM_MIN: "0.65",
+  RUN_POLL_INTERVAL_MS: "2000",
+};
+
 describe("config-json.sh (frontend Design)", () => {
   it("prints exactly the Runtime keys the client reads, with their values", () => {
-    const result = run({ CONFIDENCE_HIGH_MIN: "0.85", CONFIDENCE_MEDIUM_MIN: "0.65" });
+    const result = run(FULL_ENV);
     expect(result.status).toBe(0);
-    expect(JSON.parse(result.stdout)).toEqual({
-      CONFIDENCE_HIGH_MIN: "0.85",
-      CONFIDENCE_MEDIUM_MIN: "0.65",
-    });
+    expect(JSON.parse(result.stdout)).toEqual(FULL_ENV);
   });
 
-  it.each(["CONFIDENCE_HIGH_MIN", "CONFIDENCE_MEDIUM_MIN"])(
+  it.each(["CONFIDENCE_HIGH_MIN", "CONFIDENCE_MEDIUM_MIN", "RUN_POLL_INTERVAL_MS"])(
     "exits non-zero naming %s when it is missing, with no default",
     (missing) => {
-      const env = { CONFIDENCE_HIGH_MIN: "0.85", CONFIDENCE_MEDIUM_MIN: "0.65" };
-      const partial = Object.fromEntries(Object.entries(env).filter(([key]) => key !== missing));
+      const partial = Object.fromEntries(
+        Object.entries(FULL_ENV).filter(([key]) => key !== missing),
+      );
       const result = run(partial);
       expect(result.status).not.toBe(0);
       expect(result.stderr).toContain(missing);

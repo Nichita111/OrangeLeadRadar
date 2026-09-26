@@ -726,8 +726,9 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `API-77` | GET | `/impact` | `A` | — → [`Impact`](#impact) |
 
 - `API-50` — the label queue of [Evaluation metrics](/architecture/rules.md#evaluation-metrics). A task never shows the classifier's answer, so that labels are not biased by it.
-- `API-51` — writes the `MANUAL` item for the passage, question and revision, replacing the pair's active item whatever its origin, so a manual label takes the place of one derived from finding feedback; a revision that is not current answers `409`.
-- `API-53` — one queued or running evaluation at a time.
+- `API-51` — writes the `MANUAL` item for the passage, question and revision, updating the pair's active item in place, whatever its origin, or writing one when none exists, so a manual label takes the place of one derived from finding feedback; a revision that is not current answers `409`.
+- `API-53` — one queued or running evaluation at a time: a request while one is queued or running answers `200` with that run.
+- `API-54` — newest first.
 - `API-77` — computed on read by [Impact](/architecture/rules.md#impact); writes nothing.
 
 ### Evaluation shapes
