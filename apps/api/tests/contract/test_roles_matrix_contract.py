@@ -30,11 +30,12 @@ def _normalised_path(path: str) -> str:
 
 def _contract_roles() -> dict[tuple[str, str], str]:
     """Maps `(method, normalised path)` to its roles column, over every `### … contracts`
-    table."""
+    table. A column that narrows the role for some cases (`API-36`: "`*`; `A` for …") maps to
+    its leading symbol, the role of the route itself."""
     text = _INTERFACES.read_text()
     roles: dict[tuple[str, str], str] = {}
     for match in re.finditer(
-        r"^\|\s*`API-\d+`\s*\|\s*(GET|POST|PATCH|PUT|DELETE)\s*\|\s*`([^`]+)`\s*\|\s*`([-*A])`\s*\|",
+        r"^\|\s*`API-\d+`\s*\|\s*(GET|POST|PATCH|PUT|DELETE)\s*\|\s*`([^`]+)`\s*\|\s*`([-*A])`[^|]*\|",
         text,
         re.MULTILINE,
     ):

@@ -1,6 +1,7 @@
 """[Feedback effects](/architecture/rules.md#feedback-effects) (`S-EVL-01`, `S-EVL-02`), the
 api's half: writes `lead_feedback` or `finding_feedback`, the status and label side effects, the
-audit row, and enqueues the worker's rescore — all in one transaction
+audit row, and enqueues the worker's rescore — all in the request's one transaction, the one
+authentication opened on the session, committed here or rolled back on any error
 ([api Design](/architecture/services/api.md#design) Transactions). `API-46` and `API-47` call
 these; neither writes a score nor `RUN_REQUESTED` (G4: only `LEAD_FEEDBACK_GIVEN` or
 `FINDING_FEEDBACK_GIVEN`)."""
@@ -49,7 +50,7 @@ async def give_lead_feedback(
 ) -> LeadFeedbackResult:
     """`API-46`. Raises `ScoreNotFound` when the account has no current score for the service
     (D2 of [Feedback and alerts](/architecture/interfaces.md#feedback-and-alerts))."""
-    async with session.begin():
+    try:
         score_id = await current_score_id(session, account_id, service_id)
         if score_id is None:
             raise ScoreNotFound(f"No current score for account {account_id}, service {service_id}.")
@@ -91,6 +92,10 @@ async def give_lead_feedback(
             created_at=feedback.created_at,
             user_name=principal.display_name,
         )
+    except BaseException:
+        await session.rollback()
+        raise
+    await session.commit()
     return result
 
 
@@ -104,7 +109,7 @@ async def give_finding_feedback(
     now: datetime,
 ) -> FindingViewData:
     """`API-47`. Raises `FindingNotFound` when `finding_id` names no finding."""
-    async with session.begin():
+    try:
         finding = (
             await session.execute(select(Finding).where(Finding.id == finding_id).with_for_update())
         ).scalar_one_or_none()
@@ -200,4 +205,8 @@ async def give_finding_feedback(
                 verdict=verdict, user_name=principal.display_name, created_at=feedback.created_at
             ),
         )
+    except BaseException:
+        await session.rollback()
+        raise
+    await session.commit()
     return view

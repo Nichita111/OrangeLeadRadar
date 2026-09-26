@@ -217,7 +217,9 @@ async def test_lead_feedback_writes_the_audit_row_and_no_run_requested_row(
     run_requested_rows = (
         (
             await async_session.execute(
-                select(AuditEvent).where(AuditEvent.action == "RUN_REQUESTED")
+                select(AuditEvent).where(
+                    AuditEvent.action == "RUN_REQUESTED", AuditEvent.actor_id == user_id
+                )
             )
         )
         .scalars()
@@ -538,7 +540,10 @@ async def test_a_manual_label_is_left_untouched_but_the_status_and_run_still_hap
     runs = (
         (
             await async_session.execute(
-                select(PipelineRun).where(PipelineRun.kind == PipelineRunKind.RESCORE)
+                select(PipelineRun).where(
+                    PipelineRun.kind == PipelineRunKind.RESCORE,
+                    PipelineRun.account_id == ids["account_id"],
+                )
             )
         )
         .scalars()
