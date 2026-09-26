@@ -8,13 +8,17 @@ itself is async end to end, because Alembic's migration context is synchronous.
 
 from __future__ import annotations
 
+import importlib
+
 from sqlalchemy import create_engine, pool
 from sqlalchemy.engine import make_url
 
 from alembic import context
 from leadradar.api.settings import ApiSettings
 from leadradar.db.base import Base
-from leadradar.db.models import *  # noqa: F401,F403 - populates Base.metadata
+
+# Imported for its side effect: populates Base.metadata with every model.
+importlib.import_module("leadradar.db.models")
 
 config = context.config
 target_metadata = Base.metadata

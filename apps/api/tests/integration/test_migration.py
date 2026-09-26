@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import importlib
 import json
 import logging
 
@@ -11,14 +12,16 @@ from alembic.autogenerate import compare_metadata
 from alembic.config import Config
 from alembic.migration import MigrationContext
 from pydantic import SecretStr
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import create_engine, inspect, text
 
 from alembic import command
 from leadradar.api.main import _API_ROOT, apply_migrations
 from leadradar.api.settings import ApiSettings
 from leadradar.db.base import Base
-from leadradar.db.models import *  # noqa: F401,F403 - populates Base.metadata
 from leadradar.logs import configure_json_logging
+
+# Imported for its side effect: populates Base.metadata with every model.
+importlib.import_module("leadradar.db.models")
 
 pytestmark = pytest.mark.integration
 
@@ -52,12 +55,30 @@ def test_extensions_are_installed(database_url: str) -> None:
             names = {
                 row[0]
                 for row in connection.execute(
-                    __import__("sqlalchemy").text(
-                        "SELECT extname FROM pg_extension WHERE extname IN ('vector', 'citext')"
-                    )
+                    text("SELECT extname FROM pg_extension WHERE extname IN ('vector', 'citext')")
                 )
             }
         assert names == {"vector", "citext"}
+    finally:
+        engine.dispose()
+
+
+def test_every_timestamp_column_of_the_migrated_schema_is_with_time_zone(
+    database_url: str,
+) -> None:
+    """[SQL store](/architecture/sql-store.md) preamble and column types: every `created_at`,
+    `updated_at` and other `timestamptz` column is timezone-aware, never a naive
+    `timestamp without time zone`."""
+    engine = create_engine(database_url.replace("postgresql://", "postgresql+psycopg://"))
+    try:
+        with engine.connect() as connection:
+            naive = connection.execute(
+                text(
+                    "SELECT table_name || '.' || column_name FROM information_schema.columns "
+                    "WHERE table_schema = 'public' AND data_type = 'timestamp without time zone'"
+                )
+            ).all()
+        assert naive == []
     finally:
         engine.dispose()
 
@@ -71,15 +92,15 @@ def test_a_second_start_applies_no_further_migration(database_url: str) -> None:
     engine = create_engine(database_url.replace("postgresql://", "postgresql+psycopg://"))
     try:
         with engine.connect() as connection:
-            before = connection.execute(
-                __import__("sqlalchemy").text("SELECT version_num FROM alembic_version")
+            before: str = connection.execute(
+                text("SELECT version_num FROM alembic_version")
             ).scalar_one()
 
         command.upgrade(config, "head")
 
         with engine.connect() as connection:
-            after = connection.execute(
-                __import__("sqlalchemy").text("SELECT version_num FROM alembic_version")
+            after: str = connection.execute(
+                text("SELECT version_num FROM alembic_version")
             ).scalar_one()
 
         assert before == after == "0001"
@@ -90,7 +111,7 @@ def test_a_second_start_applies_no_further_migration(database_url: str) -> None:
 def test_a_migration_failure_from_an_unreachable_database_is_one_json_line_without_the_password(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    secret_password = "s3cret-password-should-never-appear"  # noqa: S105
+    secret_password = "s3cret-password-should-never-appear"
     settings = ApiSettings(
         database_url=SecretStr(f"postgresql://postgres:{secret_password}@127.0.0.1:1/nonexistent")
     )

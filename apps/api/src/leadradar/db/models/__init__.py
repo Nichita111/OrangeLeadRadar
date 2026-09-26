@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from leadradar.db.models import (  # noqa: F401
+from leadradar.db.models import (
     accounts,
     audit,
     configuration,

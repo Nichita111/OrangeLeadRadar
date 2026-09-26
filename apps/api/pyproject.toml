@@ -59,7 +59,7 @@ asyncio_mode = "auto"
 [tool.poe.tasks]
 format-check = "ruff format --check src tests"
 lint = "ruff check src tests"
-typecheck = "mypy src"
+typecheck = "mypy src tests"
 test-unit = "pytest -m unit --disable-socket --allow-unix-socket"
 test-integration = "pytest -m integration"
 test-contract = "pytest -m contract --disable-socket --allow-unix-socket"

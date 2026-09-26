@@ -17,6 +17,7 @@ from starlette.datastructures import MutableHeaders
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from leadradar.api.errors import envelope
 from leadradar.logs import request_id_var
 
 logger = logging.getLogger(__name__)
@@ -53,9 +54,7 @@ class RequestIdentityMiddleware:
             if not response_started:
                 response = JSONResponse(
                     status_code=500,
-                    content={
-                        "error": {"code": "INTERNAL", "message": "An unexpected error occurred."}
-                    },
+                    content=envelope("INTERNAL", "An unexpected error occurred."),
                     headers={"X-Request-Id": request_id},
                 )
                 await response(scope, receive, send)

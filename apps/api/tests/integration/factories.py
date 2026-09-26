@@ -11,7 +11,10 @@ from sqlalchemy import Connection, insert
 
 from leadradar.core.enums import (
     AccountOrigin,
+    AccountScoreBand,
+    AccountScoreStanding,
     AccountStatus,
+    AlertKind,
     AppUserRole,
     AppUserStatus,
     ClassificationStatus,
@@ -21,8 +24,11 @@ from leadradar.core.enums import (
     DocumentTriageOutcome,
     EvaluationItemOrigin,
     EvaluationItemStatus,
+    FindingDecidedBy,
+    FindingStatus,
     FindingStrength,
     IndustryStatus,
+    MarketStatus,
     PipelineRunKind,
     PipelineRunStatus,
     PipelineRunTrigger,
@@ -34,11 +40,24 @@ from leadradar.core.enums import (
     SourcePluginCode,
 )
 from leadradar.db.models.accounts import Account
-from leadradar.db.models.configuration import Industry, ScoringConfig, Service, SignalQuestion
-from leadradar.db.models.feedback import EvaluationItem
+from leadradar.db.models.configuration import (
+    Industry,
+    Market,
+    ScoringConfig,
+    Service,
+    SignalQuestion,
+)
+from leadradar.db.models.feedback import EvaluationItem, EvaluationResult
 from leadradar.db.models.identity import AppUser
-from leadradar.db.models.ingestion import Chunk, Document, PipelineRun
-from leadradar.db.models.signals import Classification, DisqualifierOverride, DocumentTriage
+from leadradar.db.models.ingestion import Chunk, Document, PipelineRun, SourcePlugin
+from leadradar.db.models.signals import (
+    AccountScore,
+    Alert,
+    Classification,
+    DisqualifierOverride,
+    DocumentTriage,
+    Finding,
+)
 
 NOW = datetime.now(tz=UTC)
 
@@ -66,7 +85,7 @@ def make_app_user(connection: Connection, **overrides: Any) -> uuid.UUID:
 
 
 def make_industry(connection: Connection, **overrides: Any) -> str:
-    code = overrides.pop("code", f"IND_{uuid.uuid4().hex[:8].upper()}")
+    code: str = overrides.pop("code", f"IND_{uuid.uuid4().hex[:8].upper()}")
     values = {
         "code": code,
         "label": overrides.pop("label", f"Label {code}"),
@@ -127,7 +146,7 @@ def make_scoring_config(
 
 
 def make_account(connection: Connection, **overrides: Any) -> uuid.UUID:
-    values = {
+    values: dict[str, Any] = {
         "domain": f"{uuid.uuid4().hex[:12]}.example.com",
         "name": "Example Corp",
         "country_code": "DE",
@@ -150,7 +169,7 @@ def make_account(connection: Connection, **overrides: Any) -> uuid.UUID:
 
 
 def make_pipeline_run(connection: Connection, **overrides: Any) -> uuid.UUID:
-    values = {
+    values: dict[str, Any] = {
         "kind": PipelineRunKind.ACCOUNT_REFRESH,
         "trigger": PipelineRunTrigger.USER,
         "account_id": None,
@@ -260,6 +279,121 @@ def make_evaluation_item(
     }
     values.update(overrides)
     return _insert(connection, EvaluationItem.__table__, **values)
+
+
+def make_market(connection: Connection, **overrides: Any) -> uuid.UUID:
+    unique = uuid.uuid4().hex[:8].upper()
+    values = {
+        "code": f"MARKET_{unique}",
+        "name": f"Market {unique}",
+        "country_codes": ["DE"],
+        "status": MarketStatus.ACTIVE,
+    }
+    values.update(overrides)
+    return _insert(connection, Market.__table__, **values)
+
+
+def make_source_plugin(connection: Connection, **overrides: Any) -> uuid.UUID:
+    values = {
+        "code": SourcePluginCode.GDELT,
+        "enabled": True,
+        "rate_limit_per_minute": 60,
+        "daily_quota": None,
+        "last_success_at": None,
+        "last_error": None,
+        "last_error_at": None,
+    }
+    values.update(overrides)
+    return _insert(connection, SourcePlugin.__table__, **values)
+
+
+def make_finding(
+    connection: Connection,
+    account_id: uuid.UUID,
+    question_id: uuid.UUID,
+    classification_id: uuid.UUID,
+    chunk_id: uuid.UUID,
+    **overrides: Any,
+) -> uuid.UUID:
+    values = {
+        "account_id": account_id,
+        "question_id": question_id,
+        "question_revision": 1,
+        "classification_id": classification_id,
+        "chunk_id": chunk_id,
+        "strength": FindingStrength.WEAK,
+        "confidence": 0.5,
+        "decided_by": FindingDecidedBy.CLASSIFIER,
+        "option_key": None,
+        "quote": "a quote",
+        "quote_en": None,
+        "rationale": "a rationale",
+        "observed_at": NOW,
+        "status": FindingStatus.ACTIVE,
+    }
+    values.update(overrides)
+    return _insert(connection, Finding.__table__, **values)
+
+
+def make_account_score(
+    connection: Connection,
+    account_id: uuid.UUID,
+    service_id: uuid.UUID,
+    scoring_config_id: uuid.UUID,
+    run_id: uuid.UUID,
+    **overrides: Any,
+) -> uuid.UUID:
+    values = {
+        "account_id": account_id,
+        "service_id": service_id,
+        "scoring_config_id": scoring_config_id,
+        "run_id": run_id,
+        "as_of": NOW,
+        "fit": 50,
+        "intent": 50,
+        "priority": 50,
+        "standing": AccountScoreStanding.RANKED,
+        "band": AccountScoreBand.WARM,
+        "breakdown": {},
+        "is_current": False,
+    }
+    values.update(overrides)
+    return _insert(connection, AccountScore.__table__, **values)
+
+
+def make_alert(
+    connection: Connection, account_id: uuid.UUID, service_id: uuid.UUID, **overrides: Any
+) -> uuid.UUID:
+    values = {
+        "account_id": account_id,
+        "service_id": service_id,
+        "kind": AlertKind.STRONG_SIGNAL,
+        "finding_id": None,
+        "score_id": None,
+        "acknowledged_by": None,
+        "acknowledged_at": None,
+    }
+    values.update(overrides)
+    return _insert(connection, Alert.__table__, **values)
+
+
+def make_evaluation_result(
+    connection: Connection, run_id: uuid.UUID, **overrides: Any
+) -> uuid.UUID:
+    values = {
+        "run_id": run_id,
+        "classifier": DocumentTriageClassifier.LLM,
+        "escalation_lower": 0.35,
+        "escalation_upper": 0.65,
+        "min_precision": 0.8,
+        "min_items": 200,
+        "escalation_rate_target": 0.15,
+        "items": 0,
+        "metrics": {},
+        "passed": False,
+    }
+    values.update(overrides)
+    return _insert(connection, EvaluationResult.__table__, **values)
 
 
 def make_disqualifier_override(
