@@ -89,8 +89,8 @@ WF-12 — Prospects
 │ # Account         Band  Priority Fit Intent    │ DHL Group             [Hot]  │
 │ 1 DHL Group       Hot   78       88  72        │ Priority 78                  │
 │   selected row, top two signals shown          │ Fit 88, how well it matches  │
-│ 2 Lufthansa Group Warm  60       94  38        │ Intent 72, recent signals    │
-│ 3 Kuehne+Nagel    Warm  55       80  35        │ Strongest signals            │
+│ 2 Lufthansa Group Warm  58       88  38        │ Intent 72, recent signals    │
+│ 3 Kuehne+Nagel    Warm  53       81  35        │ Strongest signals            │
 │                                                │ + AI projects, Strong, 3 wk  │
 │ Hot: Priority 70 or more. Warm: 40 to 69.      │ + Cost programme, Clear      │
 │ Cold: below 40.                                │ [ Open full explanation ] [x]│

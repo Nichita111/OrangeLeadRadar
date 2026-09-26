@@ -1,5 +1,9 @@
 # Update Log
 
+## 2026-09-26
+
+* **Update**: Fixes before merging: the Prospects drawer shows the demo scores of the list (Lufthansa Group 58, Kuehne+Nagel 53), the seeded [industries](/architecture/overview.md#demo-dataset) carry short labels, and a draft that names a retired industry says so and must drop it before saving (`FR-030`, `FL-22`).
+
 ## 2026-09-25
 
 * **Update**: The configurable-scope decisions are [ADR-18](/architecture/adrs/adr-18-industries-and-markets-as-configuration.md) and [ADR-19](/architecture/adrs/adr-19-source-provider-terms-and-limits.md), the Industries and markets screen is `FR-154` to `FR-156` with `WF-26`, and the Impact panel is `FR-157`, renumbered when merging `main`, where `ADR-17`, `FR-101` to `FR-153` and `WF-24` to `WF-25` were already taken.

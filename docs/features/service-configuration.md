@@ -53,7 +53,7 @@ sequenceDiagram
 
 1. The Admin opens [Industries and markets](#industries-and-markets) and adds an industry with its code and label (`API-72`), or a market with its code, name and countries (`API-75`).
 2. The new industry is offered wherever an account's industry is set and in the ICP editor; the new market is offered as a shortcut in the ICP editor, where choosing it adds its countries to a `GEOGRAPHY` criterion.
-3. Renaming changes only the label. Retiring an industry or market removes it from pickers and validation; accounts that have a retired industry keep it, and saved scoring versions are unchanged (`API-73`, `API-76`).
+3. Renaming changes only the label. Retiring an industry or market removes it from pickers and validation; accounts that have a retired industry keep it, and saved scoring versions are unchanged (`API-73`, `API-76`); the next draft drops a retired industry before it is saved.
 
 ## Reading order
 
@@ -187,7 +187,7 @@ WF-05 — Scoring settings
 |---|---|
 | `FR-028` | The screen shall edit the service's draft, creating it from the active version on the first change, and show which version is active and whether the draft has unsaved changes. |
 | `FR-029` | Balance shall set `fit_weight` with `intent_weight` shown as its complement; Lines shall set `min_fit`, `warm_threshold` and `hot_threshold`. |
-| `FR-030` | ICP shall list the criteria and add or edit one with key, kind, the operand the kind takes (active industries from [Industries and markets](#industries-and-markets); countries, with the active markets as shortcuts that expand to their country codes; ranges; complexity levels) and weight level. |
+| `FR-030` | ICP shall list the criteria and add or edit one with key, kind, the operand the kind takes (active industries from [Industries and markets](#industries-and-markets); countries, with the active markets as shortcuts that expand to their country codes; ranges; complexity levels) and weight level. A criterion that names an industry retired since the active version was saved shall show it marked Retired and say that the draft cannot be saved until it is removed ([Scoring settings validation](/architecture/rules.md#scoring-settings-validation)). |
 | `FR-031` | Signals shall list every active question with its polarity, a weight level select and an optional half-life in days whose placeholder shows the source-type defaults. |
 | `FR-032` | Exclusions shall list the disqualifiers and add or edit one with key, label, kind and its operand (a criterion, or a question and minimum strength). |
 | `FR-033` | Advanced, collapsed by default, shall edit `weight_values`, `strength_values`, `default_half_life_days`, `min_decay`, `negative_factor`, `intent_saturation` and `unknown_match`, each with a one-line explanation. |
@@ -213,9 +213,9 @@ Route `/settings/industries-markets`. Admin only.
 ├──────────────────────────────────────────────────────────────────────────────┤
 │ Industries                                                 [ New industry ]  │
 │ Code                   Label                              Status   Accounts │
-│ LOGISTICS_TRANSPORT    Logistics, freight and transport   Active         4  │
+│ LOGISTICS_TRANSPORT    Logistics and transport            Active         4  │
 │ SHIPPING               Shipping and ports                 Active         0  │
-│ TELECOM_MEDIA          Telecommunications and media       Retired        1  │
+│ TELECOM_MEDIA          Telecom and media                  Retired        1  │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │ Markets                                                      [ New market ]  │
 │ Code      Name        Countries                                    Status   │

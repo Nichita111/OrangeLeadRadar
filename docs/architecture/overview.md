@@ -152,24 +152,24 @@ The seed is the acceptance tests' concrete data and the demo's walk-through. Its
 
 **Users.** `admin@leadradar.local` with role `ADMIN` and `sales@leadradar.local` with role `SALES`; passwords from `SEED_ADMIN_PASSWORD` and `SEED_SALES_PASSWORD`.
 
-**Industries.** Seeded as `ACTIVE` [`industry`](/architecture/sql-store.md#industry) rows; an Admin adds, renames and retires them afterwards.
+**Industries.** Seeded as `ACTIVE` [`industry`](/architecture/sql-store.md#industry) rows; an Admin adds, renames and retires them afterwards. A label is the short name every screen shows.
 
 | Code | Label |
 |---|---|
-| `AEROSPACE_AVIATION` | Airlines, airports, aircraft and aviation services |
-| `AUTOMOTIVE` | Vehicle makers and automotive suppliers |
-| `BANKING` | Banks and payment institutions |
-| `INSURANCE` | Insurers and reinsurers |
-| `LOGISTICS_TRANSPORT` | Logistics, freight, postal and transport operators |
-| `MANUFACTURING` | Industrial manufacturing other than automotive |
-| `ENERGY_UTILITIES` | Energy producers, utilities and grid operators |
-| `TELECOM_MEDIA` | Telecommunications and media |
+| `AEROSPACE_AVIATION` | Aviation and aerospace |
+| `AUTOMOTIVE` | Automotive |
+| `BANKING` | Banking |
+| `INSURANCE` | Insurance |
+| `LOGISTICS_TRANSPORT` | Logistics and transport |
+| `MANUFACTURING` | Manufacturing |
+| `ENERGY_UTILITIES` | Energy and utilities |
+| `TELECOM_MEDIA` | Telecom and media |
 | `RETAIL_CONSUMER` | Retail and consumer goods |
-| `HEALTHCARE_PHARMA` | Healthcare providers, pharmaceuticals and life sciences |
-| `PUBLIC_SECTOR` | Government and public administration |
-| `TECHNOLOGY` | Software and IT companies |
-| `PROFESSIONAL_SERVICES` | Consulting, legal, accounting and business services |
-| `OTHER` | Any other industry |
+| `HEALTHCARE_PHARMA` | Healthcare and pharma |
+| `PUBLIC_SECTOR` | Public sector |
+| `TECHNOLOGY` | Technology |
+| `PROFESSIONAL_SERVICES` | Professional services |
+| `OTHER` | Other |
 
 **Markets.** Seeded as `ACTIVE` [`market`](/architecture/sql-store.md#market) rows.
 
