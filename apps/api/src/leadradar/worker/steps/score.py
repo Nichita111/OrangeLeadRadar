@@ -75,9 +75,7 @@ async def run_score_step(
 
     # Update run stage
     await session.execute(
-        update(PipelineRun)
-        .where(PipelineRun.id == run.id)
-        .values(stage=PipelineRunStage.SCORE)
+        update(PipelineRun).where(PipelineRun.id == run.id).values(stage=PipelineRunStage.SCORE)
     )
 
     accounts = await _load_active_accounts(session, service_id)
@@ -165,9 +163,7 @@ async def run_score_step(
     )
 
 
-async def _load_active_config(
-    session: AsyncSession, service_id: uuid.UUID
-) -> ScoringConfig | None:
+async def _load_active_config(session: AsyncSession, service_id: uuid.UUID) -> ScoringConfig | None:
     stmt = select(ScoringConfig).where(
         ScoringConfig.service_id == service_id,
         ScoringConfig.status == ScoringConfigStatus.ACTIVE,
@@ -208,9 +204,7 @@ async def _load_question_polarity(
     return result_list
 
 
-async def _load_active_accounts(
-    session: AsyncSession, service_id: uuid.UUID
-) -> list[Account]:
+async def _load_active_accounts(session: AsyncSession, service_id: uuid.UUID) -> list[Account]:
     """Load all ACTIVE accounts. (For RESCORE, service_id scoping is via the scoring config.)"""
     stmt = select(Account).where(Account.status == AccountStatus.ACTIVE)
     result = await session.execute(stmt)
@@ -293,10 +287,7 @@ async def _load_active_overrides(
         DisqualifierOverride.status == DisqualifierOverrideStatus.ACTIVE,
     )
     result = await session.execute(stmt)
-    return [
-        {"id": str(row.id), "rule_key": row.rule_key}
-        for row in result.scalars().all()
-    ]
+    return [{"id": str(row.id), "rule_key": row.rule_key} for row in result.scalars().all()]
 
 
 def _account_to_attributes(account: Account) -> dict[str, object]:

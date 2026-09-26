@@ -5,6 +5,7 @@ Pure function; no I/O.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -37,7 +38,7 @@ def alerts(
     new_band: AccountScoreBand | None,
     previous_band: AccountScoreBand | None,
     new_findings: list[dict[str, object]],
-    active_settings: dict[str, object],
+    active_settings: Mapping[str, object],
     alert_max_age_days: int,
     as_of: datetime,
     account_id: str,

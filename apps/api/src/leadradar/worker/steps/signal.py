@@ -806,6 +806,7 @@ async def run_signal_job(
     run: PipelineRun,
     worker_instance_id: str,
     alert_max_age_days: int,
+    settings: WorkerSettings,
 ) -> None:
     """Adapter that wires a SIGNAL ``Job`` into the generic job-loop handler protocol.
 
@@ -819,7 +820,7 @@ async def run_signal_job(
       ACTIVE services are used.
     - ``question_id``: single question id string for RECLASSIFY runs.
     """
-    cfg = WorkerSettings()
+    cfg = settings
 
     account_id = run.account_id
     if account_id is None:
@@ -940,7 +941,7 @@ async def run_signal_job(
         passages=passages,
         questions=questions,
         fixture_mode=cfg.fixture_mode,
-        fixture_dir=cfg.fixture_dir,
+        fixture_dir=str(cfg.fixture_dir),
         triage_chars=cfg.triage_chars,
         triage_about_min_p=cfg.triage_about_min_p,
         triage_relevance_min_p=cfg.triage_relevance_min_p,

@@ -10,6 +10,8 @@ Covers:
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 
 from leadradar.core.signal.evidence import validate_quote
@@ -31,7 +33,7 @@ RATIONALE = (
 
 
 def _valid(**overrides: object) -> bool:
-    kwargs = dict(
+    kwargs: dict[str, Any] = dict(
         quote=QUOTE,
         passage=PASSAGE,
         lang="en",
@@ -41,8 +43,8 @@ def _valid(**overrides: object) -> bool:
         evidence_max_quote_chars=MAX_Q,
         evidence_max_rationale_chars=MAX_R,
     )
-    kwargs.update(overrides)  # type: ignore[arg-type]
-    return validate_quote(**kwargs).valid  # type: ignore[arg-type]
+    kwargs.update(overrides)
+    return validate_quote(**kwargs).valid
 
 
 class TestSubstringCheck:

@@ -60,6 +60,11 @@ const LABELS: Record<string, string> = {
   LLM: "Detailed check",
 };
 
+/** Screen label of a `FindingStrength`; `MEDIUM` reads "Clear" here, though it is a weight level elsewhere. */
+export function strengthLabel(value: string): string {
+  return value === "MEDIUM" ? "Clear" : enumLabel(value);
+}
+
 /** FR-011: the screen label of an enum value, otherwise the value in sentence case. */
 export function enumLabel(value: string): string {
   const label = LABELS[value];

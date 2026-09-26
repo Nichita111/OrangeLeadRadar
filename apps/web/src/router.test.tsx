@@ -6,6 +6,7 @@ import {
   anaSales,
   authenticatedUser,
   errorEnvelope,
+  errorResponse,
   olgaAdmin,
 } from "./api/authenticationAndUsers.fixtures";
 import { anonymous, renderApp, signedInAs } from "./testRender";
@@ -35,10 +36,10 @@ describe("routes and guards (FR-006, FR-159, DC-3, DC-4)", () => {
     expect(requested).toBe(0);
   });
 
-  it("/ goes to /prospects, which shows Not found until its task lands", async () => {
+  it("/ goes to /prospects", async () => {
     signedInAs(anaSales);
     const { router } = renderApp("/");
-    expect(await screen.findByRole("heading", { name: "Page not found" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Prospects" })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe("/prospects");
   });
 
@@ -63,6 +64,7 @@ describe("routes and guards (FR-006, FR-159, DC-3, DC-4)", () => {
     await waitFor(() => {
       expect(router.state.location.pathname).toBe("/prospects");
     });
+    await router.navigate("/nope");
     const notFoundLink = await screen.findByRole("link", { name: "Go to Prospects" });
     notFoundLink.focus();
     expect(notFoundLink).toHaveFocus();
@@ -75,16 +77,12 @@ describe("routes and guards (FR-006, FR-159, DC-3, DC-4)", () => {
       http.get("/api/v1/auth/me", ({ response }) => {
         meCalls += 1;
         return expired
-          ? response("default").json(errorEnvelope("UNAUTHENTICATED", "Sign in to continue."), {
-              status: 401,
-            })
+          ? errorResponse(errorEnvelope("UNAUTHENTICATED", "Sign in to continue."), 401)
           : response(200).json(authenticatedUser(olgaAdmin));
       }),
-      http.get("/api/v1/users", ({ response }) => {
+      http.get("/api/v1/users", () => {
         expired = true;
-        return response("default").json(errorEnvelope("UNAUTHENTICATED", "Sign in to continue."), {
-          status: 401,
-        });
+        return errorResponse(errorEnvelope("UNAUTHENTICATED", "Sign in to continue."), 401);
       }),
     );
     const { router } = renderApp("/users");
@@ -99,10 +97,8 @@ describe("routes and guards (FR-006, FR-159, DC-3, DC-4)", () => {
   it("a 403 from a guarded call renders Not allowed naming Admin", async () => {
     signedInAs(olgaAdmin);
     server.use(
-      http.get("/api/v1/users", ({ response }) =>
-        response("default").json(errorEnvelope("FORBIDDEN", "The role does not allow it."), {
-          status: 403,
-        }),
+      http.get("/api/v1/users", () =>
+        errorResponse(errorEnvelope("FORBIDDEN", "The role does not allow it."), 403),
       ),
     );
     renderApp("/users");
@@ -112,10 +108,8 @@ describe("routes and guards (FR-006, FR-159, DC-3, DC-4)", () => {
 
   it("any other error of the session check renders the error state with Retry", async () => {
     server.use(
-      http.get("/api/v1/auth/me", ({ response }) =>
-        response("default").json(errorEnvelope("INTERNAL", "Something went wrong on our side."), {
-          status: 500,
-        }),
+      http.get("/api/v1/auth/me", () =>
+        errorResponse(errorEnvelope("INTERNAL", "Something went wrong on our side."), 500),
       ),
     );
     renderApp("/users");

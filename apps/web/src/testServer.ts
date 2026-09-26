@@ -7,4 +7,7 @@ import type { paths } from "./api/contract";
 export const http = createOpenApiHttp<paths>({ baseUrl: window.location.origin });
 
 /** The in-process MSW server of the tests; each test arranges its own responses. */
-export const server = setupServer();
+export const server = setupServer(
+  // The shell reads the services for its selector on every signed-in screen.
+  http.get("/api/v1/services", ({ response }) => response(200).json([])),
+);

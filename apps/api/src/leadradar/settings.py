@@ -9,33 +9,34 @@ package) because a capability package (`audit`) also needs it: `api` importing `
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Literal
-
 from pydantic import SecretStr
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import SettingsConfigDict
 
-FixtureMode = Literal["off", "record", "replay"]
+from leadradar.ai.settings import AiGatewaySettings
 
 
-class ApiSettings(BaseSettings):
-    """The api process's configuration."""
+class ApiSettings(AiGatewaySettings):
+    """The api process's configuration; fixture mode, `CLOCK_FILE` and the AI gateway's keys
+    come from `AiGatewaySettings`."""
 
     model_config = SettingsConfigDict(extra="ignore")
 
     database_url: SecretStr
+    migration_database_url: SecretStr
     log_level: str = "INFO"
     health_timeout_ms: int = 2000
 
-    embedder_url: str = "http://embedder:80"
-    embedding_dim: int = 1024
-
-    fixture_mode: FixtureMode = "off"
-    fixture_dir: Path = Path("./fixtures")
-    clock_file: Path | None = None
-
-    openrouter_api_key: SecretStr | None = None
-    openrouter_base_url: str = "https://openrouter.ai/api/v1"
-
     impact_period_days: int = 30
     manual_research_minutes_per_account: int = 120
+    session_ttl_hours: int = 12
+    login_max_failures: int = 5
+    login_lock_minutes: int = 15
+    password_min_length: int = 12
+
+    page_size_default: int = 50
+    page_size_max: int = 200
+    crunchbase_api_key: SecretStr | None = None
+    newsapi_key: SecretStr | None = None
+    serpapi_key: SecretStr | None = None
+    import_max_rows: int = 2000
+    audit_default_range_days: int = 30

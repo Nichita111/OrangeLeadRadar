@@ -11,13 +11,17 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from leadradar.api.authentication import require_admin
 from leadradar.api.errors import envelope
 from leadradar.core.enums import ScoringConfigStatus
+from leadradar.db.models.identity import AppUser
 from leadradar.db.session import get_session
 from leadradar.scoring.activate import activate_scoring_config
 from leadradar.scoring.errors import NotADraft, ScoringConfigNotFound
@@ -54,42 +58,6 @@ class ScoringConfig(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Dependencies
-# ---------------------------------------------------------------------------
-
-
-async def _require_admin(request: Request) -> uuid.UUID:
-    """Dependency: require an authenticated Admin user.
-
-    Authentication and session are out of scope for this task; this dependency
-    reads the `X-Actor-Id` and `X-Actor-Role` headers that the auth middleware
-    will eventually inject, so the contract tests can stub them.
-
-    Returns the actor's UUID; raises `401` / `403` for missing auth or wrong role.
-    """
-    actor_id_hdr = request.headers.get("X-Actor-Id")
-    actor_role_hdr = request.headers.get("X-Actor-Role", "")
-
-    if not actor_id_hdr:
-        raise HTTPException(
-            status_code=401,
-            detail=envelope("UNAUTHENTICATED", "Authentication required."),
-        )
-    if actor_role_hdr.upper() != "ADMIN":
-        raise HTTPException(
-            status_code=403,
-            detail=envelope("FORBIDDEN", "Admin role required."),
-        )
-    try:
-        return uuid.UUID(actor_id_hdr)
-    except ValueError as err:
-        raise HTTPException(
-            status_code=403,
-            detail=envelope("FORBIDDEN", "Invalid actor id."),
-        ) from err
-
-
-# ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
 
@@ -102,7 +70,8 @@ async def activate_scoring_config_route(
     config_id: uuid.UUID,
     body: ActivationRequest,
     request: Request,
-    actor_id: uuid.UUID = Depends(_require_admin),
+    admin: Annotated[AppUser, Depends(require_admin)],
+    session: Annotated[AsyncSession, Depends(get_session)],
 ) -> JSONResponse:
     """[`API-18`](/architecture/interfaces.md#scoring): Admin only.
 
@@ -115,29 +84,28 @@ async def activate_scoring_config_route(
         request.state.request_id if hasattr(request.state, "request_id") else None
     )
 
-    async with get_session(request.app.state.engine) as session, session.begin():
-        try:
-            result = await activate_scoring_config(
-                session,
-                config_id=config_id,
-                actor_id=actor_id,
-                change_note=body.change_note,
-                request_id=request_id,
-            )
-        except ScoringConfigNotFound:
-            return JSONResponse(
-                status_code=404,
-                content=envelope("NOT_FOUND", "Scoring config not found."),
-            )
-        except NotADraft as exc:
-            status_msg = exc.status
-            return JSONResponse(
-                status_code=409,
-                content=envelope(
-                    "CONFLICT",
-                    f"Only a DRAFT config can be activated; current: {status_msg!r}.",
-                ),
-            )
+    try:
+        result = await activate_scoring_config(
+            session,
+            config_id=config_id,
+            actor_id=admin.id,
+            change_note=body.change_note,
+            request_id=request_id,
+        )
+    except ScoringConfigNotFound:
+        return JSONResponse(
+            status_code=404,
+            content=envelope("NOT_FOUND", "Scoring config not found."),
+        )
+    except NotADraft as exc:
+        return JSONResponse(
+            status_code=409,
+            content=envelope(
+                "CONFLICT",
+                f"Only a DRAFT config can be activated; current: {exc.status!r}.",
+            ),
+        )
+    await session.commit()
 
     activated_at_str: str | None = None
     if result.activated_at is not None:

@@ -8,6 +8,7 @@ no I/O.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from enum import StrEnum
 
 
@@ -399,10 +400,11 @@ class AuditEventKind(StrEnum):
     AI_CALL = "AI_CALL"
 
 
-class AuditEventAction(StrEnum):
-    """`audit_event.action`; the closed vocabulary of [Audit actions]
-    (/architecture/sql-store.md#audit-actions). The column itself stays `text`: this class names
-    the values one place has to agree on, not a database type."""
+class AuditAction(StrEnum):
+    """`audit_event.action`, the closed vocabulary of
+    [Audit actions](/architecture/sql-store.md#audit-actions) in full: the store closes it and
+    every capability that appends an audit row (this task's sign-in and user changes, and every
+    later task) writes from this one set."""
 
     LOGIN_SUCCEEDED = "LOGIN_SUCCEEDED"
     LOGIN_FAILED = "LOGIN_FAILED"
@@ -441,3 +443,74 @@ class AuditEventAction(StrEnum):
     DRAFT_EXPORTED = "DRAFT_EXPORTED"
     CRM_PUSHED = "CRM_PUSHED"
     AI_CALL = "AI_CALL"
+
+
+AUDIT_ACTION_KIND: Mapping[AuditAction, AuditEventKind] = {
+    AuditAction.LOGIN_SUCCEEDED: AuditEventKind.AUTH,
+    AuditAction.LOGIN_FAILED: AuditEventKind.AUTH,
+    AuditAction.LOGOUT: AuditEventKind.AUTH,
+    AuditAction.USER_CREATED: AuditEventKind.USER,
+    AuditAction.USER_UPDATED: AuditEventKind.USER,
+    AuditAction.SERVICE_CREATED: AuditEventKind.CONFIG,
+    AuditAction.SERVICE_UPDATED: AuditEventKind.CONFIG,
+    AuditAction.INDUSTRY_CREATED: AuditEventKind.CONFIG,
+    AuditAction.INDUSTRY_UPDATED: AuditEventKind.CONFIG,
+    AuditAction.MARKET_CREATED: AuditEventKind.CONFIG,
+    AuditAction.MARKET_UPDATED: AuditEventKind.CONFIG,
+    AuditAction.QUESTION_CREATED: AuditEventKind.CONFIG,
+    AuditAction.QUESTION_UPDATED: AuditEventKind.CONFIG,
+    AuditAction.SCORING_DRAFT_SAVED: AuditEventKind.CONFIG,
+    AuditAction.SCORING_ACTIVATED: AuditEventKind.CONFIG,
+    AuditAction.PLUGIN_UPDATED: AuditEventKind.CONFIG,
+    AuditAction.ACCOUNT_CREATED: AuditEventKind.ACCOUNT,
+    AuditAction.ACCOUNT_UPDATED: AuditEventKind.ACCOUNT,
+    AuditAction.ACCOUNTS_IMPORTED: AuditEventKind.ACCOUNT,
+    AuditAction.CANDIDATE_ACCEPTED: AuditEventKind.ACCOUNT,
+    AuditAction.CANDIDATE_REJECTED: AuditEventKind.ACCOUNT,
+    AuditAction.CONTACT_CREATED: AuditEventKind.CONTACT,
+    AuditAction.CONTACT_UPDATED: AuditEventKind.CONTACT,
+    AuditAction.CONTACT_ERASED: AuditEventKind.CONTACT,
+    AuditAction.RUN_REQUESTED: AuditEventKind.RUN,
+    AuditAction.RUN_FINISHED: AuditEventKind.RUN,
+    AuditAction.RUN_CANCELLED: AuditEventKind.RUN,
+    AuditAction.OVERRIDE_CREATED: AuditEventKind.OVERRIDE,
+    AuditAction.OVERRIDE_REVOKED: AuditEventKind.OVERRIDE,
+    AuditAction.LEAD_FEEDBACK_GIVEN: AuditEventKind.FEEDBACK,
+    AuditAction.FINDING_FEEDBACK_GIVEN: AuditEventKind.FEEDBACK,
+    AuditAction.ITEM_LABELLED: AuditEventKind.FEEDBACK,
+    AuditAction.DRAFT_CREATED: AuditEventKind.OUTREACH,
+    AuditAction.DRAFT_UPDATED: AuditEventKind.OUTREACH,
+    AuditAction.DRAFT_EXPORTED: AuditEventKind.OUTREACH,
+    AuditAction.CRM_PUSHED: AuditEventKind.CRM,
+    AuditAction.AI_CALL: AuditEventKind.AI_CALL,
+}
+
+
+class AiRole(StrEnum):
+    """`ai_role` of the AI call payload of [Audit actions]
+    (/architecture/sql-store.md#audit-actions): a role of [AI roles and boundaries]
+    (/architecture/overview.md#ai-roles-and-boundaries)."""
+
+    CLASSIFIER = "CLASSIFIER"
+    ESCALATION = "ESCALATION"
+    EVIDENCE = "EVIDENCE"
+    DISCOVERY_EXTRACTION = "DISCOVERY_EXTRACTION"
+    OUTREACH = "OUTREACH"
+
+
+class AiCallProvider(StrEnum):
+    """`provider` of the AI call payload of [Audit actions]
+    (/architecture/sql-store.md#audit-actions)."""
+
+    JEV = "JEV"
+    OPENROUTER = "OPENROUTER"
+
+
+class AiCallOutcome(StrEnum):
+    """`outcome` of the AI call payload of [Audit actions]
+    (/architecture/sql-store.md#audit-actions)."""
+
+    OK = "OK"
+    TIMEOUT = "TIMEOUT"
+    ERROR = "ERROR"
+    INVALID_OUTPUT = "INVALID_OUTPUT"

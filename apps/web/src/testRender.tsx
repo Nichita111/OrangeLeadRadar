@@ -1,7 +1,12 @@
 import { render } from "@testing-library/react";
 import { createMemoryRouter } from "react-router";
 
-import { anaSales, authenticatedUser, errorEnvelope } from "./api/authenticationAndUsers.fixtures";
+import {
+  anaSales,
+  authenticatedUser,
+  errorEnvelope,
+  errorResponse,
+} from "./api/authenticationAndUsers.fixtures";
 import type { Schemas } from "./api/contract";
 import { App } from "./App";
 import type { Config } from "./config";
@@ -27,10 +32,8 @@ export function signedInAs(user: Schemas["User"] = anaSales): void {
 /** Arranges `API-03` to answer `401`, as it does for a visitor with no session. */
 export function anonymous(): void {
   server.use(
-    http.get("/api/v1/auth/me", ({ response }) =>
-      response("default").json(errorEnvelope("UNAUTHENTICATED", "Sign in to continue."), {
-        status: 401,
-      }),
+    http.get("/api/v1/auth/me", () =>
+      errorResponse(errorEnvelope("UNAUTHENTICATED", "Sign in to continue."), 401),
     ),
   );
 }

@@ -5,6 +5,7 @@ Pure function; no I/O.
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from typing import cast
@@ -25,10 +26,10 @@ class DisqEntry:
 
 
 def disqualify(
-    disqualifiers: list[dict[str, object]],
+    disqualifiers: Sequence[Mapping[str, object]],
     attributes: dict[str, object],
     findings: list[dict[str, object]],
-    active_overrides: list[dict[str, object]],
+    active_overrides: Sequence[Mapping[str, object]],
     min_decay: float,
     strength_values: dict[str, float],
     default_half_life_days: dict[str, int],

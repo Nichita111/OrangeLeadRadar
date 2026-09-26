@@ -13,11 +13,11 @@ if (container === null) {
 const root = createRoot(container);
 
 async function boot(): Promise<void> {
-  // The development mock of the pending contracts API-01 to API-06; the production build drops this
+  // The development mock of the pending Prospects contracts (API-39 to API-45); the production build drops this
   // block. It is deleted with src/api/pending/ when the api declares those paths.
   if (import.meta.env.DEV) {
     const { startDevMock } = await import("./api/pending/devServer");
-    await startDevMock(import.meta.env);
+    await startDevMock();
   }
   const config = await loadConfig();
   root.render(

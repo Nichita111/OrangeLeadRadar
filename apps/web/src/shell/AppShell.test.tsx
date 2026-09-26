@@ -2,7 +2,12 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
-import { anaSales, errorEnvelope, olgaAdmin } from "../api/authenticationAndUsers.fixtures";
+import {
+  anaSales,
+  errorEnvelope,
+  errorResponse,
+  olgaAdmin,
+} from "../api/authenticationAndUsers.fixtures";
 import { anonymous, renderApp, signedInAs } from "../testRender";
 import { http, server } from "../testServer";
 
@@ -85,9 +90,7 @@ describe("user card (FR-004)", () => {
               display_name: anaSales.display_name,
               role: anaSales.role,
             })
-          : response("default").json(errorEnvelope("UNAUTHENTICATED", "Sign in to continue."), {
-              status: 401,
-            }),
+          : errorResponse(errorEnvelope("UNAUTHENTICATED", "Sign in to continue."), 401),
       ),
       http.post("/api/v1/auth/logout", ({ request, response }) => {
         expect(request.headers.get("X-Requested-With")).toBe("XMLHttpRequest");
@@ -105,10 +108,8 @@ describe("user card (FR-004)", () => {
     const user = userEvent.setup();
     signedInAs(anaSales);
     server.use(
-      http.post("/api/v1/auth/logout", ({ response }) =>
-        response("default").json(errorEnvelope("INTERNAL", "Sign-out failed. Try again."), {
-          status: 500,
-        }),
+      http.post("/api/v1/auth/logout", () =>
+        errorResponse(errorEnvelope("INTERNAL", "Sign-out failed. Try again."), 500),
       ),
     );
     const { router } = renderApp("/nope");
@@ -130,11 +131,9 @@ describe("user card (FR-004)", () => {
     const user = userEvent.setup();
     signedInAs(anaSales);
     server.use(
-      http.post("/api/v1/auth/logout", ({ response }) => {
+      http.post("/api/v1/auth/logout", () => {
         anonymous();
-        return response("default").json(errorEnvelope("UNAUTHENTICATED", "Sign in to continue."), {
-          status: 401,
-        });
+        return errorResponse(errorEnvelope("UNAUTHENTICATED", "Sign in to continue."), 401);
       }),
     );
     renderApp("/nope");

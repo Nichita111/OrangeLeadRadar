@@ -1,249 +1,279 @@
-"""Job queue loop for the worker.
+"""Store access of the [Job queue](/architecture/services/worker.md#job-queue) and the
+[Run lifecycle](/architecture/services/worker.md#run-lifecycle): reclaiming abandoned jobs,
+claiming, completing and failing a job, and settling its run once its jobs are final. The
+decisions are the pure rules of `core.run_lifecycle`, `core.job_queue` and
+`core.refresh_scheduling`; none of these functions commits.
 
-Claims one `READY` job per loop iteration with `SELECT … FOR UPDATE SKIP LOCKED`,
-runs the registered step, marks `DONE` on success or retries/fails on error.
-Reclaims `RUNNING` jobs past `JOB_LOCK_TIMEOUT_S`.
-
-The `SIGNAL` and `SCORE` steps are registered; other steps are registered by their own tasks
-(P-06).
-
-See [Job queue](/architecture/services/worker.md#job-queue) and
-[ADR-04](/architecture/adrs/adr-04-postgres-job-queue-and-a-worker.md).
-"""
+Every function that touches both locks the job row before the run row, as `runs.cancel_run`
+does, so two transactions never wait on each other in a cycle."""
 
 from __future__ import annotations
 
-import asyncio
-import logging
 import uuid
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 
 from sqlalchemy import select, update
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from leadradar.core.enums import JobStatus, JobStep, PipelineRunStage, PipelineRunStatus
+from leadradar.audit.events import append_audit_event
+from leadradar.core.enums import AuditAction, JobStatus, PipelineRunKind, PipelineRunStatus
+from leadradar.core.job_queue import job_priority
+from leadradar.core.refresh_scheduling import refresh_times_after
+from leadradar.core.run_lifecycle import (
+    FINAL_STEP,
+    owed_final_job,
+    run_outcome,
+    stage_after_claim,
+)
+from leadradar.db.models.accounts import Account
 from leadradar.db.models.ingestion import Job, PipelineRun
-from leadradar.worker.settings import WorkerSettings
-from leadradar.worker.steps.score import run_score_step
-from leadradar.worker.steps.signal import run_signal_job
+from leadradar.runs.enqueue import add_job
+from leadradar.worker.steps import ClaimedJob, StepErrorCode
 
-logger = logging.getLogger(__name__)
-
-# Registry of step handlers; extended by other tasks (P-06).
-_STEP_HANDLERS: dict[str, object] = {
-    JobStep.SIGNAL: run_signal_job,
-    JobStep.SCORE: run_score_step,
-}
-
-# Stage a run enters when its first job of a step is claimed.
-_FIRST_STAGE: dict[str, PipelineRunStage] = {
-    JobStep.SIGNAL: PipelineRunStage.TRIAGE,
-    JobStep.SCORE: PipelineRunStage.SCORE,
-}
+_ACTIVE_RUN_STATUSES = (PipelineRunStatus.QUEUED, PipelineRunStatus.RUNNING)
+_OPEN_JOB_STATUSES = (JobStatus.READY, JobStatus.RUNNING)
 
 
-async def _claim_job(session: AsyncSession, worker_id: str, now: datetime) -> Job | None:
-    """Claim one READY job with FOR UPDATE SKIP LOCKED, ordered by priority then not_before."""
-    stmt = (
-        select(Job)
-        .where(
-            Job.status == JobStatus.READY,
-            Job.not_before <= now,
-        )
-        .order_by(Job.priority, Job.not_before)
-        .limit(1)
-        .with_for_update(skip_locked=True)
-    )
-    result = await session.execute(stmt)
-    job: Job | None = result.scalar_one_or_none()
-    if job is None:
-        return None
-
-    # Mark as RUNNING
-    await session.execute(
-        update(Job)
-        .where(Job.id == job.id)
-        .values(
-            status=JobStatus.RUNNING,
-            locked_by=worker_id,
-            locked_at=now,
-            attempts=job.attempts + 1,
-        )
-    )
-
-    # Set run started_at on first claim
-    await session.execute(
-        update(PipelineRun)
-        .where(
-            PipelineRun.id == job.run_id,
-            PipelineRun.started_at.is_(None),
-        )
-        .values(
-            status=PipelineRunStatus.RUNNING,
-            started_at=now,
-            stage=_FIRST_STAGE.get(str(job.step), PipelineRunStage.SCORE),
-        )
-    )
-    await session.commit()
-
-    # Reload the job after commit to get the updated state
-    await session.refresh(job)
-    return job
+class LostJobLock(Exception):
+    """The job is no longer `RUNNING` under this worker: it was reclaimed after
+    `JOB_LOCK_TIMEOUT_S`, and the worker that claimed it since owns its outcome."""
 
 
-async def _reclaim_stale_jobs(
-    session: AsyncSession, worker_id: str, now: datetime, lock_timeout_s: int
-) -> None:
-    """Return RUNNING jobs past JOB_LOCK_TIMEOUT_S to READY so they are re-picked."""
-    cutoff = now - timedelta(seconds=lock_timeout_s)
-    await session.execute(
+async def reclaim_abandoned_jobs(
+    session: AsyncSession, *, now: datetime, lock_timeout_s: int
+) -> int:
+    """Returns every `RUNNING` job locked longer than `JOB_LOCK_TIMEOUT_S` ago to `READY`, and
+    says how many. Safe because every step is idempotent ([N-05](/requirements/system.md))."""
+    reclaimed = await session.execute(
         update(Job)
         .where(
             Job.status == JobStatus.RUNNING,
-            Job.locked_at <= cutoff,
+            Job.locked_at < now - timedelta(seconds=lock_timeout_s),
         )
-        .values(
-            status=JobStatus.READY,
-            locked_by=None,
-            locked_at=None,
-        )
+        .values(status=JobStatus.READY, locked_by=None, locked_at=None)
+        .returning(Job.id)
+        .execution_options(synchronize_session=False)
     )
-    await session.commit()
+    return len(reclaimed.all())
 
 
-async def _mark_done(session: AsyncSession, job_id: uuid.UUID) -> None:
-    await session.execute(update(Job).where(Job.id == job_id).values(status=JobStatus.DONE))
-    await session.commit()
+async def _lock_run(session: AsyncSession, run_id: uuid.UUID) -> PipelineRun:
+    run = await session.get(PipelineRun, run_id, with_for_update=True, populate_existing=True)
+    if run is None:
+        raise LookupError(f"Job of run {run_id}, which does not exist.")
+    return run
 
 
-async def _mark_failed_or_retry(
-    session: AsyncSession,
-    job_id: uuid.UUID,
-    error: str,
-    attempts: int,
-    max_attempts: int,
-    backoff_s: int,
-    now: datetime,
-) -> None:
-    if attempts >= max_attempts:
-        await session.execute(
-            update(Job).where(Job.id == job_id).values(status=JobStatus.FAILED, last_error=error)
-        )
-    else:
-        # Exponential backoff: backoff_s × 2^(attempts−1)
-        delay = backoff_s * (2 ** (attempts - 1))
-        not_before = now + timedelta(seconds=delay)
-        await session.execute(
-            update(Job)
-            .where(Job.id == job_id)
-            .values(
-                status=JobStatus.READY,
-                locked_by=None,
-                locked_at=None,
-                not_before=not_before,
-                last_error=error,
-            )
-        )
-    await session.commit()
-
-
-async def _run_one(
-    engine: AsyncEngine,
-    settings: WorkerSettings,
-    worker_id: str,
-) -> bool:
-    """Try to claim and execute one job. Returns True if a job was processed."""
-    now = datetime.now(tz=UTC)
-    factory = async_sessionmaker(engine, expire_on_commit=False)
-
-    async with factory() as session:
-        # Reclaim stale jobs
-        await _reclaim_stale_jobs(session, worker_id, now, settings.job_lock_timeout_s)
-
-        # Claim a job
-        job = await _claim_job(session, worker_id, now)
-        if job is None:
-            return False
-
-    job_id = job.id
-    run_id = job.run_id
-    attempts = job.attempts
-
-    # Load the run
-    async with factory() as session:
-        run = await session.get(PipelineRun, run_id)
-        if run is None:
-            logger.error("Job %s references unknown run %s; marking FAILED", job_id, run_id)
-            await _mark_failed_or_retry(
-                session,
-                job_id,
-                "run not found",
-                attempts,
-                settings.job_max_attempts,
-                settings.job_retry_backoff_s,
-                now,
-            )
-            return True
-
-        handler = _STEP_HANDLERS.get(str(job.step))
-        if handler is None:
-            logger.error("No handler for step %s; marking FAILED", job.step)
-            await _mark_failed_or_retry(
-                session,
-                job_id,
-                f"no handler for step {job.step}",
-                attempts,
-                settings.job_max_attempts,
-                settings.job_retry_backoff_s,
-                now,
-            )
-            return True
-
-        try:
-            import inspect
-
-            if inspect.iscoroutinefunction(handler):
-                import typing
-
-                coro_fn: typing.Any = handler
-                await coro_fn(
-                    session,
-                    job=job,
-                    run=run,
-                    worker_instance_id=worker_id,
-                    alert_max_age_days=settings.alert_max_age_days,
-                )
-            await session.commit()
-            await _mark_done(session, job_id)
-        except Exception as exc:
-            logger.exception("Step %s job %s failed (attempt %d)", job.step, job_id, attempts)
-            await session.rollback()
-            async with factory() as err_session:
-                await _mark_failed_or_retry(
-                    err_session,
-                    job_id,
-                    str(exc),
-                    attempts,
-                    settings.job_max_attempts,
-                    settings.job_retry_backoff_s,
-                    now,
-                )
-
-    return True
-
-
-async def run_job_loop(engine: AsyncEngine, settings: WorkerSettings, worker_id: str) -> None:
-    """One job loop: poll for jobs until stopped by cancellation.
-
-    Sleeps briefly when no job is available to avoid busy-polling.
-    """
+async def claim_next_job(
+    session: AsyncSession, *, worker_id: str, now: datetime
+) -> ClaimedJob | None:
+    """Claims the next `READY` job due by `now` — lowest `priority`, then earliest
+    `not_before` — with `FOR UPDATE SKIP LOCKED`, so concurrent loops never claim the same one.
+    Sets its run `RUNNING` with `started_at` on its first claim and moves its `stage`. A job of a
+    cancelled run is set `CANCELLED` instead and the next one is tried. `None` when no job is
+    due."""
     while True:
-        try:
-            processed = await _run_one(engine, settings, worker_id)
-            if not processed:
-                await asyncio.sleep(1)
-        except asyncio.CancelledError:
-            break
-        except Exception:
-            logger.exception("Unexpected error in job loop %s", worker_id)
-            await asyncio.sleep(5)
+        candidate = (
+            select(Job.id)
+            .where(Job.status == JobStatus.READY, Job.not_before <= now)
+            .order_by(Job.priority, Job.not_before)
+            .limit(1)
+            .with_for_update(skip_locked=True)
+            .scalar_subquery()
+        )
+        claimed = (
+            await session.execute(
+                update(Job)
+                .where(Job.id == candidate)
+                .values(
+                    status=JobStatus.RUNNING,
+                    attempts=Job.attempts + 1,
+                    locked_by=worker_id,
+                    locked_at=now,
+                )
+                .returning(Job.id, Job.run_id, Job.step, Job.payload, Job.attempts)
+                .execution_options(synchronize_session=False)
+            )
+        ).first()
+        if claimed is None:
+            return None
+        job_id, run_id, step, payload, attempts = claimed
+
+        run = await _lock_run(session, run_id)
+        if run.status not in _ACTIVE_RUN_STATUSES:
+            await session.execute(
+                update(Job)
+                .where(Job.id == job_id)
+                .values(status=JobStatus.CANCELLED, locked_by=None, locked_at=None)
+                .execution_options(synchronize_session=False)
+            )
+            continue
+
+        if run.status is PipelineRunStatus.QUEUED:
+            run.status = PipelineRunStatus.RUNNING
+            run.started_at = now
+        run.stage = stage_after_claim(run.stage, step)
+        await session.flush()
+        return ClaimedJob(
+            id=job_id,
+            step=step,
+            payload=payload,
+            attempts=attempts,
+            run_id=run.id,
+            run_kind=run.kind,
+            run_trigger=run.trigger,
+            account_id=run.account_id,
+            service_id=run.service_id,
+            question_id=run.question_id,
+        )
+
+
+async def _finish_job(
+    session: AsyncSession, job: ClaimedJob, *, worker_id: str, values: dict[str, object]
+) -> None:
+    """Updates the job this worker holds; raises `LostJobLock` when it no longer holds it."""
+    updated = await session.execute(
+        update(Job)
+        .where(
+            Job.id == job.id,
+            Job.status == JobStatus.RUNNING,
+            Job.locked_by == worker_id,
+        )
+        .values(locked_by=None, locked_at=None, **values)
+        .returning(Job.id)
+        .execution_options(synchronize_session=False)
+    )
+    if updated.first() is None:
+        raise LostJobLock(f"Job {job.id} is no longer held by {worker_id}.")
+
+
+async def complete_job(
+    session: AsyncSession,
+    job: ClaimedJob,
+    *,
+    worker_id: str,
+    now: datetime,
+    refresh_interval_hours: int,
+) -> None:
+    """Sets the job `DONE`, in the transaction of its step's results, and settles its run."""
+    await _finish_job(session, job, worker_id=worker_id, values={"status": JobStatus.DONE})
+    run = await _lock_run(session, job.run_id)
+    await _settle_run(
+        session,
+        run,
+        job,
+        job_failed=False,
+        now=now,
+        refresh_interval_hours=refresh_interval_hours,
+    )
+
+
+async def record_job_failure(
+    session: AsyncSession,
+    job: ClaimedJob,
+    *,
+    worker_id: str,
+    code: StepErrorCode,
+    message: str,
+    retry_at: datetime | None,
+    now: datetime,
+    refresh_interval_hours: int,
+) -> None:
+    """After a failed attempt: the job is `READY` again from `retry_at`, or, with `retry_at`
+    `None`, `FAILED`, its run records the error, and the run is settled."""
+    if retry_at is not None:
+        await _finish_job(
+            session,
+            job,
+            worker_id=worker_id,
+            values={"status": JobStatus.READY, "not_before": retry_at, "last_error": message},
+        )
+        return
+
+    await _finish_job(
+        session,
+        job,
+        worker_id=worker_id,
+        values={"status": JobStatus.FAILED, "last_error": message},
+    )
+    run = await _lock_run(session, job.run_id)
+    error: dict[str, object] = {
+        "stage": stage_after_claim(run.stage, job.step).value,
+        "code": code,
+        "message": message,
+    }
+    plugin_code = job.payload.get("plugin_code")
+    if plugin_code is not None:
+        error["plugin_code"] = plugin_code
+    run.errors = [*run.errors, error]
+    await session.flush()
+    await _settle_run(
+        session,
+        run,
+        job,
+        job_failed=True,
+        now=now,
+        refresh_interval_hours=refresh_interval_hours,
+    )
+
+
+async def _settle_run(
+    session: AsyncSession,
+    run: PipelineRun,
+    job: ClaimedJob,
+    *,
+    job_failed: bool,
+    now: datetime,
+    refresh_interval_hours: int,
+) -> None:
+    """With the run locked and `job` just final: when every job of the run is final, enqueues
+    the `SCORE` job the run is owed, or finishes the run with its `RUN_FINISHED` audit row and,
+    for a refresh, the account's refresh times. A cancelled run is left as it is."""
+    if run.status not in _ACTIVE_RUN_STATUSES:
+        return
+    jobs = (await session.execute(select(Job.step, Job.status).where(Job.run_id == run.id))).all()
+    if any(status in _OPEN_JOB_STATUSES for _, status in jobs):
+        return
+
+    owed = owed_final_job(run.kind, {step for step, _ in jobs})
+    if owed is not None:
+        add_job(
+            session,
+            run_id=run.id,
+            step=owed,
+            payload={},
+            priority=job_priority(run.kind, run.trigger),
+            now=now,
+        )
+        await session.flush()
+        return
+
+    pending_budget = run.progress.get("pending_budget", 0)
+    if not isinstance(pending_budget, int):
+        raise TypeError(f"Run {run.id} progress.pending_budget is not a count: {pending_budget!r}")
+    run.status = run_outcome(
+        final_stage_failed=job_failed and job.step is FINAL_STEP[run.kind],
+        has_errors=bool(run.errors),
+        pending_budget=pending_budget,
+    )
+    run.stage = None
+    run.finished_at = now
+    await append_audit_event(
+        session,
+        action=AuditAction.RUN_FINISHED,
+        occurred_at=now,
+        actor_id=None,
+        entity_type="pipeline_run",
+        entity_id=run.id,
+        payload={"status": run.status.value, "progress": run.progress},
+        run_id=run.id,
+    )
+
+    if run.kind is PipelineRunKind.ACCOUNT_REFRESH and run.account_id is not None:
+        times = refresh_times_after(run.status, now, refresh_interval_hours=refresh_interval_hours)
+        account = await session.get(Account, run.account_id, with_for_update=True)
+        if times is not None and account is not None:
+            account.next_refresh_at = times.next_refresh_at
+            if times.last_refreshed_at is not None:
+                account.last_refreshed_at = times.last_refreshed_at
+    await session.flush()

@@ -7,13 +7,6 @@ response without our header, so the catching has to happen here, not in a regist
 handler. A plain ASGI middleware, so the request id stays bound in the same call chain
 throughout, with no task boundary that could lose the context variable.
 
-<<<<<<< HEAD
-It also writes the one request line the `task.md` Decision "Request log line" adds: one `INFO`
-line per served request (`method`, `path`, `status`, `duration_ms`), written in the `finally`
-block before the request id is unbound, so it carries `request_id`. `path` is the ASGI path,
-without the query string. A request whose response never started (for example a disconnected
-client) is not a served request and writes no line.
-=======
 It also writes one request line per served request (`method`, `path`, `status`, `duration_ms`),
 written in the `finally` block before the request id is unbound, so it carries `request_id`.
 `path` is the ASGI path, without the query string. A request whose response never started (for
@@ -22,7 +15,6 @@ this under **Not building** ("a request access log"); the human's decision in `t
 (2026-09-26, "Critic R-2 (per-request log line): keep it") keeps it anyway, because it is what
 makes `N-12` observable and what QA's `AC-67` test relies on, while Uvicorn's own access log
 stays off.
->>>>>>> origin/main
 """
 
 from __future__ import annotations

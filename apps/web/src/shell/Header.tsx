@@ -1,5 +1,6 @@
 import { Chip } from "../components/Chip";
 import type { RouteHandle } from "./routeHandle";
+import { ServiceSelector } from "./ServiceSelector";
 
 /** FR-102: the current screen as a breadcrumb, and the Admin only chip on Admin screens. */
 export function Header({ handle }: { handle: RouteHandle | null }) {
@@ -12,7 +13,10 @@ export function Header({ handle }: { handle: RouteHandle | null }) {
           </li>
         )}
       </ol>
-      {handle?.adminOnly === true && <Chip tone="accent">Admin only</Chip>}
+      <div className="flex items-center gap-4">
+        {handle?.adminOnly === true && <Chip tone="accent">Admin only</Chip>}
+        <ServiceSelector />
+      </div>
     </header>
   );
 }

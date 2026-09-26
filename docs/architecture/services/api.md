@@ -47,8 +47,10 @@ It never fetches from a source, never classifies in batch, never writes a score,
 
 | Key | Default | Meaning |
 |---|---|---|
-| `DATABASE_URL` | — (required) | PostgreSQL connection string |
-| `POSTGRES_PASSWORD` | — (required by the Compose file) | Password of the `db` container's database user; the Compose file builds `DATABASE_URL` from it |
+| `DATABASE_URL` | — (required) | PostgreSQL connection string, as the application role of [Runtime](/architecture/overview.md#runtime) |
+| `POSTGRES_PASSWORD` | — (required by the Compose file) | Password of the `db` container's database user, the owner; the Compose file builds `MIGRATION_DATABASE_URL` from it |
+| `MIGRATION_DATABASE_URL` | — (required) | PostgreSQL connection string as the owner; used only to apply migrations at start |
+| `APP_DB_PASSWORD` | — (required by the Compose file) | Password of the application role; the `db` init script creates the role with it and the Compose file builds `DATABASE_URL` from it |
 | `APP_BASE_URL` | `http://localhost:8080` | Public base URL of the frontend, used in HubSpot links and the crawler's user agent |
 | `SESSION_TTL_HOURS` | `12` | Session lifetime |
 | `LOGIN_MAX_FAILURES` | `5` | Consecutive failed sign-ins before a lock |
@@ -75,7 +77,7 @@ It never fetches from a source, never classifies in batch, never writes a score,
 | `SEED_ADMIN_PASSWORD`, `SEED_SALES_PASSWORD` | — (required by `make seed-demo`) | Passwords of the demo users |
 | `LOG_LEVEL` | `INFO` | Log level; logs are JSON lines |
 
-The api also reads the AI gateway, embedder, fixture and `CLOCK_FILE` keys and `EVAL_MIN_ITEMS` of the [worker runtime](/architecture/services/worker.md#runtime).
+The api also reads the AI gateway, embedder, fixture and `CLOCK_FILE` keys, the source plug-in keys, which decide the [Plug-in availability](/architecture/rules.md#plug-in-availability) of a refresh's first jobs, and `EVAL_MIN_ITEMS`, `JOB_POLL_INTERVAL_S` and `REFRESH_TARGET_MINUTES` of the [worker runtime](/architecture/services/worker.md#runtime), the last two for `make refresh-demo`'s wait until every run it queued is final.
 
 ## Examples
 

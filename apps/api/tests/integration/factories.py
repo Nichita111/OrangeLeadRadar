@@ -26,11 +26,6 @@ from leadradar.core.enums import (
     EvaluationItemOrigin,
     EvaluationItemStatus,
     FindingDecidedBy,
-<<<<<<< HEAD
-    FindingStatus,
-    FindingStrength,
-    IndustryStatus,
-=======
     FindingFeedbackVerdict,
     FindingStatus,
     FindingStrength,
@@ -38,7 +33,6 @@ from leadradar.core.enums import (
     JobStatus,
     JobStep,
     LeadFeedbackVerdict,
->>>>>>> origin/main
     MarketStatus,
     PipelineRunKind,
     PipelineRunStatus,
@@ -51,10 +45,7 @@ from leadradar.core.enums import (
     SourcePluginCode,
 )
 from leadradar.db.models.accounts import Account
-<<<<<<< HEAD
-=======
 from leadradar.db.models.audit import AuditEvent
->>>>>>> origin/main
 from leadradar.db.models.configuration import (
     Industry,
     Market,
@@ -62,11 +53,6 @@ from leadradar.db.models.configuration import (
     Service,
     SignalQuestion,
 )
-<<<<<<< HEAD
-from leadradar.db.models.feedback import EvaluationItem, EvaluationResult
-from leadradar.db.models.identity import AppUser
-from leadradar.db.models.ingestion import Chunk, Document, PipelineRun, SourcePlugin
-=======
 from leadradar.db.models.feedback import (
     EvaluationItem,
     EvaluationResult,
@@ -75,7 +61,6 @@ from leadradar.db.models.feedback import (
 )
 from leadradar.db.models.identity import AppUser, AuthSession
 from leadradar.db.models.ingestion import Chunk, Document, Job, PipelineRun, SourcePlugin
->>>>>>> origin/main
 from leadradar.db.models.signals import (
     AccountScore,
     Alert,
@@ -422,8 +407,6 @@ def make_evaluation_result(
     return _insert(connection, EvaluationResult.__table__, **values)
 
 
-<<<<<<< HEAD
-=======
 def make_audit_event(connection: Connection, **overrides: Any) -> uuid.UUID:
     values: dict[str, Any] = {
         "occurred_at": NOW,
@@ -501,7 +484,6 @@ def make_job(connection: Connection, run_id: uuid.UUID, **overrides: Any) -> uui
     return _insert(connection, Job.__table__, **values)
 
 
->>>>>>> origin/main
 def make_disqualifier_override(
     connection: Connection,
     account_id: uuid.UUID,

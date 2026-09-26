@@ -4,6 +4,95 @@
  */
 
 export interface paths {
+    "/api/v1/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Accounts
+         * @description `API-20`: `q` matches the name, any alias or the domain.
+         */
+        get: operations["get_accounts_api_v1_accounts_get"];
+        put?: never;
+        /**
+         * Post Account
+         * @description `API-21`.
+         */
+        post: operations["post_account_api_v1_accounts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounts/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Accounts Import
+         * @description `API-22`: multipart `file` ([`AccountImportRow`](
+         *     /architecture/interfaces.md#accountimportrow) CSV) and `dry_run`.
+         */
+        post: operations["post_accounts_import_api_v1_accounts_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Account
+         * @description `API-23`.
+         */
+        get: operations["get_account_api_v1_accounts__id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Patch Account
+         * @description `API-24`.
+         */
+        patch: operations["patch_account_api_v1_accounts__id__patch"];
+        trace?: never;
+    };
+    "/api/v1/accounts/{id}/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Account Refresh
+         * @description `API-33`: `202` with a new refresh, or `200` with the one already queued or running.
+         */
+        post: operations["post_account_refresh_api_v1_accounts__id__refresh_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/accounts/{id}/scores/{service_id}/feedback": {
         parameters: {
             query?: never;
@@ -19,6 +108,139 @@ export interface paths {
          *     (/architecture/rules.md#feedback-effects) to the account's lead.
          */
         post: operations["post_lead_feedback_api_v1_accounts__id__scores__service_id__feedback_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounts/{id}/scores/{service_id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Score History
+         * @description `API-41`: the account and service's score history, newest first, each entry compared with
+         *     the row before it. An account with no score for the service yet answers an empty list.
+         */
+        get: operations["get_score_history_api_v1_accounts__id__scores__service_id__history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Alerts
+         * @description `API-48`: newest first; `unread` true lists unacknowledged alerts only.
+         */
+        get: operations["get_alerts_api_v1_alerts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alerts/{id}/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Alert Acknowledge
+         * @description `API-49`: acknowledging an already acknowledged alert returns it unchanged.
+         */
+        post: operations["post_alert_acknowledge_api_v1_alerts__id__acknowledge_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Audit
+         * @description `API-60`: newest first, filtered by kind, action, user, entity, run and date range;
+         *     without `from` the range is the last `AUDIT_DEFAULT_RANGE_DAYS` days.
+         */
+        get: operations["get_audit_api_v1_audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Login */
+        post: operations["login_api_v1_auth_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Logout */
+        post: operations["logout_api_v1_auth_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Me */
+        get: operations["me_api_v1_auth_me_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -86,10 +308,822 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/industries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Industries Route
+         * @description `API-71`.
+         */
+        get: operations["list_industries_route_api_v1_industries_get"];
+        put?: never;
+        /**
+         * Create Industry Route
+         * @description `API-72`.
+         */
+        post: operations["create_industry_route_api_v1_industries_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/industries/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Industry Route
+         * @description `API-73`.
+         */
+        patch: operations["update_industry_route_api_v1_industries__code__patch"];
+        trace?: never;
+    };
+    "/api/v1/markets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Markets Route
+         * @description `API-74`.
+         */
+        get: operations["list_markets_route_api_v1_markets_get"];
+        put?: never;
+        /**
+         * Create Market Route
+         * @description `API-75`.
+         */
+        post: operations["create_market_route_api_v1_markets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/markets/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Market Route
+         * @description `API-76`.
+         */
+        patch: operations["update_market_route_api_v1_markets__code__patch"];
+        trace?: never;
+    };
+    "/api/v1/questions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Question Route
+         * @description `API-13`.
+         */
+        patch: operations["update_question_route_api_v1_questions__id__patch"];
+        trace?: never;
+    };
+    "/api/v1/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Runs
+         * @description `API-34`: runs newest first, filtered by kind, status, account and service.
+         */
+        get: operations["get_runs_api_v1_runs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/runs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Run By Id
+         * @description `API-35`: one run with its stage, progress and errors.
+         */
+        get: operations["get_run_by_id_api_v1_runs__id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/runs/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Run Cancel
+         * @description `API-36`: cancels a queued or running run; Admin only for `RECLASSIFY`, `RESCORE` and
+         *     `EVALUATION` runs.
+         */
+        post: operations["post_run_cancel_api_v1_runs__id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/scoring-configs/{config_id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * API-18: Activate a DRAFT scoring config
+         * @description [`API-18`](/architecture/interfaces.md#scoring): Admin only.
+         *
+         *     Activates the target DRAFT scoring config, retires the previous ACTIVE version, and
+         *     enqueues a RESCORE run. Returns the activated `ScoringConfig`.
+         *     `409 CONFLICT` when the config is not DRAFT. `422` when `change_note` is missing.
+         *     `403 FORBIDDEN` for non-Admin.
+         */
+        post: operations["activate_scoring_config_route_api_v1_scoring_configs__config_id__activate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/scoring-configs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Scoring Config Route
+         * @description `API-16`.
+         */
+        get: operations["get_scoring_config_route_api_v1_scoring_configs__id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Services
+         * @description `API-07`.
+         */
+        get: operations["list_services_api_v1_services_get"];
+        put?: never;
+        /**
+         * Create Service Route
+         * @description `API-08`.
+         */
+        post: operations["create_service_route_api_v1_services_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Service Route
+         * @description `API-09`.
+         */
+        get: operations["get_service_route_api_v1_services__id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Service Route
+         * @description `API-10`.
+         */
+        patch: operations["update_service_route_api_v1_services__id__patch"];
+        trace?: never;
+    };
+    "/api/v1/services/{id}/questions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Questions Route
+         * @description `API-11`.
+         */
+        get: operations["list_questions_route_api_v1_services__id__questions_get"];
+        put?: never;
+        /**
+         * Create Question Route
+         * @description `API-12`.
+         */
+        post: operations["create_question_route_api_v1_services__id__questions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/{id}/scoring-configs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Scoring Configs Route
+         * @description `API-15`.
+         */
+        get: operations["list_scoring_configs_route_api_v1_services__id__scoring_configs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/{id}/scoring-configs/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save Scoring Draft Route
+         * @description `API-17`.
+         */
+        put: operations["save_scoring_draft_route_api_v1_services__id__scoring_configs_draft_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/source-plugins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Source Plugins
+         * @description `API-37`: every plug-in, Admin only.
+         */
+        get: operations["get_source_plugins_api_v1_source_plugins_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/source-plugins/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Patch Source Plugin
+         * @description `API-38`: saves the switch and limits, Admin only, with a `PLUGIN_UPDATED` audit row.
+         */
+        patch: operations["patch_source_plugin_api_v1_source_plugins__code__patch"];
+        trace?: never;
+    };
+    "/api/v1/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Users */
+        get: operations["get_users_api_v1_users_get"];
+        put?: never;
+        /** Create User Route */
+        post: operations["create_user_route_api_v1_users_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update User Route */
+        patch: operations["update_user_route_api_v1_users__user_id__patch"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * Account
+         * @description [`Account`](/architecture/interfaces.md#account), the response of `API-21`, `API-23` and
+         *     `API-24`.
+         */
+        Account: {
+            /** Active Run Id */
+            active_run_id: string | null;
+            /** Aliases */
+            aliases: string[];
+            /** Attribute Origin */
+            attribute_origin: {
+                [key: string]: string;
+            };
+            /** Country Code */
+            country_code: string | null;
+            /** Crunchbase Id */
+            crunchbase_id: string | null;
+            /** Domain */
+            domain: string;
+            /** Employee Count */
+            employee_count: number | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Industry */
+            industry: string | null;
+            /** Last Refreshed At */
+            last_refreshed_at: string | null;
+            /** Linkedin Url */
+            linkedin_url: string | null;
+            /** Name */
+            name: string;
+            /** Next Refresh At */
+            next_refresh_at: string | null;
+            /** Notes */
+            notes: string | null;
+            operational_complexity: components["schemas"]["AccountOperationalComplexity"] | null;
+            origin: components["schemas"]["AccountOrigin"];
+            parent: components["schemas"]["AccountParent"] | null;
+            /** Revenue Eur */
+            revenue_eur: number | null;
+            /** Sources */
+            sources: components["schemas"]["AccountSourceItem"][];
+            status: components["schemas"]["AccountStatus"];
+        };
+        /**
+         * AccountCreate
+         * @description [`AccountCreate`](/architecture/interfaces.md#accountcreate), the request of `API-21`.
+         */
+        AccountCreate: {
+            /**
+             * Aliases
+             * @default []
+             */
+            aliases: string[];
+            /** Country Code */
+            country_code?: string | null;
+            /** Domain */
+            domain: string;
+            /** Employee Count */
+            employee_count?: number | null;
+            /** Industry */
+            industry?: string | null;
+            /** Linkedin Url */
+            linkedin_url?: string | null;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes?: string | null;
+            operational_complexity?: components["schemas"]["AccountOperationalComplexity"] | null;
+            /** Parent Account Id */
+            parent_account_id?: string | null;
+            /** Revenue Eur */
+            revenue_eur?: number | null;
+            /**
+             * Sources
+             * @default []
+             */
+            sources: components["schemas"]["AccountCreateSource"][];
+        };
+        /**
+         * AccountCreateSource
+         * @description One entry of [`AccountCreate`](/architecture/interfaces.md#accountcreate) `sources`.
+         */
+        AccountCreateSource: {
+            kind: components["schemas"]["AccountSourceKind"];
+            /** Url */
+            url: string;
+        };
+        /**
+         * AccountOperationalComplexity
+         * @description `account.operational_complexity`.
+         * @enum {string}
+         */
+        AccountOperationalComplexity: "LOW" | "MEDIUM" | "HIGH";
+        /**
+         * AccountOrigin
+         * @description `account.origin`.
+         * @enum {string}
+         */
+        AccountOrigin: "IMPORTED" | "MANUAL" | "DISCOVERED";
+        /**
+         * AccountParent
+         * @description `Account.parent`.
+         */
+        AccountParent: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /**
+         * AccountRow
+         * @description [`AccountRow`](/architecture/interfaces.md#accountrow), one item of `API-20`.
+         */
+        AccountRow: {
+            /** Active Run Id */
+            active_run_id: string | null;
+            /** Country Code */
+            country_code: string | null;
+            /** Domain */
+            domain: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Industry */
+            industry: string | null;
+            /** Last Refreshed At */
+            last_refreshed_at: string | null;
+            /** Name */
+            name: string;
+            origin: components["schemas"]["AccountOrigin"];
+            status: components["schemas"]["AccountStatus"];
+        };
+        /**
+         * AccountScoreBand
+         * @description `account_score.band`.
+         * @enum {string}
+         */
+        AccountScoreBand: "HOT" | "WARM" | "COLD";
+        /**
+         * AccountScoreStanding
+         * @description `account_score.standing`.
+         * @enum {string}
+         */
+        AccountScoreStanding: "RANKED" | "BELOW_FIT" | "DISQUALIFIED" | "CUSTOMER";
+        /**
+         * AccountSourceItem
+         * @description One entry of `Account.sources`.
+         */
+        AccountSourceItem: {
+            kind: components["schemas"]["AccountSourceKind"];
+            origin: components["schemas"]["AccountSourceOrigin"];
+            status: components["schemas"]["AccountSourceStatus"];
+            /** Url */
+            url: string;
+        };
+        /**
+         * AccountSourceKind
+         * @description `account_source.kind`.
+         * @enum {string}
+         */
+        AccountSourceKind: "WEBSITE" | "NEWSROOM" | "INVESTOR_RELATIONS" | "CAREERS" | "RSS_FEED";
+        /**
+         * AccountSourceOrigin
+         * @description `account_source.origin`.
+         * @enum {string}
+         */
+        AccountSourceOrigin: "MANUAL" | "DETECTED";
+        /**
+         * AccountSourceStatus
+         * @description `account_source.status`.
+         * @enum {string}
+         */
+        AccountSourceStatus: "ACTIVE" | "INACTIVE";
+        /**
+         * AccountStatus
+         * @description `account.status`.
+         * @enum {string}
+         */
+        AccountStatus: "ACTIVE" | "INACTIVE";
+        /**
+         * AccountUpdate
+         * @description [`AccountUpdate`](/architecture/interfaces.md#accountupdate), the request of `API-24`.
+         *     Every field of [`AccountCreate`](#accountcreate) except `domain`, optional, plus `status`; a
+         *     field left unset changes nothing ([`AccountUpdateData`](../accounts/commands.py)).
+         */
+        AccountUpdate: {
+            /** Aliases */
+            aliases?: string[] | null;
+            /** Country Code */
+            country_code?: string | null;
+            /** Employee Count */
+            employee_count?: number | null;
+            /** Industry */
+            industry?: string | null;
+            /** Linkedin Url */
+            linkedin_url?: string | null;
+            /** Notes */
+            notes?: string | null;
+            operational_complexity?: components["schemas"]["AccountOperationalComplexity"] | null;
+            /** Parent Account Id */
+            parent_account_id?: string | null;
+            /** Revenue Eur */
+            revenue_eur?: number | null;
+            /** Sources */
+            sources?: components["schemas"]["AccountUpdateSource"][] | null;
+            status?: components["schemas"]["AccountStatus"] | null;
+        };
+        /**
+         * AccountUpdateSource
+         * @description One entry of [`AccountUpdate`](/architecture/interfaces.md#accountupdate) `sources`.
+         */
+        AccountUpdateSource: {
+            kind: components["schemas"]["AccountSourceKind"];
+            /** @default ACTIVE */
+            status: components["schemas"]["AccountSourceStatus"];
+            /** Url */
+            url: string;
+        };
+        /**
+         * ActivationRequest
+         * @description `ActivationRequest`: `change_note` required.
+         */
+        ActivationRequest: {
+            /** Change Note */
+            change_note: string;
+        };
+        /**
+         * AlertBandChange
+         * @description `AlertView.band_change`; `BAND_UP` only.
+         */
+        AlertBandChange: {
+            from: components["schemas"]["AccountScoreBand"] | null;
+            to: components["schemas"]["AccountScoreBand"] | null;
+        };
+        /**
+         * AlertFinding
+         * @description `AlertView.finding`; `STRONG_SIGNAL` only.
+         */
+        AlertFinding: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Question Text */
+            question_text: string;
+            /** Quote */
+            quote: string;
+            strength: components["schemas"]["FindingStrength"];
+        };
+        /**
+         * AlertKind
+         * @description `alert.kind`.
+         * @enum {string}
+         */
+        AlertKind: "STRONG_SIGNAL" | "BAND_UP";
+        /**
+         * AlertRef
+         * @description `AlertView.account` and `AlertView.service`: `{id, name}`.
+         */
+        AlertRef: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /**
+         * AlertView
+         * @description [`AlertView`](/architecture/interfaces.md#alertview), the response of `API-48` and
+         *     `API-49`.
+         */
+        AlertView: {
+            account: components["schemas"]["AlertRef"];
+            /** Acknowledged At */
+            acknowledged_at: string | null;
+            /** Acknowledged By Name */
+            acknowledged_by_name: string | null;
+            band_change: components["schemas"]["AlertBandChange"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            finding: components["schemas"]["AlertFinding"] | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            kind: components["schemas"]["AlertKind"];
+            service: components["schemas"]["AlertRef"];
+        };
+        /**
+         * AppUserRole
+         * @description `app_user.role`.
+         * @enum {string}
+         */
+        AppUserRole: "SALES" | "ADMIN";
+        /**
+         * AppUserStatus
+         * @description `app_user.status`.
+         * @enum {string}
+         */
+        AppUserStatus: "ACTIVE" | "DISABLED";
+        /**
+         * AuditAction
+         * @description `audit_event.action`, the closed vocabulary of
+         *     [Audit actions](/architecture/sql-store.md#audit-actions) in full: the store closes it and
+         *     every capability that appends an audit row (this task's sign-in and user changes, and every
+         *     later task) writes from this one set.
+         * @enum {string}
+         */
+        AuditAction: "LOGIN_SUCCEEDED" | "LOGIN_FAILED" | "LOGOUT" | "USER_CREATED" | "USER_UPDATED" | "SERVICE_CREATED" | "SERVICE_UPDATED" | "INDUSTRY_CREATED" | "INDUSTRY_UPDATED" | "MARKET_CREATED" | "MARKET_UPDATED" | "QUESTION_CREATED" | "QUESTION_UPDATED" | "SCORING_DRAFT_SAVED" | "SCORING_ACTIVATED" | "PLUGIN_UPDATED" | "ACCOUNT_CREATED" | "ACCOUNT_UPDATED" | "ACCOUNTS_IMPORTED" | "CANDIDATE_ACCEPTED" | "CANDIDATE_REJECTED" | "CONTACT_CREATED" | "CONTACT_UPDATED" | "CONTACT_ERASED" | "RUN_REQUESTED" | "RUN_FINISHED" | "RUN_CANCELLED" | "OVERRIDE_CREATED" | "OVERRIDE_REVOKED" | "LEAD_FEEDBACK_GIVEN" | "FINDING_FEEDBACK_GIVEN" | "ITEM_LABELLED" | "DRAFT_CREATED" | "DRAFT_UPDATED" | "DRAFT_EXPORTED" | "CRM_PUSHED" | "AI_CALL";
+        /**
+         * AuditEntry
+         * @description [`AuditEntry`](/architecture/interfaces.md#auditentry), one item of `API-60`'s page.
+         */
+        AuditEntry: {
+            /** Action */
+            action: string;
+            /** Actor Name */
+            actor_name: string | null;
+            /** Entity Id */
+            entity_id: string | null;
+            /** Entity Type */
+            entity_type: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            kind: components["schemas"]["AuditEventKind"];
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Request Id */
+            request_id: string | null;
+            /** Run Id */
+            run_id: string | null;
+        };
+        /**
+         * AuditEventKind
+         * @description `audit_event.kind`.
+         * @enum {string}
+         */
+        AuditEventKind: "AUTH" | "USER" | "CONFIG" | "ACCOUNT" | "CONTACT" | "RUN" | "OVERRIDE" | "FEEDBACK" | "OUTREACH" | "CRM" | "AI_CALL";
+        /**
+         * AuthenticatedUser
+         * @description [`AuthenticatedUser`](/architecture/interfaces.md#authenticateduser).
+         */
+        AuthenticatedUser: {
+            /** Display Name */
+            display_name: string;
+            /** Email */
+            email: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            role: components["schemas"]["AppUserRole"];
+        };
+        /** Body_post_accounts_import_api_v1_accounts_import_post */
+        Body_post_accounts_import_api_v1_accounts_import_post: {
+            /** Dry Run */
+            dry_run: boolean;
+            /** File */
+            file: string;
+        };
+        /**
+         * Disqualifier
+         * @description One entry of `disqualifiers`.
+         */
+        Disqualifier: {
+            /** Criterion Key */
+            criterion_key?: string | null;
+            /** Key */
+            key: string;
+            kind: components["schemas"]["DisqualifierKind"];
+            /** Label */
+            label: string;
+            min_strength?: components["schemas"]["FindingStrength"] | null;
+            /** Question Key */
+            question_key?: string | null;
+        };
+        /**
+         * DisqualifierKind
+         * @description The `kind` of a disqualifier of the [scoring settings document]
+         *     (/architecture/sql-store.md#scoring-settings-document).
+         * @enum {string}
+         */
+        DisqualifierKind: "ICP_MISMATCH" | "SIGNAL";
         /**
          * DocumentSourceType
          * @description `document.source_type`.
@@ -278,6 +1312,31 @@ export interface components {
          */
         HealthStatus: "OK" | "DEGRADED" | "DOWN";
         /**
+         * ICPCriterion
+         * @description One entry of `icp_criteria`. Kind-specific operand validity is [Scoring settings
+         *     validation](#validate_scoring_settings), not a type, because it depends on the service's
+         *     active industries.
+         */
+        ICPCriterion: {
+            /** Key */
+            key: string;
+            kind: components["schemas"]["ICPCriterionKind"];
+            /** Max */
+            max?: number | null;
+            /** Min */
+            min?: number | null;
+            /** Values */
+            values?: string[] | null;
+            weight: components["schemas"]["WeightLevel"];
+        };
+        /**
+         * ICPCriterionKind
+         * @description The `kind` of an ICP criterion of the [scoring settings document]
+         *     (/architecture/sql-store.md#scoring-settings-document).
+         * @enum {string}
+         */
+        ICPCriterionKind: "INDUSTRY" | "GEOGRAPHY" | "EMPLOYEE_RANGE" | "REVENUE_RANGE" | "OPERATIONAL_COMPLEXITY";
+        /**
          * Impact
          * @description [`Impact`](/architecture/interfaces.md#impact), the response of `API-77`.
          */
@@ -302,6 +1361,89 @@ export interface components {
             precision: number | null;
             /** Refreshes */
             refreshes: number;
+        };
+        /**
+         * ImportResult
+         * @description [`ImportResult`](/architecture/interfaces.md#importresult), the response of `API-22`.
+         */
+        ImportResult: {
+            /** Created */
+            created: number;
+            /** Dry Run */
+            dry_run: boolean;
+            /** Duplicates */
+            duplicates: number;
+            /** Invalid */
+            invalid: number;
+            /** Rows */
+            rows: components["schemas"]["ImportRowItem"][];
+            /** Updated */
+            updated: number;
+        };
+        /**
+         * ImportRowFieldError
+         * @description One entry of an import row's `errors`, in the shape of `details.fields[]`
+         *     ([Conventions](/architecture/interfaces.md#conventions) Envelope).
+         */
+        ImportRowFieldError: {
+            /** Field */
+            field: string;
+            /** Message */
+            message: string;
+        };
+        /**
+         * ImportRowItem
+         * @description One entry of `ImportResult.rows`.
+         */
+        ImportRowItem: {
+            /** Account Id */
+            account_id: string | null;
+            /** Domain */
+            domain: string | null;
+            /** Errors */
+            errors: components["schemas"]["ImportRowFieldError"][];
+            /** Line */
+            line: number;
+            /** Outcome */
+            outcome: string;
+        };
+        /**
+         * Industry
+         * @description [`Industry`](/architecture/interfaces.md#industry).
+         */
+        Industry: {
+            /** Account Count */
+            account_count: number;
+            /** Code */
+            code: string;
+            /** Label */
+            label: string;
+            status: components["schemas"]["IndustryStatus"];
+        };
+        /**
+         * IndustryCreate
+         * @description [`IndustryCreate`](/architecture/interfaces.md#industrycreate).
+         */
+        IndustryCreate: {
+            /** Code */
+            code: string;
+            /** Label */
+            label: string;
+        };
+        /**
+         * IndustryStatus
+         * @description `industry.status`.
+         * @enum {string}
+         */
+        IndustryStatus: "ACTIVE" | "INACTIVE";
+        /**
+         * IndustryUpdate
+         * @description [`IndustryUpdate`](/architecture/interfaces.md#industryupdate).
+         */
+        IndustryUpdate: {
+            /** Label */
+            label?: string | null;
+            status?: components["schemas"]["IndustryStatus"] | null;
         };
         /**
          * LeadFeedback
@@ -331,17 +1473,654 @@ export interface components {
          */
         LeadFeedbackVerdict: "RELEVANT" | "NOT_RELEVANT" | "ALREADY_CUSTOMER";
         /**
+         * LoginRequest
+         * @description [`LoginRequest`](/architecture/interfaces.md#loginrequest).
+         */
+        LoginRequest: {
+            /** Email */
+            email: string;
+            /**
+             * Password
+             * Format: password
+             */
+            password: string;
+        };
+        /**
+         * Market
+         * @description [`Market`](/architecture/interfaces.md#market).
+         */
+        Market: {
+            /** Code */
+            code: string;
+            /** Country Codes */
+            country_codes: string[];
+            /** Name */
+            name: string;
+            status: components["schemas"]["MarketStatus"];
+        };
+        /**
+         * MarketCreate
+         * @description [`MarketCreate`](/architecture/interfaces.md#marketcreate).
+         */
+        MarketCreate: {
+            /** Code */
+            code: string;
+            /** Country Codes */
+            country_codes: string[];
+            /** Name */
+            name: string;
+        };
+        /**
+         * MarketStatus
+         * @description `market.status`.
+         * @enum {string}
+         */
+        MarketStatus: "ACTIVE" | "INACTIVE";
+        /**
+         * MarketUpdate
+         * @description [`MarketUpdate`](/architecture/interfaces.md#marketupdate).
+         */
+        MarketUpdate: {
+            /** Country Codes */
+            country_codes?: string[] | null;
+            /** Name */
+            name?: string | null;
+            status?: components["schemas"]["MarketStatus"] | null;
+        };
+        /** Page[AccountRow] */
+        Page_AccountRow_: {
+            /** Items */
+            items: components["schemas"]["AccountRow"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /** Page[AlertView] */
+        Page_AlertView_: {
+            /** Items */
+            items: components["schemas"]["AlertView"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /** Page[AuditEntry] */
+        Page_AuditEntry_: {
+            /** Items */
+            items: components["schemas"]["AuditEntry"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /** Page[Run] */
+        Page_Run_: {
+            /** Items */
+            items: components["schemas"]["Run"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /**
+         * PipelineRunKind
+         * @description `pipeline_run.kind`.
+         * @enum {string}
+         */
+        PipelineRunKind: "ACCOUNT_REFRESH" | "RECLASSIFY" | "RESCORE" | "DISCOVERY" | "EVALUATION";
+        /**
+         * PipelineRunStage
+         * @description `pipeline_run.stage`.
+         * @enum {string}
+         */
+        PipelineRunStage: "FETCH" | "PROCESS" | "TRIAGE" | "CLASSIFY" | "EVIDENCE" | "SCORE";
+        /**
+         * PipelineRunStatus
+         * @description `pipeline_run.status`.
+         * @enum {string}
+         */
+        PipelineRunStatus: "QUEUED" | "RUNNING" | "SUCCEEDED" | "PARTIAL" | "FAILED" | "CANCELLED";
+        /**
+         * PipelineRunTrigger
+         * @description `pipeline_run.trigger`.
+         * @enum {string}
+         */
+        PipelineRunTrigger: "SCHEDULE" | "USER" | "QUESTION_CHANGE" | "SCORING_ACTIVATION" | "ACCOUNT_CHANGE" | "FEEDBACK" | "OVERRIDE";
+        /**
+         * QuestionOption
+         * @description One entry of [`SignalQuestion`](/architecture/interfaces.md#signalquestion) `options`.
+         */
+        QuestionOption: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            strength: components["schemas"]["FindingStrength"];
+        };
+        /**
+         * QuestionSetting
+         * @description One entry of `questions`.
+         */
+        QuestionSetting: {
+            /** Half Life Days */
+            half_life_days?: number | null;
+            /** Question Key */
+            question_key: string;
+            weight: components["schemas"]["WeightLevel"];
+        };
+        /**
+         * Run
+         * @description [`Run`](/architecture/interfaces.md#run).
+         */
+        Run: {
+            account: components["schemas"]["RunRef"] | null;
+            /** Ai Cost Eur */
+            ai_cost_eur: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Errors */
+            errors: components["schemas"]["RunError"][];
+            /** Finished At */
+            finished_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            kind: components["schemas"]["PipelineRunKind"];
+            /** Progress */
+            progress: {
+                [key: string]: number;
+            };
+            question: components["schemas"]["RunQuestion"] | null;
+            /** Requested By Name */
+            requested_by_name: string | null;
+            service: components["schemas"]["RunRef"] | null;
+            stage: components["schemas"]["PipelineRunStage"] | null;
+            /** Started At */
+            started_at: string | null;
+            status: components["schemas"]["PipelineRunStatus"];
+            trigger: components["schemas"]["PipelineRunTrigger"];
+        };
+        /**
+         * RunError
+         * @description One entry of `Run.errors`, as [`pipeline_run`](/architecture/sql-store.md#pipeline_run)
+         *     `errors` states it.
+         */
+        RunError: {
+            /** Code */
+            code: string;
+            /** Message */
+            message: string;
+            plugin_code?: components["schemas"]["SourcePluginCode"] | null;
+            stage: components["schemas"]["PipelineRunStage"];
+        };
+        /**
+         * RunQuestion
+         * @description `Run.question`: `{id, key}`.
+         */
+        RunQuestion: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Key */
+            key: string;
+        };
+        /**
+         * RunRef
+         * @description `Run.account` and `Run.service`: `{id, name}`.
+         */
+        RunRef: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /**
+         * ScoreChange
+         * @description [`ScoreChange`](/architecture/interfaces.md#scorechange), one item of `API-41`.
+         */
+        ScoreChange: {
+            /**
+             * As Of
+             * Format: date-time
+             */
+            as_of: string;
+            band: components["schemas"]["AccountScoreBand"] | null;
+            /** Change Note */
+            change_note: string | null;
+            /** Findings Added */
+            findings_added: components["schemas"]["ScoreChangeFinding"][];
+            /** Findings Removed */
+            findings_removed: components["schemas"]["ScoreChangeFinding"][];
+            /** Fit */
+            fit: number;
+            /** Intent */
+            intent: number;
+            /** Overrides Changed */
+            overrides_changed: components["schemas"]["ScoreChangeOverride"][];
+            /** Priority */
+            priority: number;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /**
+             * Score Id
+             * Format: uuid
+             */
+            score_id: string;
+            /** Scoring Version */
+            scoring_version: number;
+            standing: components["schemas"]["AccountScoreStanding"];
+            trigger: components["schemas"]["PipelineRunTrigger"];
+        };
+        /**
+         * ScoreChangeFinding
+         * @description One entry of `ScoreChange.findings_added` or `findings_removed`.
+         */
+        ScoreChangeFinding: {
+            /**
+             * Finding Id
+             * Format: uuid
+             */
+            finding_id: string;
+            /** Question Key */
+            question_key: string;
+        };
+        /**
+         * ScoreChangeOverride
+         * @description One entry of `ScoreChange.overrides_changed`.
+         */
+        ScoreChangeOverride: {
+            /** Overridden */
+            overridden: boolean;
+            /** Rule Key */
+            rule_key: string;
+        };
+        /**
+         * ScoringConfigModel
+         * @description [`ScoringConfig`](/architecture/interfaces.md#scoringconfig).
+         */
+        ScoringConfigModel: {
+            /** Activated At */
+            activated_at: string | null;
+            /** Activated By Name */
+            activated_by_name: string | null;
+            /** Change Note */
+            change_note: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Service Id
+             * Format: uuid
+             */
+            service_id: string;
+            /** Settings */
+            settings: {
+                [key: string]: unknown;
+            };
+            status: components["schemas"]["ScoringConfigStatus"];
+            /** Version */
+            version: number;
+        };
+        /**
+         * ScoringConfigStatus
+         * @description `scoring_config.status`.
+         * @enum {string}
+         */
+        ScoringConfigStatus: "DRAFT" | "ACTIVE" | "RETIRED";
+        /**
+         * ScoringConfigSummaryModel
+         * @description [`ScoringConfigSummary`](/architecture/interfaces.md#scoringconfigsummary).
+         */
+        ScoringConfigSummaryModel: {
+            /** Activated At */
+            activated_at: string | null;
+            /** Activated By Name */
+            activated_by_name: string | null;
+            /** Change Note */
+            change_note: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Service Id
+             * Format: uuid
+             */
+            service_id: string;
+            status: components["schemas"]["ScoringConfigStatus"];
+            /** Version */
+            version: number;
+        };
+        /**
+         * ScoringDraftUpdate
+         * @description [`ScoringDraftUpdate`](/architecture/interfaces.md#scoringdraftupdate).
+         */
+        ScoringDraftUpdate: {
+            /** Change Note */
+            change_note?: string | null;
+            settings: components["schemas"]["ScoringSettingsDocument"];
+        };
+        /**
+         * ScoringSettingsDocument
+         * @description The `settings` column of [`scoring_config`](/architecture/sql-store.md#scoring_config).
+         */
+        ScoringSettingsDocument: {
+            /** Default Half Life Days */
+            default_half_life_days: {
+                [key: string]: number;
+            };
+            /**
+             * Disqualifiers
+             * @default []
+             */
+            disqualifiers: components["schemas"]["Disqualifier"][];
+            /** Fit Weight */
+            fit_weight: number;
+            /** Hot Threshold */
+            hot_threshold: number;
+            /**
+             * Icp Criteria
+             * @default []
+             */
+            icp_criteria: components["schemas"]["ICPCriterion"][];
+            /** Intent Saturation */
+            intent_saturation: number;
+            /** Intent Weight */
+            intent_weight: number;
+            /** Min Decay */
+            min_decay: number;
+            /** Min Fit */
+            min_fit: number;
+            /** Negative Factor */
+            negative_factor: number;
+            /**
+             * Questions
+             * @default []
+             */
+            questions: components["schemas"]["QuestionSetting"][];
+            /** Strength Values */
+            strength_values: {
+                [key: string]: number;
+            };
+            /** Unknown Match */
+            unknown_match: number;
+            /** Warm Threshold */
+            warm_threshold: number;
+            /** Weight Values */
+            weight_values: {
+                [key: string]: number;
+            };
+        };
+        /**
+         * Service
+         * @description [`Service`](/architecture/interfaces.md#service).
+         */
+        Service: {
+            /** Active Version */
+            active_version: number | null;
+            /** Code */
+            code: string;
+            /** Description */
+            description: string;
+            /** Draft Version */
+            draft_version: number | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Question Count */
+            question_count: number;
+            status: components["schemas"]["ServiceStatus"];
+            /** Value Proposition */
+            value_proposition: string;
+        };
+        /**
+         * ServiceCreate
+         * @description [`ServiceCreate`](/architecture/interfaces.md#servicecreate).
+         */
+        ServiceCreate: {
+            /** Code */
+            code: string;
+            /** Description */
+            description: string;
+            /** Name */
+            name: string;
+            /** Value Proposition */
+            value_proposition: string;
+        };
+        /**
+         * ServiceStatus
+         * @description `service.status`.
+         * @enum {string}
+         */
+        ServiceStatus: "ACTIVE" | "INACTIVE";
+        /**
+         * ServiceUpdate
+         * @description [`ServiceUpdate`](/architecture/interfaces.md#serviceupdate).
+         */
+        ServiceUpdate: {
+            /** Description */
+            description?: string | null;
+            /** Name */
+            name?: string | null;
+            status?: components["schemas"]["ServiceStatus"] | null;
+            /** Value Proposition */
+            value_proposition?: string | null;
+        };
+        /**
+         * SignalQuestion
+         * @description [`SignalQuestion`](/architecture/interfaces.md#signalquestion).
+         */
+        SignalQuestion: {
+            answer_type: components["schemas"]["SignalQuestionAnswerType"];
+            /** Finding Count */
+            finding_count: number;
+            /** Hint Terms */
+            hint_terms: string[];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Key */
+            key: string;
+            /** Options */
+            options: components["schemas"]["QuestionOption"][] | null;
+            polarity: components["schemas"]["SignalQuestionPolarity"];
+            /** Revision */
+            revision: number;
+            /**
+             * Service Id
+             * Format: uuid
+             */
+            service_id: string;
+            /** Source Types */
+            source_types: components["schemas"]["DocumentSourceType"][];
+            status: components["schemas"]["SignalQuestionStatus"];
+            /** Text */
+            text: string;
+        };
+        /**
+         * SignalQuestionAnswerType
+         * @description `signal_question.answer_type`.
+         * @enum {string}
+         */
+        SignalQuestionAnswerType: "YES_NO" | "SCALE" | "CHOICE";
+        /**
+         * SignalQuestionCreate
+         * @description [`SignalQuestionCreate`](/architecture/interfaces.md#signalquestioncreate).
+         */
+        SignalQuestionCreate: {
+            answer_type: components["schemas"]["SignalQuestionAnswerType"];
+            /**
+             * Hint Terms
+             * @default []
+             */
+            hint_terms: string[];
+            /** Key */
+            key: string;
+            /** Options */
+            options?: components["schemas"]["QuestionOption"][] | null;
+            polarity: components["schemas"]["SignalQuestionPolarity"];
+            /** Source Types */
+            source_types: components["schemas"]["DocumentSourceType"][];
+            /** Text */
+            text: string;
+        };
+        /**
          * SignalQuestionPolarity
          * @description `signal_question.polarity`.
          * @enum {string}
          */
         SignalQuestionPolarity: "POSITIVE" | "NEGATIVE";
         /**
+         * SignalQuestionStatus
+         * @description `signal_question.status`.
+         * @enum {string}
+         */
+        SignalQuestionStatus: "ACTIVE" | "INACTIVE";
+        /**
+         * SignalQuestionUpdate
+         * @description [`SignalQuestionUpdate`](/architecture/interfaces.md#signalquestionupdate).
+         */
+        SignalQuestionUpdate: {
+            answer_type?: components["schemas"]["SignalQuestionAnswerType"] | null;
+            /** Hint Terms */
+            hint_terms?: string[] | null;
+            /** Options */
+            options?: components["schemas"]["QuestionOption"][] | null;
+            /** Source Types */
+            source_types?: components["schemas"]["DocumentSourceType"][] | null;
+            status?: components["schemas"]["SignalQuestionStatus"] | null;
+            /** Text */
+            text?: string | null;
+        };
+        /**
+         * SourcePlugin
+         * @description [`SourcePlugin`](/architecture/interfaces.md#sourceplugin).
+         */
+        SourcePlugin: {
+            /** Available */
+            available: boolean;
+            code: components["schemas"]["SourcePluginCode"];
+            /** Daily Quota */
+            daily_quota: number | null;
+            /** Enabled */
+            enabled: boolean;
+            /** Key Configured */
+            key_configured: boolean;
+            /** Last Error */
+            last_error: string | null;
+            /** Last Error At */
+            last_error_at: string | null;
+            /** Last Success At */
+            last_success_at: string | null;
+            /** Needs Key */
+            needs_key: boolean;
+            /** Rate Limit Per Minute */
+            rate_limit_per_minute: number;
+            /** Requests Today */
+            requests_today: number;
+        };
+        /**
          * SourcePluginCode
          * @description `source_plugin.code`; reused by `plugin_usage.plugin_code` and `document.plugin_code`.
          * @enum {string}
          */
         SourcePluginCode: "GDELT" | "RSS" | "WEBSITE" | "CAREERS" | "CRUNCHBASE" | "NEWSAPI" | "SERPAPI";
+        /**
+         * SourcePluginUpdate
+         * @description [`SourcePluginUpdate`](/architecture/interfaces.md#sourcepluginupdate).
+         */
+        SourcePluginUpdate: {
+            /** Daily Quota */
+            daily_quota?: number | null;
+            /** Enabled */
+            enabled?: boolean | null;
+            /** Rate Limit Per Minute */
+            rate_limit_per_minute?: number | null;
+        };
+        /**
+         * User
+         * @description [`User`](/architecture/interfaces.md#user).
+         */
+        User: {
+            /** Display Name */
+            display_name: string;
+            /** Email */
+            email: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Last Login At */
+            last_login_at: string | null;
+            role: components["schemas"]["AppUserRole"];
+            status: components["schemas"]["AppUserStatus"];
+        };
+        /**
+         * UserCreate
+         * @description [`UserCreate`](/architecture/interfaces.md#usercreate). `password`'s `PASSWORD_MIN_LENGTH`
+         *     is enforced once, by `auth.users.create_user` (its one owner), not a static `Field`
+         *     constraint: the minimum is a runtime setting, and a model built inside a router factory
+         *     cannot be resolved by FastAPI's OpenAPI generation (`from __future__ import annotations`
+         *     turns the route's own annotation into a forward reference that must be a module-level
+         *     name).
+         */
+        UserCreate: {
+            /** Display Name */
+            display_name: string;
+            /** Email */
+            email: string;
+            /**
+             * Password
+             * Format: password
+             */
+            password: string;
+            role: components["schemas"]["AppUserRole"];
+        };
+        /**
+         * UserUpdate
+         * @description [`UserUpdate`](/architecture/interfaces.md#userupdate). `password`'s `PASSWORD_MIN_LENGTH`
+         *     is enforced once, by `auth.users.update_user` (`UserCreate`'s note).
+         */
+        UserUpdate: {
+            /** Display Name */
+            display_name?: string | null;
+            /** Password */
+            password?: string | null;
+            role?: components["schemas"]["AppUserRole"] | null;
+            status?: components["schemas"]["AppUserStatus"] | null;
+        };
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -355,6 +2134,15 @@ export interface components {
             /** Error Type */
             type: string;
         };
+        /**
+         * WeightLevel
+         * @description A weight level of the [scoring settings document]
+         *     (/architecture/sql-store.md#scoring-settings-document): `weight_values`, and the `weight` of
+         *     an ICP criterion or a question setting. `NONE` keeps a question out of Intent while a
+         *     disqualifier still reads it.
+         * @enum {string}
+         */
+        WeightLevel: "HIGH" | "MEDIUM" | "LOW" | "NONE";
     };
     responses: never;
     parameters: never;
@@ -364,6 +2152,227 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    get_accounts_api_v1_accounts_get: {
+        parameters: {
+            query?: {
+                q?: string | null;
+                status?: components["schemas"]["AccountStatus"] | null;
+                country_code?: string | null;
+                industry?: string | null;
+                origin?: components["schemas"]["AccountOrigin"] | null;
+                page?: number;
+                page_size?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_AccountRow_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_account_api_v1_accounts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Account"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_accounts_import_api_v1_accounts_import_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_post_accounts_import_api_v1_accounts_import_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_account_api_v1_accounts__id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Account"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_account_api_v1_accounts__id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Account"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_account_refresh_api_v1_accounts__id__refresh_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The refresh already queued */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Run"];
+                };
+            };
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Run"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     post_lead_feedback_api_v1_accounts__id__scores__service_id__feedback_post: {
         parameters: {
             query?: never;
@@ -389,6 +2398,243 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LeadFeedback"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_score_history_api_v1_accounts__id__scores__service_id__history_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                service_id: string;
+            };
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoreChange"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_alerts_api_v1_alerts_get: {
+        parameters: {
+            query?: {
+                service_id?: string | null;
+                unread?: boolean | null;
+                page?: number;
+                page_size?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_AlertView_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_alert_acknowledge_api_v1_alerts__id__acknowledge_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlertView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_audit_api_v1_audit_get: {
+        parameters: {
+            query?: {
+                kind?: components["schemas"]["AuditEventKind"][] | null;
+                action?: components["schemas"]["AuditAction"] | null;
+                actor_id?: string | null;
+                entity_id?: string | null;
+                run_id?: string | null;
+                from?: string | null;
+                to?: string | null;
+                page?: number;
+                page_size?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_AuditEntry_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    login_api_v1_auth_login_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthenticatedUser"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    logout_api_v1_auth_logout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie: {
+                leadradar_session: string;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    me_api_v1_auth_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthenticatedUser"];
                 };
             };
             /** @description Validation Error */
@@ -473,7 +2719,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -484,6 +2732,883 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Impact"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_industries_route_api_v1_industries_get: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["IndustryStatus"] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Industry"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_industry_route_api_v1_industries_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IndustryCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Industry"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_industry_route_api_v1_industries__code__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IndustryUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Industry"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_markets_route_api_v1_markets_get: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["MarketStatus"] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Market"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_market_route_api_v1_markets_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarketCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Market"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_market_route_api_v1_markets__code__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarketUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Market"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_question_route_api_v1_questions__id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignalQuestionUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignalQuestion"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_runs_api_v1_runs_get: {
+        parameters: {
+            query?: {
+                kind?: components["schemas"]["PipelineRunKind"] | null;
+                status?: components["schemas"]["PipelineRunStatus"] | null;
+                account_id?: string | null;
+                service_id?: string | null;
+                page?: number;
+                page_size?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_Run_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_run_by_id_api_v1_runs__id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Run"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_run_cancel_api_v1_runs__id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Run"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    activate_scoring_config_route_api_v1_scoring_configs__config_id__activate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                config_id: string;
+            };
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActivationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_scoring_config_route_api_v1_scoring_configs__id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoringConfigModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_services_api_v1_services_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Service"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_service_route_api_v1_services_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Service"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_service_route_api_v1_services__id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Service"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_service_route_api_v1_services__id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Service"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_questions_route_api_v1_services__id__questions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignalQuestion"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_question_route_api_v1_services__id__questions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignalQuestionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignalQuestion"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_scoring_configs_route_api_v1_services__id__scoring_configs_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoringConfigSummaryModel"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_scoring_draft_route_api_v1_services__id__scoring_configs_draft_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScoringDraftUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoringConfigModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_source_plugins_api_v1_source_plugins_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourcePlugin"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_source_plugin_api_v1_source_plugins__code__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: components["schemas"]["SourcePluginCode"];
+            };
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SourcePluginUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourcePlugin"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_users_api_v1_users_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_user_route_api_v1_users_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_user_route_api_v1_users__user_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

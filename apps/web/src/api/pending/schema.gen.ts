@@ -4,49 +4,15 @@
  */
 
 export interface paths {
-    "/api/v1/auth/login": {
+    "/api/v1/services/{id}/prospects": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
-        /** @description `API-01`: signs in with email and password. */
-        post: operations["login"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/logout": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description `API-02`: signs out. */
-        post: operations["logout"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/me": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description `API-03`: the signed-in user. */
-        get: operations["get_me"];
+        /** @description API-39. */
+        get: operations["list_prospects"];
         put?: never;
         post?: never;
         delete?: never;
@@ -55,25 +21,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/users": {
+    "/api/v1/accounts/{id}/scores/{service_id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** @description `API-04`: lists users, Admin only. */
-        get: operations["list_users"];
+        /** @description API-40. 404 when the account has no score for the service yet. */
+        get: operations["get_score"];
         put?: never;
-        /** @description `API-05`: creates a user, Admin only. */
-        post: operations["create_user"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/users/{id}": {
+    "/api/v1/accounts/{id}/findings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description API-42. */
+        get: operations["list_findings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/findings/{id}/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description API-43. */
+        get: operations["get_evidence"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounts/{id}/scores/{service_id}/overrides": {
         parameters: {
             query?: never;
             header?: never;
@@ -82,56 +81,53 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post?: never;
+        /** @description API-44. Admin only. */
+        post: operations["add_override"];
         delete?: never;
         options?: never;
         head?: never;
-        /** @description `API-06`: updates a user, Admin only. */
-        patch: operations["update_user"];
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/overrides/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description API-45. Admin only. */
+        post: operations["revoke_override"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        LoginRequest: {
-            email: string;
-            password: string;
-        };
-        AuthenticatedUser: {
-            /** Format: uuid */
+        /** @enum {unknown} */
+        Band: "HOT" | "WARM" | "COLD";
+        CrmSyncView: {
             id: string;
-            email: string;
-            display_name: string;
-            /** @enum {string} */
-            role: "SALES" | "ADMIN";
+            external_id: string | null;
+            error: string | null;
+            created_at: string;
+            /** @enum {unknown} */
+            target: "HUBSPOT";
+            /** @enum {unknown} */
+            status: "SUCCEEDED" | "FAILED";
         };
-        User: {
-            /** Format: uuid */
-            id: string;
-            email: string;
-            display_name: string;
-            /** @enum {string} */
-            role: "SALES" | "ADMIN";
-            /** @enum {string} */
-            status: "ACTIVE" | "DISABLED";
-            last_login_at: string | null;
-        };
-        UserCreate: {
-            email: string;
-            display_name: string;
-            /** @enum {string} */
-            role: "SALES" | "ADMIN";
-            password: string;
-        };
-        UserUpdate: {
-            display_name?: string;
-            /** @enum {string} */
-            role?: "SALES" | "ADMIN";
-            /** @enum {string} */
-            status?: "ACTIVE" | "DISABLED";
-            password?: string;
-        };
+        /**
+         * DocumentSourceType
+         * @description `document.source_type`.
+         * @enum {string}
+         */
+        DocumentSourceType: "NEWS" | "COMPANY_PUBLICATION" | "JOB_POSTING" | "COMPANY_PROFILE";
         ErrorEnvelope: {
             error: {
                 code: string;
@@ -152,6 +148,334 @@ export interface components {
                 };
             };
         };
+        EvidenceView: {
+            finding_id: string;
+            document: components["schemas"]["FindingViewDocument"];
+            section: string | null;
+            purged: boolean;
+            excerpt: string | null;
+            quote_start: number | null;
+            quote_end: number | null;
+        };
+        /**
+         * FindingDecidedBy
+         * @description `finding.decided_by`.
+         * @enum {string}
+         */
+        FindingDecidedBy: "CLASSIFIER" | "LLM";
+        /**
+         * FindingFeedbackVerdict
+         * @description `finding_feedback.verdict`.
+         * @enum {string}
+         */
+        FindingFeedbackVerdict: "CORRECT" | "WRONG";
+        /**
+         * FindingStatus
+         * @description `finding.status`.
+         * @enum {string}
+         */
+        FindingStatus: "ACTIVE" | "SUPERSEDED" | "REJECTED";
+        /**
+         * FindingStrength
+         * @description `finding.strength`; reused by `classification.strength` and
+         *     `evaluation_item.expected_strength`.
+         * @enum {string}
+         */
+        FindingStrength: "NONE" | "WEAK" | "MEDIUM" | "STRONG";
+        /**
+         * FindingView
+         * @description [`FindingView`](/architecture/interfaces.md#findingview), the response of `API-47`. Also
+         *     plan task 13's `API-42` response shape; that task imports this model and must not define a
+         *     second one.
+         */
+        FindingView: {
+            /**
+             * Account Id
+             * Format: uuid
+             */
+            account_id: string;
+            /** Confidence */
+            confidence: number;
+            decided_by: components["schemas"]["FindingDecidedBy"];
+            document: components["schemas"]["FindingViewDocument"];
+            feedback: components["schemas"]["FindingViewFeedback"] | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+            option: components["schemas"]["FindingViewOption"] | null;
+            /** Points */
+            points: number | null;
+            question: components["schemas"]["FindingViewQuestion"];
+            /** Question Revision */
+            question_revision: number;
+            /** Quote */
+            quote: string;
+            /** Quote En */
+            quote_en: string | null;
+            /** Rationale */
+            rationale: string;
+            /**
+             * Service Id
+             * Format: uuid
+             */
+            service_id: string;
+            status: components["schemas"]["FindingStatus"];
+            strength: components["schemas"]["FindingStrength"];
+        };
+        /**
+         * FindingViewDocument
+         * @description `FindingView.document`.
+         */
+        FindingViewDocument: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Language */
+            language: string;
+            plugin_code: components["schemas"]["SourcePluginCode"];
+            /** Published At */
+            published_at: string | null;
+            source_type: components["schemas"]["DocumentSourceType"];
+            /** Title */
+            title: string | null;
+            /** Url */
+            url: string;
+        };
+        /**
+         * FindingViewFeedback
+         * @description `FindingView.feedback`: the in-force [`finding_feedback`]
+         *     (/architecture/sql-store.md#finding_feedback).
+         */
+        FindingViewFeedback: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** User Name */
+            user_name: string;
+            verdict: components["schemas"]["FindingFeedbackVerdict"];
+        };
+        /**
+         * FindingViewOption
+         * @description `FindingView.option`; `CHOICE` questions only.
+         */
+        FindingViewOption: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+        };
+        /**
+         * FindingViewQuestion
+         * @description `FindingView.question`.
+         */
+        FindingViewQuestion: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Key */
+            key: string;
+            polarity: components["schemas"]["SignalQuestionPolarity"];
+            /** Text */
+            text: string;
+        };
+        /**
+         * ICPCriterionKind
+         * @description The `kind` of an ICP criterion of the [scoring settings document]
+         *     (/architecture/sql-store.md#scoring-settings-document).
+         * @enum {string}
+         */
+        ICPCriterionKind: "INDUSTRY" | "GEOGRAPHY" | "EMPLOYEE_RANGE" | "REVENUE_RANGE" | "OPERATIONAL_COMPLEXITY";
+        /**
+         * LeadFeedback
+         * @description [`LeadFeedback`](/architecture/interfaces.md#leadfeedback), the response of `API-46`.
+         */
+        LeadFeedback: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Note */
+            note: string | null;
+            /** User Name */
+            user_name: string;
+            verdict: components["schemas"]["LeadFeedbackVerdict"];
+        };
+        /**
+         * LeadFeedbackVerdict
+         * @description `lead_feedback.verdict`.
+         * @enum {string}
+         */
+        LeadFeedbackVerdict: "RELEVANT" | "NOT_RELEVANT" | "ALREADY_CUSTOMER";
+        Override: {
+            id: string;
+            account_id: string;
+            service_id: string;
+            rule_key: string;
+            note: string;
+            rule_label: string;
+            status: components["schemas"]["OverrideStatus"];
+            created_by_name: string;
+            created_at: string;
+            revoked_by_name: string | null;
+            revoked_at: string | null;
+            run_id: string | null;
+        };
+        OverrideCreate: {
+            rule_key: string;
+            note: string;
+        };
+        /** @enum {unknown} */
+        OverrideStatus: "ACTIVE" | "REVOKED";
+        ProspectPage: {
+            items: components["schemas"]["ProspectRow"][];
+            page: number;
+            page_size: number;
+            total: number;
+            band_counts: {
+                [key: string]: number;
+            };
+        };
+        ProspectRow: {
+            rank: number | null;
+            account: {
+                id: string;
+                name: string;
+                domain: string;
+                country_code: string | null;
+                industry: string | null;
+            };
+            fit: number;
+            intent: number;
+            priority: number;
+            standing: components["schemas"]["Standing"];
+            band: components["schemas"]["Band"] | null;
+            reason: {
+                min_fit: number | null;
+                disqualifier_labels: string[] | null;
+                customer_marked_by_name: string | null;
+            } | null;
+            top_signals: {
+                question_key: string;
+                question_text: string;
+                strength: components["schemas"]["FindingStrength"];
+                observed_at: string;
+            }[];
+            finding_count: number;
+            unread_alerts: number;
+            as_of: string;
+            last_refreshed_at: string | null;
+        };
+        ScoreBreakdown: {
+            settings_version: number;
+            as_of: string;
+            fit: {
+                value: number;
+                criteria: {
+                    key: string;
+                    kind: components["schemas"]["ICPCriterionKind"];
+                    weight: components["schemas"]["WeightLevel"];
+                    weight_value: number;
+                    attribute: string | number | null;
+                    /** @enum {unknown} */
+                    match: "MATCH" | "MISMATCH" | "UNKNOWN";
+                    credit: number;
+                    points: number;
+                }[];
+            };
+            intent: {
+                value: number;
+                positive_sum: number;
+                negative_sum: number;
+                max_positive: number;
+                questions: {
+                    question_key: string;
+                    question_text: string;
+                    polarity: components["schemas"]["SignalQuestionPolarity"];
+                    weight: components["schemas"]["WeightLevel"];
+                    weight_value: number;
+                    finding_id: string | null;
+                    strength: components["schemas"]["FindingStrength"] | null;
+                    decay: number | null;
+                    observed_at: string | null;
+                    value: number;
+                    points: number;
+                }[];
+            };
+            disqualifiers: {
+                key: string;
+                label: string;
+                /** @enum {unknown} */
+                kind: "ICP_MISMATCH" | "SIGNAL";
+                criterion_key: string | null;
+                question_key: string | null;
+                matched: boolean;
+                overridden: boolean;
+                override_id: string | null;
+                finding_id: string | null;
+            }[];
+            priority: number;
+            standing: components["schemas"]["Standing"];
+            band: components["schemas"]["Band"] | null;
+        };
+        ScoreView: {
+            score_id: string;
+            account_id: string;
+            service_id: string;
+            scoring_version: number;
+            as_of: string;
+            fit: number;
+            intent: number;
+            priority: number;
+            standing: components["schemas"]["Standing"];
+            band: components["schemas"]["Band"] | null;
+            rank: number | null;
+            breakdown: components["schemas"]["ScoreBreakdown"];
+            overrides: components["schemas"]["Override"][];
+            lead_feedback: components["schemas"]["LeadFeedback"] | null;
+            last_crm_sync: components["schemas"]["CrmSyncView"] | null;
+        };
+        /**
+         * SignalQuestionPolarity
+         * @description `signal_question.polarity`.
+         * @enum {string}
+         */
+        SignalQuestionPolarity: "POSITIVE" | "NEGATIVE";
+        /**
+         * SourcePluginCode
+         * @description `source_plugin.code`; reused by `plugin_usage.plugin_code` and `document.plugin_code`.
+         * @enum {string}
+         */
+        SourcePluginCode: "GDELT" | "RSS" | "WEBSITE" | "CAREERS" | "CRUNCHBASE" | "NEWSAPI" | "SERPAPI";
+        /** @enum {unknown} */
+        Standing: "RANKED" | "BELOW_FIT" | "DISQUALIFIED" | "CUSTOMER";
+        /**
+         * WeightLevel
+         * @description A weight level of the [scoring settings document]
+         *     (/architecture/sql-store.md#scoring-settings-document): `weight_values`, and the `weight` of
+         *     an ICP criterion or a question setting. `NONE` keeps a question out of Intent while a
+         *     disqualifier still reads it.
+         * @enum {string}
+         */
+        WeightLevel: "HIGH" | "MEDIUM" | "LOW" | "NONE";
     };
     responses: never;
     parameters: never;
@@ -161,54 +485,33 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    login: {
+    list_prospects: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number;
+                standing?: components["schemas"]["Standing"];
+                band?: components["schemas"]["Band"][];
+                country_code?: string[];
+                industry?: string[];
+                q?: string;
+                sort?: "priority" | "intent" | "fit" | "name" | "last_refreshed";
+            };
             header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LoginRequest"];
+            path: {
+                id: string;
             };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuthenticatedUser"];
-                };
-            };
-            /** @description Error */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    logout: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description No content */
-            204: {
+            /** @description OK */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ProspectPage"];
+                };
             };
             /** @description Error */
             default: {
@@ -221,22 +524,25 @@ export interface operations {
             };
         };
     };
-    get_me: {
+    get_score: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                id: string;
+                service_id: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Successful Response */
+            /** @description OK */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AuthenticatedUser"];
+                    "application/json": components["schemas"]["ScoreView"];
                 };
             };
             /** @description Error */
@@ -250,22 +556,28 @@ export interface operations {
             };
         };
     };
-    list_users: {
+    list_findings: {
         parameters: {
-            query?: never;
+            query?: {
+                service_id?: string;
+                question_id?: string;
+                status?: components["schemas"]["FindingStatus"];
+            };
             header?: never;
-            path?: never;
+            path: {
+                id: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Successful Response */
+            /** @description OK */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["User"][];
+                    "application/json": components["schemas"]["FindingView"][];
                 };
             };
             /** @description Error */
@@ -279,40 +591,7 @@ export interface operations {
             };
         };
     };
-    create_user: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UserCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["User"];
-                };
-            };
-            /** @description Error */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    update_user: {
+    get_evidence: {
         parameters: {
             query?: never;
             header?: never;
@@ -321,19 +600,82 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UserUpdate"];
-            };
-        };
+        requestBody?: never;
         responses: {
-            /** @description Successful Response */
+            /** @description OK */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["User"];
+                    "application/json": components["schemas"]["EvidenceView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    add_override: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                service_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OverrideCreate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Override"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    revoke_override: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Override"];
                 };
             };
             /** @description Error */

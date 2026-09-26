@@ -39,7 +39,9 @@ export function useLogout() {
     meta: READS_OWN_UNAUTHENTICATED,
     mutationFn: async () => {
       try {
-        await client.POST("/api/v1/auth/logout");
+        // The api's snapshot lists the session cookie as a required parameter; the browser sends it
+        // itself (httpOnly) and openapi-fetch never serializes cookie parameters.
+        await client.POST("/api/v1/auth/logout", { params: { cookie: { leadradar_session: "" } } });
       } catch (error: unknown) {
         if (!(error instanceof ApiError && error.status === 401)) {
           throw error;
@@ -78,7 +80,8 @@ export function useUpdateUser() {
   return useMutation({
     mutationFn: async ({ id, body }: { id: string; body: Schemas["UserUpdate"] }) =>
       requireData(
-        (await client.PATCH("/api/v1/users/{id}", { params: { path: { id } }, body })).data,
+        (await client.PATCH("/api/v1/users/{user_id}", { params: { path: { user_id: id } }, body }))
+          .data,
       ),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: authenticationAndUsersKeys.users });

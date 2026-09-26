@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { countryName, enumLabel, formatAbsolute, formatRelative } from "./format";
+import { countryName, enumLabel, formatAbsolute, formatRelative, strengthLabel } from "./format";
 
 const now = new Date("2026-09-26T12:00:00Z");
 const ago = (seconds: number): Date => new Date(now.getTime() - seconds * 1000);
@@ -63,5 +63,16 @@ describe("countryName and enumLabel (FR-011)", () => {
     ["LLM", "Detailed check"],
   ])("%s reads %s", (value, label) => {
     expect(enumLabel(value)).toBe(label);
+  });
+});
+
+describe("strengthLabel", () => {
+  it.each([
+    ["NONE", "None"],
+    ["WEAK", "Weak"],
+    ["MEDIUM", "Clear"],
+    ["STRONG", "Strong"],
+  ])("%s reads %s", (value, label) => {
+    expect(strengthLabel(value)).toBe(label);
   });
 });

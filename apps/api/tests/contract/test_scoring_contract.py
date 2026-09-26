@@ -17,8 +17,7 @@ from leadradar.scoring.errors import NotADraft, ScoringConfigNotFound
 
 pytestmark = pytest.mark.contract
 
-_ADMIN_HEADERS = {"X-Actor-Id": str(uuid.uuid4()), "X-Actor-Role": "ADMIN"}
-_SALES_HEADERS = {"X-Actor-Id": str(uuid.uuid4()), "X-Actor-Role": "SALES"}
+_CSRF_HEADERS = {"X-Requested-With": "XMLHttpRequest"}
 
 
 def _make_activation_result(
@@ -48,7 +47,7 @@ def _make_activation_result(
 
 
 async def test_api18_draft_returns_scoring_config_active(
-    client: httpx.AsyncClient,
+    admin_client: httpx.AsyncClient,
 ) -> None:
     """API-18 on a DRAFT returns 200 with ScoringConfig status=ACTIVE (AC-06)."""
     config_id = uuid.uuid4()
@@ -58,10 +57,9 @@ async def test_api18_draft_returns_scoring_config_active(
         "leadradar.api.scoring.activate_scoring_config",
         new=AsyncMock(return_value=result),
     ):
-        response = await client.post(
+        response = await admin_client.post(
             f"/api/v1/scoring-configs/{config_id}/activate",
             json={"change_note": "promoting to prod"},
-            headers=_ADMIN_HEADERS,
         )
 
     assert response.status_code == 200
@@ -81,7 +79,7 @@ async def test_api18_draft_returns_scoring_config_active(
 
 
 async def test_api18_active_config_returns_409(
-    client: httpx.AsyncClient,
+    admin_client: httpx.AsyncClient,
 ) -> None:
     """API-18 on an ACTIVE config returns 409 CONFLICT (API-18, AC-06)."""
     config_id = uuid.uuid4()
@@ -90,10 +88,9 @@ async def test_api18_active_config_returns_409(
         "leadradar.api.scoring.activate_scoring_config",
         new=AsyncMock(side_effect=NotADraft(str(config_id), "ACTIVE")),
     ):
-        response = await client.post(
+        response = await admin_client.post(
             f"/api/v1/scoring-configs/{config_id}/activate",
             json={"change_note": "promoting"},
-            headers=_ADMIN_HEADERS,
         )
 
     assert response.status_code == 409
@@ -102,7 +99,7 @@ async def test_api18_active_config_returns_409(
 
 
 async def test_api18_retired_config_returns_409(
-    client: httpx.AsyncClient,
+    admin_client: httpx.AsyncClient,
 ) -> None:
     """API-18 on a RETIRED config returns 409 CONFLICT (API-18, AC-06)."""
     config_id = uuid.uuid4()
@@ -111,10 +108,9 @@ async def test_api18_retired_config_returns_409(
         "leadradar.api.scoring.activate_scoring_config",
         new=AsyncMock(side_effect=NotADraft(str(config_id), "RETIRED")),
     ):
-        response = await client.post(
+        response = await admin_client.post(
             f"/api/v1/scoring-configs/{config_id}/activate",
             json={"change_note": "promoting"},
-            headers=_ADMIN_HEADERS,
         )
 
     assert response.status_code == 409
@@ -124,7 +120,7 @@ async def test_api18_retired_config_returns_409(
 
 
 async def test_api18_not_found_returns_404(
-    client: httpx.AsyncClient,
+    admin_client: httpx.AsyncClient,
 ) -> None:
     """API-18 with an unknown config_id returns 404 NOT_FOUND."""
     config_id = uuid.uuid4()
@@ -133,10 +129,9 @@ async def test_api18_not_found_returns_404(
         "leadradar.api.scoring.activate_scoring_config",
         new=AsyncMock(side_effect=ScoringConfigNotFound(str(config_id))),
     ):
-        response = await client.post(
+        response = await admin_client.post(
             f"/api/v1/scoring-configs/{config_id}/activate",
             json={"change_note": "promoting"},
-            headers=_ADMIN_HEADERS,
         )
 
     assert response.status_code == 404
@@ -150,15 +145,14 @@ async def test_api18_not_found_returns_404(
 
 
 async def test_api18_sales_role_returns_403(
-    client: httpx.AsyncClient,
+    sales_client: httpx.AsyncClient,
 ) -> None:
     """API-18 with Sales role returns 403 FORBIDDEN (Conventions)."""
     config_id = uuid.uuid4()
 
-    response = await client.post(
+    response = await sales_client.post(
         f"/api/v1/scoring-configs/{config_id}/activate",
         json={"change_note": "promoting"},
-        headers=_SALES_HEADERS,
     )
 
     assert response.status_code == 403
@@ -166,15 +160,16 @@ async def test_api18_sales_role_returns_403(
     assert body["error"]["code"] == "FORBIDDEN"
 
 
-async def test_api18_no_auth_headers_returns_401(
+async def test_api18_no_session_returns_401(
     client: httpx.AsyncClient,
 ) -> None:
-    """API-18 with no auth headers returns 401 UNAUTHENTICATED (Conventions)."""
+    """API-18 with no session returns 401 UNAUTHENTICATED (Conventions)."""
     config_id = uuid.uuid4()
 
     response = await client.post(
         f"/api/v1/scoring-configs/{config_id}/activate",
         json={"change_note": "promoting"},
+        headers=_CSRF_HEADERS,
     )
 
     assert response.status_code == 401
@@ -188,15 +183,14 @@ async def test_api18_no_auth_headers_returns_401(
 
 
 async def test_api18_missing_change_note_returns_422(
-    client: httpx.AsyncClient,
+    admin_client: httpx.AsyncClient,
 ) -> None:
     """API-18 without change_note in the body returns 422 (API-18 shape)."""
     config_id = uuid.uuid4()
 
-    response = await client.post(
+    response = await admin_client.post(
         f"/api/v1/scoring-configs/{config_id}/activate",
         json={},
-        headers=_ADMIN_HEADERS,
     )
 
     assert response.status_code == 422

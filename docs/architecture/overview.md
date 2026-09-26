@@ -80,7 +80,11 @@ One `docker compose up` starts the stack locally, and the same Compose file runs
 
 Configuration comes from environment variables only; secrets (API keys, the HubSpot token, the database and seed passwords) are never committed, logged or returned by the API. Each service's keys and defaults are in its runtime section: [api](/architecture/services/api.md#runtime), [worker](/architecture/services/worker.md#runtime), [frontend](/architecture/services/frontend.md#runtime).
 
+The database has two roles. The owner, the `db` container's user, creates and changes the schema; only the api's migration step connects as it, through `MIGRATION_DATABASE_URL`. The application role `leadradar_app` is created by the `db` container's init script with the password `APP_DB_PASSWORD`; the api and the worker serve through `DATABASE_URL` as that role, which may read and write every table but only read and append [`audit_event`](/architecture/sql-store.md#audit_event).
+
 **Fixture mode** ([ADR-11](/architecture/adrs/adr-11-recorded-fixtures.md)). `FIXTURE_MODE` is `off`, `record` or `replay`. In `record`, every source plug-in request and every classifier and LLM call is stored under `FIXTURE_DIR`, keyed by a SHA-256 of the adapter name and the normalised request. In `replay`, they are answered from those files; a request with no file fails its step with `FIXTURE_MISSING` and is never sent live. The embedder is local and runs in every mode. Replay reads the clock from `CLOCK_FILE`, set to the time of the recording, so that fetch windows match the recorded requests and decay gives the same scores on every replay. Replay needs no provider key; `CLASSIFIER_PROVIDER` and the model ids must be those of the recording, because they are part of each request's key. Replay is how the demo and the acceptance tests run offline and repeatably ([S-RUN-02](/requirements/system.md)).
+
+**Fixture files.** One exchange per file, at `FIXTURE_DIR/<adapter>/<key>.json`, where `<adapter>` is `JEV` or `OPENROUTER` for an AI gateway call and the plug-in's [`source_plugin`](/architecture/sql-store.md#source_plugin) `code` for a source request. The normalised request is `{adapter, method, url, body}`: `url` with its query parameters sorted; `body` the parsed JSON of a JSON body, the text of any other body, or null. Headers are left out, so no key or credential is ever stored. `<key>` is the SHA-256, in lower-case hex, of the normalised request serialised as JSON with sorted keys, no whitespace and non-ASCII characters unescaped. The file is the JSON object `{adapter, request, response}`: `request` is the normalised request; `response` is `{status, content_type}` with one of `json` for a JSON body, `text` for any other text and `base64` for binary content such as a PDF, or `{error}` with `TIMEOUT` or `TRANSPORT_ERROR` for an exchange that failed before an answer, which replay raises again. `record` overwrites the file of a repeated request, so a retried call keeps its last attempt.
 
 **Seeding.** `make seed-demo` loads the [demo dataset](#demo-dataset) into an empty database: users, industries, markets, services, questions, active scoring versions, and the accounts with their sources, imported from the demo account file by the rules of `API-22` and then linked to their parents ([S-RUN-03](/requirements/system.md)). It never fetches. The **demo refresh** follows it: `make refresh-demo` requests a refresh of every active account through `API-33` and waits until every run is final, in replay mode for the demo and the acceptance tests; the P1 scheduler would find the same accounts due, and one refresh per account is all either can queue. Labels reference passages, which exist only after a refresh, so they are exported to `FIXTURE_DIR/evaluation_items.json` keyed by account domain, document content hash, passage ordinal, question key and revision, and `make seed-labels` loads them after the demo refresh, matching each to its passage; replay reproduces the same documents and passages, so every exported label finds its passage.
 
@@ -152,7 +156,7 @@ What the MVP deliberately leaves out, and how it would be added without changing
 
 The seed is the acceptance tests' concrete data and the demo's walk-through. Its literal values are the ones below.
 
-**Users.** `admin@leadradar.local` with role `ADMIN` and `sales@leadradar.local` with role `SALES`; passwords from `SEED_ADMIN_PASSWORD` and `SEED_SALES_PASSWORD`.
+**Users.** `admin@leadradar.local` with role `ADMIN` and `sales@leadradar.local` with role `SALES`, each with the email's local part as display name; passwords from `SEED_ADMIN_PASSWORD` and `SEED_SALES_PASSWORD`.
 
 **Industries.** Seeded as `ACTIVE` [`industry`](/architecture/sql-store.md#industry) rows; an Admin adds, renames and retires them afterwards. A label is the short name every screen shows.
 
@@ -220,7 +224,7 @@ The seed is the acceptance tests' concrete data and the demo's walk-through. Its
 | `NEW_EXECUTIVE` | Has the company appointed a new CIO, COO, CDO or head of transformation, automation or process excellence? | `YES_NO` | `POSITIVE` | `NEWS`, `COMPANY_PUBLICATION`, `COMPANY_PROFILE` | `MEDIUM`, half-life 180 days | appointed; new CIO; neuer CIO |
 | `SHARED_SERVICES` | Does the company consolidate processes or build or expand shared service centres? | `YES_NO` | `POSITIVE` | `NEWS`, `COMPANY_PUBLICATION` | `MEDIUM` | shared services; global business services; consolidation |
 | `IN_HOUSE_AUTOMATION` | Does the company describe a strong in-house automation or AI capability, such as its own automation centre of excellence or platform? | `SCALE` | `NEGATIVE` | `NEWS`, `COMPANY_PUBLICATION` | `MEDIUM` | centre of excellence; in-house |
-| `INCUMBENT_PROVIDER` | Does the company name an existing external provider for automation or AI services? | `CHOICE`: `NONE_NAMED` (`NONE`), `PLATFORM_VENDOR` (`WEAK`), `SERVICE_PROVIDER` (`MEDIUM`), `STRATEGIC_PARTNERSHIP` (`STRONG`) | `NEGATIVE` | `NEWS`, `COMPANY_PUBLICATION` | `LOW` | partnership; UiPath; Celonis |
+| `INCUMBENT_PROVIDER` | Does the company name an existing external provider for automation or AI services? | `CHOICE`: `NONE_NAMED` ("None named", `NONE`), `PLATFORM_VENDOR` ("Platform vendor", `WEAK`), `SERVICE_PROVIDER` ("Service provider", `MEDIUM`), `STRATEGIC_PARTNERSHIP` ("Strategic partnership", `STRONG`) | `NEGATIVE` | `NEWS`, `COMPANY_PUBLICATION` | `LOW` | partnership; UiPath; Celonis |
 | `INSOLVENCY` | Is the company in insolvency, restructuring under creditor protection, or being wound up? | `YES_NO` | `NEGATIVE` | `NEWS`, `COMPANY_PROFILE` | `NONE` | insolvency; Insolvenz |
 
 ICP: `SECTOR` (`INDUSTRY`: `AEROSPACE_AVIATION`, `LOGISTICS_TRANSPORT`, `MANUFACTURING`, `AUTOMOTIVE`, `BANKING`, `INSURANCE`; `HIGH`), `REGION` (`GEOGRAPHY`: `DE`, `AT`, `CH`, `NL`, `BE`, `LU`, `FR`, `IT`, `DK`, `SE`, `NO`, `FI`; `MEDIUM`), `SIZE` (`EMPLOYEE_RANGE` min 5000; `MEDIUM`), `COMPLEXITY` (`OPERATIONAL_COMPLEXITY`: `MEDIUM`, `HIGH`; `LOW`). Disqualifiers: `OUTSIDE_EUROPE` ("Outside the target region", `ICP_MISMATCH` on `REGION`), `INSOLVENT` ("In insolvency", `SIGNAL` on `INSOLVENCY`, min strength `MEDIUM`). All other settings are the defaults.
@@ -238,6 +242,20 @@ ICP: `SECTOR` (`INDUSTRY`: `AEROSPACE_AVIATION`, `LOGISTICS_TRANSPORT`, `MANUFAC
 | `INSOLVENCY` | Is the company in insolvency, restructuring under creditor protection, or being wound up? | `YES_NO` | `NEGATIVE` | `NEWS`, `COMPANY_PROFILE` | `NONE` | insolvency; Insolvenz |
 
 ICP: `SECTOR` (`INDUSTRY`: `BANKING`, `INSURANCE`, `ENERGY_UTILITIES`, `HEALTHCARE_PHARMA`, `MANUFACTURING`, `AUTOMOTIVE`, `LOGISTICS_TRANSPORT`, `AEROSPACE_AVIATION`; `HIGH`), `REGION` (as Intelligent Automation; `MEDIUM`), `SIZE` (`EMPLOYEE_RANGE` min 1000; `MEDIUM`). Disqualifier: `INSOLVENT` as Intelligent Automation. All other settings are the defaults.
+
+**Source plug-ins.** Seeded as [`source_plugin`](/architecture/sql-store.md#source_plugin) rows, one per plug-in value, each `enabled` and with no `daily_quota`.
+
+| Code | Rate limit per minute |
+|---|---|
+| `GDELT` | `10` |
+| `RSS` | `30` |
+| `WEBSITE` | `30` |
+| `CAREERS` | `30` |
+| `CRUNCHBASE` | `30` |
+| `NEWSAPI` | `30` |
+| `SERPAPI` | `30` |
+
+`GDELT`'s limit matches the pacing of `GDELT_MIN_INTERVAL_S` ([worker Runtime](/architecture/services/worker.md#runtime)).
 
 **Fixtures.** `FIXTURE_DIR` holds a recording of one refresh of every demo account on the free core, made with `FIXTURE_MODE=record`, of the classifier and LLM calls it caused, and of one quality check over the exported labels under each classifier adapter. The acceptance criteria name this recording "the demo recording". Beside it, "the discovery recording" holds one discovery run for Intelligent Automation on the free core. It holds no Crunchbase exchange, since no Crunchbase key is expected ([ADR-19](/architecture/adrs/adr-19-source-provider-terms-and-limits.md)); only the P1 criterion `AC-69` needs one, recorded if a key becomes available.
 

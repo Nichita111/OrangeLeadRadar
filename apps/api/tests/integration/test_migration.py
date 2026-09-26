@@ -13,19 +13,14 @@ from alembic.config import Config
 from alembic.migration import MigrationContext
 from pydantic import SecretStr
 from sqlalchemy import create_engine, inspect, text
-<<<<<<< HEAD
-=======
 from testcontainers.community.postgres import PostgresContainer
->>>>>>> origin/main
 
 from alembic import command
 from leadradar.api.main import _API_ROOT, apply_migrations
 from leadradar.db.base import Base
 from leadradar.logs import configure_json_logging
 from leadradar.settings import ApiSettings
-
-# Imported for its side effect: populates Base.metadata with every model.
-importlib.import_module("leadradar.db.models")
+from tests.conftest import create_application_role
 
 # Imported for its side effect: populates Base.metadata with every model.
 importlib.import_module("leadradar.db.models")
@@ -90,13 +85,16 @@ def test_every_timestamp_column_of_the_migrated_schema_is_with_time_zone(
         engine.dispose()
 
 
-def test_a_second_start_applies_no_further_migration(database_url: str) -> None:
-    settings = ApiSettings(database_url=SecretStr(database_url))
+def test_a_second_start_applies_no_further_migration(migration_database_url: str) -> None:
+    settings = ApiSettings(
+        database_url=SecretStr(migration_database_url),
+        migration_database_url=SecretStr(migration_database_url),
+    )
     config = Config(str(_API_ROOT / "alembic.ini"))
     config.set_main_option("script_location", str(_API_ROOT / "alembic"))
     config.attributes["settings"] = settings
 
-    engine = create_engine(database_url.replace("postgresql://", "postgresql+psycopg://"))
+    engine = create_engine(migration_database_url.replace("postgresql://", "postgresql+psycopg://"))
     try:
         with engine.connect() as connection:
             before: str = connection.execute(
@@ -110,7 +108,7 @@ def test_a_second_start_applies_no_further_migration(database_url: str) -> None:
                 text("SELECT version_num FROM alembic_version")
             ).scalar_one()
 
-        assert before == after == "0001"
+        assert before == after == "0002"
     finally:
         engine.dispose()
 
@@ -131,7 +129,12 @@ def test_a_non_default_embedding_dim_is_the_migrated_vector_dimension() -> None:
             f"postgresql://{container.username}:{container.password}@{host}:{port}"
             f"/{container.dbname}"
         )
-        settings = ApiSettings(database_url=SecretStr(url), embedding_dim=non_default_dim)
+        create_application_role(container, "throwaway-app-role-password")
+        settings = ApiSettings(
+            database_url=SecretStr(url),
+            migration_database_url=SecretStr(url),
+            embedding_dim=non_default_dim,
+        )
         apply_migrations(settings)
 
         engine = create_engine(url.replace("postgresql://", "postgresql+psycopg://"))
@@ -156,8 +159,9 @@ def test_a_migration_failure_from_an_unreachable_database_is_one_json_line_witho
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     secret_password = "s3cret-password-should-never-appear"
+    unreachable_url = f"postgresql://postgres:{secret_password}@127.0.0.1:1/nonexistent"
     settings = ApiSettings(
-        database_url=SecretStr(f"postgresql://postgres:{secret_password}@127.0.0.1:1/nonexistent")
+        database_url=SecretStr(unreachable_url), migration_database_url=SecretStr(unreachable_url)
     )
     configure_json_logging("INFO")
 
@@ -177,3 +181,59 @@ def test_a_migration_failure_from_an_unreachable_database_is_one_json_line_witho
     for line in lines:
         record = json.loads(line)
         assert secret_password not in json.dumps(record)
+
+
+def test_migrations_from_empty_to_head_and_back_include_the_grants() -> None:
+    """`0002_application_role.py` (G1): head grants `leadradar_app` read-write on every table but
+    `audit_event` (read-append only), and the downgrade revokes them."""
+    with PostgresContainer("pgvector/pgvector:pg16", driver=None) as container:
+        host = container.get_container_host_ip()
+        port = container.get_exposed_port(container.port)
+        owner_url = (
+            f"postgresql://{container.username}:{container.password}@{host}:{port}"
+            f"/{container.dbname}"
+        )
+        create_application_role(container, "throwaway-app-role-password")
+        settings = ApiSettings(
+            database_url=SecretStr(owner_url), migration_database_url=SecretStr(owner_url)
+        )
+        apply_migrations(settings)
+
+        engine = create_engine(owner_url.replace("postgresql://", "postgresql+psycopg://"))
+        try:
+            with engine.connect() as connection:
+                can_update_audit_event: bool = connection.execute(
+                    text("SELECT has_table_privilege('leadradar_app', 'audit_event', 'UPDATE')")
+                ).scalar_one()
+                can_insert_audit_event: bool = connection.execute(
+                    text("SELECT has_table_privilege('leadradar_app', 'audit_event', 'INSERT')")
+                ).scalar_one()
+                can_update_app_user: bool = connection.execute(
+                    text("SELECT has_table_privilege('leadradar_app', 'app_user', 'UPDATE')")
+                ).scalar_one()
+            assert can_update_audit_event is False
+            assert can_insert_audit_event is True
+            assert can_update_app_user is True
+
+            command.downgrade(
+                _config_for(owner_url),
+                "0001",
+            )
+            with engine.connect() as connection:
+                can_select_app_user_after_downgrade: bool = connection.execute(
+                    text("SELECT has_table_privilege('leadradar_app', 'app_user', 'SELECT')")
+                ).scalar_one()
+            assert can_select_app_user_after_downgrade is False
+        finally:
+            engine.dispose()
+
+
+def _config_for(migration_database_url: str) -> Config:
+    settings = ApiSettings(
+        database_url=SecretStr(migration_database_url),
+        migration_database_url=SecretStr(migration_database_url),
+    )
+    config = Config(str(_API_ROOT / "alembic.ini"))
+    config.set_main_option("script_location", str(_API_ROOT / "alembic"))
+    config.attributes["settings"] = settings
+    return config

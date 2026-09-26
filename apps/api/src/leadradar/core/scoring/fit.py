@@ -5,6 +5,7 @@ Pure function; no I/O.
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 
@@ -32,7 +33,7 @@ class FitResult:
 
 def fit(
     attributes: dict[str, object],
-    icp_criteria: list[dict[str, object]],
+    icp_criteria: Sequence[Mapping[str, object]],
     weight_values: dict[str, float],
     unknown_match: float,
 ) -> FitResult:
@@ -104,7 +105,7 @@ def fit(
 
 
 def _criterion_match(
-    c: dict[str, object],
+    c: Mapping[str, object],
     attributes: dict[str, object],
     unknown_match: float,
 ) -> tuple[object, str, float]:

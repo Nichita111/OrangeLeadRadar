@@ -75,13 +75,13 @@ describe("contract files", () => {
     );
   });
 
-  it("G13, R3: the fragment's operations are exactly API-01 to API-06 of interfaces.md", () => {
+  it("G13, R3: the fragment's operations are exactly API-39, API-40 and API-42 to API-45 of interfaces.md", () => {
     const fragment = readJson(resolve(webRoot, "src/api/pending/openapi.json"));
     const operations = Object.entries(fragment.paths).flatMap(([path, item]) =>
       Object.keys(item).map((method) => `${method} ${path}`),
     );
     expect(operations.sort()).toEqual(
-      contractRows(["API-01", "API-02", "API-03", "API-04", "API-05", "API-06"]),
+      contractRows(["API-39", "API-40", "API-42", "API-43", "API-44", "API-45"]),
     );
   });
 

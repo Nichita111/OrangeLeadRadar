@@ -1,11 +1,11 @@
 """Unit test of [Audit actions](/architecture/sql-store.md#audit-actions):
-`core.enums.AuditEventAction` holds exactly the closed vocabulary the table lists."""
+`core.enums.AuditAction` holds exactly the closed vocabulary the table lists."""
 
 from __future__ import annotations
 
 import pytest
 
-from leadradar.core.enums import AuditEventAction
+from leadradar.core.enums import AuditAction
 
 pytestmark = pytest.mark.unit
 
@@ -51,4 +51,4 @@ _TABLE_ACTIONS = {
 
 
 def test_holds_exactly_the_actions_of_the_audit_actions_table() -> None:
-    assert {member.value for member in AuditEventAction} == _TABLE_ACTIONS
+    assert {member.value for member in AuditAction} == _TABLE_ACTIONS

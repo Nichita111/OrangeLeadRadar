@@ -1,7 +1,7 @@
 import { HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 
-import { errorEnvelope } from "./authenticationAndUsers.fixtures";
+import { errorEnvelope, errorResponse } from "./authenticationAndUsers.fixtures";
 import { ApiError, client, parseErrorEnvelope } from "./client";
 import { http, server } from "../testServer";
 
@@ -13,7 +13,7 @@ describe("api client", () => {
         seen.push(request.headers.get("X-Requested-With"));
         return response(204).empty();
       }),
-      http.patch("/api/v1/users/{id}", ({ request, response }) => {
+      http.patch("/api/v1/users/{user_id}", ({ request, response }) => {
         seen.push(request.headers.get("X-Requested-With"));
         return response(200).json({
           id: "0b6f6f3e-5f0a-4f0e-9d0e-1a1a1a1a1a01",
@@ -25,9 +25,9 @@ describe("api client", () => {
         });
       }),
     );
-    await client.POST("/api/v1/auth/logout");
-    await client.PATCH("/api/v1/users/{id}", {
-      params: { path: { id: "0b6f6f3e-5f0a-4f0e-9d0e-1a1a1a1a1a01" } },
+    await client.POST("/api/v1/auth/logout", { params: { cookie: { leadradar_session: "" } } });
+    await client.PATCH("/api/v1/users/{user_id}", {
+      params: { path: { user_id: "0b6f6f3e-5f0a-4f0e-9d0e-1a1a1a1a1a01" } },
       body: { display_name: "A" },
     });
     expect(seen).toEqual(["XMLHttpRequest", "XMLHttpRequest"]);
@@ -35,11 +35,7 @@ describe("api client", () => {
 
   it("Conventions: an envelope parses into ApiError with the status", async () => {
     const envelope = errorEnvelope("LOCKED", "Locked for 5 minutes.", { retry_after_min: 5 });
-    server.use(
-      http.get("/api/v1/auth/me", ({ response }) =>
-        response("default").json(envelope, { status: 423 }),
-      ),
-    );
+    server.use(http.get("/api/v1/auth/me", () => errorResponse(envelope, 423)));
     const failure = await client.GET("/api/v1/auth/me").catch((error: unknown) => error);
     expect(failure).toBeInstanceOf(ApiError);
     expect((failure as ApiError).status).toBe(423);

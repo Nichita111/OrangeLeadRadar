@@ -11,6 +11,7 @@ from collections.abc import Callable
 from typing import Any
 
 import pytest
+from pydantic import SecretStr
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,6 +28,7 @@ from leadradar.db.models.signals import Classification, DocumentTriage, Finding
 from leadradar.worker.ai.classifier import ClassifierAnswer, ClassifierRequest
 from leadradar.worker.ai.gateway import BudgetExhaustedError
 from leadradar.worker.ai.llm import EvidenceOutput
+from leadradar.worker.settings import WorkerSettings
 from leadradar.worker.steps import signal
 from leadradar.worker.steps.signal import run_signal_job, supersede_old_revision_findings
 from tests.integration import factories
@@ -81,7 +83,14 @@ async def _run_job(session: AsyncSession, ids: dict[str, uuid.UUID], **payload: 
         step=JobStep.SIGNAL,
         payload={"document_ids": [str(ids["doc"])], "service_ids": [str(ids["svc"])], **payload},
     )
-    await run_signal_job(session, job=job, run=run, worker_instance_id="w", alert_max_age_days=14)
+    await run_signal_job(
+        session,
+        job=job,
+        run=run,
+        worker_instance_id="w",
+        alert_max_age_days=14,
+        settings=WorkerSettings(database_url=SecretStr("postgresql://unused@localhost/unused")),
+    )
     await session.flush()
 
 
@@ -163,7 +172,9 @@ async def test_findings_of_an_older_revision_become_superseded(
     async_session: AsyncSession,
 ) -> None:
     ids = await _arrange(async_session)
-    account_id = (await async_session.get(PipelineRun, ids["run"])).account_id  # type: ignore[union-attr]
+    run = await async_session.get(PipelineRun, ids["run"])
+    assert run is not None
+    account_id = run.account_id
     clf_id = await _seed(
         async_session, factories.make_classification, ids["chunk"], ids["q"], ids["run"]
     )

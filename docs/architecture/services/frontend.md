@@ -231,6 +231,7 @@ The words the screens show for glossary terms. A label is a presentation of the 
 | Evaluation item | Label |
 | Evaluation run | Quality check |
 | Strength `WEAK`, `MEDIUM`, `STRONG` | Weak, Clear, Strong |
+| Finding status `ACTIVE`, `REJECTED`, `SUPERSEDED` | Counting, Marked wrong, Outdated question |
 | `decided_by` `CLASSIFIER`, `LLM` | Quick check, Detailed check |
 | Scoring settings | Scoring |
 

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, datetime, timedelta
+from typing import Any, cast
 
 import pytest
 
@@ -35,8 +36,13 @@ AS_OF = datetime(2026, 9, 25, 6, 0, 0, tzinfo=UTC)
 _DEFAULT_SETTINGS = ScoringSettings()
 
 # Example 1 ICP criteria (from rules.md Examples)
-_EXAMPLE_ICP_CRITERIA = [
-    {"key": "SECTOR", "kind": "INDUSTRY", "weight": "HIGH", "values": ["AEROSPACE_AVIATION", "LOGISTICS_TRANSPORT"]},
+_EXAMPLE_ICP_CRITERIA: list[dict[str, object]] = [
+    {
+        "key": "SECTOR",
+        "kind": "INDUSTRY",
+        "weight": "HIGH",
+        "values": ["AEROSPACE_AVIATION", "LOGISTICS_TRANSPORT"],
+    },
     {"key": "REGION", "kind": "GEOGRAPHY", "weight": "MEDIUM", "values": ["DE", "AT", "CH"]},
     {"key": "SIZE", "kind": "EMPLOYEE_RANGE", "weight": "LOW", "min": 5000},
     {"key": "COMPLEXITY", "kind": "OPERATIONAL_COMPLEXITY", "weight": "MEDIUM", "values": ["HIGH"]},
@@ -59,10 +65,30 @@ _EXAMPLE2_ATTRIBUTES: dict[str, object] = {
 
 # Example 1 question settings with polarity
 _QUESTION_SETTINGS_WITH_POLARITY: list[dict[str, object]] = [
-    {"question_key": "COST_PROGRAM", "weight": "HIGH", "half_life_days": None, "polarity": "POSITIVE"},
-    {"question_key": "AUTOMATION_HIRING", "weight": "MEDIUM", "half_life_days": None, "polarity": "POSITIVE"},
-    {"question_key": "AI_INITIATIVE", "weight": "HIGH", "half_life_days": None, "polarity": "POSITIVE"},
-    {"question_key": "IN_HOUSE_AUTOMATION", "weight": "MEDIUM", "half_life_days": None, "polarity": "NEGATIVE"},
+    {
+        "question_key": "COST_PROGRAM",
+        "weight": "HIGH",
+        "half_life_days": None,
+        "polarity": "POSITIVE",
+    },
+    {
+        "question_key": "AUTOMATION_HIRING",
+        "weight": "MEDIUM",
+        "half_life_days": None,
+        "polarity": "POSITIVE",
+    },
+    {
+        "question_key": "AI_INITIATIVE",
+        "weight": "HIGH",
+        "half_life_days": None,
+        "polarity": "POSITIVE",
+    },
+    {
+        "question_key": "IN_HOUSE_AUTOMATION",
+        "weight": "MEDIUM",
+        "half_life_days": None,
+        "polarity": "NEGATIVE",
+    },
 ]
 
 
@@ -108,7 +134,12 @@ def _make_settings_with_examples(
             "warm_threshold": 40,
             "weight_values": {"HIGH": 3.0, "MEDIUM": 2.0, "LOW": 1.0, "NONE": 0.0},
             "strength_values": {"WEAK": 0.5, "MEDIUM": 0.75, "STRONG": 1.0},
-            "default_half_life_days": {"NEWS": 90, "COMPANY_PUBLICATION": 365, "JOB_POSTING": 60, "COMPANY_PROFILE": 365},
+            "default_half_life_days": {
+                "NEWS": 90,
+                "COMPANY_PUBLICATION": 365,
+                "JOB_POSTING": 60,
+                "COMPANY_PROFILE": 365,
+            },
             "min_decay": 0.05,
             "negative_factor": 1.0,
             "intent_saturation": 0.5,
@@ -132,7 +163,12 @@ class TestDecay:
             observed_at=AS_OF - timedelta(days=45),
             source_type="NEWS",
             half_life_days=None,
-            default_half_life_days={"NEWS": 90, "COMPANY_PUBLICATION": 365, "JOB_POSTING": 60, "COMPANY_PROFILE": 365},
+            default_half_life_days={
+                "NEWS": 90,
+                "COMPANY_PUBLICATION": 365,
+                "JOB_POSTING": 60,
+                "COMPANY_PROFILE": 365,
+            },
             min_decay=0.05,
             as_of=AS_OF,
         )
@@ -144,7 +180,12 @@ class TestDecay:
             observed_at=AS_OF - timedelta(days=400),
             source_type="NEWS",
             half_life_days=None,
-            default_half_life_days={"NEWS": 90, "COMPANY_PUBLICATION": 365, "JOB_POSTING": 60, "COMPANY_PROFILE": 365},
+            default_half_life_days={
+                "NEWS": 90,
+                "COMPANY_PUBLICATION": 365,
+                "JOB_POSTING": 60,
+                "COMPANY_PROFILE": 365,
+            },
             min_decay=0.05,
             as_of=AS_OF,
         )
@@ -229,7 +270,12 @@ class TestIntent:
             strength_values={"WEAK": 0.5, "MEDIUM": 0.75, "STRONG": 1.0},
             negative_factor=1.0,
             intent_saturation=0.5,
-            default_half_life_days={"NEWS": 90, "COMPANY_PUBLICATION": 365, "JOB_POSTING": 60, "COMPANY_PROFILE": 365},
+            default_half_life_days={
+                "NEWS": 90,
+                "COMPANY_PUBLICATION": 365,
+                "JOB_POSTING": 60,
+                "COMPANY_PROFILE": 365,
+            },
             min_decay=0.05,
             as_of=AS_OF,
         )
@@ -244,7 +290,12 @@ class TestIntent:
             strength_values={"WEAK": 0.5, "MEDIUM": 0.75, "STRONG": 1.0},
             negative_factor=1.0,
             intent_saturation=0.5,
-            default_half_life_days={"NEWS": 90, "COMPANY_PUBLICATION": 365, "JOB_POSTING": 60, "COMPANY_PROFILE": 365},
+            default_half_life_days={
+                "NEWS": 90,
+                "COMPANY_PUBLICATION": 365,
+                "JOB_POSTING": 60,
+                "COMPANY_PROFILE": 365,
+            },
             min_decay=0.05,
             as_of=AS_OF,
         )
@@ -263,7 +314,12 @@ class TestIntent:
             strength_values={"WEAK": 0.5, "MEDIUM": 0.75, "STRONG": 1.0},
             negative_factor=1.0,
             intent_saturation=0.5,
-            default_half_life_days={"NEWS": 90, "COMPANY_PUBLICATION": 365, "JOB_POSTING": 60, "COMPANY_PROFILE": 365},
+            default_half_life_days={
+                "NEWS": 90,
+                "COMPANY_PUBLICATION": 365,
+                "JOB_POSTING": 60,
+                "COMPANY_PROFILE": 365,
+            },
             min_decay=0.05,
             as_of=AS_OF,
         )
@@ -274,7 +330,12 @@ class TestIntent:
             strength_values={"WEAK": 0.5, "MEDIUM": 0.75, "STRONG": 1.0},
             negative_factor=1.0,
             intent_saturation=0.5,
-            default_half_life_days={"NEWS": 90, "COMPANY_PUBLICATION": 365, "JOB_POSTING": 60, "COMPANY_PROFILE": 365},
+            default_half_life_days={
+                "NEWS": 90,
+                "COMPANY_PUBLICATION": 365,
+                "JOB_POSTING": 60,
+                "COMPANY_PROFILE": 365,
+            },
             min_decay=0.05,
             as_of=AS_OF,
         )
@@ -282,9 +343,7 @@ class TestIntent:
 
     def test_no_positive_questions_returns_0(self) -> None:
         """When M=0, Intent=0."""
-        all_negative_q = [
-            {**qs, "polarity": "NEGATIVE"} for qs in _QUESTION_SETTINGS_WITH_POLARITY
-        ]
+        all_negative_q = [{**qs, "polarity": "NEGATIVE"} for qs in _QUESTION_SETTINGS_WITH_POLARITY]
         result = intent(
             findings=_example1_findings(),
             question_settings=all_negative_q,
@@ -292,7 +351,12 @@ class TestIntent:
             strength_values={"WEAK": 0.5, "MEDIUM": 0.75, "STRONG": 1.0},
             negative_factor=1.0,
             intent_saturation=0.5,
-            default_half_life_days={"NEWS": 90, "COMPANY_PUBLICATION": 365, "JOB_POSTING": 60, "COMPANY_PROFILE": 365},
+            default_half_life_days={
+                "NEWS": 90,
+                "COMPANY_PUBLICATION": 365,
+                "JOB_POSTING": 60,
+                "COMPANY_PROFILE": 365,
+            },
             min_decay=0.05,
             as_of=AS_OF,
         )
@@ -320,7 +384,8 @@ class TestPriorityStandingBand:
     def test_band_boundaries(self) -> None:
         """Priority 70→HOT, 69→WARM, 40→WARM, 39→COLD (all fit=50 so RANKED)."""
         # Use fit=50 (>= min_fit 40) so standing is always RANKED, then force priority via intent
-        # priority = fit_weight × fit + intent_weight × intent; use fit_weight=1.0, intent_weight=0.0
+        # priority = fit_weight × fit + intent_weight × intent; use fit_weight=1.0,
+        # intent_weight=0.0
         # and inject the exact priority value directly via fit
         for priority_val, expected_band in [
             (70, AccountScoreBand.HOT),
@@ -345,8 +410,15 @@ class TestPriorityStandingBand:
     def test_fit_below_min_fit_is_below_fit(self) -> None:
         """Fit 39 < min_fit 40 → BELOW_FIT, no band."""
         _, standing, band = priority_standing_band(
-            fit=39, intent=50, disq_entries=[], lead_feedback_verdict=None,
-            fit_weight=0.4, intent_weight=0.6, min_fit=40, hot_threshold=70, warm_threshold=40,
+            fit=39,
+            intent=50,
+            disq_entries=[],
+            lead_feedback_verdict=None,
+            fit_weight=0.4,
+            intent_weight=0.6,
+            min_fit=40,
+            hot_threshold=70,
+            warm_threshold=40,
         )
         assert standing == AccountScoreStanding.BELOW_FIT
         assert band is None
@@ -354,24 +426,50 @@ class TestPriorityStandingBand:
     def test_already_customer_overrides_disqualification(self) -> None:
         """ALREADY_CUSTOMER standing wins even if disqualifier matches."""
         disq_entries = [
-            DisqEntry(key="K", label="L", matched=True, overridden=False, override_id=None, finding_id=None)
+            DisqEntry(
+                key="K",
+                label="L",
+                matched=True,
+                overridden=False,
+                override_id=None,
+                finding_id=None,
+            )
         ]
         _, standing, band = priority_standing_band(
-            fit=50, intent=50, disq_entries=disq_entries,
+            fit=50,
+            intent=50,
+            disq_entries=disq_entries,
             lead_feedback_verdict="ALREADY_CUSTOMER",
-            fit_weight=0.4, intent_weight=0.6, min_fit=40, hot_threshold=70, warm_threshold=40,
+            fit_weight=0.4,
+            intent_weight=0.6,
+            min_fit=40,
+            hot_threshold=70,
+            warm_threshold=40,
         )
         assert standing == AccountScoreStanding.CUSTOMER
 
     def test_disqualified_standing_when_excluded(self) -> None:
         """Matched unoverridden disqualifier → DISQUALIFIED."""
         disq_entries = [
-            DisqEntry(key="K", label="L", matched=True, overridden=False, override_id=None, finding_id=None)
+            DisqEntry(
+                key="K",
+                label="L",
+                matched=True,
+                overridden=False,
+                override_id=None,
+                finding_id=None,
+            )
         ]
         _, standing, band = priority_standing_band(
-            fit=50, intent=50, disq_entries=disq_entries,
+            fit=50,
+            intent=50,
+            disq_entries=disq_entries,
             lead_feedback_verdict=None,
-            fit_weight=0.4, intent_weight=0.6, min_fit=40, hot_threshold=70, warm_threshold=40,
+            fit_weight=0.4,
+            intent_weight=0.6,
+            min_fit=40,
+            hot_threshold=70,
+            warm_threshold=40,
         )
         assert standing == AccountScoreStanding.DISQUALIFIED
         assert band is None
@@ -381,7 +479,12 @@ class TestDisqualification:
     def test_example2_excluded_on_outside_region(self) -> None:
         """Example 2 with OUTSIDE_REGION ICP_MISMATCH disqualifier → matched=True."""
         disq_defs = [
-            {"key": "OUTSIDE_REGION", "label": "Outside DACH", "kind": "ICP_MISMATCH", "criterion_key": "REGION"}
+            {
+                "key": "OUTSIDE_REGION",
+                "label": "Outside DACH",
+                "kind": "ICP_MISMATCH",
+                "criterion_key": "REGION",
+            }
         ]
         # Augment attributes with the ICP mismatch flag (done by score_account)
         attrs_with_mismatch = {
@@ -395,7 +498,12 @@ class TestDisqualification:
             active_overrides=[],
             min_decay=0.05,
             strength_values={"WEAK": 0.5, "MEDIUM": 0.75, "STRONG": 1.0},
-            default_half_life_days={"NEWS": 90, "COMPANY_PUBLICATION": 365, "JOB_POSTING": 60, "COMPANY_PROFILE": 365},
+            default_half_life_days={
+                "NEWS": 90,
+                "COMPANY_PUBLICATION": 365,
+                "JOB_POSTING": 60,
+                "COMPANY_PROFILE": 365,
+            },
             as_of=AS_OF,
         )
         assert len(entries) == 1
@@ -405,7 +513,12 @@ class TestDisqualification:
     def test_example2_with_override_becomes_ranked(self) -> None:
         """Example 2 with ACTIVE override on OUTSIDE_REGION → overridden=True, not excluded."""
         disq_defs = [
-            {"key": "OUTSIDE_REGION", "label": "Outside DACH", "kind": "ICP_MISMATCH", "criterion_key": "REGION"}
+            {
+                "key": "OUTSIDE_REGION",
+                "label": "Outside DACH",
+                "kind": "ICP_MISMATCH",
+                "criterion_key": "REGION",
+            }
         ]
         attrs_with_mismatch = {
             **_EXAMPLE2_ATTRIBUTES,
@@ -419,7 +532,12 @@ class TestDisqualification:
             active_overrides=overrides,
             min_decay=0.05,
             strength_values={"WEAK": 0.5, "MEDIUM": 0.75, "STRONG": 1.0},
-            default_half_life_days={"NEWS": 90, "COMPANY_PUBLICATION": 365, "JOB_POSTING": 60, "COMPANY_PROFILE": 365},
+            default_half_life_days={
+                "NEWS": 90,
+                "COMPANY_PUBLICATION": 365,
+                "JOB_POSTING": 60,
+                "COMPANY_PROFILE": 365,
+            },
             as_of=AS_OF,
         )
         assert entries[0].matched is True
@@ -456,7 +574,12 @@ class TestDisqualification:
             active_overrides=[],
             min_decay=0.05,
             strength_values={"WEAK": 0.5, "MEDIUM": 0.75, "STRONG": 1.0},
-            default_half_life_days={"NEWS": 90, "COMPANY_PUBLICATION": 365, "JOB_POSTING": 60, "COMPANY_PROFILE": 365},
+            default_half_life_days={
+                "NEWS": 90,
+                "COMPANY_PUBLICATION": 365,
+                "JOB_POSTING": 60,
+                "COMPANY_PROFILE": 365,
+            },
             as_of=AS_OF,
         )
         assert entries[0].matched is False
@@ -492,8 +615,8 @@ class TestScoreBreakdown:
         settings = _make_settings_with_examples()
         inputs = self._make_inputs_ex1()
         result = score_account(inputs, as_of=AS_OF, settings=settings)
-        criteria = result.breakdown["fit"]["criteria"]  # type: ignore[index]
-        points_sum = sum(c["points"] for c in criteria)  # type: ignore[index]
+        fit_breakdown = cast("dict[str, Any]", result.breakdown["fit"])
+        points_sum = sum(c["points"] for c in fit_breakdown["criteria"])
         # points sum should equal the raw Fit × ... but checking the total matches the value
         # approximately (before rounding)
         assert abs(points_sum - 93.75) < 0.001
@@ -503,8 +626,8 @@ class TestScoreBreakdown:
         settings = _make_settings_with_examples()
         inputs = self._make_inputs_ex1()
         result = score_account(inputs, as_of=AS_OF, settings=settings)
-        questions = result.breakdown["intent"]["questions"]  # type: ignore[index]
-        points_sum = sum(q["points"] for q in questions)  # type: ignore[index]
+        questions = cast("dict[str, Any]", result.breakdown["intent"])["questions"]
+        points_sum = sum(q["points"] for q in questions)
         # raw = 100 × (3.181981 − 1.654074) / (0.5 × 8) ≈ 38.20
         assert abs(points_sum - 38.20) < 0.1
 
@@ -561,7 +684,12 @@ class TestScoreBreakdown:
         """Example 2 with OUTSIDE_REGION disqualifier → standing=DISQUALIFIED."""
         settings = _make_settings_with_examples(
             disqualifiers=[
-                {"key": "OUTSIDE_REGION", "label": "Outside DACH", "kind": "ICP_MISMATCH", "criterion_key": "REGION"}
+                {
+                    "key": "OUTSIDE_REGION",
+                    "label": "Outside DACH",
+                    "kind": "ICP_MISMATCH",
+                    "criterion_key": "REGION",
+                }
             ]
         )
         inputs = ScoreInputs(
@@ -583,7 +711,12 @@ class TestScoreBreakdown:
         """Example 2 with ACTIVE override on OUTSIDE_REGION → RANKED, WARM."""
         settings = _make_settings_with_examples(
             disqualifiers=[
-                {"key": "OUTSIDE_REGION", "label": "Outside DACH", "kind": "ICP_MISMATCH", "criterion_key": "REGION"}
+                {
+                    "key": "OUTSIDE_REGION",
+                    "label": "Outside DACH",
+                    "kind": "ICP_MISMATCH",
+                    "criterion_key": "REGION",
+                }
             ]
         )
         inputs = ScoreInputs(
@@ -603,8 +736,8 @@ class TestScoreBreakdown:
 
 
 class TestRescoreDecision:
-    def _make_score_result(self, **kwargs: object) -> ScoreResult:
-        defaults: dict[str, object] = {
+    def _make_score_result(self, **kwargs: Any) -> ScoreResult:
+        defaults: dict[str, Any] = {
             "scoring_config_id": "config-1",
             "fit": 94,
             "intent": 38,
@@ -616,7 +749,7 @@ class TestRescoreDecision:
             "override_ids": frozenset(),
         }
         defaults.update(kwargs)
-        return ScoreResult(**defaults)  # type: ignore[arg-type]
+        return ScoreResult(**defaults)
 
     def test_no_current_row_always_writes(self) -> None:
         """No current row → WriteNewRow."""
@@ -665,8 +798,11 @@ class TestRescoreDecision:
         result = self._make_score_result(scoring_config_id="config-2")
         current_row: dict[str, object] = {
             "scoring_config_id": "config-1",
-            "fit": 94, "intent": 38, "priority": 60,
-            "standing": "RANKED", "band": "WARM",
+            "fit": 94,
+            "intent": 38,
+            "priority": 60,
+            "standing": "RANKED",
+            "band": "WARM",
             "breakdown": {"intent": {"questions": []}, "disqualifiers": []},
         }
         decision = rescore_decision(result, current_row)
@@ -689,6 +825,7 @@ class TestAlerts:
             service_id="service-1",
         )
         from leadradar.core.enums import AlertKind
+
         assert any(a.kind == AlertKind.BAND_UP for a in result)
 
     def test_band_down_no_alert(self) -> None:
@@ -706,6 +843,7 @@ class TestAlerts:
             service_id="service-1",
         )
         from leadradar.core.enums import AlertKind
+
         assert not any(a.kind == AlertKind.BAND_UP for a in result)
 
     def test_cold_to_warm_triggers_band_up(self) -> None:
@@ -723,6 +861,7 @@ class TestAlerts:
             service_id="service-1",
         )
         from leadradar.core.enums import AlertKind
+
         assert any(a.kind == AlertKind.BAND_UP for a in result)
 
     def test_strong_signal_creates_alert_for_ranked_account(self) -> None:
@@ -752,6 +891,7 @@ class TestAlerts:
             service_id="service-1",
         )
         from leadradar.core.enums import AlertKind
+
         assert any(a.kind == AlertKind.STRONG_SIGNAL for a in result)
 
     def test_strong_signal_not_created_for_non_ranked(self) -> None:
@@ -781,6 +921,7 @@ class TestAlerts:
             service_id="service-1",
         )
         from leadradar.core.enums import AlertKind
+
         assert not any(a.kind == AlertKind.STRONG_SIGNAL for a in result)
 
     def test_strong_signal_beyond_alert_max_age_days_no_alert(self) -> None:
@@ -810,4 +951,5 @@ class TestAlerts:
             service_id="service-1",
         )
         from leadradar.core.enums import AlertKind
+
         assert not any(a.kind == AlertKind.STRONG_SIGNAL for a in result)

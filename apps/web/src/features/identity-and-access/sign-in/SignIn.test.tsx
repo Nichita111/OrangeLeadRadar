@@ -6,6 +6,7 @@ import {
   anaSales,
   authenticatedUser,
   errorEnvelope,
+  errorResponse,
 } from "../../../api/authenticationAndUsers.fixtures";
 import type { Schemas } from "../../../api/contract";
 import { setReducedMotion } from "../../../testEnvironment";
@@ -73,10 +74,8 @@ describe("Sign in session check (FR-093)", () => {
 
   it("any other error of the check shows the error state", async () => {
     server.use(
-      http.get("/api/v1/auth/me", ({ response }) =>
-        response("default").json(errorEnvelope("INTERNAL", "Something went wrong on our side."), {
-          status: 500,
-        }),
+      http.get("/api/v1/auth/me", () =>
+        errorResponse(errorEnvelope("INTERNAL", "Something went wrong on our side."), 500),
       ),
     );
     renderApp("/login");
@@ -135,9 +134,7 @@ describe("Sign in submit (FR-093, FR-094, FR-007)", () => {
     async (status, code, message) => {
       const user = userEvent.setup();
       anonymous();
-      arrangeLogin((_body, response) =>
-        response("default").json(errorEnvelope(code, message), { status }),
-      );
+      arrangeLogin(() => errorResponse(errorEnvelope(code, message), status));
       const { router } = renderApp("/login");
       await fillAndSubmit(user);
       expect(await screen.findByRole("alert")).toHaveTextContent(message);
@@ -150,12 +147,12 @@ describe("Sign in submit (FR-093, FR-094, FR-007)", () => {
   it("a VALIDATION error shows beside its field", async () => {
     const user = userEvent.setup();
     anonymous();
-    arrangeLogin((_body, response) =>
-      response("default").json(
+    arrangeLogin(() =>
+      errorResponse(
         errorEnvelope("VALIDATION", "The input is invalid.", {
           fields: [{ field: "email", message: "Enter a valid email address." }],
         }),
-        { status: 422 },
+        422,
       ),
     );
     renderApp("/login");

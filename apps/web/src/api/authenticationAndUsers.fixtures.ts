@@ -29,3 +29,11 @@ export function errorEnvelope(
 ): Schemas["ErrorEnvelope"] {
   return { error: details === undefined ? { code, message } : { code, message, details } };
 }
+
+/** An error answer for a path the api's snapshot declares without an error response. */
+export function errorResponse(envelope: Schemas["ErrorEnvelope"], status: number): Response {
+  return new Response(JSON.stringify(envelope), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
