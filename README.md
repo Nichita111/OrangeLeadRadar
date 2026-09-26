@@ -10,8 +10,6 @@ The product is specified before it is built: [`docs/`](docs/index.md) is the sin
 
 Two processes share one PostgreSQL store: the **api** answers the React app and makes the interactive AI calls, and the **worker** claims jobs from the database to fetch, embed, classify and score. Models answer questions and write text; deterministic rules compute every score. Details: [architecture overview](docs/architecture/overview.md), [SQL store](docs/architecture/sql-store.md), [rules](docs/architecture/rules.md), [interfaces](docs/architecture/interfaces.md) and the [decision records](docs/architecture/adrs/index.md).
 
-[Interactive diagram](diagrams/html/architecture.html)
-
 ## Flows
 
 One diagram per flow of the specification, `FL-01` to `FL-22`, grouped by feature. Each shows the participants and messages its flow heading describes, with the contracts (`API-nn`) it uses. Expand a flow to see it.
@@ -23,7 +21,7 @@ Specified in [`docs/features/service-configuration.md`](docs/features/service-co
 <details>
 <summary><b>FL-01</b> Define a service and its signal questions</summary>
 
-[Spec](docs/features/service-configuration.md#fl-01-define-a-service-and-its-signal-questions) · [Interactive diagram](diagrams/html/fl-01.html)
+[Spec](docs/features/service-configuration.md#fl-01-define-a-service-and-its-signal-questions)
 
 ![FL-01 Define a service and its signal questions](diagrams/svg/fl-01.svg)
 
@@ -32,7 +30,7 @@ Specified in [`docs/features/service-configuration.md`](docs/features/service-co
 <details>
 <summary><b>FL-02</b> Edit and activate scoring settings</summary>
 
-[Spec](docs/features/service-configuration.md#fl-02-edit-and-activate-scoring-settings) · [Interactive diagram](diagrams/html/fl-02.html)
+[Spec](docs/features/service-configuration.md#fl-02-edit-and-activate-scoring-settings)
 
 ![FL-02 Edit and activate scoring settings](diagrams/svg/fl-02.svg)
 
@@ -41,7 +39,7 @@ Specified in [`docs/features/service-configuration.md`](docs/features/service-co
 <details>
 <summary><b>FL-03</b> Try a question</summary>
 
-[Spec](docs/features/service-configuration.md#fl-03-try-a-question) · [Interactive diagram](diagrams/html/fl-03.html)
+[Spec](docs/features/service-configuration.md#fl-03-try-a-question)
 
 ![FL-03 Try a question](diagrams/svg/fl-03.svg)
 
@@ -50,7 +48,7 @@ Specified in [`docs/features/service-configuration.md`](docs/features/service-co
 <details>
 <summary><b>FL-22</b> Maintain industries and markets</summary>
 
-[Spec](docs/features/service-configuration.md#fl-22-maintain-industries-and-markets) · [Interactive diagram](diagrams/html/fl-22.html)
+[Spec](docs/features/service-configuration.md#fl-22-maintain-industries-and-markets)
 
 ![FL-22 Maintain industries and markets](diagrams/svg/fl-22.svg)
 
@@ -63,7 +61,7 @@ Specified in [`docs/features/accounts-and-discovery.md`](docs/features/accounts-
 <details>
 <summary><b>FL-04</b> Import accounts from a CSV file</summary>
 
-[Spec](docs/features/accounts-and-discovery.md#fl-04-import-accounts-from-a-csv-file) · [Interactive diagram](diagrams/html/fl-04.html)
+[Spec](docs/features/accounts-and-discovery.md#fl-04-import-accounts-from-a-csv-file)
 
 ![FL-04 Import accounts from a CSV file](diagrams/svg/fl-04.svg)
 
@@ -72,7 +70,7 @@ Specified in [`docs/features/accounts-and-discovery.md`](docs/features/accounts-
 <details>
 <summary><b>FL-05</b> Maintain an account and its contacts</summary>
 
-[Spec](docs/features/accounts-and-discovery.md#fl-05-maintain-an-account-and-its-contacts) · [Interactive diagram](diagrams/html/fl-05.html)
+[Spec](docs/features/accounts-and-discovery.md#fl-05-maintain-an-account-and-its-contacts)
 
 ![FL-05 Maintain an account and its contacts](diagrams/svg/fl-05.svg)
 
@@ -81,7 +79,7 @@ Specified in [`docs/features/accounts-and-discovery.md`](docs/features/accounts-
 <details>
 <summary><b>FL-06</b> Discover and accept suggested accounts</summary>
 
-[Spec](docs/features/accounts-and-discovery.md#fl-06-discover-and-accept-suggested-accounts) · [Interactive diagram](diagrams/html/fl-06.html)
+[Spec](docs/features/accounts-and-discovery.md#fl-06-discover-and-accept-suggested-accounts)
 
 ![FL-06 Discover and accept suggested accounts](diagrams/svg/fl-06.svg)
 
@@ -94,7 +92,7 @@ Specified in [`docs/features/signal-pipeline.md`](docs/features/signal-pipeline.
 <details>
 <summary><b>FL-07</b> Refresh one account</summary>
 
-[Spec](docs/features/signal-pipeline.md#fl-07-refresh-one-account) · [Interactive diagram](diagrams/html/fl-07.html)
+[Spec](docs/features/signal-pipeline.md#fl-07-refresh-one-account)
 
 ![FL-07 Refresh one account](diagrams/svg/fl-07.svg)
 
@@ -103,7 +101,7 @@ Specified in [`docs/features/signal-pipeline.md`](docs/features/signal-pipeline.
 <details>
 <summary><b>FL-08</b> Scheduled refresh cycle</summary>
 
-[Spec](docs/features/signal-pipeline.md#fl-08-scheduled-refresh-cycle) · [Interactive diagram](diagrams/html/fl-08.html)
+[Spec](docs/features/signal-pipeline.md#fl-08-scheduled-refresh-cycle)
 
 ![FL-08 Scheduled refresh cycle](diagrams/svg/fl-08.svg)
 
@@ -112,7 +110,7 @@ Specified in [`docs/features/signal-pipeline.md`](docs/features/signal-pipeline.
 <details>
 <summary><b>FL-09</b> Reclassify after a question change</summary>
 
-[Spec](docs/features/signal-pipeline.md#fl-09-reclassify-after-a-question-change) · [Interactive diagram](diagrams/html/fl-09.html)
+[Spec](docs/features/signal-pipeline.md#fl-09-reclassify-after-a-question-change)
 
 ![FL-09 Reclassify after a question change](diagrams/svg/fl-09.svg)
 
@@ -121,7 +119,7 @@ Specified in [`docs/features/signal-pipeline.md`](docs/features/signal-pipeline.
 <details>
 <summary><b>FL-10</b> Rescore after a scoring or data change</summary>
 
-[Spec](docs/features/signal-pipeline.md#fl-10-rescore-after-a-scoring-or-data-change) · [Interactive diagram](diagrams/html/fl-10.html)
+[Spec](docs/features/signal-pipeline.md#fl-10-rescore-after-a-scoring-or-data-change)
 
 ![FL-10 Rescore after a scoring or data change](diagrams/svg/fl-10.svg)
 
@@ -134,7 +132,7 @@ Specified in [`docs/features/prospect-dashboard.md`](docs/features/prospect-dash
 <details>
 <summary><b>FL-11</b> Work the prospect list</summary>
 
-[Spec](docs/features/prospect-dashboard.md#fl-11-work-the-prospect-list) · [Interactive diagram](diagrams/html/fl-11.html)
+[Spec](docs/features/prospect-dashboard.md#fl-11-work-the-prospect-list)
 
 ![FL-11 Work the prospect list](diagrams/svg/fl-11.svg)
 
@@ -143,7 +141,7 @@ Specified in [`docs/features/prospect-dashboard.md`](docs/features/prospect-dash
 <details>
 <summary><b>FL-12</b> Explain a lead</summary>
 
-[Spec](docs/features/prospect-dashboard.md#fl-12-explain-a-lead) · [Interactive diagram](diagrams/html/fl-12.html)
+[Spec](docs/features/prospect-dashboard.md#fl-12-explain-a-lead)
 
 ![FL-12 Explain a lead](diagrams/svg/fl-12.svg)
 
@@ -152,7 +150,7 @@ Specified in [`docs/features/prospect-dashboard.md`](docs/features/prospect-dash
 <details>
 <summary><b>FL-13</b> Override a disqualifier</summary>
 
-[Spec](docs/features/prospect-dashboard.md#fl-13-override-a-disqualifier) · [Interactive diagram](diagrams/html/fl-13.html)
+[Spec](docs/features/prospect-dashboard.md#fl-13-override-a-disqualifier)
 
 ![FL-13 Override a disqualifier](diagrams/svg/fl-13.svg)
 
@@ -161,7 +159,7 @@ Specified in [`docs/features/prospect-dashboard.md`](docs/features/prospect-dash
 <details>
 <summary><b>FL-14</b> Act on an alert</summary>
 
-[Spec](docs/features/prospect-dashboard.md#fl-14-act-on-an-alert) · [Interactive diagram](diagrams/html/fl-14.html)
+[Spec](docs/features/prospect-dashboard.md#fl-14-act-on-an-alert)
 
 ![FL-14 Act on an alert](diagrams/svg/fl-14.svg)
 
@@ -174,7 +172,7 @@ Specified in [`docs/features/evaluation-and-feedback.md`](docs/features/evaluati
 <details>
 <summary><b>FL-15</b> Give feedback on a lead or a signal</summary>
 
-[Spec](docs/features/evaluation-and-feedback.md#fl-15-give-feedback-on-a-lead-or-a-signal) · [Interactive diagram](diagrams/html/fl-15.html)
+[Spec](docs/features/evaluation-and-feedback.md#fl-15-give-feedback-on-a-lead-or-a-signal)
 
 ![FL-15 Give feedback on a lead or a signal](diagrams/svg/fl-15.svg)
 
@@ -183,7 +181,7 @@ Specified in [`docs/features/evaluation-and-feedback.md`](docs/features/evaluati
 <details>
 <summary><b>FL-16</b> Label passages and run a quality check</summary>
 
-[Spec](docs/features/evaluation-and-feedback.md#fl-16-label-passages-and-run-a-quality-check) · [Interactive diagram](diagrams/html/fl-16.html)
+[Spec](docs/features/evaluation-and-feedback.md#fl-16-label-passages-and-run-a-quality-check)
 
 ![FL-16 Label passages and run a quality check](diagrams/svg/fl-16.svg)
 
@@ -196,7 +194,7 @@ Specified in [`docs/features/outreach-and-crm.md`](docs/features/outreach-and-cr
 <details>
 <summary><b>FL-17</b> Draft outreach</summary>
 
-[Spec](docs/features/outreach-and-crm.md#fl-17-draft-outreach) · [Interactive diagram](diagrams/html/fl-17.html)
+[Spec](docs/features/outreach-and-crm.md#fl-17-draft-outreach)
 
 ![FL-17 Draft outreach](diagrams/svg/fl-17.svg)
 
@@ -205,7 +203,7 @@ Specified in [`docs/features/outreach-and-crm.md`](docs/features/outreach-and-cr
 <details>
 <summary><b>FL-18</b> Push to HubSpot</summary>
 
-[Spec](docs/features/outreach-and-crm.md#fl-18-push-to-hubspot) · [Interactive diagram](diagrams/html/fl-18.html)
+[Spec](docs/features/outreach-and-crm.md#fl-18-push-to-hubspot)
 
 ![FL-18 Push to HubSpot](diagrams/svg/fl-18.svg)
 
@@ -218,7 +216,7 @@ Specified in [`docs/features/identity-and-access.md`](docs/features/identity-and
 <details>
 <summary><b>FL-19</b> Sign in and sign out</summary>
 
-[Spec](docs/features/identity-and-access.md#fl-19-sign-in-and-sign-out) · [Interactive diagram](diagrams/html/fl-19.html)
+[Spec](docs/features/identity-and-access.md#fl-19-sign-in-and-sign-out)
 
 ![FL-19 Sign in and sign out](diagrams/svg/fl-19.svg)
 
@@ -227,7 +225,7 @@ Specified in [`docs/features/identity-and-access.md`](docs/features/identity-and
 <details>
 <summary><b>FL-20</b> Manage users</summary>
 
-[Spec](docs/features/identity-and-access.md#fl-20-manage-users) · [Interactive diagram](diagrams/html/fl-20.html)
+[Spec](docs/features/identity-and-access.md#fl-20-manage-users)
 
 ![FL-20 Manage users](diagrams/svg/fl-20.svg)
 
@@ -240,7 +238,7 @@ Specified in [`docs/features/audit-trail.md`](docs/features/audit-trail.md).
 <details>
 <summary><b>FL-21</b> Review the audit trail</summary>
 
-[Spec](docs/features/audit-trail.md#fl-21-review-the-audit-trail) · [Interactive diagram](diagrams/html/fl-21.html)
+[Spec](docs/features/audit-trail.md#fl-21-review-the-audit-trail)
 
 ![FL-21 Review the audit trail](diagrams/svg/fl-21.svg)
 
@@ -248,12 +246,12 @@ Specified in [`docs/features/audit-trail.md`](docs/features/audit-trail.md).
 
 ## Diagrams
 
-The diagrams are generated with [Archify](https://github.com/tt-a1i/archify) from the sources in [`diagrams/src/`](diagrams/src/):
+The diagrams are generated with [Archify](https://github.com/tt-a1i/archify) 2.17.0-dev.1 from the sources in [`diagrams/src/`](diagrams/src/):
 
 - `diagrams/svg/` holds the static, dual-theme images shown above; they follow the reader's light or dark preference.
-- `diagrams/html/` holds the interactive versions, with pan, zoom, search, focus and export. GitHub shows their source, so download one or open it from a local clone.
+- `diagrams/html/` receives the interactive versions, with pan, zoom, search, focus and export. They are build output: git ignores them, so generate them to browse locally.
 
-To regenerate after a flow changes in the specification:
+The flow sources are not read from the specification: [`diagrams/flows.py`](diagrams/flows.py) restates each flow by hand. When a flow changes in the specification, change its entry in `flows.py` first, then regenerate:
 
 ```bash
 python3 diagrams/flows.py

@@ -4,3 +4,4 @@ __pycache__/
 .work/
 .claude/settings.local.json
 .env
+diagrams/html/
