@@ -1,9 +1,8 @@
 """Contract tests of `API-77` `GET /api/v1/impact`
 ([Evaluation contracts](/architecture/interfaces.md#evaluation-contracts)).
 
-`API-77` ships with no role dependency yet (the recorded deviation of
-`.work/impact-panel/design.md`), so no `403`/`401` role test is written here; issue #11 adds it
-beside the guard it exercises."""
+The route requires `current_user` (roles `A`); these tests override it with a signed-in Admin,
+and the anonymous `401` is covered by `test_roles_matrix_contract.py`."""
 
 from __future__ import annotations
 
@@ -11,7 +10,10 @@ import httpx
 import pytest
 from fastapi import FastAPI
 
+from leadradar.api.authentication import current_user
+from leadradar.core.enums import AppUserRole
 from leadradar.core.impact import ImpactReport
+from leadradar.db.models.identity import AppUser
 from leadradar.db.session import get_session
 
 pytestmark = pytest.mark.contract
@@ -38,10 +40,14 @@ async def test_impact_answers_200_with_exactly_the_shape_of_impact(
 
     monkeypatch.setattr("leadradar.api.evaluation.read_impact", fake_read_impact)
     app.dependency_overrides[get_session] = lambda: None
+    app.dependency_overrides[current_user] = lambda: AppUser(
+        display_name="Ada", role=AppUserRole.ADMIN
+    )
 
     response = await client.get("/api/v1/impact")
 
     app.dependency_overrides.pop(get_session, None)
+    app.dependency_overrides.pop(current_user, None)
     assert response.status_code == 200
     body = response.json()
     assert set(body.keys()) == {
@@ -89,10 +95,14 @@ async def test_impact_reports_null_cost_precision_and_labelled_items_without_run
 
     monkeypatch.setattr("leadradar.api.evaluation.read_impact", fake_read_impact)
     app.dependency_overrides[get_session] = lambda: None
+    app.dependency_overrides[current_user] = lambda: AppUser(
+        display_name="Ada", role=AppUserRole.ADMIN
+    )
 
     response = await client.get("/api/v1/impact")
 
     app.dependency_overrides.pop(get_session, None)
+    app.dependency_overrides.pop(current_user, None)
     assert response.status_code == 200
     body = response.json()
     assert body["cost_per_refresh_eur"] is None

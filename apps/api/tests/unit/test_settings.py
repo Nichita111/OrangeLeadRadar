@@ -35,6 +35,7 @@ def test_settings_reject_an_unknown_fixture_mode() -> None:
 def test_repr_of_settings_never_contains_the_password_or_the_openrouter_key() -> None:
     settings = ApiSettings(
         database_url=SecretStr("postgresql://u:s3cret-db-password@localhost/db"),
+        migration_database_url=SecretStr("postgresql://u:s3cret-db-password@localhost/db"),
         openrouter_api_key=SecretStr("s3cret-openrouter-key"),
     )
     assert "s3cret-db-password" not in repr(settings)
@@ -44,7 +45,10 @@ def test_repr_of_settings_never_contains_the_password_or_the_openrouter_key() ->
 
 
 def test_impact_and_clock_keys_take_their_runtime_defaults() -> None:
-    settings = ApiSettings(database_url=SecretStr("postgresql://u:p@localhost/db"))
+    settings = ApiSettings(
+        database_url=SecretStr("postgresql://u:p@localhost/db"),
+        migration_database_url=SecretStr("postgresql://o:p@localhost/db"),
+    )
 
     assert settings.impact_period_days == 30
     assert settings.manual_research_minutes_per_account == 120
@@ -55,6 +59,7 @@ def test_impact_and_clock_keys_are_overridden_from_the_environment(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@localhost/db")
+    monkeypatch.setenv("MIGRATION_DATABASE_URL", "postgresql://o:p@localhost/db")
     monkeypatch.setenv("IMPACT_PERIOD_DAYS", "14")
     monkeypatch.setenv("MANUAL_RESEARCH_MINUTES_PER_ACCOUNT", "90")
     monkeypatch.setenv("CLOCK_FILE", "/tmp/now.txt")
@@ -71,6 +76,7 @@ def test_a_logged_settings_object_never_contains_the_password_or_the_key(
 ) -> None:
     settings = ApiSettings(
         database_url=SecretStr("postgresql://u:s3cret-db-password@localhost/db"),
+        migration_database_url=SecretStr("postgresql://u:s3cret-db-password@localhost/db"),
         openrouter_api_key=SecretStr("s3cret-openrouter-key"),
     )
     record = logging.LogRecord(

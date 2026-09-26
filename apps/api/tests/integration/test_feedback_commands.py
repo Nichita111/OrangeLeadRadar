@@ -11,7 +11,6 @@ import pytest
 from sqlalchemy import Connection, func, select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
-from leadradar.auth.sessions import Principal
 from leadradar.core.enums import (
     AppUserRole,
     EvaluationItemOrigin,
@@ -29,10 +28,12 @@ from leadradar.core.enums import (
 )
 from leadradar.db.models.audit import AuditEvent
 from leadradar.db.models.feedback import EvaluationItem, FindingFeedback, LeadFeedback
+from leadradar.db.models.identity import AppUser
 from leadradar.db.models.ingestion import Job, PipelineRun
 from leadradar.db.models.signals import AccountScore, Finding
 from leadradar.feedback.commands import give_finding_feedback, give_lead_feedback
 from leadradar.feedback.errors import FindingNotFound, ScoreNotFound
+from leadradar.logs import request_id_var
 from tests.integration import factories as f
 
 pytestmark = pytest.mark.integration
@@ -40,8 +41,8 @@ pytestmark = pytest.mark.integration
 NOW = datetime(2026, 1, 15, tzinfo=UTC)
 
 
-def _principal(user_id: uuid.UUID, display_name: str = "Ada Lovelace") -> Principal:
-    return Principal(user_id=user_id, display_name=display_name, role=AppUserRole.SALES)
+def _principal(user_id: uuid.UUID, display_name: str = "Ada Lovelace") -> AppUser:
+    return AppUser(id=user_id, display_name=display_name, role=AppUserRole.SALES)
 
 
 async def _count(session_conn: AsyncConnection, model: type) -> int:
@@ -86,7 +87,6 @@ async def test_inserts_one_lead_feedback_row_and_changes_no_account_score(
         note="looks good",
         principal=_principal(user_id),
         now=NOW,
-        request_id="req-1",
     )
 
     row = (
@@ -115,7 +115,6 @@ async def test_two_lead_verdicts_on_the_same_account_and_service_are_both_kept(
         note=None,
         principal=_principal(user_id),
         now=NOW,
-        request_id="req-1",
     )
     await give_lead_feedback(
         async_session,
@@ -125,7 +124,6 @@ async def test_two_lead_verdicts_on_the_same_account_and_service_are_both_kept(
         note=None,
         principal=_principal(user_id),
         now=NOW,
-        request_id="req-2",
     )
 
     rows = (
@@ -174,7 +172,6 @@ async def test_lead_feedback_without_a_current_score_raises_score_not_found_and_
             note=None,
             principal=_principal(user_id),
             now=NOW,
-            request_id="req-1",
         )
 
     feedback_count = await _count(async_connection, LeadFeedback)
@@ -189,16 +186,19 @@ async def test_lead_feedback_writes_the_audit_row_and_no_run_requested_row(
     account_id, service_id = await _make_scored_account(async_connection)
     user_id = await _make_user(async_connection)
 
-    result = await give_lead_feedback(
-        async_session,
-        account_id=account_id,
-        service_id=service_id,
-        verdict=LeadFeedbackVerdict.RELEVANT,
-        note=None,
-        principal=_principal(user_id),
-        now=NOW,
-        request_id="the-request-id",
-    )
+    token = request_id_var.set("the-request-id")
+    try:
+        result = await give_lead_feedback(
+            async_session,
+            account_id=account_id,
+            service_id=service_id,
+            verdict=LeadFeedbackVerdict.RELEVANT,
+            note=None,
+            principal=_principal(user_id),
+            now=NOW,
+        )
+    finally:
+        request_id_var.reset(token)
 
     audit_rows = (
         (await async_session.execute(select(AuditEvent).where(AuditEvent.entity_id == result.id)))
@@ -240,7 +240,6 @@ async def test_lead_feedback_enqueues_one_rescore_run_with_one_score_job(
         note=None,
         principal=_principal(user_id),
         now=NOW,
-        request_id="req-1",
     )
 
     runs = (
@@ -287,7 +286,6 @@ async def test_two_verdicts_in_a_row_create_two_rescore_runs(
             note=None,
             principal=_principal(user_id),
             now=NOW,
-            request_id="req",
         )
 
     runs = (
@@ -371,7 +369,6 @@ async def test_wrong_on_an_active_finding_of_the_current_revision(
         note=None,
         principal=_principal(user_id),
         now=NOW,
-        request_id="req-1",
     )
 
     finding = (
@@ -442,7 +439,6 @@ async def test_correct_afterwards_reactivates_the_finding_and_updates_the_same_i
         note=None,
         principal=_principal(first_user, "First User"),
         now=NOW,
-        request_id="req-1",
     )
     view = await give_finding_feedback(
         async_session,
@@ -451,7 +447,6 @@ async def test_correct_afterwards_reactivates_the_finding_and_updates_the_same_i
         note=None,
         principal=_principal(second_user, "Second User"),
         now=NOW,
-        request_id="req-2",
     )
 
     finding = (
@@ -507,7 +502,6 @@ async def test_a_manual_label_is_left_untouched_but_the_status_and_run_still_hap
         note=None,
         principal=_principal(user_id),
         now=NOW,
-        request_id="req-1",
     )
 
     finding = (
@@ -571,7 +565,6 @@ async def test_feedback_on_an_older_revision_writes_a_stale_item_and_a_second_ve
         note=None,
         principal=_principal(user_id),
         now=NOW,
-        request_id="req-1",
     )
     await give_finding_feedback(
         async_session,
@@ -580,7 +573,6 @@ async def test_feedback_on_an_older_revision_writes_a_stale_item_and_a_second_ve
         note=None,
         principal=_principal(user_id),
         now=NOW,
-        request_id="req-2",
     )
 
     items = (
@@ -651,7 +643,6 @@ async def test_the_returned_view_carries_the_question_document_feedback_and_poin
         note=None,
         principal=_principal(user_id, "Ada Lovelace"),
         now=NOW,
-        request_id="req-1",
     )
 
     assert view.question.id == ids["question_id"]
@@ -677,7 +668,6 @@ async def test_points_is_null_without_a_current_score(
         note=None,
         principal=_principal(user_id),
         now=NOW,
-        request_id="req-1",
     )
 
     assert view.points is None
@@ -708,7 +698,6 @@ async def test_a_failure_inside_the_transaction_persists_nothing(
             note=None,
             principal=_principal(user_id),
             now=NOW,
-            request_id="req-1",
         )
 
     finding = (
@@ -735,7 +724,6 @@ async def test_feedback_on_an_unknown_finding_raises_finding_not_found_and_write
             note=None,
             principal=_principal(user_id),
             now=NOW,
-            request_id="req-1",
         )
 
     assert await _count(async_connection, FindingFeedback) == 0

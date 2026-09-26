@@ -24,7 +24,7 @@ tags: [accounts-and-discovery, audit-trail, evaluation-and-feedback, identity-an
 
 Authorisation is enforced by the api on every route ([S-SEC-02](/requirements/system.md)); a signed-in user without the role gets `403 FORBIDDEN`.
 
-**Authentication.** `API-01` sets an HTTP-only, `Secure`, `SameSite=Lax` session cookie whose token is recorded as a hash in [`auth_session`](/architecture/sql-store.md#auth_session) and expires after `SESSION_TTL_HOURS`. Every other route except `API-61` requires it and accepts no other credential. `API-02` revokes it.
+**Authentication.** `API-01` sets an HTTP-only, `Secure`, `SameSite=Lax` session cookie, named `leadradar_session`, with `Path=/api/v1` and `Max-Age` of `SESSION_TTL_HOURS`; `API-02` clears it. Its token is recorded as a hash in [`auth_session`](/architecture/sql-store.md#auth_session) and expires after `SESSION_TTL_HOURS`. Every other route except `API-61` requires it and accepts no other credential. `API-02` revokes it.
 
 **CSRF.** A `POST`, `PUT`, `PATCH` or `DELETE` without an `X-Requested-With` header is refused `403 FORBIDDEN`. The browser reaches the api only through the frontend's proxy on the same origin.
 
@@ -42,7 +42,7 @@ Authorisation is enforced by the api on every route ([S-SEC-02](/requirements/sy
 | `CONFLICT` | 409 | A uniqueness or state rule refuses the change; `details.entity_id` names the conflicting row when there is one |
 | `NOT_CONFIGURED` | 409 | The contract needs an integration or plug-in key that is not configured |
 | `VALIDATION` | 422 | The input is invalid; `details.fields[]` lists `{field, message}`, where `field` is a body field name, a JSON pointer into it, or the name of a path or query parameter |
-| `LOCKED` | 423 | Too many failed sign-ins; `details.retry_after_min` |
+| `LOCKED` | 423 | Too many failed sign-ins; `details.retry_after_min`, the minutes until `locked_until`, rounded up |
 | `BUDGET_EXHAUSTED` | 429 | The [Budget guard](/architecture/rules.md#budget-guard) stops an LLM call; `details.resets_at` |
 | `UPSTREAM_UNAVAILABLE` | 503 | The classifier, the LLM, the embedder or a provider is unavailable or returned invalid output; `details.dependency`, `details.reason` |
 | `INTERNAL` | 500 | Anything else |
@@ -63,7 +63,9 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 | `API-06` | PATCH | `/users/{id}` | `A` | [`UserUpdate`](#userupdate) → [`User`](#user) |
 
 - `API-01` — wrong email or password answers `401` with one message that does not reveal which was wrong. The failure that reaches `LOGIN_MAX_FAILURES` locks the account for `LOGIN_LOCK_MINUTES`; while locked every attempt answers `423 LOCKED`. A disabled account answers `403 FORBIDDEN` only when the password is correct.
-- `API-06` — an Admin cannot change their own role or disable themselves (`409 CONFLICT`). Disabling a user revokes their sessions.
+- `API-04` — ordered by `display_name`.
+- `API-05` — answers `200` with the created user.
+- `API-06` — an Admin cannot change their own role or disable themselves (`409 CONFLICT`). Disabling a user revokes their sessions. A password reset changes only the hash. A request that changes nothing writes no audit row.
 
 ### Authentication and users shapes
 
@@ -107,7 +109,7 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 | `display_name` | string, optional | [`app_user`](/architecture/sql-store.md#app_user) |
 | `role` | enum, optional | [`app_user`](/architecture/sql-store.md#app_user) `role` |
 | `status` | enum, optional | [`app_user`](/architecture/sql-store.md#app_user) `status` |
-| `password` | string, optional | a reset; hashed into `password_hash` |
+| `password` | string, optional, at least `PASSWORD_MIN_LENGTH` characters | a reset; hashed into `password_hash` |
 
 ## Services and questions
 

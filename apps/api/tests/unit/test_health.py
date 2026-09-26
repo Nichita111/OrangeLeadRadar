@@ -35,7 +35,10 @@ def _fake_engine() -> AsyncEngine:
 
 
 def make_settings(**overrides: Any) -> ApiSettings:
-    defaults: dict[str, Any] = {"database_url": SecretStr("postgresql://u:p@localhost/db")}
+    defaults: dict[str, Any] = {
+        "database_url": SecretStr("postgresql://u:p@localhost/db"),
+        "migration_database_url": SecretStr("postgresql://u:p@localhost/db"),
+    }
     defaults.update(overrides)
     return ApiSettings(**defaults)
 

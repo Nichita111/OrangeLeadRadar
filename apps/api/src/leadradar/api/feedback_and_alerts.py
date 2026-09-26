@@ -12,7 +12,6 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from leadradar.api.authentication import CurrentUser
-from leadradar.clock import now
 from leadradar.core.enums import (
     DocumentSourceType,
     FindingDecidedBy,
@@ -25,7 +24,6 @@ from leadradar.core.enums import (
 )
 from leadradar.db.session import get_session
 from leadradar.feedback.commands import give_finding_feedback, give_lead_feedback
-from leadradar.logs import request_id_var
 
 router = APIRouter(tags=["feedback-and-alerts"])
 
@@ -135,8 +133,7 @@ async def post_lead_feedback(
 ) -> LeadFeedback:
     """`API-46`: applies the api's half of [Feedback effects]
     (/architecture/rules.md#feedback-effects) to the account's lead."""
-    settings = request.app.state.settings
-    current_time = now(fixture_mode=settings.fixture_mode, clock_file=settings.clock_file)
+    current_time = request.app.state.clock()
     result = await give_lead_feedback(
         session,
         account_id=id,
@@ -145,7 +142,6 @@ async def post_lead_feedback(
         note=body.note,
         principal=principal,
         now=current_time,
-        request_id=request_id_var.get(),
     )
     return LeadFeedback(
         id=result.id,
@@ -166,8 +162,7 @@ async def post_finding_feedback(
 ) -> FindingView:
     """`API-47`: applies the api's half of [Feedback effects]
     (/architecture/rules.md#feedback-effects) to one finding."""
-    settings = request.app.state.settings
-    current_time = now(fixture_mode=settings.fixture_mode, clock_file=settings.clock_file)
+    current_time = request.app.state.clock()
     view = await give_finding_feedback(
         session,
         finding_id=id,
@@ -175,7 +170,6 @@ async def post_finding_feedback(
         note=body.note,
         principal=principal,
         now=current_time,
-        request_id=request_id_var.get(),
     )
     return FindingView(
         id=view.id,

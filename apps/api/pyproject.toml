@@ -13,6 +13,7 @@ dependencies = [
   "alembic>=1.14",
   "pgvector>=0.3.6",
   "httpx>=0.27",
+  "argon2-cffi>=23.1",
   "publicsuffix2>=2.20191221",
 ]
 
@@ -37,6 +38,7 @@ packages = ["src/leadradar"]
 [project.scripts]
 leadradar-api = "leadradar.api.main:run"
 leadradar-worker = "leadradar.worker.main:run"
+leadradar-seed-demo = "leadradar.seed.demo:run"
 
 [tool.ruff]
 line-length = 100
@@ -44,6 +46,18 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's dependency-injection markers are meant to be called in argument defaults; this is
+# not the mutable-default-argument bug B008 otherwise catches.
+extend-immutable-calls = [
+  "fastapi.Depends",
+  "fastapi.Cookie",
+  "fastapi.Query",
+  "fastapi.Header",
+  "fastapi.Path",
+  "fastapi.Body",
+]
 
 [tool.mypy]
 strict = true
@@ -63,6 +77,6 @@ lint = "ruff check src tests"
 typecheck = "mypy src tests"
 test-unit = "pytest -m unit --disable-socket --allow-unix-socket"
 test-integration = "pytest -m integration"
-test-contract = "pytest -m contract --disable-socket --allow-unix-socket"
+test-contract = "pytest -m contract"
 openapi-snapshot = { script = "leadradar.api.openapi_snapshot:main" }
 validate = ["format-check", "lint", "typecheck", "test-unit", "test-integration", "test-contract"]

@@ -36,7 +36,9 @@ def _settings() -> ApiSettings:
 
 def run_migrations_offline() -> None:
     settings = _settings()
-    url = make_url(settings.database_url.get_secret_value()).set(drivername="postgresql+psycopg")
+    url = make_url(settings.migration_database_url.get_secret_value()).set(
+        drivername="postgresql+psycopg"
+    )
     config.attributes["embedding_dim"] = settings.embedding_dim
     context.configure(
         url=str(url),
@@ -50,7 +52,9 @@ def run_migrations_offline() -> None:
 
 def run_migrations_online() -> None:
     settings = _settings()
-    url = make_url(settings.database_url.get_secret_value()).set(drivername="postgresql+psycopg")
+    url = make_url(settings.migration_database_url.get_secret_value()).set(
+        drivername="postgresql+psycopg"
+    )
     config.attributes["embedding_dim"] = settings.embedding_dim
     connectable = create_engine(url, poolclass=pool.NullPool)
     with connectable.connect() as connection:

@@ -4,488 +4,876 @@
  */
 
 export interface paths {
-    "/api/v1/accounts/{id}/scores/{service_id}/feedback": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Post Lead Feedback
-         * @description `API-46`: applies the api's half of [Feedback effects]
-         *     (/architecture/rules.md#feedback-effects) to the account's lead.
-         */
-        post: operations["post_lead_feedback_api_v1_accounts__id__scores__service_id__feedback_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+  "/api/v1/accounts/{id}/scores/{service_id}/feedback": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/findings/{id}/feedback": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Post Finding Feedback
-         * @description `API-47`: applies the api's half of [Feedback effects]
-         *     (/architecture/rules.md#feedback-effects) to one finding.
-         */
-        post: operations["post_finding_feedback_api_v1_findings__id__feedback_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /**
+     * Post Lead Feedback
+     * @description `API-46`: applies the api's half of [Feedback effects]
+     *     (/architecture/rules.md#feedback-effects) to the account's lead.
+     */
+    post: operations["post_lead_feedback_api_v1_accounts__id__scores__service_id__feedback_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/auth/login": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/health": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Health
-         * @description `API-61`: anonymous, `200` when the database check is `OK`, else `503`.
-         */
-        get: operations["get_health_api_v1_health_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /** Login */
+    post: operations["login_api_v1_auth_login_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/auth/logout": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/impact": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Impact
-         * @description `API-77`: computed on read by [Impact](/architecture/rules.md#impact); writes nothing.
-         */
-        get: operations["get_impact_api_v1_impact_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /** Logout */
+    post: operations["logout_api_v1_auth_logout_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/auth/me": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
+    /** Me */
+    get: operations["me_api_v1_auth_me_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/findings/{id}/feedback": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Post Finding Feedback
+     * @description `API-47`: applies the api's half of [Feedback effects]
+     *     (/architecture/rules.md#feedback-effects) to one finding.
+     */
+    post: operations["post_finding_feedback_api_v1_findings__id__feedback_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/health": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Health
+     * @description `API-61`: anonymous, `200` when the database check is `OK`, else `503`.
+     */
+    get: operations["get_health_api_v1_health_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/impact": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Impact
+     * @description `API-77`: computed on read by [Impact](/architecture/rules.md#impact); writes nothing.
+     */
+    get: operations["get_impact_api_v1_impact_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/users": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Users */
+    get: operations["get_users_api_v1_users_get"];
+    put?: never;
+    /** Create User Route */
+    post: operations["create_user_route_api_v1_users_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/users/{user_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Update User Route */
+    patch: operations["update_user_route_api_v1_users__user_id__patch"];
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: {
-        /**
-         * DocumentSourceType
-         * @description `document.source_type`.
-         * @enum {string}
-         */
-        DocumentSourceType: "NEWS" | "COMPANY_PUBLICATION" | "JOB_POSTING" | "COMPANY_PROFILE";
-        /** FeedbackCreate[FindingFeedbackVerdict] */
-        FeedbackCreate_FindingFeedbackVerdict_: {
-            /** Note */
-            note?: string | null;
-            verdict: components["schemas"]["FindingFeedbackVerdict"];
-        };
-        /** FeedbackCreate[LeadFeedbackVerdict] */
-        FeedbackCreate_LeadFeedbackVerdict_: {
-            /** Note */
-            note?: string | null;
-            verdict: components["schemas"]["LeadFeedbackVerdict"];
-        };
-        /**
-         * FindingDecidedBy
-         * @description `finding.decided_by`.
-         * @enum {string}
-         */
-        FindingDecidedBy: "CLASSIFIER" | "LLM";
-        /**
-         * FindingFeedbackVerdict
-         * @description `finding_feedback.verdict`.
-         * @enum {string}
-         */
-        FindingFeedbackVerdict: "CORRECT" | "WRONG";
-        /**
-         * FindingStatus
-         * @description `finding.status`.
-         * @enum {string}
-         */
-        FindingStatus: "ACTIVE" | "SUPERSEDED" | "REJECTED";
-        /**
-         * FindingStrength
-         * @description `finding.strength`; reused by `classification.strength` and
-         *     `evaluation_item.expected_strength`.
-         * @enum {string}
-         */
-        FindingStrength: "NONE" | "WEAK" | "MEDIUM" | "STRONG";
-        /**
-         * FindingView
-         * @description [`FindingView`](/architecture/interfaces.md#findingview), the response of `API-47`. Also
-         *     plan task 13's `API-42` response shape; that task imports this model and must not define a
-         *     second one.
-         */
-        FindingView: {
-            /**
-             * Account Id
-             * Format: uuid
-             */
-            account_id: string;
-            /** Confidence */
-            confidence: number;
-            decided_by: components["schemas"]["FindingDecidedBy"];
-            document: components["schemas"]["FindingViewDocument"];
-            feedback: components["schemas"]["FindingViewFeedback"] | null;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /**
-             * Observed At
-             * Format: date-time
-             */
-            observed_at: string;
-            option: components["schemas"]["FindingViewOption"] | null;
-            /** Points */
-            points: number | null;
-            question: components["schemas"]["FindingViewQuestion"];
-            /** Question Revision */
-            question_revision: number;
-            /** Quote */
-            quote: string;
-            /** Quote En */
-            quote_en: string | null;
-            /** Rationale */
-            rationale: string;
-            /**
-             * Service Id
-             * Format: uuid
-             */
-            service_id: string;
-            status: components["schemas"]["FindingStatus"];
-            strength: components["schemas"]["FindingStrength"];
-        };
-        /**
-         * FindingViewDocument
-         * @description `FindingView.document`.
-         */
-        FindingViewDocument: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Language */
-            language: string;
-            plugin_code: components["schemas"]["SourcePluginCode"];
-            /** Published At */
-            published_at: string | null;
-            source_type: components["schemas"]["DocumentSourceType"];
-            /** Title */
-            title: string | null;
-            /** Url */
-            url: string;
-        };
-        /**
-         * FindingViewFeedback
-         * @description `FindingView.feedback`: the in-force [`finding_feedback`]
-         *     (/architecture/sql-store.md#finding_feedback).
-         */
-        FindingViewFeedback: {
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** User Name */
-            user_name: string;
-            verdict: components["schemas"]["FindingFeedbackVerdict"];
-        };
-        /**
-         * FindingViewOption
-         * @description `FindingView.option`; `CHOICE` questions only.
-         */
-        FindingViewOption: {
-            /** Key */
-            key: string;
-            /** Label */
-            label: string;
-        };
-        /**
-         * FindingViewQuestion
-         * @description `FindingView.question`.
-         */
-        FindingViewQuestion: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Key */
-            key: string;
-            polarity: components["schemas"]["SignalQuestionPolarity"];
-            /** Text */
-            text: string;
-        };
-        /** HTTPValidationError */
-        HTTPValidationError: {
-            /** Detail */
-            detail?: components["schemas"]["ValidationError"][];
-        };
-        /**
-         * Health
-         * @description [Health](/architecture/interfaces.md#health), the response of `API-61`.
-         */
-        Health: {
-            checks: components["schemas"]["HealthChecks"];
-            status: components["schemas"]["HealthStatus"];
-        };
-        /**
-         * HealthCheckStatus
-         * @description One dependency's check outcome, of the [Health](/architecture/interfaces.md#health) shape.
-         * @enum {string}
-         */
-        HealthCheckStatus: "OK" | "DOWN" | "NOT_CONFIGURED";
-        /**
-         * HealthChecks
-         * @description The `checks` object of [Health](/architecture/interfaces.md#health).
-         */
-        HealthChecks: {
-            classifier: components["schemas"]["HealthCheckStatus"];
-            database: components["schemas"]["HealthCheckStatus"];
-            embedder: components["schemas"]["HealthCheckStatus"];
-            llm: components["schemas"]["HealthCheckStatus"];
-        };
-        /**
-         * HealthStatus
-         * @description The overall `status` of the [Health](/architecture/interfaces.md#health) shape.
-         * @enum {string}
-         */
-        HealthStatus: "OK" | "DEGRADED" | "DOWN";
-        /**
-         * Impact
-         * @description [`Impact`](/architecture/interfaces.md#impact), the response of `API-77`.
-         */
-        Impact: {
-            /** Accounts Refreshed */
-            accounts_refreshed: number;
-            /** Cost Per Refresh Eur */
-            cost_per_refresh_eur: number | null;
-            /** Findings Created */
-            findings_created: number;
-            /** Labelled Items */
-            labelled_items: number | null;
-            /** Manual Hours Replaced */
-            manual_hours_replaced: number;
-            /** Manual Minutes Per Account */
-            manual_minutes_per_account: number;
-            /** Minutes Per Refresh */
-            minutes_per_refresh: number | null;
-            /** Period Days */
-            period_days: number;
-            /** Precision */
-            precision: number | null;
-            /** Refreshes */
-            refreshes: number;
-        };
-        /**
-         * LeadFeedback
-         * @description [`LeadFeedback`](/architecture/interfaces.md#leadfeedback), the response of `API-46`.
-         */
-        LeadFeedback: {
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Note */
-            note: string | null;
-            /** User Name */
-            user_name: string;
-            verdict: components["schemas"]["LeadFeedbackVerdict"];
-        };
-        /**
-         * LeadFeedbackVerdict
-         * @description `lead_feedback.verdict`.
-         * @enum {string}
-         */
-        LeadFeedbackVerdict: "RELEVANT" | "NOT_RELEVANT" | "ALREADY_CUSTOMER";
-        /**
-         * SignalQuestionPolarity
-         * @description `signal_question.polarity`.
-         * @enum {string}
-         */
-        SignalQuestionPolarity: "POSITIVE" | "NEGATIVE";
-        /**
-         * SourcePluginCode
-         * @description `source_plugin.code`; reused by `plugin_usage.plugin_code` and `document.plugin_code`.
-         * @enum {string}
-         */
-        SourcePluginCode: "GDELT" | "RSS" | "WEBSITE" | "CAREERS" | "CRUNCHBASE" | "NEWSAPI" | "SERPAPI";
-        /** ValidationError */
-        ValidationError: {
-            /** Context */
-            ctx?: Record<string, never>;
-            /** Input */
-            input?: unknown;
-            /** Location */
-            loc: (string | number)[];
-            /** Message */
-            msg: string;
-            /** Error Type */
-            type: string;
-        };
+  schemas: {
+    /**
+     * AppUserRole
+     * @description `app_user.role`.
+     * @enum {string}
+     */
+    AppUserRole: "SALES" | "ADMIN";
+    /**
+     * AppUserStatus
+     * @description `app_user.status`.
+     * @enum {string}
+     */
+    AppUserStatus: "ACTIVE" | "DISABLED";
+    /**
+     * AuthenticatedUser
+     * @description [`AuthenticatedUser`](/architecture/interfaces.md#authenticateduser).
+     */
+    AuthenticatedUser: {
+      /** Display Name */
+      display_name: string;
+      /** Email */
+      email: string;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      role: components["schemas"]["AppUserRole"];
     };
-    responses: never;
-    parameters: never;
-    requestBodies: never;
-    headers: never;
-    pathItems: never;
+    /**
+     * DocumentSourceType
+     * @description `document.source_type`.
+     * @enum {string}
+     */
+    DocumentSourceType: "NEWS" | "COMPANY_PUBLICATION" | "JOB_POSTING" | "COMPANY_PROFILE";
+    /** FeedbackCreate[FindingFeedbackVerdict] */
+    FeedbackCreate_FindingFeedbackVerdict_: {
+      /** Note */
+      note?: string | null;
+      verdict: components["schemas"]["FindingFeedbackVerdict"];
+    };
+    /** FeedbackCreate[LeadFeedbackVerdict] */
+    FeedbackCreate_LeadFeedbackVerdict_: {
+      /** Note */
+      note?: string | null;
+      verdict: components["schemas"]["LeadFeedbackVerdict"];
+    };
+    /**
+     * FindingDecidedBy
+     * @description `finding.decided_by`.
+     * @enum {string}
+     */
+    FindingDecidedBy: "CLASSIFIER" | "LLM";
+    /**
+     * FindingFeedbackVerdict
+     * @description `finding_feedback.verdict`.
+     * @enum {string}
+     */
+    FindingFeedbackVerdict: "CORRECT" | "WRONG";
+    /**
+     * FindingStatus
+     * @description `finding.status`.
+     * @enum {string}
+     */
+    FindingStatus: "ACTIVE" | "SUPERSEDED" | "REJECTED";
+    /**
+     * FindingStrength
+     * @description `finding.strength`; reused by `classification.strength` and
+     *     `evaluation_item.expected_strength`.
+     * @enum {string}
+     */
+    FindingStrength: "NONE" | "WEAK" | "MEDIUM" | "STRONG";
+    /**
+     * FindingView
+     * @description [`FindingView`](/architecture/interfaces.md#findingview), the response of `API-47`. Also
+     *     plan task 13's `API-42` response shape; that task imports this model and must not define a
+     *     second one.
+     */
+    FindingView: {
+      /**
+       * Account Id
+       * Format: uuid
+       */
+      account_id: string;
+      /** Confidence */
+      confidence: number;
+      decided_by: components["schemas"]["FindingDecidedBy"];
+      document: components["schemas"]["FindingViewDocument"];
+      feedback: components["schemas"]["FindingViewFeedback"] | null;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Observed At
+       * Format: date-time
+       */
+      observed_at: string;
+      option: components["schemas"]["FindingViewOption"] | null;
+      /** Points */
+      points: number | null;
+      question: components["schemas"]["FindingViewQuestion"];
+      /** Question Revision */
+      question_revision: number;
+      /** Quote */
+      quote: string;
+      /** Quote En */
+      quote_en: string | null;
+      /** Rationale */
+      rationale: string;
+      /**
+       * Service Id
+       * Format: uuid
+       */
+      service_id: string;
+      status: components["schemas"]["FindingStatus"];
+      strength: components["schemas"]["FindingStrength"];
+    };
+    /**
+     * FindingViewDocument
+     * @description `FindingView.document`.
+     */
+    FindingViewDocument: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Language */
+      language: string;
+      plugin_code: components["schemas"]["SourcePluginCode"];
+      /** Published At */
+      published_at: string | null;
+      source_type: components["schemas"]["DocumentSourceType"];
+      /** Title */
+      title: string | null;
+      /** Url */
+      url: string;
+    };
+    /**
+     * FindingViewFeedback
+     * @description `FindingView.feedback`: the in-force [`finding_feedback`]
+     *     (/architecture/sql-store.md#finding_feedback).
+     */
+    FindingViewFeedback: {
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** User Name */
+      user_name: string;
+      verdict: components["schemas"]["FindingFeedbackVerdict"];
+    };
+    /**
+     * FindingViewOption
+     * @description `FindingView.option`; `CHOICE` questions only.
+     */
+    FindingViewOption: {
+      /** Key */
+      key: string;
+      /** Label */
+      label: string;
+    };
+    /**
+     * FindingViewQuestion
+     * @description `FindingView.question`.
+     */
+    FindingViewQuestion: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Key */
+      key: string;
+      polarity: components["schemas"]["SignalQuestionPolarity"];
+      /** Text */
+      text: string;
+    };
+    /** HTTPValidationError */
+    HTTPValidationError: {
+      /** Detail */
+      detail?: components["schemas"]["ValidationError"][];
+    };
+    /**
+     * Health
+     * @description [Health](/architecture/interfaces.md#health), the response of `API-61`.
+     */
+    Health: {
+      checks: components["schemas"]["HealthChecks"];
+      status: components["schemas"]["HealthStatus"];
+    };
+    /**
+     * HealthCheckStatus
+     * @description One dependency's check outcome, of the [Health](/architecture/interfaces.md#health) shape.
+     * @enum {string}
+     */
+    HealthCheckStatus: "OK" | "DOWN" | "NOT_CONFIGURED";
+    /**
+     * HealthChecks
+     * @description The `checks` object of [Health](/architecture/interfaces.md#health).
+     */
+    HealthChecks: {
+      classifier: components["schemas"]["HealthCheckStatus"];
+      database: components["schemas"]["HealthCheckStatus"];
+      embedder: components["schemas"]["HealthCheckStatus"];
+      llm: components["schemas"]["HealthCheckStatus"];
+    };
+    /**
+     * HealthStatus
+     * @description The overall `status` of the [Health](/architecture/interfaces.md#health) shape.
+     * @enum {string}
+     */
+    HealthStatus: "OK" | "DEGRADED" | "DOWN";
+    /**
+     * Impact
+     * @description [`Impact`](/architecture/interfaces.md#impact), the response of `API-77`.
+     */
+    Impact: {
+      /** Accounts Refreshed */
+      accounts_refreshed: number;
+      /** Cost Per Refresh Eur */
+      cost_per_refresh_eur: number | null;
+      /** Findings Created */
+      findings_created: number;
+      /** Labelled Items */
+      labelled_items: number | null;
+      /** Manual Hours Replaced */
+      manual_hours_replaced: number;
+      /** Manual Minutes Per Account */
+      manual_minutes_per_account: number;
+      /** Minutes Per Refresh */
+      minutes_per_refresh: number | null;
+      /** Period Days */
+      period_days: number;
+      /** Precision */
+      precision: number | null;
+      /** Refreshes */
+      refreshes: number;
+    };
+    /**
+     * LeadFeedback
+     * @description [`LeadFeedback`](/architecture/interfaces.md#leadfeedback), the response of `API-46`.
+     */
+    LeadFeedback: {
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Note */
+      note: string | null;
+      /** User Name */
+      user_name: string;
+      verdict: components["schemas"]["LeadFeedbackVerdict"];
+    };
+    /**
+     * LeadFeedbackVerdict
+     * @description `lead_feedback.verdict`.
+     * @enum {string}
+     */
+    LeadFeedbackVerdict: "RELEVANT" | "NOT_RELEVANT" | "ALREADY_CUSTOMER";
+    /**
+     * LoginRequest
+     * @description [`LoginRequest`](/architecture/interfaces.md#loginrequest).
+     */
+    LoginRequest: {
+      /** Email */
+      email: string;
+      /**
+       * Password
+       * Format: password
+       */
+      password: string;
+    };
+    /**
+     * SignalQuestionPolarity
+     * @description `signal_question.polarity`.
+     * @enum {string}
+     */
+    SignalQuestionPolarity: "POSITIVE" | "NEGATIVE";
+    /**
+     * SourcePluginCode
+     * @description `source_plugin.code`; reused by `plugin_usage.plugin_code` and `document.plugin_code`.
+     * @enum {string}
+     */
+    SourcePluginCode:
+      "GDELT" | "RSS" | "WEBSITE" | "CAREERS" | "CRUNCHBASE" | "NEWSAPI" | "SERPAPI";
+    /**
+     * User
+     * @description [`User`](/architecture/interfaces.md#user).
+     */
+    User: {
+      /** Display Name */
+      display_name: string;
+      /** Email */
+      email: string;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Last Login At */
+      last_login_at: string | null;
+      role: components["schemas"]["AppUserRole"];
+      status: components["schemas"]["AppUserStatus"];
+    };
+    /**
+     * UserCreate
+     * @description [`UserCreate`](/architecture/interfaces.md#usercreate). `password`'s `PASSWORD_MIN_LENGTH`
+     *     is enforced once, by `auth.users.create_user` (its one owner), not a static `Field`
+     *     constraint: the minimum is a runtime setting, and a model built inside a router factory
+     *     cannot be resolved by FastAPI's OpenAPI generation (`from __future__ import annotations`
+     *     turns the route's own annotation into a forward reference that must be a module-level
+     *     name).
+     */
+    UserCreate: {
+      /** Display Name */
+      display_name: string;
+      /** Email */
+      email: string;
+      /**
+       * Password
+       * Format: password
+       */
+      password: string;
+      role: components["schemas"]["AppUserRole"];
+    };
+    /**
+     * UserUpdate
+     * @description [`UserUpdate`](/architecture/interfaces.md#userupdate). `password`'s `PASSWORD_MIN_LENGTH`
+     *     is enforced once, by `auth.users.update_user` (`UserCreate`'s note).
+     */
+    UserUpdate: {
+      /** Display Name */
+      display_name?: string | null;
+      /** Password */
+      password?: string | null;
+      role?: components["schemas"]["AppUserRole"] | null;
+      status?: components["schemas"]["AppUserStatus"] | null;
+    };
+    /** ValidationError */
+    ValidationError: {
+      /** Context */
+      ctx?: Record<string, never>;
+      /** Input */
+      input?: unknown;
+      /** Location */
+      loc: (string | number)[];
+      /** Message */
+      msg: string;
+      /** Error Type */
+      type: string;
+    };
+  };
+  responses: never;
+  parameters: never;
+  requestBodies: never;
+  headers: never;
+  pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    post_lead_feedback_api_v1_accounts__id__scores__service_id__feedback_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-                service_id: string;
-            };
-            cookie?: {
-                leadradar_session?: string | null;
-            };
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["FeedbackCreate_LeadFeedbackVerdict_"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LeadFeedback"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+  post_lead_feedback_api_v1_accounts__id__scores__service_id__feedback_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+        service_id: string;
+      };
+      cookie?: {
+        leadradar_session?: string | null;
+      };
     };
-    post_finding_feedback_api_v1_findings__id__feedback_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: {
-                leadradar_session?: string | null;
-            };
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["FeedbackCreate_FindingFeedbackVerdict_"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FindingView"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["FeedbackCreate_LeadFeedbackVerdict_"];
+      };
     };
-    get_health_api_v1_health_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Health"];
-                };
-            };
-            /** @description Service Unavailable */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Health"];
-                };
-            };
+        content: {
+          "application/json": components["schemas"]["LeadFeedback"];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
     };
-    get_impact_api_v1_impact_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Impact"];
-                };
-            };
-        };
+  };
+  login_api_v1_auth_login_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["LoginRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AuthenticatedUser"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  logout_api_v1_auth_logout_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie: {
+        leadradar_session: string;
+      };
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  me_api_v1_auth_me_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: {
+        leadradar_session?: string | null;
+      };
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AuthenticatedUser"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  post_finding_feedback_api_v1_findings__id__feedback_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: {
+        leadradar_session?: string | null;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["FeedbackCreate_FindingFeedbackVerdict_"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["FindingView"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_health_api_v1_health_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Health"];
+        };
+      };
+      /** @description Service Unavailable */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Health"];
+        };
+      };
+    };
+  };
+  get_impact_api_v1_impact_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: {
+        leadradar_session?: string | null;
+      };
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Impact"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_users_api_v1_users_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: {
+        leadradar_session?: string | null;
+      };
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["User"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  create_user_route_api_v1_users_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: {
+        leadradar_session?: string | null;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UserCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["User"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  update_user_route_api_v1_users__user_id__patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        user_id: string;
+      };
+      cookie?: {
+        leadradar_session?: string | null;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UserUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["User"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
 }

@@ -15,7 +15,8 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from leadradar.clock import now
+from leadradar.api.authentication import require_admin
+from leadradar.db.models.identity import AppUser
 from leadradar.db.session import get_session
 from leadradar.evaluation.impact import read_impact
 
@@ -41,11 +42,13 @@ class Impact(BaseModel):
 
 @router.get("/impact")
 async def get_impact(
-    request: Request, session: Annotated[AsyncSession, Depends(get_session)]
+    request: Request,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _admin: Annotated[AppUser, Depends(require_admin)],
 ) -> Impact:
     """`API-77`: computed on read by [Impact](/architecture/rules.md#impact); writes nothing."""
     settings = request.app.state.settings
-    current_time = now(fixture_mode=settings.fixture_mode, clock_file=settings.clock_file)
+    current_time = request.app.state.clock()
     report = await read_impact(session, settings, current_time)
     return Impact(
         period_days=report.period_days,
