@@ -2,7 +2,21 @@
 
 A standalone prototype of the Landing page (WF-27), kept as input for the Landing task. It is not part of the app build and nothing imports it.
 
-Open `index.html` in a browser; it loads three.js r128, Anime.js 3.2.2 and the Geist fonts from public CDNs.
+## Run it locally
+
+From this folder, start any static server and open the address it prints:
+
+```sh
+cd prototypes/landing
+python3 -m http.server 8000      # then open http://localhost:8000
+# or: npx serve .
+```
+
+Opening `index.html` directly from disk also works. three.js r128 and Anime.js 3.2.2 are served from `vendor/`; only the Geist fonts come from Google Fonts, and the page falls back to system fonts offline.
+
+Scroll to move through the steps, or use the dots on the right. Under `prefers-reduced-motion` each step shows its end frame.
+
+`screens/` holds a screenshot of each step.
 
 The page scrolls through eight steps of one 3D object: accounts, sources, read, sift (a wafer whose dies are the architecture and flow diagrams of `diagrams/src/`), quote, score, rank and the Prospects list.
 

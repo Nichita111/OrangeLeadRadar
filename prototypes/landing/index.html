@@ -1,3 +1,9 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body { margin: 0; } img { max-width: 100%; } [hidden] { display: none !important; }</style>
 <title>LeadRadar Landing Scene</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -127,7 +133,8 @@
     .seg-l span { display: none; }
   }
 </style>
-
+</head>
+<body>
 <header class="top">
   <div class="mark">
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -236,8 +243,8 @@
 <footer>Prototype v3 of the Landing (WF-27). DHL Group and Lufthansa Group values come from WF-12 and WF-24; DHL's Region, Complexity and Cost programme heights, every other account's position, documents and priority are sample values.</footer>
 <div class="toast" id="toast" role="status" hidden></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
+<script src="vendor/three.min.js"></script>
+<script src="vendor/anime.min.js"></script>
 <script>
 (() => {
   // Phosphor icons (@phosphor-icons/core 2.1.1): flame fill, sun, snowflake
@@ -697,3 +704,5 @@
   requestAnimationFrame(frame);
 })();
 </script>
+</body>
+</html>
