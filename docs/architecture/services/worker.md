@@ -66,6 +66,8 @@ stateDiagram-v2
 | `DISCOVERY` | `FETCH` → `TRIAGE` → `SCORE` | one `DISCOVER` per available discovery source; the last one ranks and caps candidates |
 | `EVALUATION` | `CLASSIFY` | `EVALUATE` per batch of items; the last one writes the [`evaluation_result`](/architecture/sql-store.md#evaluation_result) |
 
+A `SCORE` job's `payload` is `{}`: its scope is its run's `account_id` and `service_id`, as the Jobs column states.
+
 A run is `FAILED` when its final stage — `SCORE`, the last `DISCOVER` or the last `EVALUATE` — fails after its retries; a failed earlier job makes it `PARTIAL`. The `SCORE` stage of a refresh runs even when every fetch failed, so decay is applied every interval. On finish a `RUN_FINISHED` audit row is written and, for `ACCOUNT_REFRESH`, the account's refresh times are set by [Refresh scheduling](/architecture/rules.md#refresh-scheduling).
 
 ### Signal graph

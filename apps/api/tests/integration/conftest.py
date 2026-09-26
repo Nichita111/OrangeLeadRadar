@@ -11,7 +11,7 @@ import pytest
 from alembic.config import Config
 from pydantic import SecretStr
 from sqlalchemy import Connection, create_engine
-from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, AsyncSession
 from testcontainers.community.postgres import PostgresContainer
 
 from alembic import command
@@ -64,3 +64,29 @@ async def async_engine(api_settings: ApiSettings) -> AsyncIterator[AsyncEngine]:
     engine = build_engine(api_settings.database_url.get_secret_value())
     yield engine
     await engine.dispose()
+
+
+@pytest.fixture
+async def async_connection(api_settings: ApiSettings) -> AsyncIterator[AsyncConnection]:
+    """One `AsyncConnection` per test, in a transaction rolled back at the end, so a test can
+    insert through the existing sync factories with `await connection.run_sync(...)` and read
+    through a capability function in the same transaction."""
+    engine = build_engine(api_settings.database_url.get_secret_value())
+    async with engine.connect() as connection:
+        transaction = await connection.begin()
+        try:
+            yield connection
+        finally:
+            await transaction.rollback()
+    await engine.dispose()
+
+
+@pytest.fixture
+async def async_session(async_connection: AsyncConnection) -> AsyncIterator[AsyncSession]:
+    """An `AsyncSession` bound to `async_connection`'s already-open transaction, via a nested
+    savepoint, so the capability function's own `session.begin()` never commits the outer
+    transaction the fixture rolls back."""
+    async with AsyncSession(
+        bind=async_connection, join_transaction_mode="create_savepoint", expire_on_commit=False
+    ) as session:
+        yield session

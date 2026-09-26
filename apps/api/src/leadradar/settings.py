@@ -32,6 +32,10 @@ class ApiSettings(BaseSettings):
 
     fixture_mode: FixtureMode = "off"
     fixture_dir: Path = Path("./fixtures")
+    clock_file: Path | None = None
 
     openrouter_api_key: SecretStr | None = None
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
+
+    impact_period_days: int = 30
+    manual_research_minutes_per_account: int = 120

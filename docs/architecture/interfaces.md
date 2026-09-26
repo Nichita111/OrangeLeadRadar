@@ -41,7 +41,7 @@ Authorisation is enforced by the api on every route ([S-SEC-02](/requirements/sy
 | `NOT_FOUND` | 404 | The resource does not exist |
 | `CONFLICT` | 409 | A uniqueness or state rule refuses the change; `details.entity_id` names the conflicting row when there is one |
 | `NOT_CONFIGURED` | 409 | The contract needs an integration or plug-in key that is not configured |
-| `VALIDATION` | 422 | The input is invalid; `details.fields[]` lists `{field, message}`, where `field` is a body field name or a JSON pointer into it |
+| `VALIDATION` | 422 | The input is invalid; `details.fields[]` lists `{field, message}`, where `field` is a body field name, a JSON pointer into it, or the name of a path or query parameter |
 | `LOCKED` | 423 | Too many failed sign-ins; `details.retry_after_min` |
 | `BUDGET_EXHAUSTED` | 429 | The [Budget guard](/architecture/rules.md#budget-guard) stops an LLM call; `details.resets_at` |
 | `UPSTREAM_UNAVAILABLE` | 503 | The database, the classifier, the LLM, the embedder or HubSpot is unavailable or returned invalid output; `details.dependency` names which, as Dependencies lists, and `details.reason` says why |
@@ -673,6 +673,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `API-49` | POST | `/alerts/{id}/acknowledge` | `*` | — → [`AlertView`](#alertview) |
 
 - `API-46`, `API-47` — apply [Feedback effects](/architecture/rules.md#feedback-effects). The verdict must be a [`lead_feedback`](/architecture/sql-store.md#lead_feedback) or [`finding_feedback`](/architecture/sql-store.md#finding_feedback) `verdict` value respectively.
+- `API-46` — `404 NOT_FOUND` when the account has no score for the service yet, as `API-40`: the verdict records the score it was given on.
 - `API-48` — newest first; `unread` true lists unacknowledged alerts only.
 - `API-49` — acknowledging an acknowledged alert returns it unchanged.
 

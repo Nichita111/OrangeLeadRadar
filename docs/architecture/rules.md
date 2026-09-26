@@ -342,7 +342,7 @@ The cost of a call is the `usage.cost` OpenRouter returns with it, in US dollars
 
 - Lead feedback: the latest row of the account and service is in force. A `RESCORE` of the account and service with trigger `FEEDBACK` follows, so `ALREADY_CUSTOMER` sets and a later verdict clears standing `CUSTOMER`. `RELEVANT` and `NOT_RELEVANT` change no score; they are counted by the quality report.
 - Finding feedback: the latest row of the finding is in force. `WRONG` sets an `ACTIVE` finding `REJECTED`; `CORRECT` sets a `REJECTED` finding of the current revision back to `ACTIVE`. A `RESCORE` of the account and service with trigger `FEEDBACK` follows.
-- Finding feedback also labels: unless a `MANUAL` [`evaluation_item`](/architecture/sql-store.md#evaluation_item) exists for the finding's passage, question and revision, one with origin `FINDING_FEEDBACK` is written or updated, with `expected_strength` = the finding's strength for `CORRECT` and `NONE` for `WRONG`.
+- Finding feedback also labels: unless a `MANUAL` [`evaluation_item`](/architecture/sql-store.md#evaluation_item) exists for the finding's passage, question and revision, one with origin `FINDING_FEEDBACK` is written or updated, with `expected_strength` = the finding's strength for `CORRECT` and `NONE` for `WRONG`, `labelled_by` the user who gave the verdict, and `status` `ACTIVE` when the finding's revision is the question's current one, else `STALE`.
 
 **Invariants.** Feedback never changes a weight or setting ([ADR-06](/architecture/adrs/adr-06-rule-based-scoring-with-versioned-settings.md)).
 
@@ -373,7 +373,7 @@ The cost of a call is the `usage.cost` OpenRouter returns with it, in US dollars
 
 ## Impact
 
-**Inputs.** The `ACCOUNT_REFRESH` runs that finished `SUCCEEDED` or `PARTIAL` within the last `IMPACT_PERIOD_DAYS` before now; the `cost_eur` of their `AI_CALL` rows in [`audit_event`](/architecture/sql-store.md#audit_event); the findings whose classification those runs created; the latest [`evaluation_result`](/architecture/sql-store.md#evaluation_result) with `passed` true; `MANUAL_RESEARCH_MINUTES_PER_ACCOUNT`.
+**Inputs.** The `ACCOUNT_REFRESH` runs that finished `SUCCEEDED` or `PARTIAL` within the last `IMPACT_PERIOD_DAYS` before now; the `cost_eur` of their `AI_CALL` rows in [`audit_event`](/architecture/sql-store.md#audit_event); the findings whose [`classification`](/architecture/sql-store.md#classification) names one of those runs in `run_id`; the latest [`evaluation_result`](/architecture/sql-store.md#evaluation_result) with `passed` true; `MANUAL_RESEARCH_MINUTES_PER_ACCOUNT`.
 
 **Algorithm.**
 
@@ -384,7 +384,7 @@ The cost of a call is the `usage.cost` OpenRouter returns with it, in US dollars
 | `cost_per_refresh_eur` | Sum of their `AI_CALL` `cost_eur` divided by `refreshes`; null without runs |
 | `minutes_per_refresh` | Mean of `finished_at − started_at`, in minutes; null without runs |
 | `findings_created` | Number of those findings |
-| `precision`, `labelled_items` | `precision` and `items` of the latest passing evaluation; null without one |
+| `precision`, `labelled_items` | `precision` and `items` of the passing [`evaluation_result`](/architecture/sql-store.md#evaluation_result) with the newest `created_at`; null without one |
 | `manual_minutes_per_account` | `MANUAL_RESEARCH_MINUTES_PER_ACCOUNT` |
 | `manual_hours_replaced` | `accounts_refreshed × MANUAL_RESEARCH_MINUTES_PER_ACCOUNT / 60` |
 
