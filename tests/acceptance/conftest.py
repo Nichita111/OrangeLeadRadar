@@ -114,9 +114,3 @@ def db_tables(project: str, env: dict[str, str]) -> set[str]:
 
 def api_get(path: str, **kwargs) -> requests.Response:
     return requests.get(f"{API_BASE_URL}{path}", timeout=10, **kwargs)
-
-
-def api_post(path: str, **kwargs) -> requests.Response:
-    headers = kwargs.pop("headers", {}) or {}
-    headers.setdefault("X-Requested-With", "XMLHttpRequest")
-    return requests.post(f"{API_BASE_URL}{path}", headers=headers, timeout=10, **kwargs)

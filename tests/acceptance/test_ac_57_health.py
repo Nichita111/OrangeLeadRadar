@@ -12,6 +12,8 @@ stack (docs/architecture/overview.md#runtime); nothing here reads the implementa
 from __future__ import annotations
 
 import json
+import os
+import re
 
 import pytest
 import requests
@@ -20,21 +22,22 @@ from conftest import API_BASE_URL, _compose_env, compose, db_tables, wait_for
 
 PROJECT = "lr-qa-ac-57"
 
-# The table headings of docs/architecture/sql-store.md - every table the SQL store defines,
-# the first migration's scope per .work/stack-foundation/task.md's decision. Not part of the
-# store's own tables: the "Scoring settings document" and "Constraints and indexes" headings
-# name a document shape and a list of constraints, not tables.
-SQL_STORE_TABLES = {
-    "app_user", "auth_session",
-    "service", "signal_question", "scoring_config", "industry", "market",
-    "account", "account_alias", "account_source", "contact", "discovery_candidate",
-    "source_plugin", "plugin_usage", "pipeline_run", "job", "document", "chunk",
-    "document_triage", "classification", "finding", "account_score",
-    "disqualifier_override", "alert",
-    "lead_feedback", "finding_feedback", "evaluation_item", "evaluation_result",
-    "outreach_draft", "crm_sync",
-    "audit_event",
-}
+SQL_STORE_DOC = os.path.join(
+    os.path.dirname(__file__), "..", "..", "docs", "architecture", "sql-store.md"
+)
+
+
+def _sql_store_tables() -> set[str]:
+    """Every table docs/architecture/sql-store.md defines, read from the document itself so
+    that a table added to the store later is checked too (AGENTS.md: a table is defined in
+    exactly one place; a test must never redefine the list). Each table is a level-3 (`###`)
+    heading; the document's other headings (level 1 and 2, e.g. "Scoring settings document",
+    "Constraints and indexes") name sections and shapes, not tables, and none of them owns a
+    level-3 heading of its own after the last table section (verified by inspection of the
+    document's structure)."""
+    with open(SQL_STORE_DOC, encoding="utf-8") as handle:
+        text = handle.read()
+    return set(re.findall(r"^### `?([a-z_]+)`?", text, re.MULTILINE))
 
 
 @pytest.fixture(scope="module")
@@ -79,14 +82,16 @@ def test_compose_up_starts_every_container_migrates_and_health_reports_ok_then_d
 
     # "the migrations are applied" - a database check of OK proves only that the database
     # answers, not that the schema exists, so the tables of the running db container are
-    # compared against every table heading of docs/architecture/sql-store.md.
+    # compared against every table heading of docs/architecture/sql-store.md, read from the
+    # document itself (not copied into the test).
+    sql_store_tables = _sql_store_tables()
     tables = wait_for(
-        lambda: db_tables(PROJECT, env) if SQL_STORE_TABLES <= db_tables(PROJECT, env) else None,
+        lambda: db_tables(PROJECT, env) if sql_store_tables <= db_tables(PROJECT, env) else None,
         timeout_s=1200,
         interval_s=5.0,
         description="db to hold every table of the SQL store",
     )
-    assert SQL_STORE_TABLES <= tables, SQL_STORE_TABLES - tables
+    assert sql_store_tables <= tables, sql_store_tables - tables
 
     # "/health answers OK with every check reported"
     health = wait_for(
