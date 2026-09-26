@@ -1,4 +1,4 @@
-"""Integration tests of `auth.sessions.resolve_session`
+"""Integration tests of `auth.sessions.authenticate`
 ([Conventions](/architecture/interfaces.md#conventions) Authentication,
 [`auth_session`](/architecture/sql-store.md#auth_session))."""
 
@@ -12,15 +12,17 @@ import pytest
 from sqlalchemy import Connection, select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
-from leadradar.auth.sessions import Forbidden, Unauthenticated, hash_token, resolve_session
+from leadradar.auth.errors import Forbidden, Unauthenticated
+from leadradar.auth.sessions import authenticate
 from leadradar.core.enums import AppUserRole, AppUserStatus
+from leadradar.core.sign_in import hash_session_token
 from leadradar.db.models.identity import AuthSession
 from tests.integration import factories as f
 
 pytestmark = pytest.mark.integration
 
 NOW = datetime(2026, 1, 15, tzinfo=UTC)
-TOKEN = "a-plain-session-token"
+TOKEN = b"a-plain-session-token"
 
 
 async def _make_user_and_session(
@@ -29,7 +31,7 @@ async def _make_user_and_session(
     user_status: AppUserStatus = AppUserStatus.ACTIVE,
     expires_at: datetime = NOW + timedelta(hours=1),
     revoked_at: datetime | None = None,
-    token: str = TOKEN,
+    token: bytes = TOKEN,
 ) -> uuid.UUID:
     def _insert(conn: Connection) -> uuid.UUID:
         user_id = f.make_app_user(
@@ -38,7 +40,7 @@ async def _make_user_and_session(
         f.make_auth_session(
             conn,
             user_id,
-            token_hash=hash_token(token),
+            token_hash=hash_session_token(token),
             expires_at=expires_at,
             revoked_at=revoked_at,
         )
@@ -52,9 +54,9 @@ async def test_resolves_the_principal_for_a_live_session(
 ) -> None:
     user_id = await _make_user_and_session(async_connection)
 
-    principal = await resolve_session(async_session, TOKEN, NOW)
+    principal = await authenticate(async_session, token=TOKEN, now=NOW)
 
-    assert principal.user_id == user_id
+    assert principal.id == user_id
     assert principal.display_name == "Ada Lovelace"
     assert principal.role == AppUserRole.SALES
 
@@ -65,7 +67,7 @@ async def test_raises_unauthenticated_for_an_unknown_token(
     await _make_user_and_session(async_connection)
 
     with pytest.raises(Unauthenticated):
-        await resolve_session(async_session, "not-the-right-token", NOW)
+        await authenticate(async_session, token=b"not-the-right-token", now=NOW)
 
 
 async def test_raises_unauthenticated_for_a_revoked_session(
@@ -74,7 +76,7 @@ async def test_raises_unauthenticated_for_a_revoked_session(
     await _make_user_and_session(async_connection, revoked_at=NOW - timedelta(minutes=1))
 
     with pytest.raises(Unauthenticated):
-        await resolve_session(async_session, TOKEN, NOW)
+        await authenticate(async_session, token=TOKEN, now=NOW)
 
 
 async def test_raises_unauthenticated_when_expires_at_equals_now(
@@ -83,7 +85,7 @@ async def test_raises_unauthenticated_when_expires_at_equals_now(
     await _make_user_and_session(async_connection, expires_at=NOW)
 
     with pytest.raises(Unauthenticated):
-        await resolve_session(async_session, TOKEN, NOW)
+        await authenticate(async_session, token=TOKEN, now=NOW)
 
 
 async def test_raises_unauthenticated_when_expires_at_is_earlier_than_now(
@@ -92,7 +94,7 @@ async def test_raises_unauthenticated_when_expires_at_is_earlier_than_now(
     await _make_user_and_session(async_connection, expires_at=NOW - timedelta(seconds=1))
 
     with pytest.raises(Unauthenticated):
-        await resolve_session(async_session, TOKEN, NOW)
+        await authenticate(async_session, token=TOKEN, now=NOW)
 
 
 async def test_raises_forbidden_for_a_disabled_user(
@@ -101,7 +103,7 @@ async def test_raises_forbidden_for_a_disabled_user(
     await _make_user_and_session(async_connection, user_status=AppUserStatus.DISABLED)
 
     with pytest.raises(Forbidden):
-        await resolve_session(async_session, TOKEN, NOW)
+        await authenticate(async_session, token=TOKEN, now=NOW)
 
 
 async def test_the_session_table_holds_the_sha256_of_the_token_not_the_plain_token(
@@ -109,15 +111,15 @@ async def test_the_session_table_holds_the_sha256_of_the_token_not_the_plain_tok
 ) -> None:
     def _insert(conn: Connection) -> uuid.UUID:
         user_id = f.make_app_user(conn)
-        return f.make_auth_session(conn, user_id, token_hash=hash_token(TOKEN))
+        return f.make_auth_session(conn, user_id, token_hash=hash_session_token(TOKEN))
 
     session_id = await async_connection.run_sync(_insert)
 
     stored_hash = await async_connection.scalar(
         select(AuthSession.token_hash).where(AuthSession.id == session_id)
     )
-    assert stored_hash == hashlib.sha256(TOKEN.encode()).hexdigest()
-    assert stored_hash != TOKEN
+    assert stored_hash == hashlib.sha256(TOKEN).hexdigest()
+    assert stored_hash != TOKEN.decode()
 
 
 async def test_a_lookup_by_the_plain_token_finds_nothing(
@@ -125,11 +127,11 @@ async def test_a_lookup_by_the_plain_token_finds_nothing(
 ) -> None:
     def _insert(conn: Connection) -> None:
         user_id = f.make_app_user(conn)
-        f.make_auth_session(conn, user_id, token_hash=hash_token(TOKEN))
+        f.make_auth_session(conn, user_id, token_hash=hash_session_token(TOKEN))
 
     await async_connection.run_sync(_insert)
 
     found = await async_connection.scalar(
-        select(AuthSession.id).where(AuthSession.token_hash == TOKEN)
+        select(AuthSession.id).where(AuthSession.token_hash == TOKEN.decode())
     )
     assert found is None

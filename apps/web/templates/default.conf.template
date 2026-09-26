@@ -16,6 +16,11 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
+    # Written at container start; never cached, so a restart with new keys takes effect.
+    location = /config.json {
+        add_header Cache-Control "no-store";
+    }
+
     location / {
         try_files $uri /index.html;
     }

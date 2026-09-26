@@ -34,46 +34,45 @@ async def read_impact(session: AsyncSession, settings: ApiSettings, now: datetim
     counted_run_ids = select(PipelineRun.id).where(*is_counted_run).scalar_subquery()
     run_duration = cast(PipelineRun.finished_at - PipelineRun.started_at, Interval)
 
-    async with session.begin():
-        refreshes, accounts_refreshed, total_duration = (
-            await session.execute(
-                select(
-                    func.count(PipelineRun.id),
-                    func.count(func.distinct(PipelineRun.account_id)),
-                    func.sum(run_duration),
-                ).where(*is_counted_run)
-            )
-        ).one()
+    refreshes, accounts_refreshed, total_duration = (
+        await session.execute(
+            select(
+                func.count(PipelineRun.id),
+                func.count(func.distinct(PipelineRun.account_id)),
+                func.sum(run_duration),
+            ).where(*is_counted_run)
+        )
+    ).one()
 
-        total_cost = (
-            await session.execute(
-                select(func.sum(cast(AuditEvent.payload["cost_eur"].astext, Float))).where(
-                    AuditEvent.kind == AuditEventKind.AI_CALL,
-                    AuditEvent.run_id.in_(counted_run_ids),
-                )
+    total_cost = (
+        await session.execute(
+            select(func.sum(cast(AuditEvent.payload["cost_eur"].astext, Float))).where(
+                AuditEvent.kind == AuditEventKind.AI_CALL,
+                AuditEvent.run_id.in_(counted_run_ids),
             )
-        ).scalar_one()
+        )
+    ).scalar_one()
 
-        findings_created = (
-            await session.execute(
-                select(func.count(Finding.id))
-                .select_from(Finding)
-                .join(Classification, Finding.classification_id == Classification.id)
-                .where(Classification.run_id.in_(counted_run_ids))
-            )
-        ).scalar_one()
+    findings_created = (
+        await session.execute(
+            select(func.count(Finding.id))
+            .select_from(Finding)
+            .join(Classification, Finding.classification_id == Classification.id)
+            .where(Classification.run_id.in_(counted_run_ids))
+        )
+    ).scalar_one()
 
-        latest_passing = (
-            await session.execute(
-                select(
-                    EvaluationResult.items,
-                    cast(EvaluationResult.metrics["precision"].astext, Float),
-                )
-                .where(EvaluationResult.passed.is_(True))
-                .order_by(EvaluationResult.created_at.desc())
-                .limit(1)
+    latest_passing = (
+        await session.execute(
+            select(
+                EvaluationResult.items,
+                cast(EvaluationResult.metrics["precision"].astext, Float),
             )
-        ).first()
+            .where(EvaluationResult.passed.is_(True))
+            .order_by(EvaluationResult.created_at.desc())
+            .limit(1)
+        )
+    ).first()
     latest_passing_labelled_items, latest_passing_precision = (
         latest_passing if latest_passing is not None else (None, None)
     )

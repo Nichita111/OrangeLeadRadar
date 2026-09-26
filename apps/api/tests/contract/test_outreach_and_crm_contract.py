@@ -16,8 +16,8 @@ import pytest
 from fastapi import FastAPI
 
 from leadradar.api.authentication import current_user
-from leadradar.auth.sessions import Principal
 from leadradar.core.enums import AppUserRole, CrmSyncStatus, CrmSyncTarget
+from leadradar.db.models.identity import AppUser
 from leadradar.db.session import get_session
 from leadradar.outreach.errors import CrmUnavailable, ScoreNotFound
 from leadradar.outreach.queries import CrmSyncResult
@@ -28,8 +28,8 @@ _NOW = datetime(2026, 1, 15, tzinfo=UTC)
 _CSRF_HEADERS = {"X-Requested-With": "XMLHttpRequest"}
 
 
-def _principal(role: AppUserRole = AppUserRole.SALES) -> Principal:
-    return Principal(user_id=uuid.uuid4(), display_name="Ada Lovelace", role=role)
+def _principal(role: AppUserRole = AppUserRole.SALES) -> AppUser:
+    return AppUser(id=uuid.uuid4(), display_name="Ada Lovelace", role=role)
 
 
 def _crm_push_url(account_id: object = None, service_id: object = None) -> str:
@@ -38,7 +38,7 @@ def _crm_push_url(account_id: object = None, service_id: object = None) -> str:
     return f"/api/v1/accounts/{account}/scores/{service}/crm-push"
 
 
-def _override(app: FastAPI, principal: Principal) -> None:
+def _override(app: FastAPI, principal: AppUser) -> None:
     app.dependency_overrides[get_session] = lambda: None
     app.dependency_overrides[current_user] = lambda: principal
 

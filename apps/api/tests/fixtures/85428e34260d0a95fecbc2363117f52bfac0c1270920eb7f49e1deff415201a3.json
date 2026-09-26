@@ -1,0 +1,15 @@
+{
+  "output": {
+    "strength": "NONE",
+    "option_key": null,
+    "confidence": 0.05,
+    "quote": null,
+    "quote_en": null,
+    "rationale": null
+  },
+  "model": "google/gemini-2.5-flash",
+  "prompt_version": "v1",
+  "input_tokens": 150,
+  "output_tokens": 20,
+  "cost_usd": 0.0008
+}

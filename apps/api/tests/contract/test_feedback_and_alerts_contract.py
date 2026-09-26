@@ -16,7 +16,6 @@ import pytest
 from fastapi import FastAPI
 
 from leadradar.api.authentication import current_user
-from leadradar.auth.sessions import Principal
 from leadradar.core.enums import (
     AppUserRole,
     DocumentSourceType,
@@ -29,6 +28,7 @@ from leadradar.core.enums import (
     SourcePluginCode,
 )
 from leadradar.core.impact import ImpactReport
+from leadradar.db.models.identity import AppUser
 from leadradar.db.session import get_session
 from leadradar.feedback.errors import FindingNotFound, ScoreNotFound
 from leadradar.feedback.queries import (
@@ -45,11 +45,11 @@ _NOW = datetime(2026, 1, 15, tzinfo=UTC)
 _CSRF_HEADERS = {"X-Requested-With": "XMLHttpRequest"}
 
 
-def _principal(role: AppUserRole = AppUserRole.SALES) -> Principal:
-    return Principal(user_id=uuid.uuid4(), display_name="Ada Lovelace", role=role)
+def _principal(role: AppUserRole = AppUserRole.SALES) -> AppUser:
+    return AppUser(id=uuid.uuid4(), display_name="Ada Lovelace", role=role)
 
 
-def _override(app: FastAPI, principal: Principal) -> None:
+def _override(app: FastAPI, principal: AppUser) -> None:
     app.dependency_overrides[get_session] = lambda: None
     app.dependency_overrides[current_user] = lambda: principal
 
@@ -59,7 +59,7 @@ def _clear(app: FastAPI) -> None:
     app.dependency_overrides.pop(current_user, None)
 
 
-def _lead_feedback_result(principal: Principal) -> LeadFeedbackResult:
+def _lead_feedback_result(principal: AppUser) -> LeadFeedbackResult:
     return LeadFeedbackResult(
         id=uuid.uuid4(),
         verdict=LeadFeedbackVerdict.RELEVANT,
@@ -69,7 +69,7 @@ def _lead_feedback_result(principal: Principal) -> LeadFeedbackResult:
     )
 
 
-def _finding_view(principal: Principal) -> FindingViewData:
+def _finding_view(principal: AppUser) -> FindingViewData:
     return FindingViewData(
         id=uuid.uuid4(),
         account_id=uuid.uuid4(),
@@ -391,11 +391,11 @@ async def test_health_and_impact_still_answer_without_the_csrf_header(
         )
 
     monkeypatch.setattr("leadradar.api.evaluation.read_impact", fake_read_impact)
-    app.dependency_overrides[get_session] = lambda: None
+    _override(app, _principal(AppUserRole.ADMIN))
 
     health_response = await client.get("/api/v1/health")
     impact_response = await client.get("/api/v1/impact")
 
-    app.dependency_overrides.pop(get_session, None)
+    _clear(app)
     assert health_response.status_code == 200
     assert impact_response.status_code == 200

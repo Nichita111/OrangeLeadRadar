@@ -1,8 +1,10 @@
-"""[worker Job queue](/architecture/services/worker.md#job-queue) priority table, as one pure
-function: the api's enqueueing (`runs.enqueue`) and the worker's own claiming share this one
-fact instead of each restating it."""
+"""[worker Job queue](/architecture/services/worker.md#job-queue) priority table and retry
+backoff, as pure functions: the api's enqueueing (`runs.enqueue`) and the worker's own job loop
+share these facts instead of each restating them."""
 
 from __future__ import annotations
+
+from datetime import datetime, timedelta
 
 from leadradar.core.enums import PipelineRunKind, PipelineRunTrigger
 
@@ -38,3 +40,15 @@ def job_priority(kind: PipelineRunKind, trigger: PipelineRunTrigger) -> int:
     if pair in _KIND_TRIGGER_PRIORITIES:
         return _KIND_TRIGGER_PRIORITIES[pair]
     raise UnknownJobPriority(f"No job-queue priority for {kind} triggered by {trigger}.")
+
+
+def next_attempt_at(
+    *, attempts: int, max_attempts: int, backoff_s: int, now: datetime
+) -> datetime | None:
+    """[Job queue](/architecture/services/worker.md#job-queue) Retries: after a failed attempt
+    — `attempts` counts the attempts started, this one included — the time the next attempt may
+    start, `now + backoff_s × 2^(attempts − 1)`; `None` once `max_attempts` have been started,
+    when the job fails instead."""
+    if attempts >= max_attempts:
+        return None
+    return now + timedelta(seconds=backoff_s * 2 ** (attempts - 1))

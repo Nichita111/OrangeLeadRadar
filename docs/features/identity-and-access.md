@@ -43,12 +43,19 @@ Route `/login`. Anonymous.
 **Layout**
 
 ```text
-┌──────────────────────────────┐
-│ LeadRadar                    │
-│ Email    [                 ] │
-│ Password [                 ] │
-│                  [ Sign in ] │
-└──────────────────────────────┘
+┌────────────────────────────────┬──────────────────────────────────┐
+│ LeadRadar                      │ Sign in                          │
+│                                │ (lead sentence)                  │
+│ Know which accounts to call,   │                                  │
+│ and exactly why.               │ Email                            │
+│                                │ [                              ] │
+│                                │ (hint)                           │
+│                                │ Password                         │
+│                                │ [                              ] │
+│                                │ (hint)                           │
+│  (Aurora background)           │                                  │
+│                                │                       [ Sign in ]│
+└────────────────────────────────┴──────────────────────────────────┘
 ```
 
 WF-21 — Sign in
@@ -57,9 +64,10 @@ WF-21 — Sign in
 
 | ID | Requirement |
 |---|---|
-| `FR-093` | Sign in shall submit email and password and, on success, go to the return path or `/prospects`. |
+| `FR-093` | Sign in shall submit email and password and, on success, go to the return path or `/prospects`. The return path is carried in the `return` query parameter of `/login` and is followed only when it is a path of this client; a signed-in user who opens Sign in goes to `/prospects`. |
 | `FR-094` | A failure shall show the api's message: wrong credentials, account locked with the minutes remaining, or account disabled. |
 | `FR-152` | Each field of Sign in shall carry a hint under it: the email field says that it is the address the Admin created, and the password field says that repeated failures lock the account for a short time. |
+| `FR-160` | Sign in shall be two panels: a brand panel carrying the LeadRadar wordmark and the headline "Know which accounts to call, and exactly why." over the [Aurora background](/architecture/services/frontend.md#motion) in the Accent and Accent soft colours, and a panel with the form; the brand panel carries no other text and no sign-in shortcut. |
 
 Obligations: `S-SEC-01`.
 
@@ -76,8 +84,8 @@ Route `/users`. Admin only.
 │ Users                                                          [ New user ]  │
 ├──────────────────────┬──────────────────────┬────────┬──────────┬────────────┤
 │ Name                 │ Email                │ Role   │ Status   │ Last sign-in │
-│ Ana Sales            │ sales@leadradar.local│ Sales  │ Active   │ today      │
-│ Olga Admin           │ admin@leadradar.local│ Admin  │ Active   │ today      │
+│ Ana Sales            │ sales@leadradar.local│ Sales  │ Active   │ 2 hours ago│
+│ Olga Admin           │ admin@leadradar.local│ Admin  │ Active   │ 2 hours ago│
 └──────────────────────┴──────────────────────┴────────┴──────────┴────────────┘
 ```
 
@@ -87,9 +95,10 @@ WF-22 — Users
 
 | ID | Requirement |
 |---|---|
-| `FR-095` | The screen shall list users with name, email, role, status and last sign-in. |
-| `FR-096` | New user and Edit shall set display name, role and, on creation or reset, a password of at least `PASSWORD_MIN_LENGTH` characters; the email is fixed after creation. |
+| `FR-095` | The screen shall list users with name, email, role, status and last sign-in, or Never when the user has not signed in. |
+| `FR-096` | New user and Edit shall set display name, role and, on creation or reset, a password, whose minimum length `PASSWORD_MIN_LENGTH` the api enforces with a field error; Edit resets the password only when a new one is entered; the email is fixed after creation. |
 | `FR-097` | Disable shall confirm that the user will be signed out and unable to sign in; the signed-in Admin's own row shall offer neither Disable nor a role change. |
+| `FR-158` | A disabled user's row shall offer Enable, which applies at once and confirms with a toast. |
 
 Obligations: `S-SEC-03`.
 

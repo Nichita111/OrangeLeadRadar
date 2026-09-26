@@ -17,9 +17,9 @@ from datetime import datetime
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from leadradar.audit.writer import append_audit_event
-from leadradar.auth.sessions import Principal
-from leadradar.core.enums import AuditEventAction, AuditEventKind, CrmSyncStatus, CrmSyncTarget
+from leadradar.audit.events import append_audit_event
+from leadradar.core.enums import AuditAction, CrmSyncStatus, CrmSyncTarget
+from leadradar.db.models.identity import AppUser
 from leadradar.db.models.outreach import CrmSync
 from leadradar.outreach.company_push import (
     account_detail_url,
@@ -43,7 +43,6 @@ async def _record_crm_sync(
     error: str | None,
     requested_by: uuid.UUID,
     occurred_at: datetime,
-    request_id: str | None,
 ) -> CrmSync:
     """Adds a [`crm_sync`](/architecture/sql-store.md#crm_sync) row and its `CRM_PUSHED` audit row
     ([Audit actions](/architecture/sql-store.md#audit-actions)) to `session`; does not commit. The
@@ -64,12 +63,10 @@ async def _record_crm_sync(
         session,
         occurred_at=occurred_at,
         actor_id=requested_by,
-        kind=AuditEventKind.CRM,
-        action=AuditEventAction.CRM_PUSHED,
+        action=AuditAction.CRM_PUSHED,
         entity_type="crm_sync",
         entity_id=crm_sync.id,
         payload={"target": CrmSyncTarget.HUBSPOT.value, "status": status.value},
-        request_id=request_id,
     )
     return crm_sync
 
@@ -79,11 +76,10 @@ async def push_to_crm(
     *,
     account_id: uuid.UUID,
     service_id: uuid.UUID,
-    principal: Principal,
+    principal: AppUser,
     settings: ApiSettings,
     http: httpx.AsyncClient,
     now: datetime,
-    request_id: str | None,
 ) -> CrmSyncResult:
     """`API-59`. Raises `HubspotNotConfigured` when `HUBSPOT_ACCESS_TOKEN` is unset, before any
     read; `ScoreNotFound` when the account has no current score for the service; re-raises
@@ -128,9 +124,8 @@ async def push_to_crm(
                 status=CrmSyncStatus.FAILED,
                 external_id=None,
                 error=str(exc),
-                requested_by=principal.user_id,
+                requested_by=principal.id,
                 occurred_at=now,
-                request_id=request_id,
             )
         raise
 
@@ -143,9 +138,8 @@ async def push_to_crm(
             status=CrmSyncStatus.SUCCEEDED,
             external_id=external_id,
             error=None,
-            requested_by=principal.user_id,
+            requested_by=principal.id,
             occurred_at=now,
-            request_id=request_id,
         )
 
     return CrmSyncResult(

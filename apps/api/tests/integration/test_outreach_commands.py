@@ -14,7 +14,6 @@ from pydantic import SecretStr
 from sqlalchemy import Connection, func, select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
-from leadradar.auth.sessions import Principal
 from leadradar.core.enums import (
     AppUserRole,
     CrmSyncStatus,
@@ -24,6 +23,7 @@ from leadradar.core.enums import (
     SignalQuestionPolarity,
 )
 from leadradar.db.models.audit import AuditEvent
+from leadradar.db.models.identity import AppUser
 from leadradar.db.models.outreach import CrmSync
 from leadradar.outreach.commands import push_to_crm
 from leadradar.outreach.company_push import CompanyPush
@@ -39,14 +39,15 @@ NOW = datetime(2026, 1, 15, tzinfo=UTC)
 def _settings(*, token_set: bool = True) -> ApiSettings:
     return ApiSettings(
         database_url=SecretStr("postgresql://u:p@localhost/db"),
+        migration_database_url=SecretStr("postgresql://u:p@localhost/db"),
         hubspot_access_token=SecretStr("a-token") if token_set else None,
         hubspot_top_signals=3,
         app_base_url="http://localhost:8080",
     )
 
 
-def _principal(user_id: uuid.UUID) -> Principal:
-    return Principal(user_id=user_id, display_name="Ada Lovelace", role=AppUserRole.SALES)
+def _principal(user_id: uuid.UUID) -> AppUser:
+    return AppUser(id=user_id, display_name="Ada Lovelace", role=AppUserRole.SALES)
 
 
 async def _count(connection: AsyncConnection, model: type) -> int:
@@ -104,7 +105,6 @@ async def test_a_successful_push_writes_one_succeeded_row_and_one_audit_row(
             settings=_settings(),
             http=http,
             now=NOW,
-            request_id="req-1",
         )
 
     assert result.status == CrmSyncStatus.SUCCEEDED
@@ -151,7 +151,6 @@ async def test_an_adapter_failure_commits_a_failed_row_and_reraises(
                 settings=_settings(),
                 http=http,
                 now=NOW,
-                request_id="req-1",
             )
 
     rows = (
@@ -195,7 +194,6 @@ async def test_with_the_token_unset_it_raises_before_any_read_or_write_even_with
                 settings=_settings(token_set=False),
                 http=http,
                 now=NOW,
-                request_id="req-1",
             )
 
     assert await _count(async_connection, CrmSync) == 0
@@ -217,7 +215,6 @@ async def test_with_a_token_and_no_current_score_it_raises_score_not_found_and_w
                 settings=_settings(),
                 http=http,
                 now=NOW,
-                request_id="req-1",
             )
 
     assert await _count(async_connection, CrmSync) == 0
@@ -277,7 +274,6 @@ async def test_the_push_reads_the_current_score_row_not_a_superseded_one(
             settings=_settings(),
             http=http,
             now=NOW,
-            request_id="req-1",
         )
 
     assert seen_priority == ["90"]
@@ -297,7 +293,7 @@ async def test_two_pushes_record_two_attempts_each_with_its_own_row(
     monkeypatch.setattr("leadradar.outreach.commands.upsert_company", fake_upsert_company)
 
     async with httpx.AsyncClient() as http:
-        for request_id in ("req-1", "req-2"):
+        for _ in range(2):
             await push_to_crm(
                 async_session,
                 account_id=account_id,
@@ -306,7 +302,6 @@ async def test_two_pushes_record_two_attempts_each_with_its_own_row(
                 settings=_settings(),
                 http=http,
                 now=NOW,
-                request_id=request_id,
             )
 
     rows = (
@@ -390,7 +385,6 @@ async def test_top_signals_are_the_positive_findings_with_the_most_points(
             settings=_settings(),
             http=http,
             now=NOW,
-            request_id="req-1",
         )
 
     assert seen_signals == ['Does it hire? — "We are hiring."']

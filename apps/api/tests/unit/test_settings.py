@@ -35,6 +35,7 @@ def test_settings_reject_an_unknown_fixture_mode() -> None:
 def test_repr_of_settings_never_contains_the_password_or_the_openrouter_key() -> None:
     settings = ApiSettings(
         database_url=SecretStr("postgresql://u:s3cret-db-password@localhost/db"),
+        migration_database_url=SecretStr("postgresql://u:s3cret-db-password@localhost/db"),
         openrouter_api_key=SecretStr("s3cret-openrouter-key"),
     )
     assert "s3cret-db-password" not in repr(settings)
@@ -44,30 +45,41 @@ def test_repr_of_settings_never_contains_the_password_or_the_openrouter_key() ->
 
 
 def test_impact_and_clock_keys_take_their_runtime_defaults() -> None:
-    settings = ApiSettings(database_url=SecretStr("postgresql://u:p@localhost/db"))
+    settings = ApiSettings(
+        database_url=SecretStr("postgresql://u:p@localhost/db"),
+        migration_database_url=SecretStr("postgresql://o:p@localhost/db"),
+    )
 
     assert settings.impact_period_days == 30
     assert settings.manual_research_minutes_per_account == 120
     assert settings.clock_file is None
+    assert (settings.api_host, settings.api_port) == ("0.0.0.0", 8000)
 
 
 def test_impact_and_clock_keys_are_overridden_from_the_environment(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@localhost/db")
+    monkeypatch.setenv("MIGRATION_DATABASE_URL", "postgresql://o:p@localhost/db")
     monkeypatch.setenv("IMPACT_PERIOD_DAYS", "14")
     monkeypatch.setenv("MANUAL_RESEARCH_MINUTES_PER_ACCOUNT", "90")
     monkeypatch.setenv("CLOCK_FILE", "/tmp/now.txt")
+    monkeypatch.setenv("API_HOST", "127.0.0.1")
+    monkeypatch.setenv("API_PORT", "9000")
 
     settings = ApiSettings()
 
     assert settings.impact_period_days == 14
     assert settings.manual_research_minutes_per_account == 90
     assert str(settings.clock_file) == "/tmp/now.txt"
+    assert (settings.api_host, settings.api_port) == ("127.0.0.1", 9000)
 
 
 def test_hubspot_keys_take_their_runtime_defaults() -> None:
-    settings = ApiSettings(database_url=SecretStr("postgresql://u:p@localhost/db"))
+    settings = ApiSettings(
+        database_url=SecretStr("postgresql://u:p@localhost/db"),
+        migration_database_url=SecretStr("postgresql://u:p@localhost/db"),
+    )
 
     assert settings.hubspot_access_token is None
     assert settings.hubspot_top_signals == 3
@@ -78,6 +90,7 @@ def test_hubspot_keys_take_their_runtime_defaults() -> None:
 def test_repr_of_settings_never_contains_the_hubspot_token() -> None:
     settings = ApiSettings(
         database_url=SecretStr("postgresql://u:p@localhost/db"),
+        migration_database_url=SecretStr("postgresql://u:p@localhost/db"),
         hubspot_access_token=SecretStr("s3cret-hubspot-token"),
     )
     assert "s3cret-hubspot-token" not in repr(settings)
@@ -89,6 +102,7 @@ def test_a_logged_settings_object_never_contains_the_password_or_the_key(
 ) -> None:
     settings = ApiSettings(
         database_url=SecretStr("postgresql://u:s3cret-db-password@localhost/db"),
+        migration_database_url=SecretStr("postgresql://u:s3cret-db-password@localhost/db"),
         openrouter_api_key=SecretStr("s3cret-openrouter-key"),
     )
     record = logging.LogRecord(

@@ -40,8 +40,8 @@ An application account. There is one organisation; every user sees every account
 | `role` | enum: `SALES`, `ADMIN` | `SALES` works accounts, runs, prospects, feedback, labels and outreach. `ADMIN` may do everything `SALES` may and also configures services and scoring, source plug-ins and users, overrides disqualifiers, runs quality checks and reads the audit ([Roles](/requirements/business.md#roles)). |
 | `status` | enum: `ACTIVE`, `DISABLED` | A disabled user cannot sign in; their sessions are revoked when disabled. |
 | `password_hash` | text | argon2id hash; the password is never stored or logged. |
-| `failed_logins` | integer | Consecutive failed sign-ins; reset to 0 by a successful one. |
-| `locked_until` | timestamptz, null | Set to now + `LOGIN_LOCK_MINUTES` when `failed_logins` reaches `LOGIN_MAX_FAILURES` ([api runtime](/architecture/services/api.md#runtime)). |
+| `failed_logins` | integer | Consecutive failed sign-ins; reset to 0 by a successful one and when a lock is set. |
+| `locked_until` | timestamptz, null | Set to now + `LOGIN_LOCK_MINUTES`, and `failed_logins` to 0, when `failed_logins` reaches `LOGIN_MAX_FAILURES`; the account is locked while now is before it. |
 | `last_login_at` | timestamptz, null | Time of the last successful sign-in. |
 
 ### auth_session
@@ -735,12 +735,12 @@ One push of an account to a CRM.
 
 ### audit_event
 
-The append-only record of who did what ([RULE-09](/requirements/business.md#business-rules)). No path updates or deletes a row.
+The append-only record of who did what ([RULE-09](/requirements/business.md#business-rules)). No path updates or deletes a row. The application role holds only `SELECT` and `INSERT` on it.
 
 | Column | Type | Notes |
 |---|---|---|
 | `occurred_at` | timestamptz | When. |
-| `actor_id` | uuid FK → [`app_user`](#app_user), null | The user; null for the scheduler and the worker acting on its own. |
+| `actor_id` | uuid FK → [`app_user`](#app_user), null | The user; null for a failed sign-in, for seeding, and for the scheduler and the worker acting on their own. |
 | `kind` | enum: `AUTH`, `USER`, `CONFIG`, `ACCOUNT`, `CONTACT`, `RUN`, `OVERRIDE`, `FEEDBACK`, `OUTREACH`, `CRM`, `AI_CALL` | Family of the action, for filtering. |
 | `action` | text | One value of [Audit actions](#audit-actions). |
 | `entity_type` | text, null | Table name of the entity acted on. |
@@ -751,12 +751,12 @@ The append-only record of who did what ([RULE-09](/requirements/business.md#busi
 
 ## Audit actions
 
-The closed vocabulary of `audit_event.action`. **AI call payload**: `ai_role` (a role of [AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries)), `provider` (`JEV` or `OPENROUTER`), `model` (the OpenRouter model id for `OPENROUTER`), `prompt_version` (null for `JEV`), `items` (passages or questions in the call), `input_tokens`, `output_tokens`, `cost_eur`, `latency_ms`, `outcome` (`OK`, `TIMEOUT`, `ERROR`, `INVALID_OUTPUT`), `fixture` (true when replayed).
+The closed vocabulary of `audit_event.action`. **AI call payload**: `ai_role` (a role of [AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries)), `provider` (`JEV` or `OPENROUTER`), `model` (the OpenRouter model id for `OPENROUTER`), `prompt_version` (null for `JEV`), `items` (passages or questions in the call), `input_tokens`, `output_tokens`, `cost_eur`, `latency_ms`, `outcome` (`OK`, `TIMEOUT`, `ERROR`, `INVALID_OUTPUT`), `fixture` (true when replayed). **Changed fields**: an object mapping each changed field to its new value; `password` maps to null, so a reset is recorded without its value.
 
 | Action | Kind | Entity | Payload |
 |---|---|---|---|
 | `LOGIN_SUCCEEDED` | `AUTH` | `app_user` | — |
-| `LOGIN_FAILED` | `AUTH` | `app_user`, when the email matches one | `reason`: `BAD_CREDENTIALS`, `LOCKED`, `DISABLED` |
+| `LOGIN_FAILED` | `AUTH` | `app_user`, when the email matches one | `reason`: `BAD_CREDENTIALS` (the failure that sets a lock included), `LOCKED` (an attempt during a lock), `DISABLED` |
 | `LOGOUT` | `AUTH` | `app_user` | — |
 | `USER_CREATED` | `USER` | `app_user` | `role` |
 | `USER_UPDATED` | `USER` | `app_user` | changed fields, never the password |
@@ -810,4 +810,4 @@ Only these tables have rows deleted:
 - `chunk.embedding` has an HNSW index with cosine distance; `chunk.lexemes` has a GIN index.
 - `job (status, priority, not_before)` is indexed for claiming; `audit_event (kind, occurred_at)` and `audit_event (run_id)` for filtering and the [Budget guard](/architecture/rules.md#budget-guard); `finding (account_id, status)` and `account_score (service_id, is_current, standing, priority)` for Prospects.
 - Check constraints: every column whose type states a 0–1 or 0–100 range is within it; `account_score.band` is null unless `standing = 'RANKED'`; `signal_question.options` is non-null exactly when `answer_type = 'CHOICE'`.
-- The schema is created and changed only by Alembic migrations owned by the [api service](/architecture/services/api.md#owns).
+- The schema is created and changed only by Alembic migrations owned by the [api service](/architecture/services/api.md#owns); each migration grants the application role of [Runtime](/architecture/overview.md#runtime) its privileges.

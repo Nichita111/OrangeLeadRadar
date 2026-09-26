@@ -1,0 +1,15 @@
+{
+  "output": {
+    "strength": "STRONG",
+    "option_key": null,
+    "confidence": 0.91,
+    "quote": "major cost-reduction programme targeting EUR 500m in savings through process automation",
+    "quote_en": null,
+    "rationale": "The passage states a cost-reduction programme with a 500m EUR savings target via automation."
+  },
+  "model": "google/gemini-2.5-flash",
+  "prompt_version": "v1",
+  "input_tokens": 180,
+  "output_tokens": 55,
+  "cost_usd": 0.0020
+}

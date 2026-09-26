@@ -1,6 +1,7 @@
-"""Reads that shape [`LeadFeedback`](/architecture/interfaces.md#leadfeedback) and
-[`FindingView`](/architecture/interfaces.md#findingview) (`API-46`, `API-47`) out of the store.
-Plain dataclasses, not Pydantic models: those live at the api boundary
+"""Reads that shape [`LeadFeedback`](/architecture/interfaces.md#leadfeedback),
+[`FindingView`](/architecture/interfaces.md#findingview) (`API-46`, `API-47`) and
+[`ScoreChange`](/architecture/interfaces.md#scorechange) (`API-41`) out of the store. Plain
+dataclasses, not Pydantic models: those live at the api boundary
 (`api/feedback_and_alerts.py`), which shapes its response from these."""
 
 from __future__ import annotations
@@ -13,19 +14,22 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from leadradar.core.enums import (
+    AccountScoreBand,
+    AccountScoreStanding,
     DocumentSourceType,
     FindingDecidedBy,
     FindingFeedbackVerdict,
     FindingStatus,
     FindingStrength,
     LeadFeedbackVerdict,
+    PipelineRunTrigger,
     SignalQuestionAnswerType,
     SignalQuestionPolarity,
     SourcePluginCode,
 )
 from leadradar.core.score_breakdown import counted_points
-from leadradar.db.models.configuration import SignalQuestion
-from leadradar.db.models.ingestion import Chunk, Document
+from leadradar.db.models.configuration import ScoringConfig, SignalQuestion
+from leadradar.db.models.ingestion import Chunk, Document, PipelineRun
 from leadradar.db.models.signals import AccountScore, Finding
 
 
@@ -198,3 +202,134 @@ async def current_score_id(
             )
         )
     ).scalar_one_or_none()
+
+
+@dataclass(frozen=True)
+class ScoreChangeFindingRef:
+    """One entry of `ScoreChange.findings_added` or `findings_removed`."""
+
+    finding_id: uuid.UUID
+    question_key: str
+
+
+@dataclass(frozen=True)
+class ScoreChangeOverrideRef:
+    """One entry of `ScoreChange.overrides_changed`."""
+
+    rule_key: str
+    overridden: bool
+
+
+@dataclass(frozen=True)
+class ScoreChangeData:
+    """[`ScoreChange`](/architecture/interfaces.md#scorechange), one item of `API-41`."""
+
+    score_id: uuid.UUID
+    as_of: datetime
+    fit: int
+    intent: int
+    priority: int
+    standing: AccountScoreStanding
+    band: AccountScoreBand | None
+    scoring_version: int
+    trigger: PipelineRunTrigger
+    run_id: uuid.UUID
+    change_note: str | None
+    findings_added: list[ScoreChangeFindingRef]
+    findings_removed: list[ScoreChangeFindingRef]
+    overrides_changed: list[ScoreChangeOverrideRef]
+
+
+def _breakdown_findings(breakdown: dict[str, object]) -> dict[uuid.UUID, str]:
+    """`{finding_id: question_key}` of every counted finding in `breakdown.intent.questions`
+    ([Score breakdown](/architecture/rules.md#score-breakdown))."""
+    intent = breakdown.get("intent")
+    questions = intent.get("questions") if isinstance(intent, dict) else None
+    findings: dict[uuid.UUID, str] = {}
+    if isinstance(questions, list):
+        for entry in questions:
+            finding_id = entry.get("finding_id") if isinstance(entry, dict) else None
+            if finding_id is not None:
+                findings[uuid.UUID(str(finding_id))] = str(entry.get("question_key"))
+    return findings
+
+
+def _breakdown_overrides(breakdown: dict[str, object]) -> dict[str, bool]:
+    """`{rule_key: overridden}` of every disqualifier in `breakdown.disqualifiers`."""
+    disqualifiers = breakdown.get("disqualifiers")
+    overrides: dict[str, bool] = {}
+    if isinstance(disqualifiers, list):
+        for entry in disqualifiers:
+            key = entry.get("key") if isinstance(entry, dict) else None
+            if key is not None:
+                overrides[str(key)] = bool(entry.get("overridden", False))
+    return overrides
+
+
+async def read_score_history(
+    session: AsyncSession, account_id: uuid.UUID, service_id: uuid.UUID
+) -> list[ScoreChangeData]:
+    """`API-41`: every [`account_score`](/architecture/sql-store.md#account_score) row of the
+    account and service, newest first, each compared with the row before it: the finding ids its
+    breakdown counts that the previous one did not, and the reverse, and the disqualifiers whose
+    `overridden` flag differs. `change_note` is set only when the version changed from the row
+    before."""
+    rows = (
+        await session.execute(
+            select(
+                AccountScore, ScoringConfig.version, ScoringConfig.change_note, PipelineRun.trigger
+            )
+            .join(ScoringConfig, ScoringConfig.id == AccountScore.scoring_config_id)
+            .join(PipelineRun, PipelineRun.id == AccountScore.run_id)
+            .where(AccountScore.account_id == account_id, AccountScore.service_id == service_id)
+            .order_by(AccountScore.as_of.asc())
+        )
+    ).all()
+
+    changes: list[ScoreChangeData] = []
+    previous_findings: dict[uuid.UUID, str] = {}
+    previous_overrides: dict[str, bool] = {}
+    previous_scoring_config_id: uuid.UUID | None = None
+    for score, version, change_note, trigger in rows:
+        findings = _breakdown_findings(score.breakdown)
+        overrides = _breakdown_overrides(score.breakdown)
+        version_changed = (
+            previous_scoring_config_id is not None
+            and previous_scoring_config_id != score.scoring_config_id
+        )
+        changes.append(
+            ScoreChangeData(
+                score_id=score.id,
+                as_of=score.as_of,
+                fit=score.fit,
+                intent=score.intent,
+                priority=score.priority,
+                standing=score.standing,
+                band=score.band,
+                scoring_version=version,
+                trigger=trigger,
+                run_id=score.run_id,
+                change_note=change_note if version_changed else None,
+                findings_added=[
+                    ScoreChangeFindingRef(finding_id=fid, question_key=key)
+                    for fid, key in findings.items()
+                    if fid not in previous_findings
+                ],
+                findings_removed=[
+                    ScoreChangeFindingRef(finding_id=fid, question_key=key)
+                    for fid, key in previous_findings.items()
+                    if fid not in findings
+                ],
+                overrides_changed=[
+                    ScoreChangeOverrideRef(rule_key=key, overridden=value)
+                    for key, value in overrides.items()
+                    if previous_overrides.get(key, False) != value
+                ],
+            )
+        )
+        previous_findings = findings
+        previous_overrides = overrides
+        previous_scoring_config_id = score.scoring_config_id
+
+    changes.reverse()
+    return changes

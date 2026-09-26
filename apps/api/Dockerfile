@@ -13,6 +13,7 @@ RUN uv sync --frozen --no-dev --no-install-project
 COPY alembic.ini ./
 COPY alembic ./alembic
 COPY src ./src
+COPY prompts ./prompts
 RUN uv sync --frozen --no-dev
 
 FROM python:3.12-slim AS runtime

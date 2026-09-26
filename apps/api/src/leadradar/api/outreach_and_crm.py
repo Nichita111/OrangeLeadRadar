@@ -12,10 +12,8 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from leadradar.api.authentication import CurrentUser
-from leadradar.clock import now
 from leadradar.core.enums import CrmSyncStatus, CrmSyncTarget
 from leadradar.db.session import get_session
-from leadradar.logs import request_id_var
 from leadradar.outreach.commands import push_to_crm
 
 router = APIRouter(tags=["outreach-and-crm"])
@@ -45,7 +43,6 @@ async def post_crm_push(
     """`API-59`: pushes the account's current score for the service to HubSpot and records the
     outcome in [`crm_sync`](/architecture/sql-store.md#crm_sync)."""
     settings = request.app.state.settings
-    current_time = now(fixture_mode=settings.fixture_mode, clock_file=settings.clock_file)
     result = await push_to_crm(
         session,
         account_id=id,
@@ -53,8 +50,7 @@ async def post_crm_push(
         principal=principal,
         settings=settings,
         http=request.app.state.http_client,
-        now=current_time,
-        request_id=request_id_var.get(),
+        now=request.app.state.clock(),
     )
     return CrmSyncView(
         id=result.id,

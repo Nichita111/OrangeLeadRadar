@@ -8,8 +8,12 @@ services:
       POSTGRES_USER: leadradar
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       POSTGRES_DB: leadradar
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?APP_DB_PASSWORD is required}
     volumes:
       - db-data:/var/lib/postgresql/data
+      # The application role of [Runtime](docs/architecture/overview.md#runtime) (G1): runs
+      # once, only on an empty volume, as the container's own superuser.
+      - ./db/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U leadradar -d leadradar"]
       interval: 5s
@@ -32,7 +36,10 @@ services:
       context: apps/api
     command: ["leadradar-api"]
     environment:
-      DATABASE_URL: postgresql://leadradar:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@db:5432/leadradar
+      DATABASE_URL: postgresql://leadradar_app:${APP_DB_PASSWORD:?APP_DB_PASSWORD is required}@db:5432/leadradar
+      MIGRATION_DATABASE_URL: postgresql://leadradar:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@db:5432/leadradar
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-}
+      SEED_SALES_PASSWORD: ${SEED_SALES_PASSWORD:-}
     env_file:
       - path: .env
         required: false
@@ -52,7 +59,7 @@ services:
       context: apps/api
     command: ["leadradar-worker"]
     environment:
-      DATABASE_URL: postgresql://leadradar:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@db:5432/leadradar
+      DATABASE_URL: postgresql://leadradar_app:${APP_DB_PASSWORD:?APP_DB_PASSWORD is required}@db:5432/leadradar
     env_file:
       - path: .env
         required: false

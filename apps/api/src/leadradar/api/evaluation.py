@@ -1,11 +1,5 @@
-"""Router of the [Evaluation](/architecture/interfaces.md#evaluation-contracts) family. Only
-`API-77` `GET /impact` is in scope of this task.
-
-The route carries **no role dependency**: `API-77`'s Roles column says `A` (Admin), but no
-session or role guard exists yet, and [No skipped tests]
-(/guidelines/testing.md#no-skipped-tests) forbids writing the two role contract tests before one
-can pass. This is a recorded deviation (`.work/impact-panel/design.md`), closed by issue #11
-(`S-SEC-01` to `S-SEC-03`), which attaches the Admin dependency to this router."""
+"""Admin-only `API-77` Impact route of the
+[Evaluation](/architecture/interfaces.md#evaluation-contracts) family."""
 
 from __future__ import annotations
 
@@ -15,7 +9,8 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from leadradar.clock import now
+from leadradar.api.authentication import require_admin
+from leadradar.db.models.identity import AppUser
 from leadradar.db.session import get_session
 from leadradar.evaluation.impact import read_impact
 
@@ -41,11 +36,13 @@ class Impact(BaseModel):
 
 @router.get("/impact")
 async def get_impact(
-    request: Request, session: Annotated[AsyncSession, Depends(get_session)]
+    request: Request,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _admin: Annotated[AppUser, Depends(require_admin)],
 ) -> Impact:
     """`API-77`: computed on read by [Impact](/architecture/rules.md#impact); writes nothing."""
     settings = request.app.state.settings
-    current_time = now(fixture_mode=settings.fixture_mode, clock_file=settings.clock_file)
+    current_time = request.app.state.clock()
     report = await read_impact(session, settings, current_time)
     return Impact(
         period_days=report.period_days,
