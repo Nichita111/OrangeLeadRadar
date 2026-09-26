@@ -213,7 +213,7 @@ async def _run_one(
                     worker_instance_id=worker_id,
                     alert_max_age_days=settings.alert_max_age_days,
                 )
-            await session.commit()
+            # DONE commits with the step's results, so fan-out sees finished jobs as done.
             await _mark_done(session, job_id)
         except Exception as exc:
             logger.exception("Step %s job %s failed (attempt %d)", job.step, job_id, attempts)

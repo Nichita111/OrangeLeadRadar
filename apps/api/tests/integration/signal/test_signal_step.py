@@ -17,18 +17,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from leadradar.core.enums import (
     ClassificationStatus,
     DocumentTriageOutcome,
+    EvaluationItemStatus,
     FindingStatus,
     JobStep,
     PipelineRunStage,
 )
 from leadradar.core.signal.triage import ABOUT_ACCOUNT_QUESTION_ID
+from leadradar.db.models.feedback import EvaluationItem
 from leadradar.db.models.ingestion import Job, PipelineRun
 from leadradar.db.models.signals import Classification, DocumentTriage, Finding
 from leadradar.worker.ai.classifier import ClassifierAnswer, ClassifierRequest
 from leadradar.worker.ai.gateway import BudgetExhaustedError
 from leadradar.worker.ai.llm import EvidenceOutput
 from leadradar.worker.steps import signal
-from leadradar.worker.steps.signal import run_signal_job, supersede_old_revision_findings
+from leadradar.worker.steps.signal import run_signal_job, supersede_older_revisions
 from tests.integration import factories
 
 pytestmark = pytest.mark.integration
@@ -159,7 +161,7 @@ async def test_escalation_stopped_by_budget_stays_pending_llm(
     assert await _count(async_session, Finding, question_id=ids["q"]) == 0
 
 
-async def test_findings_of_an_older_revision_become_superseded(
+async def test_older_revision_findings_superseded_and_evaluation_items_stale(
     async_session: AsyncSession,
 ) -> None:
     ids = await _arrange(async_session)
@@ -171,9 +173,18 @@ async def test_findings_of_an_older_revision_become_superseded(
         async_session, factories.make_finding, account_id, ids["q"], clf_id, ids["chunk"]
     )
 
-    await supersede_old_revision_findings(async_session, question_id=ids["q"], current_revision=2)
+    user_id = await _seed(async_session, factories.make_app_user)
+    item_id = await _seed(
+        async_session, factories.make_evaluation_item, ids["chunk"], ids["q"], user_id
+    )
+
+    await supersede_older_revisions(async_session, question_id=ids["q"], current_revision=2)
 
     finding = await async_session.get(Finding, finding_id)
     assert finding is not None
     await async_session.refresh(finding)
     assert finding.status == FindingStatus.SUPERSEDED
+    item = await async_session.get(EvaluationItem, item_id)
+    assert item is not None
+    await async_session.refresh(item)
+    assert item.status == EvaluationItemStatus.STALE

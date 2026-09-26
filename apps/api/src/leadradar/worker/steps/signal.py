@@ -26,17 +26,21 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from leadradar.core.enums import (
     ClassificationStatus,
     DocumentTriageClassifier,
+    DocumentTriageOutcome,
+    EvaluationItemStatus,
     FindingDecidedBy,
     FindingStatus,
     FindingStrength,
+    JobStatus,
+    JobStep,
     PipelineRunStage,
     ServiceStatus,
     SignalQuestionAnswerType,
@@ -53,6 +57,7 @@ from leadradar.core.signal.triage import (
 )
 from leadradar.db.models.accounts import Account
 from leadradar.db.models.configuration import Service, SignalQuestion
+from leadradar.db.models.feedback import EvaluationItem
 from leadradar.db.models.ingestion import Chunk, Document, Job, PipelineRun
 from leadradar.db.models.signals import Classification, DocumentTriage, Finding
 from leadradar.worker.ai.classifier import ClassifierQuestion, ClassifierRequest
@@ -121,19 +126,20 @@ class SignalBatch:
 async def _node_triage(state: SignalBatch, session: AsyncSession) -> None:
     """Triage each document: call classifier, write ``document_triage`` row.
 
-    Idempotent: skips documents that already have a ``document_triage`` row.
+    Idempotent: a document that already has a ``document_triage`` row keeps it; only the
+    ``RELEVANT`` questions of services missing from its ``service_relevance`` are asked, as a
+    reclassification requires ([Reclassification](/architecture/rules.md#reclassification)).
     """
-    # Load already-triaged document ids
-    existing_ids: set[str] = set()
+    existing: dict[str, DocumentTriage] = {}
     if state.documents:
         doc_ids = [uuid.UUID(d["document_id"]) for d in state.documents]
-        stmt = select(DocumentTriage.document_id).where(DocumentTriage.document_id.in_(doc_ids))
-        rows = await session.execute(stmt)
-        existing_ids = {str(r) for r in rows.scalars()}
+        stmt = select(DocumentTriage).where(DocumentTriage.document_id.in_(doc_ids))
+        existing = {str(t.document_id): t for t in (await session.execute(stmt)).scalars()}
 
     for doc in state.documents:
         doc_id = doc["document_id"]
-        if doc_id in existing_ids:
+        if doc_id in existing:
+            await _complete_triage(state, session, doc, existing[doc_id])
             continue
 
         is_own_source = _is_own_source(doc.get("plugin_code", ""))
@@ -219,6 +225,61 @@ async def _node_triage(state: SignalBatch, session: AsyncSession) -> None:
         )
 
     await session.flush()
+
+
+async def _complete_triage(
+    state: SignalBatch, session: AsyncSession, doc: dict[str, Any], row: DocumentTriage
+) -> None:
+    """Answer the ``RELEVANT`` question of each service the stored triage lacks, then record
+    the document's kept services in the batch state."""
+    relevance = {str(k): float(cast(float, v)) for k, v in row.service_relevance.items()}
+    missing = [svc for svc in state.service_ids if svc not in relevance]
+    if missing and row.outcome != DocumentTriageOutcome.NOT_ABOUT_ACCOUNT:
+        questions = [
+            ClassifierQuestion(
+                id=f"{RELEVANT_QUESTION_PREFIX}{svc}",
+                kind="YES_NO",
+                text=(
+                    f"Could this text matter for whether {state.account_name}"
+                    f" might need this service: {state.service_descriptions.get(svc, '')}?"
+                ),
+                options=None,
+            )
+            for svc in missing
+        ]
+        answers = await classify(
+            ClassifierRequest(
+                state=(doc.get("text") or "")[: state.triage_chars],
+                context=(
+                    f"Company: {state.account_name} ({state.account_domain},"
+                    f" {state.account_country_code or ''})"
+                ),
+                questions=questions,
+            ),
+            session=session,
+            fixture_mode=state.fixture_mode,
+            fixture_dir=state.fixture_dir,
+            run_id=state.run_id,
+        )
+        for a in answers:
+            relevance[a.question_id.removeprefix(RELEVANT_QUESTION_PREFIX)] = a.probabilities.get(
+                "YES", 0.0
+            )
+        row.service_relevance = dict[str, object](relevance)
+        if any(p >= state.triage_relevance_min_p for p in relevance.values()):
+            row.outcome = DocumentTriageOutcome.KEPT
+        else:
+            row.outcome = DocumentTriageOutcome.IRRELEVANT
+
+    kept = frozenset(
+        svc
+        for svc in state.service_ids
+        if row.outcome == DocumentTriageOutcome.KEPT
+        and relevance.get(svc, 0.0) >= state.triage_relevance_min_p
+    )
+    state.triage_results[doc["document_id"]] = TriageResult(
+        outcome=row.outcome, kept_service_ids=kept, about_account_p=row.about_account_p
+    )
 
 
 # ── Node: classify passages ─────────────────────────────────────────────────────
@@ -749,16 +810,18 @@ async def _write_finding(
 # ── Supersede findings of a previous revision (Reclassification) ───────────────
 
 
-async def supersede_old_revision_findings(
+async def supersede_older_revisions(
     session: AsyncSession,
     *,
     question_id: uuid.UUID,
     current_revision: int,
 ) -> None:
-    """Mark findings of older revisions ``SUPERSEDED``.
+    """Mark findings of older revisions ``SUPERSEDED`` and evaluation items of older revisions
+    ``STALE``.
 
     Implements [Reclassification](/architecture/rules.md#reclassification) step 1:
-    *"Mark the question's findings of an older revision ``SUPERSEDED``."*
+    *"Mark the question's findings of an older revision ``SUPERSEDED`` and its evaluation
+    items of an older revision ``STALE``."*
     """
     await session.execute(
         update(Finding)
@@ -768,6 +831,15 @@ async def supersede_old_revision_findings(
             Finding.status == FindingStatus.ACTIVE,
         )
         .values(status=FindingStatus.SUPERSEDED)
+    )
+    await session.execute(
+        update(EvaluationItem)
+        .where(
+            EvaluationItem.question_id == question_id,
+            EvaluationItem.question_revision < current_revision,
+            EvaluationItem.status == EvaluationItemStatus.ACTIVE,
+        )
+        .values(status=EvaluationItemStatus.STALE)
     )
 
 
@@ -817,11 +889,16 @@ async def run_signal_job(
       non-duplicate documents of the run are used.
     - ``service_ids``: list of service id strings to include; if absent all
       ACTIVE services are used.
-    - ``question_id``: single question id string for RECLASSIFY runs.
+    - ``question_id``, ``account_id``: set on RECLASSIFY jobs; the job covers that account's
+      stored documents for that question of the run's service
+      ([Reclassification](/architecture/rules.md#reclassification)).
     """
     cfg = WorkerSettings()
 
-    account_id = run.account_id
+    reclassify_qid_raw = job.payload.get("question_id")
+    reclassify_qid = uuid.UUID(str(reclassify_qid_raw)) if reclassify_qid_raw else None
+    payload_account = job.payload.get("account_id")
+    account_id = run.account_id or (uuid.UUID(str(payload_account)) if payload_account else None)
     if account_id is None:
         raise ValueError(f"SIGNAL step: run {run.id} has no account_id")
 
@@ -833,6 +910,8 @@ async def run_signal_job(
     # Load active services (or subset from payload)
     _svc_raw = job.payload.get("service_ids")
     raw_service_ids: list[str] = [str(s) for s in (_svc_raw if isinstance(_svc_raw, list) else [])]
+    if not raw_service_ids and reclassify_qid is not None and run.service_id is not None:
+        raw_service_ids = [str(run.service_id)]
     if raw_service_ids:
         svc_uuids = [uuid.UUID(s) for s in raw_service_ids]
         svc_stmt = select(Service).where(
@@ -851,18 +930,13 @@ async def run_signal_job(
         SignalQuestion.status == SignalQuestionStatus.ACTIVE,
     )
     # For RECLASSIFY: filter to one question
-    reclassify_question_id_raw = job.payload.get("question_id")
-    if reclassify_question_id_raw is not None:
-        reclassify_qid = uuid.UUID(str(reclassify_question_id_raw))
+    if reclassify_qid is not None:
         q_stmt = q_stmt.where(SignalQuestion.id == reclassify_qid)
-        questions_rows = list((await session.execute(q_stmt)).scalars())
-        if questions_rows:
-            # Supersede findings of older revisions before classifying
-            await supersede_old_revision_findings(
-                session, question_id=reclassify_qid, current_revision=questions_rows[0].revision
-            )
-    else:
-        questions_rows = list((await session.execute(q_stmt)).scalars())
+    questions_rows = list((await session.execute(q_stmt)).scalars())
+    if reclassify_qid is not None and questions_rows:
+        await supersede_older_revisions(
+            session, question_id=reclassify_qid, current_revision=questions_rows[0].revision
+        )
 
     questions: list[dict[str, Any]] = [
         {
@@ -885,6 +959,13 @@ async def run_signal_job(
         doc_uuids = [uuid.UUID(d) for d in raw_doc_ids]
         doc_stmt = select(Document).where(
             Document.id.in_(doc_uuids),
+            Document.duplicate_of_id.is_(None),
+        )
+    elif reclassify_qid is not None:
+        # Nothing is fetched: every stored, non-purged, non-duplicate document of the account
+        doc_stmt = select(Document).where(
+            Document.account_id == account_id,
+            Document.purged_at.is_(None),
             Document.duplicate_of_id.is_(None),
         )
     else:
@@ -955,3 +1036,37 @@ async def run_signal_job(
     )
 
     await run_signal_step(session, batch=batch)
+    if reclassify_qid is not None:
+        await _enqueue_score_if_last(session, run=run, job=job)
+
+
+async def _enqueue_score_if_last(session: AsyncSession, *, run: PipelineRun, job: Job) -> None:
+    """Fan-out ([Job queue](/architecture/services/worker.md#job-queue)): the last SIGNAL job of
+    a RECLASSIFY run enqueues its SCORE job, which rescores the service.
+
+    The run row is locked so concurrent last jobs are serialised; the job loop marks each job
+    DONE in the same transaction, so the second sees the first as done.
+    """
+    await session.execute(select(PipelineRun.id).where(PipelineRun.id == run.id).with_for_update())
+    others = await session.execute(
+        select(func.count())
+        .select_from(Job)
+        .where(
+            Job.run_id == run.id,
+            Job.id != job.id,
+            Job.step == JobStep.SIGNAL,
+            Job.status.in_([JobStatus.READY, JobStatus.RUNNING]),
+        )
+    )
+    if others.scalar_one() == 0:
+        session.add(
+            Job(
+                run_id=run.id,
+                step=JobStep.SCORE,
+                payload={},
+                status=JobStatus.READY,
+                priority=job.priority,
+                attempts=0,
+                not_before=datetime.now(tz=UTC),
+            )
+        )
