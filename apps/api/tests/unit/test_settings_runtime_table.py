@@ -28,6 +28,7 @@ _FIELD_BY_KEY = {
     "LOG_LEVEL": "log_level",
     "PAGE_SIZE_DEFAULT": "page_size_default",
     "PAGE_SIZE_MAX": "page_size_max",
+    "IMPORT_MAX_ROWS": "import_max_rows",
 }
 
 

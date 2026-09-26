@@ -15,6 +15,7 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.responses import Response
 
+from leadradar.accounts.errors import AccountNotFound, AccountValidationError, DomainConflict
 from leadradar.auth.errors import (
     AccountDisabled,
     AccountLocked,
@@ -215,3 +216,31 @@ def register_error_handlers(app: FastAPI) -> None:
                 {"fields": [{"field": e.field, "message": e.message} for e in exc.fields]},
             ),
         )
+
+    @app.exception_handler(AccountValidationError)
+    async def handle_account_validation_error(
+        request: Request, exc: AccountValidationError
+    ) -> Response:
+        return JSONResponse(
+            status_code=422,
+            content=envelope(
+                "VALIDATION",
+                "The input is invalid.",
+                {"fields": [{"field": exc.field, "message": str(exc)}]},
+            ),
+        )
+
+    @app.exception_handler(DomainConflict)
+    async def handle_domain_conflict(request: Request, exc: DomainConflict) -> Response:
+        return JSONResponse(
+            status_code=409,
+            content=envelope(
+                "CONFLICT",
+                str(exc),
+                {"entity_id": str(exc.existing_account_id)},
+            ),
+        )
+
+    @app.exception_handler(AccountNotFound)
+    async def handle_account_not_found(request: Request, exc: AccountNotFound) -> Response:
+        return JSONResponse(status_code=404, content=envelope("NOT_FOUND", str(exc)))

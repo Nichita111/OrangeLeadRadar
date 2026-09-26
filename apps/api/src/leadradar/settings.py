@@ -41,3 +41,4 @@ class ApiSettings(AiGatewaySettings):
     crunchbase_api_key: SecretStr | None = None
     newsapi_key: SecretStr | None = None
     serpapi_key: SecretStr | None = None
+    import_max_rows: int = 2000

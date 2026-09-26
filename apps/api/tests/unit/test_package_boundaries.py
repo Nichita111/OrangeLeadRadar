@@ -55,7 +55,18 @@ def test_core_has_no_forbidden_import() -> None:
 
 @pytest.mark.parametrize(
     "package",
-    ["db", "audit", "evaluation", "auth", "feedback", "runs", "seed", "ai", "configuration"],
+    [
+        "db",
+        "audit",
+        "evaluation",
+        "auth",
+        "feedback",
+        "runs",
+        "seed",
+        "ai",
+        "configuration",
+        "accounts",
+    ],
 )
 def test_store_and_capability_packages_do_not_import_api(package: str) -> None:
     python_files = list((SRC_DIR / package).rglob("*.py"))

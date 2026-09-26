@@ -12,6 +12,7 @@ import httpx
 from fastapi import FastAPI
 
 from leadradar.api import (
+    accounts,
     audit_and_health,
     auth_and_users,
     configuration,
@@ -68,4 +69,5 @@ def create_app(settings: ApiSettings) -> FastAPI:
     app.include_router(auth_and_users.build_users_router(settings), prefix=API_PREFIX)
     app.include_router(runs_and_source_plugins_router, prefix=API_PREFIX)
     app.include_router(configuration.router, prefix=API_PREFIX)
+    app.include_router(accounts.router, prefix=API_PREFIX)
     return app

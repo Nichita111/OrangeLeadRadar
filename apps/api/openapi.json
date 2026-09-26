@@ -1,6 +1,700 @@
 {
   "components": {
     "schemas": {
+      "Account": {
+        "additionalProperties": false,
+        "description": "[`Account`](/architecture/interfaces.md#account), the response of `API-21`, `API-23` and\n`API-24`.",
+        "properties": {
+          "active_run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Run Id"
+          },
+          "aliases": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Aliases",
+            "type": "array"
+          },
+          "attribute_origin": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Attribute Origin",
+            "type": "object"
+          },
+          "country_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country Code"
+          },
+          "crunchbase_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Crunchbase Id"
+          },
+          "domain": {
+            "title": "Domain",
+            "type": "string"
+          },
+          "employee_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Employee Count"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "industry": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Industry"
+          },
+          "last_refreshed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Refreshed At"
+          },
+          "linkedin_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linkedin Url"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "next_refresh_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Refresh At"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "operational_complexity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountOperationalComplexity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "origin": {
+            "$ref": "#/components/schemas/AccountOrigin"
+          },
+          "parent": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountParent"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revenue_eur": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revenue Eur"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/AccountSourceItem"
+            },
+            "title": "Sources",
+            "type": "array"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AccountStatus"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "domain",
+          "country_code",
+          "industry",
+          "status",
+          "origin",
+          "last_refreshed_at",
+          "active_run_id",
+          "employee_count",
+          "revenue_eur",
+          "operational_complexity",
+          "attribute_origin",
+          "parent",
+          "crunchbase_id",
+          "linkedin_url",
+          "notes",
+          "aliases",
+          "sources",
+          "next_refresh_at"
+        ],
+        "title": "Account",
+        "type": "object"
+      },
+      "AccountCreate": {
+        "additionalProperties": false,
+        "description": "[`AccountCreate`](/architecture/interfaces.md#accountcreate), the request of `API-21`.",
+        "properties": {
+          "aliases": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Aliases",
+            "type": "array"
+          },
+          "country_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country Code"
+          },
+          "domain": {
+            "title": "Domain",
+            "type": "string"
+          },
+          "employee_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Employee Count"
+          },
+          "industry": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Industry"
+          },
+          "linkedin_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linkedin Url"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "operational_complexity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountOperationalComplexity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "parent_account_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Account Id"
+          },
+          "revenue_eur": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revenue Eur"
+          },
+          "sources": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AccountCreateSource"
+            },
+            "title": "Sources",
+            "type": "array"
+          }
+        },
+        "required": [
+          "domain",
+          "name"
+        ],
+        "title": "AccountCreate",
+        "type": "object"
+      },
+      "AccountCreateSource": {
+        "additionalProperties": false,
+        "description": "One entry of [`AccountCreate`](/architecture/interfaces.md#accountcreate) `sources`.",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/AccountSourceKind"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "url"
+        ],
+        "title": "AccountCreateSource",
+        "type": "object"
+      },
+      "AccountOperationalComplexity": {
+        "description": "`account.operational_complexity`.",
+        "enum": [
+          "LOW",
+          "MEDIUM",
+          "HIGH"
+        ],
+        "title": "AccountOperationalComplexity",
+        "type": "string"
+      },
+      "AccountOrigin": {
+        "description": "`account.origin`.",
+        "enum": [
+          "IMPORTED",
+          "MANUAL",
+          "DISCOVERED"
+        ],
+        "title": "AccountOrigin",
+        "type": "string"
+      },
+      "AccountParent": {
+        "additionalProperties": false,
+        "description": "`Account.parent`.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "AccountParent",
+        "type": "object"
+      },
+      "AccountRow": {
+        "additionalProperties": false,
+        "description": "[`AccountRow`](/architecture/interfaces.md#accountrow), one item of `API-20`.",
+        "properties": {
+          "active_run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Run Id"
+          },
+          "country_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country Code"
+          },
+          "domain": {
+            "title": "Domain",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "industry": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Industry"
+          },
+          "last_refreshed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Refreshed At"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "origin": {
+            "$ref": "#/components/schemas/AccountOrigin"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AccountStatus"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "domain",
+          "country_code",
+          "industry",
+          "status",
+          "origin",
+          "last_refreshed_at",
+          "active_run_id"
+        ],
+        "title": "AccountRow",
+        "type": "object"
+      },
+      "AccountSourceItem": {
+        "additionalProperties": false,
+        "description": "One entry of `Account.sources`.",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/AccountSourceKind"
+          },
+          "origin": {
+            "$ref": "#/components/schemas/AccountSourceOrigin"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AccountSourceStatus"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "kind",
+          "origin",
+          "status"
+        ],
+        "title": "AccountSourceItem",
+        "type": "object"
+      },
+      "AccountSourceKind": {
+        "description": "`account_source.kind`.",
+        "enum": [
+          "WEBSITE",
+          "NEWSROOM",
+          "INVESTOR_RELATIONS",
+          "CAREERS",
+          "RSS_FEED"
+        ],
+        "title": "AccountSourceKind",
+        "type": "string"
+      },
+      "AccountSourceOrigin": {
+        "description": "`account_source.origin`.",
+        "enum": [
+          "MANUAL",
+          "DETECTED"
+        ],
+        "title": "AccountSourceOrigin",
+        "type": "string"
+      },
+      "AccountSourceStatus": {
+        "description": "`account_source.status`.",
+        "enum": [
+          "ACTIVE",
+          "INACTIVE"
+        ],
+        "title": "AccountSourceStatus",
+        "type": "string"
+      },
+      "AccountStatus": {
+        "description": "`account.status`.",
+        "enum": [
+          "ACTIVE",
+          "INACTIVE"
+        ],
+        "title": "AccountStatus",
+        "type": "string"
+      },
+      "AccountUpdate": {
+        "additionalProperties": false,
+        "description": "[`AccountUpdate`](/architecture/interfaces.md#accountupdate), the request of `API-24`.\nEvery field of [`AccountCreate`](#accountcreate) except `domain`, optional, plus `status`; a\nfield left unset changes nothing ([`AccountUpdateData`](../accounts/commands.py)).",
+        "properties": {
+          "aliases": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aliases"
+          },
+          "country_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country Code"
+          },
+          "employee_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Employee Count"
+          },
+          "industry": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Industry"
+          },
+          "linkedin_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linkedin Url"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "operational_complexity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountOperationalComplexity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "parent_account_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Account Id"
+          },
+          "revenue_eur": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revenue Eur"
+          },
+          "sources": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AccountUpdateSource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sources"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "AccountUpdate",
+        "type": "object"
+      },
+      "AccountUpdateSource": {
+        "additionalProperties": false,
+        "description": "One entry of [`AccountUpdate`](/architecture/interfaces.md#accountupdate) `sources`.",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/AccountSourceKind"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AccountSourceStatus",
+            "default": "ACTIVE"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "url"
+        ],
+        "title": "AccountUpdateSource",
+        "type": "object"
+      },
       "AppUserRole": {
         "description": "`app_user.role`.",
         "enum": [
@@ -47,6 +741,25 @@
           "role"
         ],
         "title": "AuthenticatedUser",
+        "type": "object"
+      },
+      "Body_post_accounts_import_api_v1_accounts_import_post": {
+        "properties": {
+          "dry_run": {
+            "title": "Dry Run",
+            "type": "boolean"
+          },
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file",
+          "dry_run"
+        ],
+        "title": "Body_post_accounts_import_api_v1_accounts_import_post",
         "type": "object"
       },
       "Disqualifier": {
@@ -702,6 +1415,122 @@
         "title": "Impact",
         "type": "object"
       },
+      "ImportResult": {
+        "additionalProperties": false,
+        "description": "[`ImportResult`](/architecture/interfaces.md#importresult), the response of `API-22`.",
+        "properties": {
+          "created": {
+            "title": "Created",
+            "type": "integer"
+          },
+          "dry_run": {
+            "title": "Dry Run",
+            "type": "boolean"
+          },
+          "duplicates": {
+            "title": "Duplicates",
+            "type": "integer"
+          },
+          "invalid": {
+            "title": "Invalid",
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ImportRowItem"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "updated": {
+            "title": "Updated",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "dry_run",
+          "rows",
+          "created",
+          "updated",
+          "duplicates",
+          "invalid"
+        ],
+        "title": "ImportResult",
+        "type": "object"
+      },
+      "ImportRowFieldError": {
+        "additionalProperties": false,
+        "description": "One entry of an import row's `errors`, in the shape of `details.fields[]`\n([Conventions](/architecture/interfaces.md#conventions) Envelope).",
+        "properties": {
+          "field": {
+            "title": "Field",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "field",
+          "message"
+        ],
+        "title": "ImportRowFieldError",
+        "type": "object"
+      },
+      "ImportRowItem": {
+        "additionalProperties": false,
+        "description": "One entry of `ImportResult.rows`.",
+        "properties": {
+          "account_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Id"
+          },
+          "domain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domain"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/ImportRowFieldError"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "line": {
+            "title": "Line",
+            "type": "integer"
+          },
+          "outcome": {
+            "title": "Outcome",
+            "type": "string"
+          }
+        },
+        "required": [
+          "line",
+          "domain",
+          "outcome",
+          "account_id",
+          "errors"
+        ],
+        "title": "ImportRowItem",
+        "type": "object"
+      },
       "Industry": {
         "additionalProperties": false,
         "description": "[`Industry`](/architecture/interfaces.md#industry).",
@@ -978,6 +1807,38 @@
           }
         },
         "title": "MarketUpdate",
+        "type": "object"
+      },
+      "Page_AccountRow_": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AccountRow"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "title": "Page Size",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "page",
+          "page_size",
+          "total"
+        ],
+        "title": "Page[AccountRow]",
         "type": "object"
       },
       "Page_Run_": {
@@ -2229,6 +3090,410 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/accounts": {
+      "get": {
+        "description": "`API-20`: `q` matches the name, any alias or the domain.",
+        "operationId": "get_accounts_api_v1_accounts_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/AccountStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "country_code",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Country Code"
+            }
+          },
+          {
+            "in": "query",
+            "name": "industry",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Industry"
+            }
+          },
+          {
+            "in": "query",
+            "name": "origin",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/AccountOrigin"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Origin"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Page Size"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_AccountRow_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Accounts",
+        "tags": [
+          "accounts-and-contacts"
+        ]
+      },
+      "post": {
+        "description": "`API-21`.",
+        "operationId": "post_account_api_v1_accounts_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Post Account",
+        "tags": [
+          "accounts-and-contacts"
+        ]
+      }
+    },
+    "/api/v1/accounts/import": {
+      "post": {
+        "description": "`API-22`: multipart `file` ([`AccountImportRow`](\n/architecture/interfaces.md#accountimportrow) CSV) and `dry_run`.",
+        "operationId": "post_accounts_import_api_v1_accounts_import_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_post_accounts_import_api_v1_accounts_import_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Post Accounts Import",
+        "tags": [
+          "accounts-and-contacts"
+        ]
+      }
+    },
+    "/api/v1/accounts/{id}": {
+      "get": {
+        "description": "`API-23`.",
+        "operationId": "get_account_api_v1_accounts__id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Account",
+        "tags": [
+          "accounts-and-contacts"
+        ]
+      },
+      "patch": {
+        "description": "`API-24`.",
+        "operationId": "patch_account_api_v1_accounts__id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Patch Account",
+        "tags": [
+          "accounts-and-contacts"
+        ]
+      }
+    },
     "/api/v1/accounts/{id}/refresh": {
       "post": {
         "description": "`API-33`: `202` with a new refresh, or `200` with the one already queued or running.",
