@@ -23,6 +23,8 @@ class ApiSettings(AiGatewaySettings):
 
     database_url: SecretStr
     migration_database_url: SecretStr
+    api_host: str = "0.0.0.0"
+    api_port: int = 8000
     log_level: str = "INFO"
     health_timeout_ms: int = 2000
 
@@ -40,3 +42,16 @@ class ApiSettings(AiGatewaySettings):
     serpapi_key: SecretStr | None = None
     import_max_rows: int = 2000
     audit_default_range_days: int = 30
+    preview_max_passages: int = 5
+    evidence_context_chars: int = 600
+    label_queue_size: int = 20
+    outreach_max_findings: int = 5
+    prospect_top_signals: int = 2
+    hubspot_top_signals: int = 3
+    outreach_email_max_chars: int = 1200
+    outreach_inmail_max_chars: int = 1900
+    contact_retention_days: int = 730
+    hubspot_access_token: SecretStr | None = None
+    eval_min_items: int = 200
+    job_poll_interval_s: int = 1
+    refresh_target_minutes: int = 10

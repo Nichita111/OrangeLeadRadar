@@ -477,7 +477,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/scoring-configs/{config_id}/activate": {
+    "/api/v1/scoring-configs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Scoring Config Route
+         * @description `API-16`.
+         */
+        get: operations["get_scoring_config_route_api_v1_scoring_configs__id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/scoring-configs/{id}/activate": {
         parameters: {
             query?: never;
             header?: never;
@@ -495,27 +515,7 @@ export interface paths {
          *     `409 CONFLICT` when the config is not DRAFT. `422` when `change_note` is missing.
          *     `403 FORBIDDEN` for non-Admin.
          */
-        post: operations["activate_scoring_config_route_api_v1_scoring_configs__config_id__activate_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/scoring-configs/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Scoring Config Route
-         * @description `API-16`.
-         */
-        get: operations["get_scoring_config_route_api_v1_scoring_configs__id__get"];
-        put?: never;
-        post?: never;
+        post: operations["activate_scoring_config_route_api_v1_scoring_configs__id__activate_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3096,43 +3096,6 @@ export interface operations {
             };
         };
     };
-    activate_scoring_config_route_api_v1_scoring_configs__config_id__activate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                config_id: string;
-            };
-            cookie?: {
-                leadradar_session?: string | null;
-            };
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ActivationRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     get_scoring_config_route_api_v1_scoring_configs__id__get: {
         parameters: {
             query?: never;
@@ -3153,6 +3116,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ScoringConfigModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    activate_scoring_config_route_api_v1_scoring_configs__id__activate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActivationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

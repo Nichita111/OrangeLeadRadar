@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import pytest
+from pypdf import PdfWriter
 
 from leadradar.core.document_normalisation import (
     canonicalize_url,
@@ -100,8 +101,6 @@ def test_extract_html_finds_main_text_headings_and_canonical_link() -> None:
 
 
 def test_extract_pdf_without_outline_gets_a_section_per_page(tmp_path: object) -> None:
-    from pypdf import PdfWriter
-
     writer = PdfWriter()
     writer.add_blank_page(width=200, height=200)
     writer.add_blank_page(width=200, height=200)
@@ -111,9 +110,9 @@ def test_extract_pdf_without_outline_gets_a_section_per_page(tmp_path: object) -
     assert [path for _start, path in extracted.sections] == ["page 1", "page 2"]
 
 
-def _write_to_bytes(writer: object) -> bytes:
+def _write_to_bytes(writer: PdfWriter) -> bytes:
     import io
 
     stream = io.BytesIO()
-    writer.write(stream)  # type: ignore[attr-defined]
+    writer.write(stream)
     return stream.getvalue()

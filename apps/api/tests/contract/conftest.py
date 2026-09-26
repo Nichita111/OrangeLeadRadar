@@ -1,5 +1,5 @@
 """Fixtures for the contract tests: the api application, run through its real lifespan against
-an `httpx.ASGITransport` over the shared migrated container of the root `conftest.py`, so no
+an `httpx.ASGITransport` over a separately migrated contract container, so no
 socket is opened but every route's own database access is real
 ([Testing Contract tests](/guidelines/testing.md#contract-tests)). `sales_client` and
 `admin_client` are signed in as a Sales user and an Admin created directly through the
@@ -8,20 +8,73 @@ socket is opened but every route's own database access is real
 from __future__ import annotations
 
 import uuid
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
 from datetime import UTC, datetime
+from pathlib import Path
 
 import httpx
 import pytest
+from alembic.config import Config
 from fastapi import FastAPI
+from pydantic import SecretStr
+from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncSession
+from testcontainers.community.postgres import PostgresContainer
+from testcontainers.core.container import ExecConfig
 
+from alembic import command
 from leadradar.api.app import create_app
 from leadradar.auth.users import UserCreateData, create_user
 from leadradar.core.enums import AppUserRole
 from leadradar.settings import ApiSettings
 
 PASSWORD = "a-strong-enough-password"
+
+
+@pytest.fixture(scope="session")
+def migration_database_url(app_db_password: str) -> Iterator[str]:
+    """Keep committed contract requests separate from integration tests' database."""
+    with PostgresContainer("pgvector/pgvector:pg16", driver=None) as container:
+        repo_root = Path(__file__).resolve().parents[4]
+        api_root = Path(__file__).resolve().parents[2]
+        result = container.exec(
+            ExecConfig(
+                command=["bash", "-c", (repo_root / "db/init/01_application_role.sh").read_text()],
+                environment={
+                    "POSTGRES_USER": container.username,
+                    "POSTGRES_DB": container.dbname,
+                    "APP_DB_PASSWORD": app_db_password,
+                },
+            )
+        )
+        assert result.exit_code == 0, result.output.decode()
+        owner_url = (
+            f"postgresql://{container.username}:{container.password}@"
+            f"{container.get_container_host_ip()}:{container.get_exposed_port(container.port)}/"
+            f"{container.dbname}"
+        )
+        settings = ApiSettings(
+            database_url=SecretStr(owner_url), migration_database_url=SecretStr(owner_url)
+        )
+        config = Config(str(api_root / "alembic.ini"))
+        config.set_main_option("script_location", str(api_root / "alembic"))
+        config.attributes["settings"] = settings
+        command.upgrade(config, "head")
+        yield owner_url
+
+
+@pytest.fixture(scope="session")
+def database_url(migration_database_url: str, app_db_password: str) -> str:
+    url = make_url(migration_database_url).set(username="leadradar_app", password=app_db_password)
+    return url.render_as_string(hide_password=False)
+
+
+@pytest.fixture(scope="session")
+def api_settings(database_url: str, migration_database_url: str) -> ApiSettings:
+    return ApiSettings(
+        database_url=SecretStr(database_url),
+        migration_database_url=SecretStr(migration_database_url),
+    )
 
 
 @pytest.fixture

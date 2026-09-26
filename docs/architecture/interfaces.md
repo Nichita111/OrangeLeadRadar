@@ -41,6 +41,7 @@ Authorisation is enforced by the api on every route ([S-SEC-02](/requirements/sy
 | `UNAUTHENTICATED` | 401 | No valid session, or wrong credentials |
 | `FORBIDDEN` | 403 | The role does not allow the contract, the account is disabled, or the CSRF header is missing |
 | `NOT_FOUND` | 404 | The resource does not exist |
+| `METHOD_NOT_ALLOWED` | 405 | The resource exists but does not accept this HTTP method |
 | `CONFLICT` | 409 | A uniqueness or state rule refuses the change; `details.entity_id` names the conflicting row when there is one |
 | `NOT_CONFIGURED` | 409 | The contract needs an integration or plug-in key that is not configured |
 | `VALIDATION` | 422 | The input is invalid; `details.fields[]` lists `{field, message}`, where `field` is a body field name, a JSON pointer into it, or the name of a path or query parameter |

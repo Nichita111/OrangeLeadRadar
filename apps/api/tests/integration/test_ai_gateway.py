@@ -31,10 +31,13 @@ from leadradar.ai.shapes import (
     EscalationInput,
     EscalationOutput,
     EscalationQuestion,
+    EvidenceInput,
+    EvidenceOutput,
 )
 from leadradar.core.enums import (
     AuditEventKind,
     DocumentTriageClassifier,
+    FindingStrength,
     SignalQuestionAnswerType,
 )
 from leadradar.db.models.audit import AuditEvent
@@ -261,6 +264,31 @@ async def test_a_recording_replays_offline_and_the_budget_resets_at_midnight_utc
     assert sorted(bool(row.payload["fixture"]) for row in rows) == [False, True]
     [replay_row] = [row for row in rows if row.payload["fixture"]]
     assert replay_row.occurred_at == datetime(2026, 3, 11, 0, 0, 1, tzinfo=UTC)
+
+
+async def test_evidence_extraction_replays_with_its_shape_and_audit_role(
+    async_connection: AsyncConnection, tmp_path: Path
+) -> None:
+    evidence_input = EvidenceInput(**ESCALATION_INPUT.model_dump(), strength=FindingStrength.STRONG)
+    content: dict[str, object] = {
+        "quote": "DHL Group launches a group-wide cost-reduction programme.",
+        "quote_en": None,
+        "rationale": "The company announces a cost programme.",
+    }
+    recorder = _gateway(
+        _settings(tmp_path, "record"),
+        async_connection,
+        lambda request: _chat_response(content),
+    )
+    recorded = await recorder.extract_evidence(evidence_input, AiCallContext())
+    (tmp_path / "now.txt").write_text("2026-03-11T00:00:01Z")
+    replayer = _gateway(_settings(tmp_path, "replay"), async_connection, _refuse)
+    replayed = await replayer.extract_evidence(evidence_input, AiCallContext())
+
+    assert replayed == recorded == EvidenceOutput.model_validate(content)
+    rows = await _ai_calls(async_connection)
+    assert [row.payload["ai_role"] for row in rows] == ["EVIDENCE", "EVIDENCE"]
+    assert [row.payload["fixture"] for row in rows] == [False, True]
 
 
 async def test_an_unrecorded_request_fails_with_fixture_missing_and_no_row(

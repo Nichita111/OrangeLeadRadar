@@ -7,7 +7,8 @@ records triage, classifications and findings, not the AI answers themselves.
 from __future__ import annotations
 
 import uuid
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -15,6 +16,16 @@ from pydantic import SecretStr
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from leadradar.ai.audit import AiCallContext
+from leadradar.ai.errors import BudgetExhausted
+from leadradar.ai.shapes import (
+    ClassifierAnswer,
+    ClassifierRequest,
+    EscalationInput,
+    EscalationOutput,
+    EvidenceInput,
+    EvidenceOutput,
+)
 from leadradar.core.enums import (
     ClassificationStatus,
     DocumentTriageOutcome,
@@ -25,11 +36,7 @@ from leadradar.core.enums import (
 from leadradar.core.signal.triage import ABOUT_ACCOUNT_QUESTION_ID
 from leadradar.db.models.ingestion import Job, PipelineRun
 from leadradar.db.models.signals import Classification, DocumentTriage, Finding
-from leadradar.worker.ai.classifier import ClassifierAnswer, ClassifierRequest
-from leadradar.worker.ai.gateway import BudgetExhaustedError
-from leadradar.worker.ai.llm import EvidenceOutput
 from leadradar.worker.settings import WorkerSettings
-from leadradar.worker.steps import signal
 from leadradar.worker.steps.signal import run_signal_job, supersede_old_revision_findings
 from tests.integration import factories
 
@@ -58,8 +65,10 @@ async def _arrange(session: AsyncSession) -> dict[str, uuid.UUID]:
     return {"run": run_id, "doc": doc_id, "chunk": chunk_id, "svc": svc_id, "q": q_id}
 
 
-def _fake_classifier(*, about_p: float, p_positive: float) -> Callable[..., Any]:
-    async def fake(request: ClassifierRequest, **_: Any) -> list[ClassifierAnswer]:
+def _fake_classifier(
+    *, about_p: float, p_positive: float
+) -> Callable[[ClassifierRequest], Awaitable[list[ClassifierAnswer]]]:
+    async def fake(request: ClassifierRequest) -> list[ClassifierAnswer]:
         answers = []
         for q in request.questions:
             if q.id == ABOUT_ACCOUNT_QUESTION_ID:
@@ -76,7 +85,34 @@ def _fake_classifier(*, about_p: float, p_positive: float) -> Callable[..., Any]
     return fake
 
 
-async def _run_job(session: AsyncSession, ids: dict[str, uuid.UUID], **payload: Any) -> None:
+class FakeGateway:
+    def __init__(self, *, about_p: float, p_positive: float, budget_exhausted: bool = False):
+        self.classifier = _fake_classifier(about_p=about_p, p_positive=p_positive)
+        self.budget_exhausted = budget_exhausted
+
+    async def classify(
+        self, request: ClassifierRequest, context: AiCallContext
+    ) -> list[ClassifierAnswer]:
+        return await self.classifier(request)
+
+    async def escalate(
+        self, role_input: EscalationInput, context: AiCallContext
+    ) -> EscalationOutput:
+        if self.budget_exhausted:
+            raise BudgetExhausted(datetime(2026, 9, 27, tzinfo=UTC))
+        raise AssertionError("Unexpected escalation")
+
+    async def extract_evidence(
+        self, role_input: EvidenceInput, context: AiCallContext
+    ) -> EvidenceOutput:
+        return EvidenceOutput(
+            quote=QUOTE, quote_en=None, rationale="Announces a cost-reduction programme."
+        )
+
+
+async def _run_job(
+    session: AsyncSession, ids: dict[str, uuid.UUID], gateway: FakeGateway, **payload: Any
+) -> None:
     run = await session.get(PipelineRun, ids["run"])
     assert run is not None
     job = Job(
@@ -90,6 +126,8 @@ async def _run_job(session: AsyncSession, ids: dict[str, uuid.UUID], **payload: 
         worker_instance_id="w",
         alert_max_age_days=14,
         settings=WorkerSettings(database_url=SecretStr("postgresql://unused@localhost/unused")),
+        gateway=gateway,
+        now=datetime(2026, 9, 26, tzinfo=UTC),
     )
     await session.flush()
 
@@ -100,18 +138,13 @@ async def _count(session: AsyncSession, model: Any, **where: Any) -> int:
 
 
 async def test_positive_passage_yields_one_finding_and_rerun_adds_nothing(
-    async_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+    async_session: AsyncSession,
 ) -> None:
-    monkeypatch.setattr(signal, "classify", _fake_classifier(about_p=0.9, p_positive=0.9))
-
-    async def fake_evidence(*_: Any, **__: Any) -> EvidenceOutput:
-        return EvidenceOutput(quote=QUOTE, rationale="Announces a cost-reduction programme.")
-
-    monkeypatch.setattr(signal, "extract_evidence", fake_evidence)
+    gateway = FakeGateway(about_p=0.9, p_positive=0.9)
     ids = await _arrange(async_session)
 
-    await _run_job(async_session, ids)
-    await _run_job(async_session, ids)
+    await _run_job(async_session, ids, gateway)
+    await _run_job(async_session, ids, gateway)
 
     triage = (
         await async_session.execute(select(DocumentTriage).filter_by(document_id=ids["doc"]))
@@ -134,12 +167,11 @@ async def test_positive_passage_yields_one_finding_and_rerun_adds_nothing(
 
 
 async def test_document_not_about_account_is_not_classified(
-    async_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+    async_session: AsyncSession,
 ) -> None:
-    monkeypatch.setattr(signal, "classify", _fake_classifier(about_p=0.1, p_positive=0.9))
     ids = await _arrange(async_session)
 
-    await _run_job(async_session, ids)
+    await _run_job(async_session, ids, FakeGateway(about_p=0.1, p_positive=0.9))
 
     triage = (
         await async_session.execute(select(DocumentTriage).filter_by(document_id=ids["doc"]))
@@ -149,17 +181,13 @@ async def test_document_not_about_account_is_not_classified(
 
 
 async def test_escalation_stopped_by_budget_stays_pending_llm(
-    async_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+    async_session: AsyncSession,
 ) -> None:
-    monkeypatch.setattr(signal, "classify", _fake_classifier(about_p=0.9, p_positive=0.5))
-
-    async def over_budget(*_: Any, **__: Any) -> None:
-        raise BudgetExhaustedError
-
-    monkeypatch.setattr(signal, "escalate", over_budget)
     ids = await _arrange(async_session)
 
-    await _run_job(async_session, ids)
+    await _run_job(
+        async_session, ids, FakeGateway(about_p=0.9, p_positive=0.5, budget_exhausted=True)
+    )
 
     clf = (
         await async_session.execute(select(Classification).filter_by(chunk_id=ids["chunk"]))
