@@ -854,7 +854,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | Field | Type | Source of truth |
 |---|---|---|
 | `status` | `OK`, `DEGRADED`, `DOWN` | `DOWN` when the database check fails; `DEGRADED` when any other check is not `OK` |
-| `checks` | object: `database`, `embedder`, `classifier`, `llm` → `OK`, `DOWN` or `NOT_CONFIGURED` | a lightweight call to each dependency, bounded by `HEALTH_TIMEOUT_MS`; in `replay` fixture mode `classifier` and `llm` report whether `FIXTURE_DIR` is readable, since no call leaves the machine |
+| `checks` | object: `database`, `embedder`, `classifier`, `llm` → `OK`, `DOWN` or `NOT_CONFIGURED` | a lightweight call to each dependency, bounded by `HEALTH_TIMEOUT_MS`: `database` runs `SELECT 1`; `embedder` calls `GET {EMBEDDER_URL}/health`; `classifier` and `llm` are `NOT_CONFIGURED` when `OPENROUTER_API_KEY` is unset, else each calls `GET {OPENROUTER_BASE_URL}/key` with it; a 2xx answer is `OK`, any other answer, a timeout or an error is `DOWN`; in `replay` fixture mode `classifier` and `llm` report whether `FIXTURE_DIR` is readable, since no call leaves the machine |
 
 ## Classifier
 

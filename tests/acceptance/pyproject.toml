@@ -1,0 +1,17 @@
+[project]
+name = "leadradar-acceptance-tests"
+version = "0.1.0"
+requires-python = ">=3.12"
+description = "Acceptance tests driven through the REST contracts of the composed stack (docs/architecture/interfaces.md), written from the specification only. Never imports the product code."
+dependencies = [
+    "pytest>=8.0.0",
+    "requests>=2.31.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+markers = [
+    "ac: the AC-nn acceptance criterion (docs/requirements/acceptance.md) a test verifies",
+]

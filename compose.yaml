@@ -1,0 +1,75 @@
+# The stack of [Runtime](docs/architecture/overview.md#runtime): `web`, `api`, `worker`, `db`
+# and `embedder`. `docker compose up` runs it locally and, unchanged, on the demo cloud machine.
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: leadradar
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: leadradar
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U leadradar -d leadradar"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  embedder:
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.6
+    # linux/amd64 only: the CPU image has no arm64 build, so it runs under emulation on Apple Silicon.
+    platform: linux/amd64
+    command: ["--model-id", "BAAI/bge-m3", "--json-output"]
+    volumes:
+      # A host directory, not a named volume: it survives `docker compose down -v` (the
+      # acceptance and QA harness's teardown), so `BAAI/bge-m3` is downloaded once and every
+      # later `up` loads it from here instead of the network. Git-ignored (.gitignore).
+      - ./.embedder-cache:/data
+
+  api:
+    build:
+      context: apps/api
+    command: ["leadradar-api"]
+    environment:
+      DATABASE_URL: postgresql://leadradar:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@db:5432/leadradar
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ./fixtures:/app/fixtures:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  worker:
+    build:
+      context: apps/api
+    command: ["leadradar-worker"]
+    environment:
+      DATABASE_URL: postgresql://leadradar:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@db:5432/leadradar
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ./fixtures:/app/fixtures:ro
+    depends_on:
+      api:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+
+volumes:
+  db-data:

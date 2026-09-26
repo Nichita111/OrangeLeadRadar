@@ -14,7 +14,7 @@ The api and the worker are one Python package, `leadradar`, with two entry point
 
 - Python 3.12, managed with `uv`; one `pyproject.toml` and lockfile for the package.
 - `ruff` for linting and formatting, `mypy --strict` for types, `pytest` for tests.
-- *planned*: `uv run poe validate` runs format check, lint, type check, the import-boundary check and every test level the package owns.
+- `uv run poe validate` runs format check, lint, type check, the import-boundary check and every test level the package owns.
 
 ## Package layout
 

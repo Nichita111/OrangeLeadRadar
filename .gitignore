@@ -5,3 +5,11 @@ __pycache__/
 .claude/settings.local.json
 .env
 diagrams/html/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+node_modules/
+apps/web/dist/
+apps/web/coverage/
+apps/web/*.tsbuildinfo
+.embedder-cache/

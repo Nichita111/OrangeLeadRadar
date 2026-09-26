@@ -245,6 +245,8 @@ One worker at a time runs the scheduler: each loop takes a PostgreSQL advisory l
 
 **Source plug-in keys.** `CRUNCHBASE_API_KEY`, `NEWSAPI_KEY`, `SERPAPI_KEY`: unset by default; a plug-in whose key is unset is unavailable.
 
+The worker also reads `DATABASE_URL` and `LOG_LEVEL` of the [api runtime](/architecture/services/api.md#runtime).
+
 ## Examples
 
 A Sales user presses Refresh on DHL Group with only the free core available. The run gets four `FETCH` jobs (`GDELT`, `RSS`, `WEBSITE`, `CAREERS`); `GDELT` returns 25 articles, of which 4 are duplicates. `PROCESS` stores 21 documents and their passages. The signal graph keeps 9 for Intelligent Automation, classifies 60 passages, escalates 7 and creates 5 findings. `SCORE` writes a new current score for each active service whose result changed, and one `STRONG_SIGNAL` alert. The run ends `SUCCEEDED`.
