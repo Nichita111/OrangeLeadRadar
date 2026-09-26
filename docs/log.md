@@ -1,5 +1,9 @@
 # Update Log
 
+## 2026-09-27
+
+* **Update**: Requirements register for the product owner's sales features: `RULE-11` (ICP criteria weigh, never exclude), `RULE-02`, `RULE-07` and `RULE-10` widened to open signals, interpretations, CRM engagement data and rejected companies; `B-41` interpretation (P0), `B-42` open signals, `B-43` to `B-45` engagement status, statistics and HubSpot sync, `B-46` Orange Systems facts, `B-47` the daily summary (P1), and `B-10`, `B-23`, `B-25` widened; `S-INT-01` to `S-INT-03`, `S-SIG-11`, `S-CFG-08`, `S-CFG-09`, `S-DSC-03`, `S-PRO-07`, `S-ENG-01` to `S-ENG-03`, with `S-SCO-04`, `S-SCO-05`, `S-SCO-07`, `S-DSC-01`, `S-PRO-06` and `S-OUT-01` changed; `AC-76` to `AC-88`, `AC-14`, `AC-36`, `AC-37` and `AC-50` rewritten, `SC-A` and `SC-C` updated and the release gate extended; glossary terms Daily cycle, Daily summary, Engagement status, Engagement statistics, Interpretation, Open signal and Provider fact.
+
 ## 2026-09-26
 
 * **Update**: Lead and signal feedback (`S-EVL-01`, `S-EVL-02`): [Feedback effects](/architecture/rules.md#feedback-effects) states a label derived from finding feedback starts `ACTIVE` for the question's current revision, else `STALE`, with `labelled_by` the user who gave the verdict; [Feedback and alerts](/architecture/interfaces.md#feedback-and-alerts) states `API-46` answers `404 NOT_FOUND` when the account has no score for the service yet, as `API-40`; [Run lifecycle](/architecture/services/worker.md#run-lifecycle) states a `SCORE` job's `payload` is `{}`, its scope being its run's `account_id` and `service_id`; [Conventions](/architecture/interfaces.md#conventions) Envelope's `VALIDATION` row now also names a path or query parameter as `field`.
