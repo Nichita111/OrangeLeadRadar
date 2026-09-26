@@ -37,7 +37,7 @@ It never fetches from a source, never classifies in batch, never writes a score,
 
 **Sessions and passwords.** Passwords are hashed with argon2id. The session token is 32 random bytes, sent only in the cookie; the database holds its SHA-256.
 
-**Request identity.** Every request gets a request id, returned in the `X-Request-Id` header, written to every log line and audit row of the request.
+**Request identity.** Every request gets a request id, returned in the `X-Request-Id` header, written to every log line and audit row of the request. The api writes one log line for each request it serves, with `method`, `path` without the query string, `status` and `duration_ms`.
 
 **Import.** `API-22` streams the CSV, validates every row with the [`AccountImportRow`](/architecture/interfaces.md#accountimportrow) rules, and in a non-dry run writes all valid rows in one transaction with one `ACCOUNTS_IMPORTED` audit row plus one `ACCOUNT_CREATED` or `ACCOUNT_UPDATED` row per account.
 
@@ -73,7 +73,7 @@ It never fetches from a source, never classifies in batch, never writes a score,
 | `INTERACTIVE_P95_TARGET_MS` | `800` | Target p95 latency of interactive reads ([N-01](/requirements/system.md)) |
 | `HUBSPOT_ACCESS_TOKEN` | unset | HubSpot private-app token; unset disables the push |
 | `SEED_ADMIN_PASSWORD`, `SEED_SALES_PASSWORD` | — (required by `make seed-demo`) | Passwords of the demo users |
-| `LOG_LEVEL` | `INFO` | Log level; logs are JSON lines |
+| `LOG_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARNING` or `ERROR`; logs are JSON lines |
 
 The api also reads the AI gateway, embedder, fixture and `CLOCK_FILE` keys and `EVAL_MIN_ITEMS` of the [worker runtime](/architecture/services/worker.md#runtime).
 

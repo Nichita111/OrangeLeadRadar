@@ -68,7 +68,7 @@ Two processes run the product's code, which is one Python package: the [api serv
 
 ## Runtime
 
-One `docker compose up` starts the stack locally, and the same Compose file runs it on one cloud virtual machine in an EU region for the demo ([S-RUN-01](/requirements/system.md)).
+One `docker compose up` starts the stack locally, and the same Compose file runs it on one cloud virtual machine in an EU region for the demo ([S-RUN-01](/requirements/system.md)). The stack serves plain HTTP from `web`; on the cloud machine the cloud provider's load balancer terminates HTTPS and forwards to `web`, so the Compose file is the same in both places.
 
 | Container | Image | Role |
 |---|---|---|

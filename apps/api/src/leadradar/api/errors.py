@@ -1,8 +1,8 @@
-"""Maps an unknown path onto the `NOT_FOUND` envelope of
-[Conventions](/architecture/interfaces.md#conventions). An unhandled exception is caught by the
-outermost middleware ([`request_identity.py`](request_identity.py)) instead of a registered
-handler here, because Starlette's `ServerErrorMiddleware` sits outside every layer `add_middleware`
-adds and would send its response without `X-Request-Id`. No other code is mapped yet.
+"""Maps an unknown path, and a method no contract has on a known path, onto the `NOT_FOUND`
+envelope of [Conventions](/architecture/interfaces.md#conventions). An unhandled exception is
+caught by the outermost middleware ([`request_identity.py`](request_identity.py)) instead of a
+registered handler here, because Starlette's `ServerErrorMiddleware` sits outside every layer
+`add_middleware` adds and would send its response without `X-Request-Id`.
 """
 
 from __future__ import annotations
@@ -21,12 +21,12 @@ def envelope(code: str, message: str) -> dict[str, object]:
 
 
 def register_error_handlers(app: FastAPI) -> None:
-    """Registers the `NOT_FOUND` handler for an unknown path. Every other `HTTPException`
-    goes to Starlette's own default handler: no other code of the envelope is mapped yet."""
+    """Registers the `NOT_FOUND` handler for an unknown path or a method with no contract.
+    Every other `HTTPException` goes to Starlette's own default handler."""
 
     @app.exception_handler(StarletteHTTPException)
     async def handle_http_exception(request: Request, exc: StarletteHTTPException) -> Response:
-        if exc.status_code == 404:
+        if exc.status_code in (404, 405):
             return JSONResponse(
                 status_code=404, content=envelope("NOT_FOUND", "The resource does not exist.")
             )

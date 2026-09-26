@@ -15,6 +15,8 @@ from typing import Literal
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from leadradar.logs import LogLevel
+
 FixtureMode = Literal["off", "record", "replay"]
 
 
@@ -24,7 +26,7 @@ class ApiSettings(BaseSettings):
     model_config = SettingsConfigDict(extra="ignore")
 
     database_url: SecretStr
-    log_level: str = "INFO"
+    log_level: LogLevel = "INFO"
     health_timeout_ms: int = 2000
 
     embedder_url: str = "http://embedder:80"

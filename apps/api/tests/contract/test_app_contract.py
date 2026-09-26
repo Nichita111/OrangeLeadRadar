@@ -192,11 +192,15 @@ async def test_an_unknown_path_answers_404_with_the_not_found_envelope(
     assert request_lines[0]["request_id"] == request_id
 
 
-async def test_a_non_404_http_exception_keeps_its_own_status_and_is_not_mapped_to_internal(
+async def test_a_method_with_no_contract_answers_the_not_found_envelope(
     client: httpx.AsyncClient,
 ) -> None:
-    """No code but `NOT_FOUND` is mapped yet: a `405` stays a `405`, not `500 INTERNAL`."""
+    """[Conventions](/architecture/interfaces.md#conventions) Envelope: `NOT_FOUND` also covers a
+    request whose method and path no contract has."""
     response = await client.post("/api/v1/health")
 
-    assert response.status_code == 405
-    assert response.json().get("error", {}).get("code") != "INTERNAL"
+    assert response.status_code == 404
+    assert response.json() == {
+        "error": {"code": "NOT_FOUND", "message": "The resource does not exist."}
+    }
+    assert "x-request-id" in response.headers

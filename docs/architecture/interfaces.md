@@ -38,7 +38,7 @@ Authorisation is enforced by the api on every route ([S-SEC-02](/requirements/sy
 |---|---|---|
 | `UNAUTHENTICATED` | 401 | No valid session, or wrong credentials |
 | `FORBIDDEN` | 403 | The role does not allow the contract, the account is disabled, or the CSRF header is missing |
-| `NOT_FOUND` | 404 | The resource does not exist |
+| `NOT_FOUND` | 404 | The resource does not exist, or no contract has the request's method and path |
 | `CONFLICT` | 409 | A uniqueness or state rule refuses the change; `details.entity_id` names the conflicting row when there is one |
 | `NOT_CONFIGURED` | 409 | The contract needs an integration or plug-in key that is not configured |
 | `VALIDATION` | 422 | The input is invalid; `details.fields[]` lists `{field, message}`, where `field` is a body field name or a JSON pointer into it |
@@ -837,7 +837,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `API-61` | GET | `/health` | `-` | — → [`Health`](#health) |
 
 - `API-60` — newest first; without `from` the range is the last `AUDIT_DEFAULT_RANGE_DAYS` days.
-- `API-61` — answers `200` when the database is reachable, else `503`; the other checks report without changing the status code.
+- `API-61` — answers `200` when the database is reachable, else `503`, both with the [`Health`](#health) body; the other checks report without changing the status code.
 
 ### Audit and health shapes
 
@@ -854,7 +854,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | Field | Type | Source of truth |
 |---|---|---|
 | `status` | `OK`, `DEGRADED`, `DOWN` | `DOWN` when the database check fails; `DEGRADED` when any other check is not `OK` |
-| `checks` | object: `database`, `embedder`, `classifier`, `llm` → `OK`, `DOWN` or `NOT_CONFIGURED` | a lightweight call to each dependency, bounded by `HEALTH_TIMEOUT_MS`: `database` runs `SELECT 1`; `embedder` calls `GET {EMBEDDER_URL}/health`; `classifier` and `llm` are `NOT_CONFIGURED` when `OPENROUTER_API_KEY` is unset, else each calls `GET {OPENROUTER_BASE_URL}/key` with it; a 2xx answer is `OK`, any other answer, a timeout or an error is `DOWN`; in `replay` fixture mode `classifier` and `llm` report whether `FIXTURE_DIR` is readable, since no call leaves the machine |
+| `checks` | object: `database`, `embedder`, `classifier`, `llm` → `OK`, `DOWN` or `NOT_CONFIGURED` | a lightweight call to each dependency, bounded by `HEALTH_TIMEOUT_MS`, where a 2xx answer is `OK` and any other answer, a timeout or an error is `DOWN`: `database` runs `SELECT 1`; `embedder` calls `GET {EMBEDDER_URL}/health`; in `replay` fixture mode, whether or not `OPENROUTER_API_KEY` is set, `classifier` and `llm` make no call and are `OK` when `FIXTURE_DIR` is readable, else `DOWN`, since no call leaves the machine; in the other modes they are `NOT_CONFIGURED` when `OPENROUTER_API_KEY` is unset, else each calls `GET {OPENROUTER_BASE_URL}/key` with it |
 
 ## Classifier
 

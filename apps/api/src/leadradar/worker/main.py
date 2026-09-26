@@ -1,9 +1,6 @@
 """Entry point `leadradar-worker` ([Runtime](/architecture/services/worker.md#runtime)).
 
-This task's worker is its entry point and nothing else: it starts, configures JSON logging and
-waits for `SIGTERM` or `SIGINT`, then exits `0`. The
-[job queue](/architecture/services/worker.md#job-queue) loop arrives with the first task that
-enqueues a job (`S-PIP-01`).
+The worker starts, configures JSON logging and waits for `SIGTERM` or `SIGINT`, then exits `0`.
 """
 
 from __future__ import annotations
@@ -11,6 +8,9 @@ from __future__ import annotations
 import asyncio
 import logging
 import signal
+import sys
+
+from pydantic import ValidationError
 
 from leadradar.logs import configure_json_logging
 from leadradar.worker.settings import WorkerSettings
@@ -34,7 +34,12 @@ async def _wait_for_stop_signal() -> None:
 
 def run() -> None:
     """`leadradar-worker`: blocks until a stop signal, then exits `0`."""
-    settings = WorkerSettings()
+    configure_json_logging("INFO")
+    try:
+        settings = WorkerSettings()
+    except ValidationError:
+        logger.exception("Invalid configuration; the worker will not start")
+        sys.exit(1)
     configure_json_logging(settings.log_level)
     logger.info("Worker started")
     asyncio.run(_wait_for_stop_signal())

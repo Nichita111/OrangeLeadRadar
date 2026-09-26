@@ -57,9 +57,9 @@ markers = [
 asyncio_mode = "auto"
 
 [tool.poe.tasks]
-format-check = "ruff format --check src tests"
-lint = "ruff check src tests"
-typecheck = "mypy src tests"
+format-check = "ruff format --check src tests alembic"
+lint = "ruff check src tests alembic"
+typecheck = "mypy src tests alembic"
 test-unit = "pytest -m unit --disable-socket --allow-unix-socket"
 test-integration = "pytest -m integration"
 test-contract = "pytest -m contract --disable-socket --allow-unix-socket"

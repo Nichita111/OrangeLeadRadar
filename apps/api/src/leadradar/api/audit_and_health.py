@@ -1,6 +1,5 @@
 """Router of the [Audit and health](/architecture/interfaces.md#audit-and-health) family.
-Only `API-61` `GET /health` is in scope of this task; `API-60` `GET /audit` needs sessions and
-roles, out of scope here."""
+`API-61` `GET /health` is anonymous; `API-60` `GET /audit` needs sessions and roles."""
 
 from __future__ import annotations
 
