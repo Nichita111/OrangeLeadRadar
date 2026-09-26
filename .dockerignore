@@ -1,0 +1,8 @@
+.git
+.work
+apps/web/node_modules
+apps/web/dist
+apps/web/coverage
+apps/api/.venv
+apps/api/__pycache__
+apps/api/.pytest_cache

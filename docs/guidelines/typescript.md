@@ -15,7 +15,7 @@ The web client lives in `apps/web`. This file says how the [coding guidelines](/
 - Node 22 LTS, npm, Vite; TypeScript with `strict`, `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`.
 - ESLint with the TypeScript, React Hooks and jsx-a11y rule sets; Prettier for formatting.
 - Vitest with Testing Library for unit and component tests.
-- *planned*: `npm run validate` runs type check, lint, format check and tests.
+- `npm run validate` runs type check, lint, format check and tests.
 
 ## Types
 

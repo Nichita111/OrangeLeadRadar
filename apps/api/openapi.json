@@ -1,0 +1,109 @@
+{
+  "components": {
+    "schemas": {
+      "Health": {
+        "additionalProperties": false,
+        "description": "[Health](/architecture/interfaces.md#health), the response of `API-61`.",
+        "properties": {
+          "checks": {
+            "$ref": "#/components/schemas/HealthChecks"
+          },
+          "status": {
+            "$ref": "#/components/schemas/HealthStatus"
+          }
+        },
+        "required": [
+          "status",
+          "checks"
+        ],
+        "title": "Health",
+        "type": "object"
+      },
+      "HealthCheckStatus": {
+        "description": "One dependency's check outcome, of the [Health](/architecture/interfaces.md#health) shape.",
+        "enum": [
+          "OK",
+          "DOWN",
+          "NOT_CONFIGURED"
+        ],
+        "title": "HealthCheckStatus",
+        "type": "string"
+      },
+      "HealthChecks": {
+        "additionalProperties": false,
+        "description": "The `checks` object of [Health](/architecture/interfaces.md#health).",
+        "properties": {
+          "classifier": {
+            "$ref": "#/components/schemas/HealthCheckStatus"
+          },
+          "database": {
+            "$ref": "#/components/schemas/HealthCheckStatus"
+          },
+          "embedder": {
+            "$ref": "#/components/schemas/HealthCheckStatus"
+          },
+          "llm": {
+            "$ref": "#/components/schemas/HealthCheckStatus"
+          }
+        },
+        "required": [
+          "database",
+          "embedder",
+          "classifier",
+          "llm"
+        ],
+        "title": "HealthChecks",
+        "type": "object"
+      },
+      "HealthStatus": {
+        "description": "The overall `status` of the [Health](/architecture/interfaces.md#health) shape.",
+        "enum": [
+          "OK",
+          "DEGRADED",
+          "DOWN"
+        ],
+        "title": "HealthStatus",
+        "type": "string"
+      }
+    }
+  },
+  "info": {
+    "title": "LeadRadar API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "description": "`API-61`: anonymous, `200` when the database check is `OK`, else `503`.",
+        "operationId": "get_health_api_v1_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Get Health",
+        "tags": [
+          "audit-and-health"
+        ]
+      }
+    }
+  }
+}
