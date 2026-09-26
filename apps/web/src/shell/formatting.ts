@@ -57,3 +57,55 @@ export function titleCaseEnum(value: string): string {
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 }
+
+/**
+ * `FR-011`: a country code is shown with its English name. No store table lists valid country
+ * codes ([`account`](/architecture/sql-store.md#account) `country_code` is a free ISO 3166-1
+ * alpha-2 string), so the client reads the browser's own locale data rather than holding a copy.
+ */
+export function formatCountryName(code: string): string {
+  try {
+    return new Intl.DisplayNames(["en"], { type: "region" }).of(code) ?? code;
+  } catch {
+    return code;
+  }
+}
+
+/** Every region code the browser's locale data knows, for a country filter's options. */
+export function listCountryCodes(): string[] {
+  try {
+    const supported = Intl.supportedValuesOf as unknown as ((key: string) => string[]) | undefined;
+    return (supported?.("region") ?? []).filter((code) => /^[A-Z]{2}$/.test(code));
+  } catch {
+    return [];
+  }
+}
+
+/** A run's duration so far, or its final duration once `finishedAt` is set. */
+export function formatDuration(
+  startedAt: string | null,
+  finishedAt: string | null,
+  now: Date = new Date(),
+): string {
+  if (startedAt === null) {
+    return "—";
+  }
+  const end = finishedAt !== null ? new Date(finishedAt) : now;
+  const totalSeconds = Math.max(
+    0,
+    Math.round((end.getTime() - new Date(startedAt).getTime()) / 1000),
+  );
+  if (totalSeconds < 60) {
+    return `${String(totalSeconds)}s`;
+  }
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  if (minutes < 60) {
+    return seconds === 0 ? `${String(minutes)}m` : `${String(minutes)}m ${String(seconds)}s`;
+  }
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return remainingMinutes === 0
+    ? `${String(hours)}h`
+    : `${String(hours)}h ${String(remainingMinutes)}m`;
+}

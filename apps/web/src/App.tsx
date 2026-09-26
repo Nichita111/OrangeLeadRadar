@@ -5,8 +5,12 @@
  */
 import { Navigate, Route, Routes } from "react-router-dom";
 
+import { AccountImportScreen } from "./features/accounts-and-discovery/account-import/AccountImportScreen";
+import { AccountProfileScreen } from "./features/accounts-and-discovery/account-profile/AccountProfileScreen";
+import { AccountsScreen } from "./features/accounts-and-discovery/accounts/AccountsScreen";
 import { SignInScreen } from "./features/identity-and-access/sign-in/SignInScreen";
 import { UsersScreen } from "./features/identity-and-access/users/UsersScreen";
+import { RunsScreen } from "./features/signal-pipeline/runs/RunsScreen";
 import { RequireAdmin } from "./shell/RequireAdmin";
 import { RequireAuth } from "./shell/RequireAuth";
 
@@ -16,6 +20,10 @@ export function App() {
       <Route path="/login" element={<SignInScreen />} />
       <Route element={<RequireAuth />}>
         <Route index element={<Navigate to="/prospects" replace />} />
+        <Route path="/accounts" element={<AccountsScreen />} />
+        <Route path="/accounts/import" element={<AccountImportScreen />} />
+        <Route path="/accounts/:id/profile" element={<AccountProfileScreen />} />
+        <Route path="/runs" element={<RunsScreen />} />
         <Route element={<RequireAdmin />}>
           <Route path="/users" element={<UsersScreen />} />
         </Route>
