@@ -101,10 +101,10 @@ class UserUpdate(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    display_name: str | None = None
-    role: AppUserRole | None = None
-    status: AppUserStatus | None = None
-    password: SecretStr | None = None
+    display_name: str = None
+    role: AppUserRole = None
+    status: AppUserStatus = None
+    password: SecretStr = None
 
 
 def _to_authenticated_user(user: AppUser) -> AuthenticatedUser:
@@ -231,9 +231,9 @@ def build_users_router(settings: ApiSettings) -> APIRouter:
         )
         return _to_user(user)
 
-    @router.patch("/users/{user_id}", response_model=User)
+    @router.patch("/users/{id}", response_model=User)
     async def update_user_route(
-        user_id: uuid.UUID,
+        id: uuid.UUID,
         payload: UserUpdate,
         request: Request,
         admin: AppUser = Depends(require_admin),
@@ -250,7 +250,7 @@ def build_users_router(settings: ApiSettings) -> APIRouter:
         user = await update_user(
             db,
             actor_id=admin.id,
-            user_id=user_id,
+            user_id=id,
             data=data,
             now=request.app.state.clock(),
             password_min_length=settings.password_min_length,

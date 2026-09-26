@@ -86,3 +86,26 @@ def test_no_module_outside_api_imports_the_api_package() -> None:
             continue
         roots = _imported_module_roots(ast.parse(path.read_text(), filename=str(path)))
         assert "api" not in roots, f"{path} imports the api package"
+
+
+def test_page_wire_model_has_one_owner() -> None:
+    page_definitions = []
+    for path in (SRC_DIR / "api").glob("*.py"):
+        tree = ast.parse(path.read_text(), filename=str(path))
+        page_definitions.extend(
+            path for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "Page"
+        )
+
+    assert page_definitions == [SRC_DIR / "api" / "pagination.py"]
+
+
+def test_scoring_settings_has_one_owner() -> None:
+    legacy = SRC_DIR / "core" / "scoring_settings.py"
+    imports = [
+        path
+        for path in SRC_DIR.rglob("*.py")
+        if "leadradar.core.scoring_settings" in path.read_text()
+    ]
+
+    assert not legacy.exists()
+    assert imports == []

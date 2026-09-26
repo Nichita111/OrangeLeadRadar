@@ -18,7 +18,7 @@ from leadradar.core.enums import (
     FindingStrength,
     SignalQuestionPolarity,
 )
-from leadradar.core.scoring_settings import DisqualifierKind, ICPCriterionKind, WeightLevel
+from leadradar.core.scoring.settings import DisqualifierKind, ICPCriterionKind, WeightLevel
 
 Match = Literal["MATCH", "MISMATCH", "UNKNOWN"]
 

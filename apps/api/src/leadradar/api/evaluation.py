@@ -15,8 +15,8 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from leadradar.api.authentication import require_admin
-from leadradar.api.common import Page
 from leadradar.api.configuration import QuestionOption
+from leadradar.api.pagination import Page
 from leadradar.api.router_utils import stub_router
 from leadradar.api.runs_and_source_plugins import Run
 from leadradar.core.enums import (

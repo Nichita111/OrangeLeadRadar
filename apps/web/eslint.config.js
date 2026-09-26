@@ -26,12 +26,7 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
-      "no-warning-comments": ["error", { terms: ["PLACEHOLDER"], location: "start" }],
     },
-  },
-  {
-    files: ["src/mocks/**/*.{ts,tsx}"],
-    rules: { "no-warning-comments": "off" },
   },
   {
     files: ["src/**/*.test.{ts,tsx}", "src/setupTests.ts"],

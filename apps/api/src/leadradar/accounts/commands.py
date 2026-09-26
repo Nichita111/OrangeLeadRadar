@@ -66,7 +66,7 @@ _ATTRIBUTE_FIELDS = (
 
 #: `AccountUpdate`'s other plain fields ([Accounts and contacts]
 #: (/architecture/interfaces.md#accountcreate)): edited the same way, but without an origin.
-_PLAIN_FIELDS = ("parent_account_id", "linkedin_url", "notes", "status")
+_PLAIN_FIELDS = ("name", "parent_account_id", "linkedin_url", "notes", "status")
 
 
 @dataclass(frozen=True)
@@ -94,6 +94,7 @@ class AccountUpdateData:
     [`UserUpdateData`](../auth/users.py) documents: none of these fields can be explicitly
     cleared to null through this endpoint, only replaced by a new value."""
 
+    name: str | None = None
     country_code: str | None = None
     industry: str | None = None
     employee_count: int | None = None
@@ -108,6 +109,7 @@ class AccountUpdateData:
 
     def sent_scalar_fields(self) -> dict[str, object]:
         values: dict[str, object] = {
+            "name": self.name,
             "country_code": self.country_code,
             "industry": self.industry,
             "employee_count": self.employee_count,

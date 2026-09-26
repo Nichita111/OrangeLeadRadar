@@ -14,9 +14,9 @@ from typing import Literal
 from fastapi import Query
 from pydantic import BaseModel, ConfigDict
 
-from leadradar.api.common import Page
 from leadradar.api.feedback_and_alerts import FindingView, LeadFeedback
 from leadradar.api.outreach_and_crm import CrmSyncView
+from leadradar.api.pagination import Page
 from leadradar.api.router_utils import stub_router
 from leadradar.core.enums import (
     AccountScoreBand,

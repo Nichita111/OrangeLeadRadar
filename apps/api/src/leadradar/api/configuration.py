@@ -21,7 +21,6 @@ from leadradar.configuration.queries import (
     MarketData,
     QuestionSummary,
     ScoringConfigData,
-    ScoringConfigSummary,
     ServiceSummary,
 )
 from leadradar.core.countries import ISO_3166_1_ALPHA_2
@@ -36,7 +35,7 @@ from leadradar.core.enums import (
     SignalQuestionPolarity,
     SignalQuestionStatus,
 )
-from leadradar.core.scoring_settings import ScoringSettingsDocument
+from leadradar.core.scoring.settings import ScoringSettings
 from leadradar.db.models.identity import AppUser
 from leadradar.db.session import get_session
 
@@ -306,7 +305,7 @@ async def update_question_route(
 # --- Scoring shapes ------------------------------------------------------------------------------
 
 
-class ScoringConfigSummaryModel(BaseModel):
+class ScoringConfigSummary(BaseModel):
     """[`ScoringConfigSummary`](/architecture/interfaces.md#scoringconfigsummary)."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
@@ -320,7 +319,7 @@ class ScoringConfigSummaryModel(BaseModel):
     activated_by_name: str | None
 
 
-class ScoringConfigModel(ScoringConfigSummaryModel):
+class ScoringConfig(ScoringConfigSummary):
     """[`ScoringConfig`](/architecture/interfaces.md#scoringconfig)."""
 
     settings: dict[str, object]
@@ -331,12 +330,12 @@ class ScoringDraftUpdate(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    settings: ScoringSettingsDocument
-    change_note: str | None = None
+    settings: ScoringSettings
+    change_note: str = None
 
 
-def _to_scoring_config_summary(summary: ScoringConfigSummary) -> ScoringConfigSummaryModel:
-    return ScoringConfigSummaryModel(
+def _to_scoring_config_summary(summary: queries.ScoringConfigSummary) -> ScoringConfigSummary:
+    return ScoringConfigSummary(
         id=summary.id,
         service_id=summary.service_id,
         version=summary.version,
@@ -347,15 +346,15 @@ def _to_scoring_config_summary(summary: ScoringConfigSummary) -> ScoringConfigSu
     )
 
 
-def _to_scoring_config(data: ScoringConfigData) -> ScoringConfigModel:
+def _to_scoring_config(data: ScoringConfigData) -> ScoringConfig:
     summary = _to_scoring_config_summary(data.summary)
-    return ScoringConfigModel(**summary.model_dump(), settings=data.settings)
+    return ScoringConfig(**summary.model_dump(), settings=data.settings)
 
 
 @router.get("/services/{id}/scoring-configs")
 async def list_scoring_configs_route(
     id: uuid.UUID, user: CurrentUser, session: Annotated[AsyncSession, Depends(get_session)]
-) -> list[ScoringConfigSummaryModel]:
+) -> list[ScoringConfigSummary]:
     """`API-15`."""
     summaries = await queries.list_scoring_configs(session, id)
     return [_to_scoring_config_summary(summary) for summary in summaries]
@@ -364,7 +363,7 @@ async def list_scoring_configs_route(
 @router.get("/scoring-configs/{id}")
 async def get_scoring_config_route(
     id: uuid.UUID, user: CurrentUser, session: Annotated[AsyncSession, Depends(get_session)]
-) -> ScoringConfigModel:
+) -> ScoringConfig:
     """`API-16`."""
     data = await queries.get_scoring_config(session, id)
     return _to_scoring_config(data)
@@ -377,7 +376,7 @@ async def save_scoring_draft_route(
     request: Request,
     admin: Annotated[AppUser, Depends(require_admin)],
     session: Annotated[AsyncSession, Depends(get_session)],
-) -> ScoringConfigModel:
+) -> ScoringConfig:
     """`API-17`."""
     now: datetime = request.app.state.clock()
     data = await commands.save_scoring_draft(

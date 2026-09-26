@@ -601,7 +601,8 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `rank` | integer, null | position in the ranking; null unless `RANKED` |
 | `account` | `{id, name, domain, country_code, industry}` | [`account`](/architecture/sql-store.md#account) |
 | `fit`, `intent`, `priority` | integer | current [`account_score`](/architecture/sql-store.md#account_score) |
-| `standing`, `band` | enum | current [`account_score`](/architecture/sql-store.md#account_score) |
+| `standing` | enum | current [`account_score`](/architecture/sql-store.md#account_score) |
+| `band` | enum, null | current [`account_score`](/architecture/sql-store.md#account_score) band; null unless `RANKED` |
 | `reason` | `{min_fit, disqualifier_labels, customer_marked_by_name}`, null | null when `RANKED`. When `BELOW_FIT`, `min_fit` is the score's settings `min_fit`; when `DISQUALIFIED`, `disqualifier_labels` are the `label`s of the breakdown's matched disqualifiers that are not overridden; when `CUSTOMER`, `customer_marked_by_name` is the `display_name` of the in-force [`lead_feedback`](/architecture/sql-store.md#lead_feedback)'s user; the other members are null |
 | `top_signals` | array of `{question_key, question_text, strength, observed_at}`, at most `PROSPECT_TOP_SIGNALS` | the positive findings with the most `points` in the breakdown |
 | `finding_count` | integer | in-force [`finding`](/architecture/sql-store.md#finding) rows of the service |
@@ -616,7 +617,8 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `score_id`, `account_id`, `service_id` | string | current [`account_score`](/architecture/sql-store.md#account_score) |
 | `scoring_version` | integer | its [`scoring_config`](/architecture/sql-store.md#scoring_config) `version` |
 | `as_of`, `fit`, `intent`, `priority` | | [`account_score`](/architecture/sql-store.md#account_score) |
-| `standing`, `band` | enum | [`account_score`](/architecture/sql-store.md#account_score) |
+| `standing` | enum | [`account_score`](/architecture/sql-store.md#account_score) |
+| `band` | enum, null | [`account_score`](/architecture/sql-store.md#account_score) band; null unless `RANKED` |
 | `rank` | integer, null | as [`ProspectRow`](#prospectrow) |
 | `breakdown` | object | the [Score breakdown](/architecture/rules.md#score-breakdown), with each question entry's `question_text` and its counted finding's `observed_at` added |
 | `overrides` | [`Override`](#override)`[]` | the account's overrides for the service, active and revoked |
@@ -627,7 +629,8 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 
 | Field | Type | Source of truth |
 |---|---|---|
-| `score_id`, `as_of`, `fit`, `intent`, `priority`, `standing`, `band` | | the [`account_score`](/architecture/sql-store.md#account_score) row |
+| `score_id`, `as_of`, `fit`, `intent`, `priority`, `standing` | | the [`account_score`](/architecture/sql-store.md#account_score) row |
+| `band` | enum, null | [`account_score`](/architecture/sql-store.md#account_score) band; null unless `RANKED` |
 | `scoring_version` | integer | its [`scoring_config`](/architecture/sql-store.md#scoring_config) `version` |
 | `trigger`, `run_id` | | the row's [`pipeline_run`](/architecture/sql-store.md#pipeline_run) |
 | `change_note` | string, null | its [`scoring_config`](/architecture/sql-store.md#scoring_config) `change_note`, when the version changed |
@@ -666,7 +669,8 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `id`, `account_id`, `service_id`, `rule_key`, `note` | string | [`disqualifier_override`](/architecture/sql-store.md#disqualifier_override) |
 | `rule_label` | string | the rule's `label` in the active settings |
 | `status` | enum | [`disqualifier_override`](/architecture/sql-store.md#disqualifier_override) `status` |
-| `created_by_name`, `created_at`, `revoked_by_name`, `revoked_at` | string, null | [`disqualifier_override`](/architecture/sql-store.md#disqualifier_override) |
+| `created_by_name`, `created_at` | string | [`disqualifier_override`](/architecture/sql-store.md#disqualifier_override) |
+| `revoked_by_name`, `revoked_at` | string, null | [`disqualifier_override`](/architecture/sql-store.md#disqualifier_override) |
 | `run_id` | string, null | the `RESCORE` run the request enqueued; null on reads |
 
 #### OverrideCreate

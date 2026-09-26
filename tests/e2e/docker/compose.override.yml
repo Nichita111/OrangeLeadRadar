@@ -1,4 +1,0 @@
-services:
-  web:
-    environment:
-      MOCK_API: "true"

@@ -507,6 +507,9 @@ class TestDisqualification:
             as_of=AS_OF,
         )
         assert len(entries) == 1
+        assert entries[0].kind == "ICP_MISMATCH"
+        assert entries[0].criterion_key == "REGION"
+        assert entries[0].question_key is None
         assert entries[0].matched is True
         assert entries[0].overridden is False
 
@@ -583,6 +586,9 @@ class TestDisqualification:
             as_of=AS_OF,
         )
         assert entries[0].matched is False
+        assert entries[0].kind == "SIGNAL"
+        assert entries[0].criterion_key is None
+        assert entries[0].question_key == "IN_HOUSE_AUTOMATION"
 
 
 class TestScoreBreakdown:

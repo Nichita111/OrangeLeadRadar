@@ -54,8 +54,8 @@ from leadradar.core.enums import (
     SignalQuestionStatus,
 )
 from leadradar.core.questions import validate_question_shape
-from leadradar.core.scoring_settings import (
-    ScoringSettingsDocument,
+from leadradar.core.scoring.settings import (
+    ScoringSettings,
     add_question,
     default_scoring_settings,
     drop_retired_industries,
@@ -102,7 +102,7 @@ async def _ensure_draft(session: AsyncSession, service: Service) -> ScoringConfi
 
     active_codes = await queries.active_industry_codes(session)
     document = drop_retired_industries(
-        ScoringSettingsDocument.model_validate(active.settings), active_codes
+        ScoringSettings.model_validate(active.settings), active_codes
     )
 
     draft = ScoringConfig(
@@ -307,7 +307,7 @@ async def create_question(
         ) from None
 
     draft = await _ensure_draft(session, service)
-    document = ScoringSettingsDocument.model_validate(draft.settings)
+    document = ScoringSettings.model_validate(draft.settings)
     draft.settings = add_question(document, key).model_dump(mode="json")
 
     await append_audit_event(
@@ -409,7 +409,7 @@ async def update_question(
     if activating or deactivating:
         service = await require_service(session, question.service_id)
         draft = await _ensure_draft(session, service)
-        document = ScoringSettingsDocument.model_validate(draft.settings)
+        document = ScoringSettings.model_validate(draft.settings)
         document = (
             add_question(document, question.key)
             if activating
@@ -438,7 +438,7 @@ async def save_scoring_draft(
     session: AsyncSession,
     *,
     service_id: uuid.UUID,
-    settings: ScoringSettingsDocument,
+    settings: ScoringSettings,
     change_note: str | None,
     actor_id: uuid.UUID,
     now: datetime,

@@ -189,6 +189,29 @@ def test_documented_closed_response_sets_are_enums(app: FastAPI) -> None:
     }
 
 
+def test_scoring_config_summary_uses_its_interface_name(app: FastAPI) -> None:
+    schemas = object_at(app.openapi(), "components", "schemas")
+
+    assert "ScoringConfigSummary" in schemas
+    assert "ScoringConfigSummaryModel" not in schemas
+
+
+def test_score_wire_fields_keep_the_documented_null_and_required_semantics(app: FastAPI) -> None:
+    schemas = object_at(app.openapi(), "components", "schemas")
+
+    for name in ("ProspectRow", "ScoreView", "ScoreChange"):
+        schema = object_at(schemas, name)
+        assert "band" in as_list(schema["required"], f"{name}.required")
+        assert "null" in str(object_at(schema, "properties", "band"))
+
+    override = object_at(schemas, "Override")
+    required = as_list(override["required"], "Override.required")
+    for field in ("created_by_name", "created_at", "revoked_by_name", "revoked_at"):
+        assert field in required
+    for field in ("revoked_by_name", "revoked_at"):
+        assert "null" in str(object_at(override, "properties", field))
+
+
 def test_prospect_sort_is_the_documented_closed_set(app: FastAPI) -> None:
     values = value_at(
         app.openapi(), "paths", "/api/v1/services/{id}/prospects", "get", "parameters"

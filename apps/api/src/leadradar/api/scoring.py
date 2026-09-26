@@ -19,6 +19,7 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from leadradar.api.authentication import require_admin
+from leadradar.api.configuration import ScoringConfig
 from leadradar.api.errors import envelope
 from leadradar.api.router_utils import stub_router
 from leadradar.core.enums import AccountScoreBand, AccountScoreStanding, ScoringConfigStatus
@@ -43,21 +44,6 @@ class ActivationRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     change_note: str
-
-
-class ScoringConfig(BaseModel):
-    """[`ScoringConfig`](/architecture/interfaces.md#scoringconfig)."""
-
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    id: str
-    service_id: str
-    version: int
-    status: ScoringConfigStatus
-    change_note: str | None
-    activated_at: str | None
-    activated_by_name: str | None
-    settings: dict[str, object]
 
 
 class ScoringPreviewAccount(BaseModel):
@@ -107,12 +93,12 @@ class ScoringPreview(BaseModel):
 
 
 @router.post(
-    "/scoring-configs/{config_id}/activate",
+    "/scoring-configs/{id}/activate",
     response_model=ScoringConfig,
     summary="API-18: Activate a DRAFT scoring config",
 )
 async def activate_scoring_config_route(
-    config_id: uuid.UUID,
+    id: uuid.UUID,
     body: ActivationRequest,
     request: Request,
     admin: Annotated[AppUser, Depends(require_admin)],
@@ -132,7 +118,7 @@ async def activate_scoring_config_route(
     try:
         result = await activate_scoring_config(
             session,
-            config_id=config_id,
+            config_id=id,
             actor_id=admin.id,
             change_note=body.change_note,
             request_id=request_id,
