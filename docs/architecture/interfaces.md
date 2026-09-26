@@ -30,6 +30,8 @@ Authorisation is enforced by the api on every route ([S-SEC-02](/requirements/sy
 
 **Pagination.** A list marked `Page<T>` takes `page` (from 1) and `page_size` (default `PAGE_SIZE_DEFAULT`, at most `PAGE_SIZE_MAX`) and returns `{items: T[], page, page_size, total}`.
 
+**Array parameters.** An array query parameter is repeated under its name, without brackets, e.g. `band=HOT&band=WARM`.
+
 **Runs.** A request that starts background work answers `202` with the [`Run`](#run). A refresh requested while one is queued or running for the same account answers `200` with the existing run.
 
 **Envelope.** Success returns the resource. An error returns `{"error": {"code", "message", "details"?}}`:
@@ -557,11 +559,11 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `API-44` | POST | `/accounts/{id}/scores/{service_id}/overrides` | `A` | [`OverrideCreate`](#overridecreate) → [`Override`](#override) |
 | `API-45` | POST | `/overrides/{id}/revoke` | `A` | — → [`Override`](#override) |
 
-- `API-39` — the current score rows of the service's active accounts; `sort` is `priority` (the ranking order of [Priority, standing and band](/architecture/rules.md#priority-standing-and-band), the default), `intent`, `fit`, `name` or `last_refreshed`.
+- `API-39` — the current score rows of the service's active accounts; `q` matches as in `API-20`; `sort` is `priority` (the ranking order of [Priority, standing and band](/architecture/rules.md#priority-standing-and-band), the default), `intent`, `fit`, `name` or `last_refreshed`.
 - `API-40` — `404` when the account has no score for the service yet.
 - `API-41` — newest first; each entry compares a score row with the one before it.
 - `API-42` — default `status` is `ACTIVE`; ordered by contribution, then `observed_at` descending.
-- `API-44` — the rule key must name a rule of the service's active settings that currently matches for the account (`422` otherwise); an active override for the same rule answers `409`. Enqueues a `RESCORE` with trigger `OVERRIDE`. `API-45` does the same on revocation.
+- `API-44` — the rule key must name a rule of the service's active settings that currently matches for the account (`422` otherwise); an active override for the same rule answers `409`. Enqueues a `RESCORE` with trigger `OVERRIDE`. `API-45` does the same on revocation. Both answer the [`Override`](#override) with the `run_id` of the `RESCORE` they enqueued, an exception to Runs.
 
 ### Prospects and evidence shapes
 
@@ -580,6 +582,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `account` | `{id, name, domain, country_code, industry}` | [`account`](/architecture/sql-store.md#account) |
 | `fit`, `intent`, `priority` | integer | current [`account_score`](/architecture/sql-store.md#account_score) |
 | `standing`, `band` | enum | current [`account_score`](/architecture/sql-store.md#account_score) |
+| `reason` | `{min_fit, disqualifier_labels, customer_marked_by_name}`, null | null when `RANKED`. When `BELOW_FIT`, `min_fit` is the score's settings `min_fit`; when `DISQUALIFIED`, `disqualifier_labels` are the `label`s of the breakdown's matched disqualifiers that are not overridden; when `CUSTOMER`, `customer_marked_by_name` is the `display_name` of the in-force [`lead_feedback`](/architecture/sql-store.md#lead_feedback)'s user; the other members are null |
 | `top_signals` | array of `{question_key, question_text, strength, observed_at}`, at most `PROSPECT_TOP_SIGNALS` | the positive findings with the most `points` in the breakdown |
 | `finding_count` | integer | in-force [`finding`](/architecture/sql-store.md#finding) rows of the service |
 | `unread_alerts` | integer | unacknowledged [`alert`](/architecture/sql-store.md#alert) rows |
@@ -595,7 +598,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `as_of`, `fit`, `intent`, `priority` | | [`account_score`](/architecture/sql-store.md#account_score) |
 | `standing`, `band` | enum | [`account_score`](/architecture/sql-store.md#account_score) |
 | `rank` | integer, null | as [`ProspectRow`](#prospectrow) |
-| `breakdown` | object | the [Score breakdown](/architecture/rules.md#score-breakdown), with each question entry's `question_text` added |
+| `breakdown` | object | the [Score breakdown](/architecture/rules.md#score-breakdown), with each question entry's `question_text` and its counted finding's `observed_at` added |
 | `overrides` | [`Override`](#override)`[]` | the account's overrides for the service, active and revoked |
 | `lead_feedback` | [`LeadFeedback`](#leadfeedback), null | the in-force [`lead_feedback`](/architecture/sql-store.md#lead_feedback) |
 | `last_crm_sync` | [`CrmSyncView`](#crmsyncview), null | the latest [`crm_sync`](/architecture/sql-store.md#crm_sync) of the account and service |
@@ -644,6 +647,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `rule_label` | string | the rule's `label` in the active settings |
 | `status` | enum | [`disqualifier_override`](/architecture/sql-store.md#disqualifier_override) `status` |
 | `created_by_name`, `created_at`, `revoked_by_name`, `revoked_at` | string, null | [`disqualifier_override`](/architecture/sql-store.md#disqualifier_override) |
+| `run_id` | string, null | the `RESCORE` run the request enqueued; null on reads |
 
 #### OverrideCreate
 

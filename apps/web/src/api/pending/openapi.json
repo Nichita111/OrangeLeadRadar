@@ -1,0 +1,511 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "LeadRadar pending contracts",
+    "description": "API-39 to API-45 of interfaces.md, Prospects and evidence, not yet in the api's OpenAPI document. Removed when the api declares them.",
+    "version": "0.0.0"
+  },
+  "paths": {
+    "/api/v1/services/{id}/prospects": {
+      "get": {
+        "operationId": "list_prospects",
+        "description": "API-39.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer" } },
+          {
+            "name": "standing",
+            "in": "query",
+            "schema": { "$ref": "#/components/schemas/Standing" }
+          },
+          {
+            "name": "band",
+            "in": "query",
+            "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Band" } }
+          },
+          {
+            "name": "country_code",
+            "in": "query",
+            "schema": { "type": "array", "items": { "type": "string" } }
+          },
+          {
+            "name": "industry",
+            "in": "query",
+            "schema": { "type": "array", "items": { "type": "string" } }
+          },
+          { "name": "q", "in": "query", "schema": { "type": "string" } },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": { "enum": ["priority", "intent", "fit", "name", "last_refreshed"] }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/ProspectPage" } }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/accounts/{id}/scores/{service_id}": {
+      "get": {
+        "operationId": "get_score",
+        "description": "API-40. 404 when the account has no score for the service yet.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "service_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/ScoreView" } }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/accounts/{id}/findings": {
+      "get": {
+        "operationId": "list_findings",
+        "description": "API-42.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "service_id", "in": "query", "schema": { "type": "string" } },
+          { "name": "question_id", "in": "query", "schema": { "type": "string" } },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": { "$ref": "../../../../api/openapi.json#/components/schemas/FindingStatus" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "../../../../api/openapi.json#/components/schemas/FindingView"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/findings/{id}/evidence": {
+      "get": {
+        "operationId": "get_evidence",
+        "description": "API-43.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/EvidenceView" } }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/accounts/{id}/scores/{service_id}/overrides": {
+      "post": {
+        "operationId": "add_override",
+        "description": "API-44. Admin only.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "service_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/OverrideCreate" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Override" } }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/overrides/{id}/revoke": {
+      "post": {
+        "operationId": "revoke_override",
+        "description": "API-45. Admin only.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Override" } }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Standing": { "enum": ["RANKED", "BELOW_FIT", "DISQUALIFIED", "CUSTOMER"] },
+      "Band": { "enum": ["HOT", "WARM", "COLD"] },
+      "OverrideStatus": { "enum": ["ACTIVE", "REVOKED"] },
+      "ProspectPage": {
+        "type": "object",
+        "required": ["items", "page", "page_size", "total", "band_counts"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/ProspectRow" } },
+          "page": { "type": "integer" },
+          "page_size": { "type": "integer" },
+          "total": { "type": "integer" },
+          "band_counts": {
+            "type": "object",
+            "additionalProperties": { "type": "integer" }
+          }
+        }
+      },
+      "ProspectRow": {
+        "type": "object",
+        "required": [
+          "rank",
+          "account",
+          "fit",
+          "intent",
+          "priority",
+          "standing",
+          "band",
+          "reason",
+          "top_signals",
+          "finding_count",
+          "unread_alerts",
+          "as_of",
+          "last_refreshed_at"
+        ],
+        "properties": {
+          "rank": { "type": ["integer", "null"] },
+          "account": {
+            "type": "object",
+            "required": ["id", "name", "domain", "country_code", "industry"],
+            "properties": {
+              "id": { "type": "string" },
+              "name": { "type": "string" },
+              "domain": { "type": "string" },
+              "country_code": { "type": ["string", "null"] },
+              "industry": { "type": ["string", "null"] }
+            }
+          },
+          "fit": { "type": "integer" },
+          "intent": { "type": "integer" },
+          "priority": { "type": "integer" },
+          "standing": { "$ref": "#/components/schemas/Standing" },
+          "band": { "oneOf": [{ "$ref": "#/components/schemas/Band" }, { "type": "null" }] },
+          "reason": {
+            "oneOf": [
+              {
+                "type": "object",
+                "required": ["min_fit", "disqualifier_labels", "customer_marked_by_name"],
+                "properties": {
+                  "min_fit": { "type": ["integer", "null"] },
+                  "disqualifier_labels": {
+                    "type": ["array", "null"],
+                    "items": { "type": "string" }
+                  },
+                  "customer_marked_by_name": { "type": ["string", "null"] }
+                }
+              },
+              { "type": "null" }
+            ]
+          },
+          "top_signals": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["question_key", "question_text", "strength", "observed_at"],
+              "properties": {
+                "question_key": { "type": "string" },
+                "question_text": { "type": "string" },
+                "strength": {
+                  "$ref": "../../../../api/openapi.json#/components/schemas/FindingStrength"
+                },
+                "observed_at": { "type": "string" }
+              }
+            }
+          },
+          "finding_count": { "type": "integer" },
+          "unread_alerts": { "type": "integer" },
+          "as_of": { "type": "string" },
+          "last_refreshed_at": { "type": ["string", "null"] }
+        }
+      },
+      "CrmSyncView": {
+        "type": "object",
+        "required": ["id", "external_id", "error", "created_at", "target", "status"],
+        "properties": {
+          "id": { "type": "string" },
+          "external_id": { "type": ["string", "null"] },
+          "error": { "type": ["string", "null"] },
+          "created_at": { "type": "string" },
+          "target": { "enum": ["HUBSPOT"] },
+          "status": { "enum": ["SUCCEEDED", "FAILED"] }
+        }
+      },
+      "ScoreBreakdown": {
+        "type": "object",
+        "required": [
+          "settings_version",
+          "as_of",
+          "fit",
+          "intent",
+          "disqualifiers",
+          "priority",
+          "standing",
+          "band"
+        ],
+        "properties": {
+          "settings_version": { "type": "integer" },
+          "as_of": { "type": "string" },
+          "fit": {
+            "type": "object",
+            "required": ["value", "criteria"],
+            "properties": {
+              "value": { "type": "integer" },
+              "criteria": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "key",
+                    "kind",
+                    "weight",
+                    "weight_value",
+                    "attribute",
+                    "match",
+                    "credit",
+                    "points"
+                  ],
+                  "properties": {
+                    "key": { "type": "string" },
+                    "kind": {
+                      "$ref": "../../../../api/openapi.json#/components/schemas/ICPCriterionKind"
+                    },
+                    "weight": {
+                      "$ref": "../../../../api/openapi.json#/components/schemas/WeightLevel"
+                    },
+                    "weight_value": { "type": "number" },
+                    "attribute": { "type": ["string", "number", "null"] },
+                    "match": { "enum": ["MATCH", "MISMATCH", "UNKNOWN"] },
+                    "credit": { "type": "number" },
+                    "points": { "type": "number" }
+                  }
+                }
+              }
+            }
+          },
+          "intent": {
+            "type": "object",
+            "required": ["value", "positive_sum", "negative_sum", "max_positive", "questions"],
+            "properties": {
+              "value": { "type": "integer" },
+              "positive_sum": { "type": "number" },
+              "negative_sum": { "type": "number" },
+              "max_positive": { "type": "number" },
+              "questions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "question_key",
+                    "question_text",
+                    "polarity",
+                    "weight",
+                    "weight_value",
+                    "finding_id",
+                    "strength",
+                    "decay",
+                    "observed_at",
+                    "value",
+                    "points"
+                  ],
+                  "properties": {
+                    "question_key": { "type": "string" },
+                    "question_text": { "type": "string" },
+                    "polarity": {
+                      "$ref": "../../../../api/openapi.json#/components/schemas/SignalQuestionPolarity"
+                    },
+                    "weight": {
+                      "$ref": "../../../../api/openapi.json#/components/schemas/WeightLevel"
+                    },
+                    "weight_value": { "type": "number" },
+                    "finding_id": { "type": ["string", "null"] },
+                    "strength": {
+                      "oneOf": [
+                        {
+                          "$ref": "../../../../api/openapi.json#/components/schemas/FindingStrength"
+                        },
+                        { "type": "null" }
+                      ]
+                    },
+                    "decay": { "type": ["number", "null"] },
+                    "observed_at": { "type": ["string", "null"] },
+                    "value": { "type": "number" },
+                    "points": { "type": "number" }
+                  }
+                }
+              }
+            }
+          },
+          "disqualifiers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "key",
+                "label",
+                "kind",
+                "criterion_key",
+                "question_key",
+                "matched",
+                "overridden",
+                "override_id",
+                "finding_id"
+              ],
+              "properties": {
+                "key": { "type": "string" },
+                "label": { "type": "string" },
+                "kind": { "enum": ["ICP_MISMATCH", "SIGNAL"] },
+                "criterion_key": { "type": ["string", "null"] },
+                "question_key": { "type": ["string", "null"] },
+                "matched": { "type": "boolean" },
+                "overridden": { "type": "boolean" },
+                "override_id": { "type": ["string", "null"] },
+                "finding_id": { "type": ["string", "null"] }
+              }
+            }
+          },
+          "priority": { "type": "integer" },
+          "standing": { "$ref": "#/components/schemas/Standing" },
+          "band": { "oneOf": [{ "$ref": "#/components/schemas/Band" }, { "type": "null" }] }
+        }
+      },
+      "ScoreView": {
+        "type": "object",
+        "required": [
+          "score_id",
+          "account_id",
+          "service_id",
+          "scoring_version",
+          "as_of",
+          "fit",
+          "intent",
+          "priority",
+          "standing",
+          "band",
+          "rank",
+          "breakdown",
+          "overrides",
+          "lead_feedback",
+          "last_crm_sync"
+        ],
+        "properties": {
+          "score_id": { "type": "string" },
+          "account_id": { "type": "string" },
+          "service_id": { "type": "string" },
+          "scoring_version": { "type": "integer" },
+          "as_of": { "type": "string" },
+          "fit": { "type": "integer" },
+          "intent": { "type": "integer" },
+          "priority": { "type": "integer" },
+          "standing": { "$ref": "#/components/schemas/Standing" },
+          "band": { "oneOf": [{ "$ref": "#/components/schemas/Band" }, { "type": "null" }] },
+          "rank": { "type": ["integer", "null"] },
+          "breakdown": { "$ref": "#/components/schemas/ScoreBreakdown" },
+          "overrides": { "type": "array", "items": { "$ref": "#/components/schemas/Override" } },
+          "lead_feedback": {
+            "oneOf": [
+              { "$ref": "../../../../api/openapi.json#/components/schemas/LeadFeedback" },
+              { "type": "null" }
+            ]
+          },
+          "last_crm_sync": {
+            "oneOf": [{ "$ref": "#/components/schemas/CrmSyncView" }, { "type": "null" }]
+          }
+        }
+      },
+      "EvidenceView": {
+        "type": "object",
+        "required": [
+          "finding_id",
+          "document",
+          "section",
+          "purged",
+          "excerpt",
+          "quote_start",
+          "quote_end"
+        ],
+        "properties": {
+          "finding_id": { "type": "string" },
+          "document": {
+            "$ref": "../../../../api/openapi.json#/components/schemas/FindingViewDocument"
+          },
+          "section": { "type": ["string", "null"] },
+          "purged": { "type": "boolean" },
+          "excerpt": { "type": ["string", "null"] },
+          "quote_start": { "type": ["integer", "null"] },
+          "quote_end": { "type": ["integer", "null"] }
+        }
+      },
+      "Override": {
+        "type": "object",
+        "required": [
+          "id",
+          "account_id",
+          "service_id",
+          "rule_key",
+          "note",
+          "rule_label",
+          "status",
+          "created_by_name",
+          "created_at",
+          "revoked_by_name",
+          "revoked_at",
+          "run_id"
+        ],
+        "properties": {
+          "id": { "type": "string" },
+          "account_id": { "type": "string" },
+          "service_id": { "type": "string" },
+          "rule_key": { "type": "string" },
+          "note": { "type": "string" },
+          "rule_label": { "type": "string" },
+          "status": { "$ref": "#/components/schemas/OverrideStatus" },
+          "created_by_name": { "type": "string" },
+          "created_at": { "type": "string" },
+          "revoked_by_name": { "type": ["string", "null"] },
+          "revoked_at": { "type": ["string", "null"] },
+          "run_id": { "type": ["string", "null"] }
+        }
+      },
+      "OverrideCreate": {
+        "type": "object",
+        "required": ["rule_key", "note"],
+        "properties": {
+          "rule_key": { "type": "string" },
+          "note": { "type": "string" }
+        }
+      }
+    }
+  }
+}

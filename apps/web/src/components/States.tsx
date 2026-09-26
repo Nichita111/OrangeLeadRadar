@@ -7,6 +7,7 @@
  */
 import { CheckIcon } from "@phosphor-icons/react";
 
+import { ApiError } from "../api/client";
 import { Button } from "./Button";
 import { TableCell, TableRow } from "./Table";
 
@@ -81,5 +82,25 @@ export function UnavailableState({
         <p className="text-sm text-text-secondary">Nothing else works while it is down.</p>
       )}
     </div>
+  );
+}
+
+/** `FR-005`: the unavailable state for `503` and `429`, otherwise the error with Retry. */
+export function QueryErrorState({ error, onRetry }: { error: unknown; onRetry: () => void }) {
+  if (error instanceof ApiError && (error.status === 503 || error.status === 429)) {
+    return (
+      <UnavailableState
+        dependency={
+          typeof error.details?.dependency === "string" ? error.details.dependency : "The database"
+        }
+        stillWorks={[]}
+      />
+    );
+  }
+  return (
+    <ErrorState
+      message={error instanceof ApiError ? error.message : "Something went wrong."}
+      onRetry={onRetry}
+    />
   );
 }

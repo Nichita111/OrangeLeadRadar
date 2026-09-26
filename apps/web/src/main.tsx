@@ -17,9 +17,17 @@ if (container === null) {
 
 const queryClient = createQueryClient();
 
+// Until the api serves `API-39` to `API-45`, development runs against fixtures; the branch is
+// removed from the production build.
+const ready = import.meta.env.DEV
+  ? import("./api/pending/devMock").then((module) => {
+      module.installDevMock();
+    })
+  : Promise.resolve();
+
 // The client reads `/config.json`, written by the `web` container at start-up, before its first
 // render ([Design](/architecture/services/frontend.md#design)).
-void loadRuntimeConfig().then((config) => {
+void ready.then(loadRuntimeConfig).then((config) => {
   createRoot(container).render(
     <StrictMode>
       <ConfigProvider value={config}>

@@ -3,6 +3,7 @@
  * a tooltip. A pure function of its inputs ([coding guidelines]
  * (/guidelines/coding.md#purity-idempotency-and-state)); `now` is injected so a test controls it.
  */
+import type { RuntimeConfig } from "../api/config";
 
 function startOfUtcDay(date: Date): number {
   return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
@@ -121,4 +122,22 @@ export function formatDuration(
   return remainingMinutes === 0
     ? `${String(hours)}h`
     : `${String(hours)}h ${String(remainingMinutes)}m`;
+}
+
+/** `FR-009`: a confidence as a word; the number belongs only in a tooltip. */
+export function confidenceWord(
+  value: number,
+  config: Pick<RuntimeConfig, "CONFIDENCE_HIGH_MIN" | "CONFIDENCE_MEDIUM_MIN">,
+): "High" | "Medium" | "Low" {
+  if (value >= config.CONFIDENCE_HIGH_MIN) {
+    return "High";
+  }
+  return value >= config.CONFIDENCE_MEDIUM_MIN ? "Medium" : "Low";
+}
+
+/** A criterion has no label: its key in sentence case ([Score breakdown]
+ * (/architecture/rules.md#score-breakdown)). */
+export function sentenceCaseKey(key: string): string {
+  const words = key.toLowerCase().replace(/_/g, " ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }

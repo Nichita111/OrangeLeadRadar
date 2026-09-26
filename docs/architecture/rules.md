@@ -274,13 +274,14 @@ The cost of a call is the `usage.cost` OpenRouter returns with it, in US dollars
     "questions": [
       {"question_key": "COST_PROGRAM", "polarity": "POSITIVE", "weight": "HIGH", "weight_value": 3,
        "finding_id": "…", "strength": "STRONG", "decay": 0.707107, "value": 0.707107, "points": 53.033}]},
-  "disqualifiers": [{"key": "OUTSIDE_REGION", "label": "Outside DACH", "matched": false,
+  "disqualifiers": [{"key": "OUTSIDE_REGION", "label": "Outside DACH", "kind": "ICP_MISMATCH",
+                     "criterion_key": "REGION", "question_key": null, "matched": false,
                      "overridden": false, "override_id": null, "finding_id": null}],
   "priority": 60, "standing": "RANKED", "band": "WARM"
 }
 ```
 
-`match` is `MATCH`, `MISMATCH` or `UNKNOWN`. A criterion's `points` is `100 × w_c·m_c / Σ w_c`; a question's is `± 100 × w_q·c_q / (intent_saturation × M)`, multiplied by `negative_factor` and negative for a negative question. Before rounding and clamping the points add up to the value, so every point of a score is traceable to a criterion or a finding. Numbers are rounded to six decimals and keys are sorted, so equal inputs give byte-identical JSON.
+`match` is `MATCH`, `MISMATCH` or `UNKNOWN`. A criterion's `points` is `100 × w_c·m_c / Σ w_c`; a question's is `± 100 × w_q·c_q / (intent_saturation × M)`, multiplied by `negative_factor` and negative for a negative question. Before rounding and clamping the points add up to the value, so every point of a score is traceable to a criterion or a finding. A disqualifier entry names the fact it tests by its `kind` and its `criterion_key` or `question_key`, the other being null. A question entry's `finding_id`, `strength` and `decay` are null when it has no counted finding, and a question counts exactly when its `finding_id` is set; a criterion's `attribute` is null when its value is unknown. A criterion has no label: screens show its key in sentence case. Numbers are rounded to six decimals and keys are sorted, so equal inputs give byte-identical JSON.
 
 ## Rescoring
 
