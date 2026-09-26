@@ -521,7 +521,8 @@ The classifier's answer to one question on one passage, at one question revision
 | `p_positive` | numeric 0–1 | Probability mass of the answer values whose strength is not `NONE`. |
 | `escalated` | boolean | Whether [Escalation](/architecture/rules.md#escalation) sent the pair to the LLM. |
 | `strength` | enum, null | Final strength after escalation; a [`finding`](#finding) `strength` value. Null while `PENDING_LLM`. |
-| `status` | enum: `NEGATIVE`, `POSITIVE`, `PENDING_LLM`, `EVIDENCE_FAILED` | `NEGATIVE`: final, strength `NONE`, no finding. `POSITIVE`: final, a finding exists. `PENDING_LLM`: escalation or evidence is waiting for the LLM (budget or availability). `EVIDENCE_FAILED`: positive, but no verbatim quote could be obtained; retried by the next refresh. |
+| `status` | enum: `NEGATIVE`, `POSITIVE`, `PENDING_LLM`, `EVIDENCE_FAILED` | `NEGATIVE`: final, strength `NONE`, no finding. `POSITIVE`: final, a finding exists. `PENDING_LLM`: escalation or evidence is waiting for the LLM (budget or availability). `EVIDENCE_FAILED`: positive, but no verbatim quote could be obtained; retried once by the next refresh. |
+| `evidence_retried` | boolean | Set when a refresh has retried the pair's evidence after it became `EVIDENCE_FAILED`; such a pair is not retried again ([Evidence extraction](/architecture/rules.md#evidence-extraction)). |
 
 ### finding
 
@@ -671,6 +672,9 @@ The metrics of one `EVALUATION` run ([Evaluation metrics](/architecture/rules.md
 | `classifier` | enum | A [`document_triage`](#document_triage) `classifier` value: the adapter evaluated. |
 | `escalation_lower` | numeric 0–1 | `ESCALATION_LOWER` in force for the run. |
 | `escalation_upper` | numeric 0–1 | `ESCALATION_UPPER` in force for the run. |
+| `min_precision` | numeric 0–1 | `EVAL_MIN_PRECISION` in force for the run. |
+| `min_items` | integer | `EVAL_MIN_ITEMS` in force for the run. |
+| `escalation_rate_target` | numeric 0–1 | `ESCALATION_RATE_TARGET` in force for the run. |
 | `items` | integer | Active items evaluated. |
 | `metrics` | jsonb | The metrics object that [Evaluation metrics](/architecture/rules.md#evaluation-metrics) defines. |
 | `passed` | boolean | Whether the run meets the release gate. |

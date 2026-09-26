@@ -63,4 +63,4 @@ WF-23 — Audit log
 
 Obligations: `S-AUD-02`.
 
-**Data**: `API-60`. **States**: [States](/architecture/services/frontend.md#states).
+**Data**: `API-04`, `API-60`. **States**: [States](/architecture/services/frontend.md#states).

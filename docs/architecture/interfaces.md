@@ -196,8 +196,8 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 | Field | Type | Source of truth |
 |---|---|---|
 | `service_id` | string | [`service`](/architecture/sql-store.md#service) |
-| `question_id` | string, optional | a saved [`signal_question`](/architecture/sql-store.md#signal_question); or the three fields below for an unsaved one |
-| `text`, `answer_type`, `options` | as [`SignalQuestionCreate`](#signalquestioncreate), optional | the unsaved question |
+| `question_id` | string, optional | a saved [`signal_question`](/architecture/sql-store.md#signal_question); or the fields below for an unsaved one |
+| `text`, `answer_type`, `options`, `source_types`, `hint_terms` | as [`SignalQuestionCreate`](#signalquestioncreate), optional | the unsaved question; its hint terms steer retrieval as in the pipeline |
 | `sample_text` | string, optional | pasted text, chunked like a document |
 | `account_id` | string, optional | an [`account`](/architecture/sql-store.md#account) whose stored passages are searched instead; exactly one of `sample_text` and `account_id` |
 
@@ -206,7 +206,7 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 | Field | Type | Source of truth |
 |---|---|---|
 | `classifier` | enum | [`document_triage`](/architecture/sql-store.md#document_triage) `classifier`: the configured adapter |
-| `results` | array of preview results, at most `PREVIEW_MAX_PASSAGES` | the passages ranked first for the question by [question-scoped retrieval](/architecture/rules.md#chunking-and-passage-selection) |
+| `results` | array of preview results, at most `PREVIEW_MAX_PASSAGES` | the passages ranked first for the question by [question-scoped retrieval](/architecture/rules.md#chunking-and-passage-selection); for an account, among the passages of its documents of the question's source types |
 | `results[].passage` | string | the passage text |
 | `results[].document` | `{title, url, published_at}`, null | the passage's [`document`](/architecture/sql-store.md#document); null for pasted text |
 | `results[].p_positive`, `results[].escalated` | number, boolean | as [`classification`](/architecture/sql-store.md#classification) would store them |
@@ -354,7 +354,7 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 - `API-21` — the domain is normalised by [Account identity](/architecture/rules.md#account-identity); an existing domain answers `409 CONFLICT` with `details.entity_id`. Creates the name alias, the `WEBSITE` source and any sources given; `next_refresh_at` stays null, so the scheduler treats the account as due ([Refresh scheduling](/architecture/rules.md#refresh-scheduling)).
 - `API-22` — at most `IMPORT_MAX_ROWS` rows, else `422`. Each row is matched by [Account identity](/architecture/rules.md#account-identity): a new domain is created; an existing domain is updated with the columns the row fills, as `MANUAL` values, and an update that changes an attribute enqueues a `RESCORE` with trigger `ACCOUNT_CHANGE` for that account, as `API-24` does; a new domain whose name matches another account is reported `POSSIBLE_DUPLICATE` and skipped; an invalid row is reported with its errors. With `dry_run` true nothing is written.
 - `API-24` — `aliases` replaces the aliases (the name alias is kept); `sources` replaces the `MANUAL` sources and may set a `DETECTED` source's status. Any attribute change enqueues a `RESCORE` with trigger `ACCOUNT_CHANGE`.
-- `API-26`, `API-27` — a contact without `source_url` answers `422`; a body field not in the shape, such as an email address, answers `422`. The persona is mapped by [Persona mapping](/architecture/rules.md#persona-mapping) unless one is given.
+- `API-26`, `API-27` — a contact without `source_url` answers `422`; a body field not in the shape, such as an email address, answers `422`. The persona is mapped by [Persona mapping](/architecture/rules.md#persona-mapping) unless one is given; when the classifier is unavailable the request answers `503`, or `429` when the [Budget guard](/architecture/rules.md#budget-guard) stops the LLM classifier adapter, and nothing is stored.
 - `API-28` — erases the contact as [Retention and erasure](/architecture/rules.md#retention-and-erasure) states, with reason `REQUEST`.
 
 ### Accounts and contacts shapes
@@ -547,7 +547,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 
 | ID | Method | Path | Roles | Request → response |
 |---|---|---|---|---|
-| `API-39` | GET | `/services/{id}/prospects` | `*` | query `standing` (default `RANKED`), `band[]`, `country_code[]`, `industry[]`, `q`, `sort` → `Page<`[`ProspectRow`](#prospectrow)`>` |
+| `API-39` | GET | `/services/{id}/prospects` | `*` | query `standing` (default `RANKED`), `band[]`, `country_code[]`, `industry[]`, `q`, `sort` → [`ProspectPage`](#prospectpage) |
 | `API-40` | GET | `/accounts/{id}/scores/{service_id}` | `*` | — → [`ScoreView`](#scoreview) |
 | `API-41` | GET | `/accounts/{id}/scores/{service_id}/history` | `*` | — → [`ScoreChange`](#scorechange)`[]` |
 | `API-42` | GET | `/accounts/{id}/findings` | `*` | query `service_id`, `question_id`, `status` → [`FindingView`](#findingview)`[]` |
@@ -562,6 +562,13 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 - `API-44` — the rule key must name a rule of the service's active settings that currently matches for the account (`422` otherwise); an active override for the same rule answers `409`. Enqueues a `RESCORE` with trigger `OVERRIDE`. `API-45` does the same on revocation.
 
 ### Prospects and evidence shapes
+
+#### ProspectPage
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `items`, `page`, `page_size`, `total` | | `Page<`[`ProspectRow`](#prospectrow)`>` of [Conventions](#conventions) |
+| `band_counts` | object: band → integer | current `RANKED` scores per [`account_score`](/architecture/sql-store.md#account_score) `band`, under every filter of the request except `band[]` |
 
 #### ProspectRow
 
@@ -589,6 +596,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `breakdown` | object | the [Score breakdown](/architecture/rules.md#score-breakdown), with each question entry's `question_text` added |
 | `overrides` | [`Override`](#override)`[]` | the account's overrides for the service, active and revoked |
 | `lead_feedback` | [`LeadFeedback`](#leadfeedback), null | the in-force [`lead_feedback`](/architecture/sql-store.md#lead_feedback) |
+| `last_crm_sync` | [`CrmSyncView`](#crmsyncview), null | the latest [`crm_sync`](/architecture/sql-store.md#crm_sync) of the account and service |
 
 #### ScoreChange
 
@@ -691,7 +699,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 
 | ID | Method | Path | Roles | Request → response |
 |---|---|---|---|---|
-| `API-50` | GET | `/evaluation/label-queue` | `*` | query `service_id` → [`LabelTask`](#labeltask)`[]` |
+| `API-50` | GET | `/evaluation/label-queue` | `*` | query `service_id` → [`LabelQueue`](#labelqueue) |
 | `API-51` | POST | `/evaluation/items` | `*` | [`LabelCreate`](#labelcreate) → [`EvaluationItem`](#evaluationitem) |
 | `API-52` | GET | `/evaluation/items` | `A` | query `question_id`, `origin`, `status` → `Page<`[`EvaluationItem`](#evaluationitem)`>` |
 | `API-53` | POST | `/evaluation/runs` | `A` | — → [`Run`](#run) |
@@ -700,11 +708,19 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `API-77` | GET | `/impact` | `A` | — → [`Impact`](#impact) |
 
 - `API-50` — the label queue of [Evaluation metrics](/architecture/rules.md#evaluation-metrics). A task never shows the classifier's answer, so that labels are not biased by it.
-- `API-51` — writes or replaces the `MANUAL` item for the passage, question and revision; a revision that is not current answers `409`.
+- `API-51` — writes the `MANUAL` item for the passage, question and revision, replacing the pair's active item whatever its origin, so a manual label takes the place of one derived from finding feedback; a revision that is not current answers `409`.
 - `API-53` — one queued or running evaluation at a time.
 - `API-77` — computed on read by [Impact](/architecture/rules.md#impact); writes nothing.
 
 ### Evaluation shapes
+
+#### LabelQueue
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `tasks` | [`LabelTask`](#labeltask)`[]`, at most `LABEL_QUEUE_SIZE` | the label queue of [Evaluation metrics](/architecture/rules.md#evaluation-metrics) |
+| `active_items` | integer | `ACTIVE` [`evaluation_item`](/architecture/sql-store.md#evaluation_item) rows of active questions: what a quality check would evaluate |
+| `min_items` | integer | `EVAL_MIN_ITEMS` |
 
 #### LabelTask
 
@@ -748,7 +764,8 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 |---|---|---|
 | every field of [`EvaluationResultSummary`](#evaluationresultsummary) | | |
 | `escalation_lower`, `escalation_upper` | number | [`evaluation_result`](/architecture/sql-store.md#evaluation_result) |
-| `metrics` | object | [Evaluation metrics](/architecture/rules.md#evaluation-metrics) |
+| `min_precision`, `min_items`, `escalation_rate_target` | number, integer, number | [`evaluation_result`](/architecture/sql-store.md#evaluation_result): the gate the run was judged by |
+| `metrics` | object | [Evaluation metrics](/architecture/rules.md#evaluation-metrics), each `errors` entry with the item's `question_key`, `passage_text` and `document` `{title, url}` added on read |
 
 #### Impact
 
@@ -775,7 +792,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 
 - `API-56` — follows [Outreach grounding](/architecture/rules.md#outreach-grounding); an account without an in-force positive finding for the service answers `422`. There is no contract that sends a message.
 - `API-58` — changing `subject` or `body` sets `edited`; `status` may only move to `EXPORTED`.
-- `API-59` — without `HUBSPOT_ACCESS_TOKEN` answers `409 NOT_CONFIGURED`; otherwise calls `API-70` and records the outcome in [`crm_sync`](/architecture/sql-store.md#crm_sync).
+- `API-59` — `404` when the account has no score for the service; without `HUBSPOT_ACCESS_TOKEN` answers `409 NOT_CONFIGURED`; otherwise calls `API-70` and records the outcome in [`crm_sync`](/architecture/sql-store.md#crm_sync).
 
 ### Outreach and CRM shapes
 
@@ -836,8 +853,8 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 
 | Field | Type | Source of truth |
 |---|---|---|
-| `status` | `OK`, `DEGRADED`, `DOWN` | `DOWN` when the database check fails; `DEGRADED` when another check fails |
-| `checks` | object: `database`, `embedder`, `classifier`, `llm` → `OK`, `DOWN` or `NOT_CONFIGURED` | a lightweight call to each dependency, bounded by `HEALTH_TIMEOUT_MS` |
+| `status` | `OK`, `DEGRADED`, `DOWN` | `DOWN` when the database check fails; `DEGRADED` when any other check is not `OK` |
+| `checks` | object: `database`, `embedder`, `classifier`, `llm` → `OK`, `DOWN` or `NOT_CONFIGURED` | a lightweight call to each dependency, bounded by `HEALTH_TIMEOUT_MS`; in `replay` fixture mode `classifier` and `llm` report whether `FIXTURE_DIR` is readable, since no call leaves the machine |
 
 ## Classifier
 

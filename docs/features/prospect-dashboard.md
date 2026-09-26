@@ -17,7 +17,7 @@ This is where a sales manager spends the day. Prospects ranks a service's accoun
 ### FL-11 Work the prospect list
 
 1. Sales opens [Prospects](#prospects) for the selected service.
-2. The list shows ranked accounts by Priority with their band, Fit, Intent and top two signals; filters narrow it by band, country and industry, and a status filter shows accounts below fit, excluded or marked as customers with their reason.
+2. The list shows ranked accounts by Priority with their band, Fit, Intent and top signals; filters narrow it by band, country and industry, and a status filter shows accounts below fit, excluded or marked as customers with their reason.
 3. Sales selects a row to read the account's strongest signals in a drawer, and opens its [Account detail](#account-detail) for the full explanation.
 
 ### FL-12 Explain a lead
@@ -103,16 +103,16 @@ WF-25 — Prospects, account drawer
 
 | ID | Requirement |
 |---|---|
-| `FR-062` | The list shall show, for the selected service, rank, account name with country and industry, band with a shape as well as a colour, Priority, Fit, Intent, the top two signals with strength label and age, the in-force signal count, the last refresh and an unread-alert marker. |
+| `FR-062` | The list shall show, for the selected service, rank, account name with country and industry, band with a shape as well as a colour, Priority, Fit, Intent, its top signals, at most `PROSPECT_TOP_SIGNALS`, with strength label and age, the in-force signal count, the last refresh and an unread-alert marker. |
 | `FR-063` | The default view shall be ranked accounts in ranking order; filters shall narrow by band, country and industry, and search by name; sorting by Intent, Fit, name or last refresh shall be available. |
 | `FR-064` | The status filter shall also show accounts below fit, excluded or marked as customers, each with its reason in one line — the minimum fit, the disqualifier's label, or who marked it a customer — and without a rank or band. |
 | `FR-065` | When the service has no scores yet, the empty state shall explain that accounts appear after their first refresh and link to [Accounts](/features/accounts-and-discovery.md#accounts). |
 | `FR-129` | The band filter shall show the number of ranked accounts in each band beside its label, with All first, and a legend under the list shall explain Hot, Warm and Cold, reading their thresholds as [FR-117](/architecture/services/frontend.md#score-presentation) states. |
-| `FR-130` | Selecting a row shall open a drawer over the right side of the list, without moving the rows, showing the account's name and band, Priority, Fit and Intent each with its meaning in words, its two strongest signals with strength and age, and Open full explanation to [Account detail](#account-detail); Escape or a close button shall dismiss it and return focus to the row. |
+| `FR-130` | Selecting a row shall open a drawer over the right side of the list, without moving the rows, showing the account's name and band, Priority, Fit and Intent each with its meaning in words, its top signals from the list row with strength and age, and Open full explanation to [Account detail](#account-detail); Escape or a close button shall dismiss it and return focus to the row. |
 
 Obligations: `S-PRO-01`, `S-SCO-05`, `N-01`, `N-10`, `N-13`.
 
-**Data**: `API-39`. **States**: [States](/architecture/services/frontend.md#states).
+**Data**: `API-39`, `API-71`. **States**: [States](/architecture/services/frontend.md#states).
 
 ## Account detail
 
@@ -189,7 +189,7 @@ WF-15 — Account detail, History tab
 
 Obligations: `S-PRO-02`, `S-PRO-03`, `S-PRO-04`, `S-PRO-05`, `S-PIP-01`, `S-SCO-04`, `S-SCO-06`, `S-SIG-09`, `S-EVL-01`, `S-EVL-02`, `N-13`.
 
-**Data**: `API-33`, `API-35`, `API-40` to `API-47`. **States**: [States](/architecture/services/frontend.md#states); an account never scored for the service shows its profile and Refresh now.
+**Data**: `API-23`, `API-33`, `API-35`, `API-40` to `API-47`, `API-71`. **States**: [States](/architecture/services/frontend.md#states); an account never scored for the service shows its profile and Refresh now.
 
 ## Alerts
 

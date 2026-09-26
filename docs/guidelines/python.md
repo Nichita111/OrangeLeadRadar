@@ -72,7 +72,7 @@ The api and the worker are async end to end: FastAPI async routes, async session
 ## AI gateway and LangGraph
 
 - Every classifier and LLM call goes through the gateway's port functions; nothing else imports a provider SDK.
-- Structured output is requested with a tool whose JSON schema is generated from the Pydantic output model.
+- LLM structured output is requested with a `response_format` of type `json_schema`, generated from the Pydantic output model, as the [OpenRouter adapter](/architecture/services/worker.md#ai-gateway) states.
 - The signal graph is one `StateGraph` module; its nodes are thin functions calling `core` rules and the gateway, and each writes its results before returning.
 
 ## Tests

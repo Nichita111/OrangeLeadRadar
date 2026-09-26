@@ -2,6 +2,7 @@
 
 ## 2026-09-26
 
+* **Update**: Pre-implementation review: the demo refresh is `make refresh-demo` ([Seeding](/architecture/overview.md#runtime)); `classification.evidence_retried`, the gate values on `evaluation_result`, `ProspectPage.band_counts`, `LabelQueue`, `ScoreView.last_crm_sync` and the preview's hint terms and source types are added; a manual label replaces a feedback label; a service is scored from its first activation; frontend keys reach the client through `/config.json`; replay needs no provider key and its health reads the recordings; Degradation covers long pasted text and persona mapping; `API-71` to `API-77` join the api service; screens list the contracts they read; the P0 gate criteria no longer depend on P1 features.
 * **Update**: The [FL-06](/features/accounts-and-discovery.md#fl-06-discover-and-accept-suggested-accounts) diagram shows the api queueing the discovery run and the worker storing the candidates in the database; the worker never answers the api.
 * **Update**: Fixes before merging: the Prospects drawer shows the demo scores of the list (Lufthansa Group 58, Kuehne+Nagel 53), the seeded [industries](/architecture/overview.md#demo-dataset) carry short labels, and a draft that names a retired industry says so and must drop it before saving (`FR-030`, `FL-22`).
 

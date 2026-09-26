@@ -199,7 +199,7 @@ WF-05 — Scoring settings
 
 Obligations: `S-CFG-03`, `S-CFG-04`, `S-CFG-06`, `S-SCO-07`.
 
-**Data**: `API-11`, `API-15`, `API-16`, `API-17`, `API-18`, `API-19`, `API-35`. **States**: [States](/architecture/services/frontend.md#states).
+**Data**: `API-11`, `API-15`, `API-16`, `API-17`, `API-18`, `API-19`, `API-35`, `API-71`, `API-74`. **States**: [States](/architecture/services/frontend.md#states).
 
 ## Industries and markets
 
