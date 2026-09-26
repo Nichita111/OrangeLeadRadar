@@ -6,7 +6,7 @@
  * `"admin"`, matching the roles column of the frontend's [Routes]
  * (/architecture/services/frontend.md#routes).
  */
-import { UsersIcon, type Icon } from "@phosphor-icons/react";
+import { UsersIcon, GearIcon, type Icon } from "@phosphor-icons/react";
 
 export type NavGroup = "work" | "admin";
 export type NavRoles = "any" | "admin";
@@ -26,4 +26,5 @@ export const NAV_GROUP_LABELS: Record<NavGroup, string> = {
 
 export const navRegistry: NavEntry[] = [
   { to: "/users", label: "Users", icon: UsersIcon, group: "admin", roles: "admin" },
+  { to: "/services", label: "Services", icon: GearIcon, group: "admin", roles: "admin" },
 ];
