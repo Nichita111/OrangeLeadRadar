@@ -4,14 +4,17 @@ scanned, then every line is JSON, every line written while serving a request car
 `request_id` and every line written for a run its `run_id`, and none contains a password, a
 session token or an API key."
 
-The `run_id` half is deferred (`.work/stack-foundation/task.md`): no run exists until the
-worker's job loop lands with `S-PIP-01`.
+The `run_id` half is deferred, by decision of this task: no run exists until the worker's job
+loop lands with `S-PIP-01`.
 
-Sign-in (`API-01`, `/auth/login`) is not built in this task (`.work/stack-foundation/task.md`),
-so this test never calls it; without it, no password ever reaches the api and no session token
-is ever created, so this test cannot exercise those two halves of "none contains a password, a
-session token or an API key" - only the API-key half is covered, with the key the acceptance
-harness configures.
+Sign-in (`API-01`, `/auth/login`) is not built in this task, so this test never calls it;
+without it, no session token is ever created, so this test cannot exercise that half of "none
+contains a password, a session token or an API key". The password half is testable without
+sign-in: the `POSTGRES_PASSWORD` the harness sets reaches both containers through
+`DATABASE_URL`, which the Compose file builds from it
+(docs/architecture/services/api.md#runtime; the worker reuses the api's `DATABASE_URL` per its
+own Runtime section) - so this test asserts that value appears in no log line. Only the
+session-token third stays uncovered this task.
 
 "A line written while serving a request" is identified without guessing at the log line's
 shape: "Request identity" (docs/architecture/services/api.md#design) says every request gets a
@@ -61,6 +64,13 @@ def test_api_and_worker_logs_are_json_and_carry_the_served_requests_request_id(s
         f"expected a log line carrying request_id {request_id!r}, the X-Request-Id header "
         f"API-61 returned for the served request"
     )
+
+    # "none contains a password" - POSTGRES_PASSWORD reaches both api and worker through
+    # DATABASE_URL, which the Compose file builds from it (api Runtime; the worker reuses the
+    # api's DATABASE_URL per its own Runtime section), so this is testable now.
+    password = env["POSTGRES_PASSWORD"]
+    for line in lines:
+        assert password not in line, f"log line leaks the database password: {line!r}"
 
     # "none contains ... an API key" - the key the acceptance harness configures
     # (docs/architecture/interfaces.md#audit-and-health-shapes); never a real one.
