@@ -1,0 +1,15 @@
+{
+  "answers": [
+    {
+      "question_id": "q-cost-001",
+      "probabilities": {"YES": 0.85, "NO": 0.15}
+    },
+    {
+      "question_id": "q-cost-001__SCALE",
+      "probabilities": {"WEAK": 0.05, "MEDIUM": 0.15, "STRONG": 0.80}
+    }
+  ],
+  "input_tokens": 120,
+  "output_tokens": 40,
+  "cost_usd": 0.0012
+}
