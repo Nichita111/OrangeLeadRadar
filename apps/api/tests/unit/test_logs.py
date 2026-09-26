@@ -71,6 +71,15 @@ def test_a_process_level_line_carries_neither_id(capsys: pytest.CaptureFixture[s
     assert "run_id" not in record
 
 
+def test_the_uvicorn_access_logger_writes_no_line_once_configured(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    configure_json_logging("INFO")
+    logging.getLogger("uvicorn.access").info('127.0.0.1:0 - "GET / HTTP/1.1" 200')
+
+    assert capsys.readouterr().out == ""
+
+
 def test_an_exception_log_line_is_still_one_json_line_with_the_traceback(
     capsys: pytest.CaptureFixture[str],
 ) -> None:

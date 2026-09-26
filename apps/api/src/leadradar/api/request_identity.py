@@ -6,11 +6,18 @@ with the request id and answers `500 INTERNAL` in the envelope — Starlette's o
 response without our header, so the catching has to happen here, not in a registered exception
 handler. A plain ASGI middleware, so the request id stays bound in the same call chain
 throughout, with no task boundary that could lose the context variable.
+
+It also writes the one request line the `task.md` Decision "Request log line" adds: one `INFO`
+line per served request (`method`, `path`, `status`, `duration_ms`), written in the `finally`
+block before the request id is unbound, so it carries `request_id`. `path` is the ASGI path,
+without the query string. A request whose response never started (for example a disconnected
+client) is not a served request and writes no line.
 """
 
 from __future__ import annotations
 
 import logging
+import time
 import uuid
 
 from starlette.datastructures import MutableHeaders
@@ -25,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 class RequestIdentityMiddleware:
     """Binds a fresh request id to the log context and to `X-Request-Id`; maps an unhandled
-    exception onto the `INTERNAL` envelope."""
+    exception onto the `INTERNAL` envelope; writes the one request line per served request."""
 
     def __init__(self, app: ASGIApp) -> None:
         self.app = app
@@ -38,11 +45,14 @@ class RequestIdentityMiddleware:
         request_id = str(uuid.uuid4())
         token = request_id_var.set(request_id)
         response_started = False
+        status_code = 0
+        started_at = time.perf_counter()
 
         async def send_with_header(message: Message) -> None:
-            nonlocal response_started
+            nonlocal response_started, status_code
             if message["type"] == "http.response.start":
                 response_started = True
+                status_code = message["status"]
                 headers = MutableHeaders(scope=message)
                 headers.append("X-Request-Id", request_id)
             await send(message)
@@ -55,8 +65,18 @@ class RequestIdentityMiddleware:
                 response = JSONResponse(
                     status_code=500,
                     content=envelope("INTERNAL", "An unexpected error occurred."),
-                    headers={"X-Request-Id": request_id},
                 )
-                await response(scope, receive, send)
+                await response(scope, receive, send_with_header)
         finally:
+            if response_started:
+                duration_ms = (time.perf_counter() - started_at) * 1000
+                logger.info(
+                    "Served request",
+                    extra={
+                        "method": scope["method"],
+                        "path": scope["path"],
+                        "status": status_code,
+                        "duration_ms": duration_ms,
+                    },
+                )
             request_id_var.reset(token)
