@@ -71,7 +71,10 @@ def wait_for(predicate, timeout_s: float, interval_s: float = 2.0, description: 
             result = predicate()
             if result:
                 return result
-        except Exception as exc:  # noqa: BLE001 - report the last failure below
+        except Exception as exc:
+            # A predicate may raise for any reason while its condition is still pending
+            # (connection refused, a non-JSON body); the loop keeps retrying and the last
+            # such failure is reported if the timeout is reached.
             last_exc = exc
         time.sleep(interval_s)
     raise TimeoutError(f"timed out after {timeout_s}s waiting for {description}: {last_exc}")
@@ -93,6 +96,20 @@ def stack(request) -> Iterator[dict]:
         yield {"project": project, "base_url": API_BASE_URL, "env": env}
     finally:
         compose(project, "down", "-v", env=env, check=False)
+
+
+def db_tables(project: str, env: dict[str, str]) -> set[str]:
+    """The base tables of the `public` schema of the running `db` container, queried through
+    `psql` (the credentials of compose.yaml's `db` service: user and database `leadradar`) -
+    used to check "the migrations are applied" against the table headings of
+    docs/architecture/sql-store.md."""
+    result = compose(
+        project, "exec", "-T", "db",
+        "psql", "-U", "leadradar", "-d", "leadradar", "-Atc",
+        "SELECT tablename FROM pg_tables WHERE schemaname = 'public';",
+        env=env, capture=True,
+    )
+    return {line.strip() for line in result.stdout.splitlines() if line.strip()}
 
 
 def api_get(path: str, **kwargs) -> requests.Response:

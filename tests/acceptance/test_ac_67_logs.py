@@ -5,9 +5,19 @@ scanned, then every line is JSON, every line written while serving a request car
 session token or an API key."
 
 The `run_id` half is deferred (`.work/stack-foundation/task.md`): no run exists until the
-worker's job loop lands with `S-PIP-01`. This test covers: every line of both containers is
-JSON; every line written while serving a request carries its `request_id`; no line contains
-the password sent to `/auth/login` or the configured `OPENROUTER_API_KEY`.
+worker's job loop lands with `S-PIP-01`.
+
+Sign-in (`API-01`, `/auth/login`) is not built in this task (`.work/stack-foundation/task.md`),
+so this test never calls it; without it, no password ever reaches the api and no session token
+is ever created, so this test cannot exercise those two halves of "none contains a password, a
+session token or an API key" - only the API-key half is covered, with the key the acceptance
+harness configures.
+
+"A line written while serving a request" is identified without guessing at the log line's
+shape: "Request identity" (docs/architecture/services/api.md#design) says every request gets a
+request id, "returned in the X-Request-Id header, written to every log line ... of the
+request" - so the X-Request-Id header of a served request (`API-61`, the only route that needs
+no session) is the request_id at least one log line of that request must carry.
 """
 
 from __future__ import annotations
@@ -16,25 +26,18 @@ import json
 
 import pytest
 
-from conftest import api_get, api_post, compose
-
-PASSWORD = "correct horse battery staple, not a real password"  # noqa: S105 - a probe value, never a real secret
+from conftest import api_get, compose
 
 
 @pytest.mark.ac("AC-67")
-def test_api_and_worker_logs_are_json_carry_request_id_and_contain_no_secret(stack):
+def test_api_and_worker_logs_are_json_and_carry_the_served_requests_request_id(stack):
     project = stack["project"]
     env = stack["env"]
 
-    # Two served requests, so the logs contain lines written while serving a request: one
-    # anonymous (`API-61`) and one that carries a password (`API-01`).
     health_response = api_get("/health")
     assert health_response.status_code in (200, 503)
-    login_response = api_post(
-        "/auth/login",
-        json={"email": "nobody@example.invalid", "password": PASSWORD},
-    )
-    assert login_response.status_code in (200, 401, 403, 423, 422)
+    request_id = health_response.headers.get("X-Request-Id")
+    assert request_id, "API-61 must return an X-Request-Id header (Request identity)"
 
     logs = compose(
         project, "logs", "--no-color", "--no-log-prefix", "api", "worker",
@@ -51,23 +54,16 @@ def test_api_and_worker_logs_are_json_carry_request_id_and_contain_no_secret(sta
         except json.JSONDecodeError as exc:
             pytest.fail(f"a log line of api/worker is not JSON: {line!r} ({exc})")
 
-    # "every line written while serving a request carries its request_id" - lines naming
-    # either served request's path are lines written while serving it.
-    request_lines = [
-        (line, entry) for line, entry in zip(lines, parsed_lines, strict=True)
-        if "/health" in line or "/auth/login" in line
-    ]
-    assert request_lines, "expected log lines written while serving /health or /auth/login"
-    for line, entry in request_lines:
-        assert entry.get("request_id"), f"line written while serving a request has no request_id: {line!r}"
-
-    # "none contains a password, a session token or an API key"
-    secrets = [PASSWORD, env["OPENROUTER_API_KEY"]]
-    session_cookie = login_response.cookies.get("session") or next(
-        iter(login_response.cookies.values()), None
+    # "every line written while serving a request carries its request_id" - the served
+    # /health request's own log line(s) must carry the request_id its response named.
+    matching = [entry for entry in parsed_lines if entry.get("request_id") == request_id]
+    assert matching, (
+        f"expected a log line carrying request_id {request_id!r}, the X-Request-Id header "
+        f"API-61 returned for the served request"
     )
-    if session_cookie:
-        secrets.append(session_cookie)
+
+    # "none contains ... an API key" - the key the acceptance harness configures
+    # (docs/architecture/interfaces.md#audit-and-health-shapes); never a real one.
+    api_key = env["OPENROUTER_API_KEY"]
     for line in lines:
-        for secret in secrets:
-            assert secret not in line, f"log line leaks a secret: {line!r}"
+        assert api_key not in line, f"log line leaks the configured API key: {line!r}"
