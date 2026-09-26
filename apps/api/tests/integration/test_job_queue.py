@@ -105,7 +105,7 @@ async def _process(
         settings=settings,
         clock=clock,
         worker_id=worker_id,
-        ai=_ai_gateway(connection, settings),
+        gateway=_ai_gateway(connection, settings),
     )
 
 

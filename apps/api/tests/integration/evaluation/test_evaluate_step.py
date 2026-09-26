@@ -199,7 +199,7 @@ class TestHappyPath:
             settings, async_connection, _classify_handler(ids["question_a"], ids["question_b"])
         )
 
-        await run_evaluate_step(async_session, run=run, settings=settings, ai=ai)
+        await run_evaluate_step(async_session, run=run, settings=settings, gateway=ai)
 
         result = (
             await async_session.execute(
@@ -250,7 +250,7 @@ class TestHappyPath:
         settings = _settings(tmp_path)
         ai = _gateway(settings, async_connection, counting_handler)
 
-        await run_evaluate_step(async_session, run=run, settings=settings, ai=ai)
+        await run_evaluate_step(async_session, run=run, settings=settings, gateway=ai)
 
         assert calls["classifier_answers"] == 1  # one passage, one call for both questions
         assert calls["EscalationOutput"] == 1  # only question_b's mid p_positive escalates
@@ -266,7 +266,7 @@ class TestHappyPath:
         )
         ai = _gateway(settings, async_connection, _classify_handler(ids["question_a"], None))
 
-        await run_evaluate_step(async_session, run=run, settings=settings, ai=ai)
+        await run_evaluate_step(async_session, run=run, settings=settings, gateway=ai)
 
         result = (
             await async_session.execute(
@@ -294,7 +294,7 @@ class TestFailure:
         ai = _gateway(settings, async_connection, refuse)
 
         with pytest.raises(StepFailed) as excinfo:
-            await run_evaluate_step(async_session, run=run, settings=settings, ai=ai)
+            await run_evaluate_step(async_session, run=run, settings=settings, gateway=ai)
         assert excinfo.value.code == "UPSTREAM_UNAVAILABLE"
 
         remaining = (
@@ -316,7 +316,7 @@ class TestFailure:
         ai = _gateway(settings, async_connection, lambda request: httpx.Response(200, json={}))
 
         with pytest.raises(StepFailed) as excinfo:
-            await run_evaluate_step(async_session, run=run, settings=settings, ai=ai)
+            await run_evaluate_step(async_session, run=run, settings=settings, gateway=ai)
         assert excinfo.value.code == "FIXTURE_MISSING"
 
 
@@ -329,7 +329,7 @@ class TestZeroItems:
         settings = _settings(tmp_path)
         ai = _gateway(settings, async_connection, lambda request: _chat_response({}))
 
-        await run_evaluate_step(async_session, run=run, settings=settings, ai=ai)
+        await run_evaluate_step(async_session, run=run, settings=settings, gateway=ai)
 
         result = (
             await async_session.execute(

@@ -18,6 +18,7 @@ from leadradar.api import (
     configuration,
     evaluation,
     feedback_and_alerts,
+    outreach_and_crm,
     scoring,
 )
 from leadradar.api.constants import API_PREFIX
@@ -67,6 +68,7 @@ def create_app(settings: ApiSettings) -> FastAPI:
     app.include_router(scoring.router, prefix=API_PREFIX)
     app.include_router(evaluation.router, prefix=API_PREFIX)
     app.include_router(feedback_and_alerts.router, prefix=API_PREFIX)
+    app.include_router(outreach_and_crm.router, prefix=API_PREFIX)
     app.include_router(auth_and_users.build_auth_router(settings), prefix=API_PREFIX)
     app.include_router(auth_and_users.build_users_router(settings), prefix=API_PREFIX)
     app.include_router(runs_and_source_plugins_router, prefix=API_PREFIX)

@@ -8,8 +8,9 @@ adds and would send its response without `X-Request-Id`.
 
 from __future__ import annotations
 
+from http import HTTPStatus
+
 from fastapi import FastAPI, Request
-from fastapi.exception_handlers import http_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -37,6 +38,7 @@ from leadradar.evaluation.errors import (
     ServiceNotFound,
 )
 from leadradar.feedback.errors import FeedbackError
+from leadradar.outreach.errors import CrmUnavailable, HubspotNotConfigured, ScoreNotFound
 from leadradar.runs.errors import (
     AccountInactive,
     RefreshAccountNotFound,
@@ -73,16 +75,34 @@ _UNAUTHENTICATED_MESSAGE = "Sign-in required."
 
 
 def register_error_handlers(app: FastAPI) -> None:
-    """Registers every typed capability error and `RequestValidationError`; every other
-    `HTTPException` (only `404` today) goes to Starlette's own default handler."""
+    """Registers typed capability errors, validation errors, and all HTTP exceptions."""
 
     @app.exception_handler(StarletteHTTPException)
     async def handle_http_exception(request: Request, exc: StarletteHTTPException) -> Response:
+        codes = {
+            401: "UNAUTHENTICATED",
+            403: "FORBIDDEN",
+            404: "NOT_FOUND",
+            405: "METHOD_NOT_ALLOWED",
+            409: "CONFLICT",
+            422: "VALIDATION",
+            423: "LOCKED",
+            429: "BUDGET_EXHAUSTED",
+            500: "INTERNAL",
+            503: "UPSTREAM_UNAVAILABLE",
+        }
+        code = codes.get(exc.status_code, "INTERNAL")
+        try:
+            message = HTTPStatus(exc.status_code).phrase
+        except ValueError:
+            message = "HTTP error."
         if exc.status_code == 404:
-            return JSONResponse(
-                status_code=404, content=envelope("NOT_FOUND", "The resource does not exist.")
-            )
-        return await http_exception_handler(request, exc)
+            message = "The resource does not exist."
+        return JSONResponse(
+            status_code=exc.status_code,
+            content=envelope(code, message),
+            headers=exc.headers,
+        )
 
     @app.exception_handler(InvalidCredentials)
     async def handle_invalid_credentials(request: Request, exc: InvalidCredentials) -> Response:
@@ -171,6 +191,27 @@ def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(FeedbackError)
     async def handle_feedback_error(request: Request, exc: FeedbackError) -> Response:
         return JSONResponse(status_code=404, content=envelope("NOT_FOUND", str(exc)))
+
+    @app.exception_handler(HubspotNotConfigured)
+    async def handle_hubspot_not_configured(
+        request: Request, exc: HubspotNotConfigured
+    ) -> Response:
+        return JSONResponse(status_code=409, content=envelope("NOT_CONFIGURED", str(exc)))
+
+    @app.exception_handler(ScoreNotFound)
+    async def handle_outreach_score_not_found(request: Request, exc: ScoreNotFound) -> Response:
+        return JSONResponse(status_code=404, content=envelope("NOT_FOUND", str(exc)))
+
+    @app.exception_handler(CrmUnavailable)
+    async def handle_crm_unavailable(request: Request, exc: CrmUnavailable) -> Response:
+        return JSONResponse(
+            status_code=503,
+            content=envelope(
+                "UPSTREAM_UNAVAILABLE",
+                "HubSpot is unavailable.",
+                {"dependency": "HUBSPOT", "reason": str(exc)},
+            ),
+        )
 
     @app.exception_handler(RunNotFound)
     @app.exception_handler(RefreshAccountNotFound)

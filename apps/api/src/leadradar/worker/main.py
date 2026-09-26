@@ -40,10 +40,9 @@ async def _serve(settings: WorkerSettings) -> None:
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
     clock = build_clock(settings)
     instance = f"{socket.gethostname()}:{os.getpid()}"
-    ai_http = build_ai_http_client(settings)
-    ai = AiGateway(settings, http=ai_http, sessions=session_factory)
     try:
-        async with asyncio.TaskGroup() as loops:
+        async with build_ai_http_client(settings) as http, asyncio.TaskGroup() as loops:
+            gateway = AiGateway(settings, http=http, sessions=session_factory)
             for index in range(settings.worker_concurrency):
                 loops.create_task(
                     run_job_loop(
@@ -53,14 +52,13 @@ async def _serve(settings: WorkerSettings) -> None:
                         clock=clock,
                         worker_id=f"{instance}:{index}",
                         stop=stop,
-                        ai=ai,
+                        gateway=gateway,
                     )
                 )
             loops.create_task(
                 run_scheduler_loop(session_factory, clock=clock, settings=settings, stop=stop)
             )
     finally:
-        await ai_http.aclose()
         await engine.dispose()
 
 

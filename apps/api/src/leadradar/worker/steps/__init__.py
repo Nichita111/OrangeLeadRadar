@@ -52,13 +52,13 @@ class ClaimedJob:
 class StepContext:
     """What a handler is given: its job, the open transaction's session, the time, the worker's
     configuration and the one [AI gateway](/architecture/services/worker.md#ai-gateway) instance
-    of this process. Handlers that make no AI call (`SCORE`) ignore `ai`."""
+    of this process. Handlers that make no AI call (`SCORE`) ignore `gateway`."""
 
     job: ClaimedJob
     session: AsyncSession
     now: datetime
     settings: WorkerSettings
-    ai: AiGateway
+    gateway: AiGateway | None = None
 
 
 class StepFailed(Exception):
@@ -85,6 +85,8 @@ async def _run_signal(context: StepContext) -> None:
     from leadradar.worker.steps.signal import run_signal_job
 
     job, run = await _load_job_and_run(context)
+    if context.gateway is None:
+        raise RuntimeError("The SIGNAL step requires the AI gateway")
     await run_signal_job(
         context.session,
         job=job,
@@ -92,6 +94,8 @@ async def _run_signal(context: StepContext) -> None:
         worker_instance_id=str(context.job.id),
         alert_max_age_days=context.settings.alert_max_age_days,
         settings=context.settings,
+        gateway=context.gateway,
+        now=context.now,
     )
 
 
@@ -106,6 +110,7 @@ async def _run_score(context: StepContext) -> None:
         run=run,
         worker_instance_id=str(context.job.id),
         alert_max_age_days=context.settings.alert_max_age_days,
+        now=context.now,
     )
 
 
@@ -115,8 +120,10 @@ async def _run_evaluate(context: StepContext) -> None:
     from leadradar.worker.steps.evaluate import run_evaluate_job
 
     job, run = await _load_job_and_run(context)
+    if context.gateway is None:
+        raise RuntimeError("The EVALUATE step requires the AI gateway")
     await run_evaluate_job(
-        context.session, job=job, run=run, settings=context.settings, ai=context.ai
+        context.session, job=job, run=run, settings=context.settings, gateway=context.gateway
     )
 
 

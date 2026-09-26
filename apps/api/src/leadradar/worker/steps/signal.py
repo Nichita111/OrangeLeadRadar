@@ -25,12 +25,25 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
-from typing import Any
+from datetime import datetime
+from typing import Any, Protocol
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from leadradar.ai.audit import AiCallContext
+from leadradar.ai.errors import BudgetExhausted
+from leadradar.ai.fixtures import FixtureMissing
+from leadradar.ai.shapes import (
+    ClassifierAnswer,
+    ClassifierQuestion,
+    ClassifierRequest,
+    EscalationInput,
+    EscalationOutput,
+    EscalationQuestion,
+    EvidenceInput,
+    EvidenceOutput,
+)
 from leadradar.core.enums import (
     ClassificationStatus,
     DocumentTriageClassifier,
@@ -62,23 +75,23 @@ from leadradar.db.models.accounts import Account
 from leadradar.db.models.configuration import Service, SignalQuestion
 from leadradar.db.models.ingestion import Chunk, Document, Job, PipelineRun
 from leadradar.db.models.signals import Classification, DocumentTriage, Finding
-from leadradar.worker.ai.classifier import ClassifierQuestion, ClassifierRequest
-from leadradar.worker.ai.gateway import (
-    BudgetExhaustedError,
-    FixtureMissingError,
-    classify,
-    escalate,
-    extract_evidence,
-)
-from leadradar.worker.ai.llm import (
-    EscalationInput,
-    EscalationOutput,
-    EvidenceInput,
-    EvidenceOutput,
-)
 from leadradar.worker.settings import WorkerSettings
 
 # ── State ──────────────────────────────────────────────────────────────────────
+
+
+class SignalGateway(Protocol):
+    async def classify(
+        self, request: ClassifierRequest, context: AiCallContext
+    ) -> list[ClassifierAnswer]: ...
+
+    async def escalate(
+        self, role_input: EscalationInput, context: AiCallContext
+    ) -> EscalationOutput: ...
+
+    async def extract_evidence(
+        self, role_input: EvidenceInput, context: AiCallContext
+    ) -> EvidenceOutput: ...
 
 
 @dataclass
@@ -102,8 +115,8 @@ class SignalBatch:
     questions: list[dict[str, Any]]
 
     # Runtime config
-    fixture_mode: str
-    fixture_dir: str
+    gateway: SignalGateway
+    now: datetime
     triage_chars: int
     triage_about_min_p: float
     triage_relevance_min_p: float
@@ -113,8 +126,6 @@ class SignalBatch:
     evidence_min_quote_chars: int
     evidence_max_quote_chars: int
     evidence_max_rationale_chars: int
-    daily_budget_eur: float
-    usd_eur_rate: float
 
     # Outputs accumulated by nodes
     triage_results: dict[str, TriageResult] = field(default_factory=dict)  # doc_id → result
@@ -188,12 +199,9 @@ async def _node_triage(state: SignalBatch, session: AsyncSession) -> None:
             questions=triage_questions,
         )
 
-        answers_list = await classify(
+        answers_list = await state.gateway.classify(
             req,
-            session=session,
-            fixture_mode=state.fixture_mode,
-            fixture_dir=state.fixture_dir,
-            run_id=state.run_id,
+            AiCallContext(entity_type="document", entity_id=uuid.UUID(doc_id), run_id=state.run_id),
         )
         answers: dict[str, dict[str, float]] = {
             a.question_id: a.probabilities for a in answers_list
@@ -327,12 +335,11 @@ async def _node_classify(state: SignalBatch, session: AsyncSession) -> None:
             questions=clf_questions,
         )
 
-        answers_list = await classify(
+        answers_list = await state.gateway.classify(
             req,
-            session=session,
-            fixture_mode=state.fixture_mode,
-            fixture_dir=state.fixture_dir,
-            run_id=state.run_id,
+            AiCallContext(
+                entity_type="chunk", entity_id=uuid.UUID(chunk_id_str), run_id=state.run_id
+            ),
         )
         answers_by_qid: dict[str, dict[str, float]] = {
             a.question_id: a.probabilities for a in answers_list
@@ -432,7 +439,7 @@ async def _node_evidence(state: SignalBatch, session: AsyncSession) -> None:
         language: str = item["language"]
         initial_route: Route = item["route"]
         published_at: datetime | None = item.get("published_at")
-        fetched_at_raw = item.get("fetched_at") or datetime.now(tz=UTC)
+        fetched_at_raw = item.get("fetched_at") or state.now
         fetched_at: datetime = (
             fetched_at_raw
             if isinstance(fetched_at_raw, datetime)
@@ -444,7 +451,6 @@ async def _node_evidence(state: SignalBatch, session: AsyncSession) -> None:
                 # Evidence extraction directly
                 evidence_out = await _do_extract_evidence(
                     state=state,
-                    session=session,
                     q=q,
                     passage_text=passage_text,
                     header=header,
@@ -480,7 +486,6 @@ async def _node_evidence(state: SignalBatch, session: AsyncSession) -> None:
             else:  # ESCALATE
                 esc_out = await _do_escalate(
                     state=state,
-                    session=session,
                     q=q,
                     passage_text=passage_text,
                     header=header,
@@ -540,7 +545,7 @@ async def _node_evidence(state: SignalBatch, session: AsyncSession) -> None:
                     session, clf_id, ClassificationStatus.POSITIVE, esc_out.strength
                 )
 
-        except (BudgetExhaustedError, FixtureMissingError):
+        except (BudgetExhausted, FixtureMissing):
             # Stays PENDING_LLM; caller decides whether to mark run PARTIAL
             pass
 
@@ -593,7 +598,6 @@ def _build_passage_header(
 async def _do_extract_evidence(
     *,
     state: SignalBatch,
-    session: AsyncSession,
     q: dict[str, Any],
     passage_text: str,
     header: str,
@@ -607,27 +611,24 @@ async def _do_extract_evidence(
     for _ in range(state.evidence_max_attempts):
         inp = EvidenceInput(
             account_name=state.account_name,
-            question={
-                "text": q["text"],
-                "answer_type": q["answer_type"],
-                "options": q.get("options"),
-            },
+            question=EscalationQuestion.model_validate(
+                {
+                    "text": q["text"],
+                    "answer_type": q["answer_type"],
+                    "options": q.get("options"),
+                }
+            ),
             passage=passage_text,
             language=language,
             header=header,
             strength=candidate_strength,
         )
         try:
-            out = await extract_evidence(
+            out = await state.gateway.extract_evidence(
                 inp,
-                session=session,
-                fixture_mode=state.fixture_mode,
-                fixture_dir=state.fixture_dir,
-                run_id=state.run_id,
-                daily_budget_eur=state.daily_budget_eur,
-                usd_eur_rate=state.usd_eur_rate,
+                AiCallContext(run_id=state.run_id),
             )
-        except (BudgetExhaustedError, FixtureMissingError):
+        except (BudgetExhausted, FixtureMissing):
             raise  # caller handles these
         valid = validate_quote(
             quote=out.quote,
@@ -647,7 +648,6 @@ async def _do_extract_evidence(
 async def _do_escalate(
     *,
     state: SignalBatch,
-    session: AsyncSession,
     q: dict[str, Any],
     passage_text: str,
     header: str,
@@ -656,26 +656,23 @@ async def _do_escalate(
     """Call escalation.  Returns ``None`` on budget exhaustion or missing fixture."""
     inp = EscalationInput(
         account_name=state.account_name,
-        question={
-            "text": q["text"],
-            "answer_type": q["answer_type"],
-            "options": q.get("options"),
-        },
+        question=EscalationQuestion.model_validate(
+            {
+                "text": q["text"],
+                "answer_type": q["answer_type"],
+                "options": q.get("options"),
+            }
+        ),
         passage=passage_text,
         language=language,
         header=header,
     )
     try:
-        return await escalate(
+        return await state.gateway.escalate(
             inp,
-            session=session,
-            fixture_mode=state.fixture_mode,
-            fixture_dir=state.fixture_dir,
-            run_id=state.run_id,
-            daily_budget_eur=state.daily_budget_eur,
-            usd_eur_rate=state.usd_eur_rate,
+            AiCallContext(run_id=state.run_id),
         )
-    except (BudgetExhaustedError, FixtureMissingError):
+    except (BudgetExhausted, FixtureMissing):
         return None
 
 
@@ -790,6 +787,8 @@ async def run_signal_job(
     worker_instance_id: str,
     alert_max_age_days: int,
     settings: WorkerSettings,
+    gateway: SignalGateway,
+    now: datetime,
 ) -> None:
     """Adapter that wires a SIGNAL ``Job`` into the generic job-loop handler protocol.
 
@@ -923,8 +922,8 @@ async def run_signal_job(
         documents=documents,
         passages=passages,
         questions=questions,
-        fixture_mode=cfg.fixture_mode,
-        fixture_dir=str(cfg.fixture_dir),
+        gateway=gateway,
+        now=now,
         triage_chars=cfg.triage_chars,
         triage_about_min_p=cfg.triage_about_min_p,
         triage_relevance_min_p=cfg.triage_relevance_min_p,
@@ -934,8 +933,6 @@ async def run_signal_job(
         evidence_min_quote_chars=cfg.evidence_min_quote_chars,
         evidence_max_quote_chars=cfg.evidence_max_quote_chars,
         evidence_max_rationale_chars=cfg.evidence_max_rationale_chars,
-        daily_budget_eur=cfg.llm_daily_budget_eur,
-        usd_eur_rate=cfg.usd_eur_rate,
     )
 
     await run_signal_step(session, batch=batch)

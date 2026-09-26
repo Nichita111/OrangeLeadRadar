@@ -74,7 +74,7 @@ async def _run_claimed_job(
     settings: WorkerSettings,
     clock: Clock,
     worker_id: str,
-    ai: AiGateway,
+    gateway: AiGateway | None = None,
 ) -> None:
     handler = handlers.get(job.step)
     if handler is None:
@@ -95,7 +95,9 @@ async def _run_claimed_job(
     try:
         async with session_factory() as session, session.begin():
             await handler(
-                StepContext(job=job, session=session, now=clock(), settings=settings, ai=ai)
+                StepContext(
+                    job=job, session=session, now=clock(), settings=settings, gateway=gateway
+                )
             )
             await complete_job(
                 session,
@@ -133,7 +135,7 @@ async def process_next_job(
     settings: WorkerSettings,
     clock: Clock,
     worker_id: str,
-    ai: AiGateway,
+    gateway: AiGateway | None = None,
 ) -> bool:
     """Runs one job to its outcome; `False` when no job was due."""
     async with session_factory() as session, session.begin():
@@ -152,7 +154,7 @@ async def process_next_job(
             settings=settings,
             clock=clock,
             worker_id=worker_id,
-            ai=ai,
+            gateway=gateway,
         )
     finally:
         run_id_var.reset(token)
@@ -167,7 +169,7 @@ async def run_job_loop(
     clock: Clock,
     worker_id: str,
     stop: asyncio.Event,
-    ai: AiGateway,
+    gateway: AiGateway | None = None,
 ) -> None:
     """Processes jobs until `stop` is set, finishing the job in hand first; waits
     `JOB_POLL_INTERVAL_S` whenever no job is due."""
@@ -179,7 +181,7 @@ async def run_job_loop(
                 settings=settings,
                 clock=clock,
                 worker_id=worker_id,
-                ai=ai,
+                gateway=gateway,
             )
         except Exception:
             # The database is unreachable or refused the claim: logged, and tried again after

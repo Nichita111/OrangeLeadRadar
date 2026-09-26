@@ -63,11 +63,11 @@ class ScoringConfig(BaseModel):
 
 
 @router.post(
-    "/scoring-configs/{config_id}/activate",
+    "/scoring-configs/{id}/activate",
     summary="API-18: Activate a DRAFT scoring config",
 )
 async def activate_scoring_config_route(
-    config_id: uuid.UUID,
+    id: uuid.UUID,
     body: ActivationRequest,
     request: Request,
     admin: Annotated[AppUser, Depends(require_admin)],
@@ -80,17 +80,13 @@ async def activate_scoring_config_route(
     `409 CONFLICT` when the config is not DRAFT. `422` when `change_note` is missing.
     `403 FORBIDDEN` for non-Admin.
     """
-    request_id: str | None = (
-        request.state.request_id if hasattr(request.state, "request_id") else None
-    )
-
     try:
         result = await activate_scoring_config(
             session,
-            config_id=config_id,
+            config_id=id,
             actor_id=admin.id,
             change_note=body.change_note,
-            request_id=request_id,
+            now=request.app.state.clock(),
         )
     except ScoringConfigNotFound:
         return JSONResponse(
@@ -122,8 +118,7 @@ async def activate_scoring_config_route(
         status=result.status,
         change_note=result.change_note,
         activated_at=activated_at_str,
-        # display_name lookup deferred to service-configuration task
-        activated_by_name=None,
+        activated_by_name=admin.display_name,
         settings=result.settings,
     )
     return JSONResponse(status_code=200, content=response.model_dump(mode="json"))

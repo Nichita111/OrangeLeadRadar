@@ -671,7 +671,7 @@ async def seed_demo_accounts(
     path = settings.fixture_dir / "demo_accounts.csv"
     if not path.is_file():
         raise DemoAccountFileMissing(
-            f"No demo account file at {path}. Collect it (issue #7) before running make seed-demo."
+            f"No demo account file at {path}. Add it before running make seed-demo."
         )
     file_text = path.read_text(encoding="utf-8")
 

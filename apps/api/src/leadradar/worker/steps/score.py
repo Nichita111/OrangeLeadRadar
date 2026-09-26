@@ -11,16 +11,17 @@ Updates `pipeline_run` stage/progress and writes `RUN_FINISHED` at the end.
 from __future__ import annotations
 
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from leadradar.audit.events import write_run_finished
+from leadradar.audit.events import append_audit_event
 from leadradar.core.enums import (
     AccountScoreBand,
     AccountStatus,
     AlertKind,
+    AuditAction,
     DisqualifierOverrideStatus,
     FindingStatus,
     PipelineRunStage,
@@ -45,6 +46,7 @@ async def run_score_step(
     run: PipelineRun,
     worker_instance_id: str,
     alert_max_age_days: int,
+    now: datetime,
 ) -> None:
     """Execute the SCORE step for `run`.
 
@@ -56,13 +58,15 @@ async def run_score_step(
     if raw_service_id is None:
         raise ValueError(f"SCORE step: run {run.id} has no service_id")
     service_id: uuid.UUID = raw_service_id
-    as_of: datetime = run.started_at or datetime.now(tz=UTC)
+    as_of: datetime = run.started_at or now
 
     # Load ACTIVE scoring config
     config = await _load_active_config(session, service_id)
     if config is None:
         # No active scoring config — nothing to score
-        await _finish_run(session, run_id=run.id, status=PipelineRunStatus.SUCCEEDED, progress={})
+        await _finish_run(
+            session, run_id=run.id, status=PipelineRunStatus.SUCCEEDED, progress={}, now=now
+        )
         return
 
     settings = ScoringSettings.model_validate(config.settings)
@@ -160,6 +164,7 @@ async def run_score_step(
         run_id=run.id,
         status=PipelineRunStatus.SUCCEEDED,
         progress=progress,
+        now=now,
     )
 
 
@@ -394,9 +399,9 @@ async def _finish_run(
     run_id: uuid.UUID,
     status: PipelineRunStatus,
     progress: dict[str, object],
+    now: datetime,
 ) -> None:
     """Set the pipeline_run finished status and write RUN_FINISHED audit."""
-    now = datetime.now(tz=UTC)
     await session.execute(
         update(PipelineRun)
         .where(PipelineRun.id == run_id)
@@ -406,10 +411,14 @@ async def _finish_run(
             progress=progress,
         )
     )
-    await write_run_finished(
+    await append_audit_event(
         session,
+        action=AuditAction.RUN_FINISHED,
+        occurred_at=now,
+        actor_id=None,
+        entity_type="pipeline_run",
+        entity_id=run_id,
         run_id=run_id,
-        status=status.value,
-        progress=progress,
+        payload={"status": status.value, "progress": progress},
     )
     await session.flush()

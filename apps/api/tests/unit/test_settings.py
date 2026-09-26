@@ -53,6 +53,7 @@ def test_impact_and_clock_keys_take_their_runtime_defaults() -> None:
     assert settings.impact_period_days == 30
     assert settings.manual_research_minutes_per_account == 120
     assert settings.clock_file is None
+    assert (settings.api_host, settings.api_port) == ("0.0.0.0", 8000)
 
 
 def test_impact_and_clock_keys_are_overridden_from_the_environment(
@@ -63,12 +64,37 @@ def test_impact_and_clock_keys_are_overridden_from_the_environment(
     monkeypatch.setenv("IMPACT_PERIOD_DAYS", "14")
     monkeypatch.setenv("MANUAL_RESEARCH_MINUTES_PER_ACCOUNT", "90")
     monkeypatch.setenv("CLOCK_FILE", "/tmp/now.txt")
+    monkeypatch.setenv("API_HOST", "127.0.0.1")
+    monkeypatch.setenv("API_PORT", "9000")
 
     settings = ApiSettings()
 
     assert settings.impact_period_days == 14
     assert settings.manual_research_minutes_per_account == 90
     assert str(settings.clock_file) == "/tmp/now.txt"
+    assert (settings.api_host, settings.api_port) == ("127.0.0.1", 9000)
+
+
+def test_hubspot_keys_take_their_runtime_defaults() -> None:
+    settings = ApiSettings(
+        database_url=SecretStr("postgresql://u:p@localhost/db"),
+        migration_database_url=SecretStr("postgresql://u:p@localhost/db"),
+    )
+
+    assert settings.hubspot_access_token is None
+    assert settings.hubspot_top_signals == 3
+    assert settings.hubspot_timeout_s == 10
+    assert settings.app_base_url == "http://localhost:8080"
+
+
+def test_repr_of_settings_never_contains_the_hubspot_token() -> None:
+    settings = ApiSettings(
+        database_url=SecretStr("postgresql://u:p@localhost/db"),
+        migration_database_url=SecretStr("postgresql://u:p@localhost/db"),
+        hubspot_access_token=SecretStr("s3cret-hubspot-token"),
+    )
+    assert "s3cret-hubspot-token" not in repr(settings)
+    assert "s3cret-hubspot-token" not in str(settings)
 
 
 def test_a_logged_settings_object_never_contains_the_password_or_the_key(

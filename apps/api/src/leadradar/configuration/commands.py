@@ -197,8 +197,7 @@ async def update_service(
 
     Reactivating a service (`INACTIVE` to `ACTIVE`) reclassifies every active question
     ([Services and questions](/architecture/interfaces.md#services-and-questions) `API-10`'s
-    note); that reclassification is issue #21's, so this function only records the status
-    change."""
+    note). This function records the status change."""
     service = await require_service(session, service_id)
 
     sent: dict[str, object] = {}
@@ -344,8 +343,7 @@ async def update_question(
     back at weight `MEDIUM`. Raises `QuestionNotFound`, `QuestionInvalid` on a bad `options`
     shape.
 
-    Reclassification is issue #21's: this function increments `revision` and updates the draft's
-    `questions` but enqueues no `RECLASSIFY` run."""
+    This function increments `revision` and updates the draft's `questions`."""
     question = (
         await session.execute(
             select(SignalQuestion).where(SignalQuestion.id == question_id).with_for_update()

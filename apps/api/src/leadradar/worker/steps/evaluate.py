@@ -180,7 +180,7 @@ def _classifier_question(spec: ClassifierQuestionSpec) -> ClassifierQuestion:
 
 
 async def run_evaluate_step(
-    session: AsyncSession, *, run: PipelineRun, settings: WorkerSettings, ai: AiGateway
+    session: AsyncSession, *, run: PipelineRun, settings: WorkerSettings, gateway: AiGateway
 ) -> None:
     """Executes the one `EVALUATE` job an `EVALUATION` run owns: classifies every passage of its
     active items once (G3), escalates the pairs the band sends to the LLM, computes the metrics
@@ -224,7 +224,7 @@ async def run_evaluate_step(
             questions: list[ClassifierQuestion] = [
                 _classifier_question(spec) for specs in specs_by_row.values() for spec in specs
             ]
-            answers = await ai.classify(
+            answers = await gateway.classify(
                 ClassifierRequest(state=passage_text, context=header, questions=questions),
                 AiCallContext(entity_type="chunk", entity_id=chunk_id, run_id=run.id),
             )
@@ -265,7 +265,7 @@ async def run_evaluate_step(
                             for option in row.options
                         ]
                     )
-                    escalation_output = await ai.escalate(
+                    escalation_output = await gateway.escalate(
                         EscalationInput(
                             account_name=row.account_name,
                             question=EscalationQuestion(
@@ -329,7 +329,7 @@ async def run_evaluate_step(
     session.add(
         EvaluationResult(
             run_id=run.id,
-            classifier=ai.classifier,
+            classifier=gateway.classifier,
             escalation_lower=settings.escalation_lower,
             escalation_upper=settings.escalation_upper,
             min_precision=settings.eval_min_precision,
@@ -351,7 +351,12 @@ async def run_evaluate_step(
 
 
 async def run_evaluate_job(
-    session: AsyncSession, *, job: Job, run: PipelineRun, settings: WorkerSettings, ai: AiGateway
+    session: AsyncSession,
+    *,
+    job: Job,
+    run: PipelineRun,
+    settings: WorkerSettings,
+    gateway: AiGateway,
 ) -> None:
     """Adapter that wires an `EVALUATE` `Job` into the generic job-loop handler protocol."""
-    await run_evaluate_step(session, run=run, settings=settings, ai=ai)
+    await run_evaluate_step(session, run=run, settings=settings, gateway=gateway)
