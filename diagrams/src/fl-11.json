@@ -120,7 +120,7 @@
       "title": "Ranked only",
       "items": [
         "Excluded and customer accounts show their reason",
-        "Two top signals per row"
+        "PROSPECT_TOP_SIGNALS top signals per row"
       ]
     }
   ]

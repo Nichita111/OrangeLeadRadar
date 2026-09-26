@@ -452,7 +452,7 @@ rect.c-bg-rect { fill: var(--bg); }
         <path data-edge-from="worker" data-edge-to="paid" data-edge-label="with key" data-edge-key="5" data-edge-id="worker-paid" data-composition-points="1020,337;1060,337;1060,500;1100,500" d="M 1020 337 L 1052 337 Q 1060 337 1060 345 L 1060 492 Q 1060 500 1068 500 L 1100 500" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
         <path data-edge-from="worker" data-edge-to="embedder" data-edge-label="embed" data-edge-key="6" data-edge-id="worker-embedder" data-composition-points="945,360;945,470" d="M 945 360 L 945 470" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
         <path data-edge-from="worker" data-edge-to="openrouter" data-edge-label="classify + quote" data-edge-key="7" data-edge-id="worker-openrouter" data-composition-points="945,300;945,276;814,276;814,140;790,140" d="M 945 300 L 945 284 Q 945 276 937 276 L 822 276 Q 814 276 814 268 L 814 148 Q 814 140 806 140 L 790 140" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="api" data-edge-to="openrouter" data-edge-label="preview + outreach" data-edge-key="8" data-edge-id="api-openrouter" data-composition-points="502,300;502,276;616,276;616,140;640,140" d="M 502 300 L 502 284 Q 502 276 510 276 L 608 276 Q 616 276 616 268 L 616 148 Q 616 140 624 140 L 640 140" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="api" data-edge-to="openrouter" data-edge-label="interactive AI calls" data-edge-key="8" data-edge-id="api-openrouter" data-composition-points="502,300;502,276;616,276;616,140;640,140" d="M 502 300 L 502 284 Q 502 276 510 276 L 608 276 Q 616 276 616 268 L 616 148 Q 616 140 624 140 L 640 140" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
         <path data-edge-from="api" data-edge-to="hubspot" data-edge-label="push" data-edge-key="9" data-edge-id="api-hubspot" data-composition-points="488,300;488,276;384,276;384,140;360,140" d="M 488 300 L 488 284 Q 488 276 480 276 L 392 276 Q 384 276 384 268 L 384 148 Q 384 140 376 140 L 360 140" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
         <path data-edge-from="api" data-edge-to="embedder" data-edge-label="embed question" data-edge-key="10" data-edge-id="api-embedder" data-composition-points="495,360;495,500;870,500" d="M 495 360 L 495 492 Q 495 500 503 500 L 870 500" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
 
@@ -608,9 +608,9 @@ rect.c-bg-rect { fill: var(--bg); }
           <rect x="836.1" y="256" width="86.8" height="14" rx="3" class="c-mask"/>
           <text x="879.5" y="266" class="t-muted" font-size="8" text-anchor="middle">classify + quote</text>
         </g>
-        <g data-edge-from="api" data-edge-to="openrouter" data-edge-label="preview + outreach" data-edge-key="8" data-edge-id="api-openrouter">
-          <rect x="510.8" y="256" width="96.39999999999999" height="14" rx="3" class="c-mask"/>
-          <text x="559" y="266" class="t-muted" font-size="8" text-anchor="middle">preview + outreach</text>
+        <g data-edge-from="api" data-edge-to="openrouter" data-edge-label="interactive AI calls" data-edge-key="8" data-edge-id="api-openrouter">
+          <rect x="506" y="256" width="106" height="14" rx="3" class="c-mask"/>
+          <text x="559" y="266" class="t-muted" font-size="8" text-anchor="middle">interactive AI calls</text>
         </g>
         <g data-edge-from="api" data-edge-to="hubspot" data-edge-label="push" data-edge-key="9" data-edge-id="api-hubspot">
           <rect x="421" y="256" width="30" height="14" rx="3" class="c-mask"/>
