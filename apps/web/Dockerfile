@@ -19,5 +19,13 @@ FROM nginx:1.27-alpine AS runtime
 COPY apps/web/templates/default.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=builder /app/dist /usr/share/nginx/html
 
+# `config.json` carries the runtime keys of frontend Runtime; the entrypoint script writes it when
+# the container starts, so changing a key needs a restart, not a rebuild.
+COPY apps/web/config-json.sh /usr/local/bin/config-json.sh
+COPY apps/web/docker-entrypoint.d/40-config-json.sh /docker-entrypoint.d/40-config-json.sh
+RUN chmod +x /usr/local/bin/config-json.sh /docker-entrypoint.d/40-config-json.sh
+
+# The one place in code where the Runtime defaults live.
 ENV API_UPSTREAM=http://api:8000
+ENV CONFIDENCE_HIGH_MIN=0.85 CONFIDENCE_MEDIUM_MIN=0.65
 EXPOSE 80

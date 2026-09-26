@@ -1,0 +1,54 @@
+/* The design tokens of frontend Visual language: the only file that names a colour. The light value
+   is in :root, the dark value under prefers-color-scheme. */
+:root {
+  --page: #f4f4f5;
+  --surface: #ffffff;
+  --border: #e4e4e7;
+  --control-border: #8a8a93;
+  --text: #18181b;
+  --text-secondary: #52525b;
+  --text-tertiary: #6b6b74;
+  --accent: #c2410c;
+  --on-accent: #ffffff;
+  --accent-soft: #fff1e7;
+  --accent-ink: #9a3412;
+  --positive: #14703a;
+  --positive-soft: #e8f5ec;
+  --negative: #b42318;
+  --negative-soft: #fcebe9;
+  --caution: #946200;
+  --caution-soft: #fbf3dc;
+  --cool: #475569;
+  --cool-soft: #eef1f5;
+  --highlight: #fdf0b8;
+  /* Dialogs and toasts only, tinted to the page. */
+  --overlay-shadow: 0 12px 32px color-mix(in srgb, var(--text) 18%, transparent);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #0e0e10;
+    --surface: #17171a;
+    --border: #2a2a30;
+    --control-border: #6b6b74;
+    --text: #ececee;
+    --text-secondary: #a1a1aa;
+    --text-tertiary: #8a8a93;
+    --accent: #f0803f;
+    --on-accent: #1a0b03;
+    --accent-soft: #2a1b12;
+    --accent-ink: #fdba8c;
+    --positive: #4ade80;
+    --positive-soft: #12261a;
+    --negative: #f87171;
+    --negative-soft: #2c1416;
+    --caution: #facc15;
+    --caution-soft: #2a2410;
+    --cool: #a8b5c7;
+    --cool-soft: #1d232c;
+    --highlight: #4a3f12;
+    --overlay-shadow: 0 12px 32px color-mix(in srgb, var(--page) 70%, black);
+    color-scheme: dark;
+  }
+}
