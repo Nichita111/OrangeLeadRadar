@@ -1,0 +1,133 @@
+/*
+ * Design tokens of [Visual language](/architecture/services/frontend.md#visual-language):
+ * colour, type, radius and control size, each with a light and a dark value where the source
+ * table gives one (`FR-106`). A screen never names a literal colour, radius or control height;
+ * it reads a Tailwind utility generated from the `@theme` block below.
+ */
+
+@import "tailwindcss";
+
+:root {
+  /* Colour (light) */
+  --clr-page: #f4f4f5;
+  --clr-surface: #ffffff;
+  --clr-border: #e4e4e7;
+  --clr-text: #18181b;
+  --clr-text-secondary: #52525b;
+  --clr-text-tertiary: #6b6b74;
+  --clr-accent: #c2410c;
+  --clr-on-accent: #ffffff;
+  --clr-accent-soft: #fff1e7;
+  --clr-accent-ink: #9a3412;
+  --clr-positive: #14703a;
+  --clr-positive-soft: #e8f5ec;
+  --clr-negative: #b42318;
+  --clr-negative-soft: #fcebe9;
+  --clr-caution: #946200;
+  --clr-caution-soft: #fbf3dc;
+  --clr-cool: #475569;
+  --clr-cool-soft: #eef1f5;
+  --clr-highlight: #fdf0b8;
+
+  /* Radius (one scale) */
+  --rad-card: 14px;
+  --rad-control: 10px;
+  --rad-full: 9999px;
+
+  /* Control height */
+  --ctl-button: 36px;
+  --ctl-input: 38px;
+  --ctl-small: 30px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --clr-page: #0e0e10;
+    --clr-surface: #17171a;
+    --clr-border: #2a2a30;
+    --clr-text: #ececee;
+    --clr-text-secondary: #a1a1aa;
+    --clr-text-tertiary: #8a8a93;
+    --clr-accent: #f0803f;
+    --clr-on-accent: #1a0b03;
+    --clr-accent-soft: #2a1b12;
+    --clr-accent-ink: #fdba8c;
+    --clr-positive: #4ade80;
+    --clr-positive-soft: #12261a;
+    --clr-negative: #f87171;
+    --clr-negative-soft: #2c1416;
+    --clr-caution: #facc15;
+    --clr-caution-soft: #2a2410;
+    --clr-cool: #a8b5c7;
+    --clr-cool-soft: #1d232c;
+    --clr-highlight: #4a3f12;
+  }
+}
+
+@theme {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, "SF Mono", monospace;
+
+  --color-page: var(--clr-page);
+  --color-surface: var(--clr-surface);
+  --color-border: var(--clr-border);
+  --color-text: var(--clr-text);
+  --color-text-secondary: var(--clr-text-secondary);
+  --color-text-tertiary: var(--clr-text-tertiary);
+  --color-accent: var(--clr-accent);
+  --color-on-accent: var(--clr-on-accent);
+  --color-accent-soft: var(--clr-accent-soft);
+  --color-accent-ink: var(--clr-accent-ink);
+  --color-positive: var(--clr-positive);
+  --color-positive-soft: var(--clr-positive-soft);
+  --color-negative: var(--clr-negative);
+  --color-negative-soft: var(--clr-negative-soft);
+  --color-caution: var(--clr-caution);
+  --color-caution-soft: var(--clr-caution-soft);
+  --color-cool: var(--clr-cool);
+  --color-cool-soft: var(--clr-cool-soft);
+  --color-highlight: var(--clr-highlight);
+
+  --radius-card: var(--rad-card);
+  --radius-control: var(--rad-control);
+  --radius-full: var(--rad-full);
+
+  --text-page-title: 24px;
+  --text-page-title--line-height: 1.3;
+  --text-page-title--font-weight: 600;
+  --text-section-title: 15px;
+  --text-section-title--line-height: 1.4;
+  --text-section-title--font-weight: 600;
+  --text-hint: 12.5px;
+  --text-hint--line-height: 1.4;
+}
+
+@font-face {
+  font-family: "Geist Variable";
+  src: url("/fonts/Geist-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist Mono Variable";
+  src: url("/fonts/GeistMono-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+body {
+  background-color: var(--color-page);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* A visible focus ring on every interactive element (`FR-016`), drawn with the accent token. */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
