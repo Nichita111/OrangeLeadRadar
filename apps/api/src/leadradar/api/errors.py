@@ -27,6 +27,12 @@ from leadradar.auth.errors import (
     UserNotFound,
 )
 from leadradar.feedback.errors import FeedbackError
+from leadradar.runs.errors import (
+    AccountInactive,
+    RefreshAccountNotFound,
+    RunFinished,
+    RunNotFound,
+)
 
 
 def envelope(
@@ -154,3 +160,22 @@ def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(FeedbackError)
     async def handle_feedback_error(request: Request, exc: FeedbackError) -> Response:
         return JSONResponse(status_code=404, content=envelope("NOT_FOUND", str(exc)))
+
+    @app.exception_handler(RunNotFound)
+    @app.exception_handler(RefreshAccountNotFound)
+    async def handle_run_not_found(request: Request, exc: Exception) -> Response:
+        return JSONResponse(
+            status_code=404, content=envelope("NOT_FOUND", "The resource does not exist.")
+        )
+
+    @app.exception_handler(AccountInactive)
+    async def handle_account_inactive(request: Request, exc: AccountInactive) -> Response:
+        return JSONResponse(
+            status_code=409, content=envelope("CONFLICT", "The account is inactive.")
+        )
+
+    @app.exception_handler(RunFinished)
+    async def handle_run_finished(request: Request, exc: RunFinished) -> Response:
+        return JSONResponse(
+            status_code=409, content=envelope("CONFLICT", "The run has already finished.")
+        )

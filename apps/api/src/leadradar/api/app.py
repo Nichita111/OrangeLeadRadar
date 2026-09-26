@@ -16,6 +16,7 @@ from leadradar.api.constants import API_PREFIX
 from leadradar.api.csrf import CsrfMiddleware
 from leadradar.api.errors import register_error_handlers
 from leadradar.api.request_identity import RequestIdentityMiddleware
+from leadradar.api.runs_and_source_plugins import router as runs_and_source_plugins_router
 from leadradar.clock import build_clock
 from leadradar.db.session import build_engine
 from leadradar.settings import ApiSettings
@@ -59,4 +60,5 @@ def create_app(settings: ApiSettings) -> FastAPI:
     app.include_router(feedback_and_alerts.router, prefix=API_PREFIX)
     app.include_router(auth_and_users.build_auth_router(settings), prefix=API_PREFIX)
     app.include_router(auth_and_users.build_users_router(settings), prefix=API_PREFIX)
+    app.include_router(runs_and_source_plugins_router, prefix=API_PREFIX)
     return app

@@ -26,6 +26,8 @@ _FIELD_BY_KEY = {
     "PASSWORD_MIN_LENGTH": "password_min_length",
     "HEALTH_TIMEOUT_MS": "health_timeout_ms",
     "LOG_LEVEL": "log_level",
+    "PAGE_SIZE_DEFAULT": "page_size_default",
+    "PAGE_SIZE_MAX": "page_size_max",
 }
 
 

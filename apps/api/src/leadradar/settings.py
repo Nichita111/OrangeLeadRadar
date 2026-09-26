@@ -44,3 +44,9 @@ class ApiSettings(BaseSettings):
     login_max_failures: int = 5
     login_lock_minutes: int = 15
     password_min_length: int = 12
+
+    page_size_default: int = 50
+    page_size_max: int = 200
+    crunchbase_api_key: SecretStr | None = None
+    newsapi_key: SecretStr | None = None
+    serpapi_key: SecretStr | None = None

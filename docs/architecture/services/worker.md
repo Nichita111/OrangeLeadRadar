@@ -31,7 +31,7 @@ The rules are pure functions in the product package's core module; the api impor
 
 ### Job queue
 
-A worker process runs `WORKER_CONCURRENCY` job loops. A loop claims the next job with one statement — `status = 'READY' AND not_before <= now()`, ordered by `priority` then `not_before`, `FOR UPDATE SKIP LOCKED LIMIT 1` — sets it `RUNNING` with `locked_by` and `locked_at`, runs its step, and sets it `DONE` or schedules a retry. Several worker containers can share the queue safely ([ADR-04](/architecture/adrs/adr-04-postgres-job-queue-and-a-worker.md)).
+A worker process runs `WORKER_CONCURRENCY` job loops. A loop claims the next job with one statement — `status = 'READY' AND not_before <= now()`, ordered by `priority` then `not_before`, `FOR UPDATE SKIP LOCKED LIMIT 1` — sets it `RUNNING` with `locked_by` and `locked_at`, runs its step, and sets it `DONE` or schedules a retry. Several worker containers can share the queue safely ([ADR-04](/architecture/adrs/adr-04-postgres-job-queue-and-a-worker.md)). A loop that finds no job waits `JOB_POLL_INTERVAL_S` before it tries again. A job whose step the worker has no code for is `FAILED` at once, without retries, and its run records the error: no job is ever set `DONE` without its step having run.
 
 | Priority | Jobs |
 |---|---|
@@ -41,9 +41,9 @@ A worker process runs `WORKER_CONCURRENCY` job loops. A loop claims the next job
 | 5 | `ACCOUNT_REFRESH` from `SCHEDULE` |
 | 7 | `DISCOVERY`, `EVALUATION` |
 
-**Retries.** A step that raises is retried with `not_before` = now + `JOB_RETRY_BACKOFF_S × 2^(attempts − 1)`, up to `JOB_MAX_ATTEMPTS` attempts, after which the job is `FAILED` and its run records the error. A `RUNNING` job whose `locked_at` is older than `JOB_LOCK_TIMEOUT_S` is returned to `READY`; this is safe because every step is idempotent: it writes through the unique constraints of the [SQL store](/architecture/sql-store.md#constraints-and-indexes) and skips work already recorded ([N-05](/requirements/system.md)).
+**Retries.** A step that raises is retried with `not_before` = now + `JOB_RETRY_BACKOFF_S × 2^(attempts − 1)`, up to `JOB_MAX_ATTEMPTS` attempts, after which the job is `FAILED` and its run records the error: an entry of `errors` with the stage the step was in, the `plugin_code` of a `FETCH` job, and the code the step raised, else `INTERNAL`. A `RUNNING` job whose `locked_at` is older than `JOB_LOCK_TIMEOUT_S` is returned to `READY`; this is safe because every step is idempotent: it writes through the unique constraints of the [SQL store](/architecture/sql-store.md#constraints-and-indexes) and skips work already recorded ([N-05](/requirements/system.md)).
 
-**Fan-out.** A step that finishes a stage enqueues the next stage's jobs in the same transaction as its own results. The last job of a run to finish sets the run's final status.
+**Fan-out.** A step that finishes a stage enqueues the next stage's jobs in the same transaction as its own results. When every job of an `ACCOUNT_REFRESH` or `RECLASSIFY` run is final and none is a `SCORE` job, the job loop enqueues the run's `SCORE` job, so a refresh whose fetches all failed is still scored. Otherwise the last job of a run to finish sets the run's final status.
 
 ### Run lifecycle
 
@@ -66,7 +66,11 @@ stateDiagram-v2
 | `DISCOVERY` | `FETCH` → `TRIAGE` → `SCORE` | one `DISCOVER` per available discovery source; the last one ranks and caps candidates |
 | `EVALUATION` | `CLASSIFY` | `EVALUATE` per batch of items; the last one writes the [`evaluation_result`](/architecture/sql-store.md#evaluation_result) |
 
-A `SCORE` job's `payload` is `{}`: its scope is its run's `account_id` and `service_id`, as the Jobs column states.
+A `SCORE` job's `payload` is `{}`: its scope is its run's `account_id` and `service_id`, as the Jobs column states. A `FETCH` job's `payload` is `{plugin_code}`: its account is its run's `account_id`. A refresh requested when no plug-in is available starts with its `SCORE` job.
+
+The first job claimed sets its run `RUNNING` with `started_at`. Claiming a job moves its run's `stage` to the first stage its step covers — `FETCH` for `FETCH` and `DISCOVER`, `PROCESS` for `PROCESS`, `TRIAGE` for `SIGNAL`, `CLASSIFY` for `EVALUATE`, `SCORE` for `SCORE` — never back to an earlier stage; the `SIGNAL` step moves it on through `CLASSIFY` and `EVIDENCE` itself.
+
+Cancelling a run sets it `CANCELLED` with `finished_at` and its `READY` jobs `CANCELLED`; a running job finishes its step, and any job that step enqueues is `CANCELLED` with it. A cancelled run writes a `RUN_CANCELLED` audit row and no `RUN_FINISHED` row, and sets no refresh times.
 
 A run is `FAILED` when its final stage — `SCORE`, the last `DISCOVER` or the last `EVALUATE` — fails after its retries; a failed earlier job makes it `PARTIAL`. The `SCORE` stage of a refresh runs even when every fetch failed, so decay is applied every interval. On finish a `RUN_FINISHED` audit row is written and, for `ACCOUNT_REFRESH`, the account's refresh times are set by [Refresh scheduling](/architecture/rules.md#refresh-scheduling).
 
@@ -163,6 +167,7 @@ One worker at a time runs the scheduler: each loop takes a PostgreSQL advisory l
 | `JOB_MAX_ATTEMPTS` | `3` | Attempts before a job fails |
 | `JOB_RETRY_BACKOFF_S` | `30` | Base retry backoff |
 | `JOB_LOCK_TIMEOUT_S` | `900` | Age after which a running job is reclaimed |
+| `JOB_POLL_INTERVAL_S` | `1` | Wait of a job loop that found no job before it looks again |
 | `SCHEDULER_TICK_S` | `60` | Scheduler interval |
 | `SCHEDULER_MAX_ENQUEUE` | `20` | Refreshes enqueued per tick |
 | `REFRESH_INTERVAL_HOURS` | `24` | Time between refreshes of an account |

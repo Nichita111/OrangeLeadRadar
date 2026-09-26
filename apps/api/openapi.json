@@ -641,6 +641,303 @@
         "title": "LoginRequest",
         "type": "object"
       },
+      "Page_Run_": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Run"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "title": "Page Size",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "page",
+          "page_size",
+          "total"
+        ],
+        "title": "Page[Run]",
+        "type": "object"
+      },
+      "PipelineRunKind": {
+        "description": "`pipeline_run.kind`.",
+        "enum": [
+          "ACCOUNT_REFRESH",
+          "RECLASSIFY",
+          "RESCORE",
+          "DISCOVERY",
+          "EVALUATION"
+        ],
+        "title": "PipelineRunKind",
+        "type": "string"
+      },
+      "PipelineRunStage": {
+        "description": "`pipeline_run.stage`.",
+        "enum": [
+          "FETCH",
+          "PROCESS",
+          "TRIAGE",
+          "CLASSIFY",
+          "EVIDENCE",
+          "SCORE"
+        ],
+        "title": "PipelineRunStage",
+        "type": "string"
+      },
+      "PipelineRunStatus": {
+        "description": "`pipeline_run.status`.",
+        "enum": [
+          "QUEUED",
+          "RUNNING",
+          "SUCCEEDED",
+          "PARTIAL",
+          "FAILED",
+          "CANCELLED"
+        ],
+        "title": "PipelineRunStatus",
+        "type": "string"
+      },
+      "PipelineRunTrigger": {
+        "description": "`pipeline_run.trigger`.",
+        "enum": [
+          "SCHEDULE",
+          "USER",
+          "QUESTION_CHANGE",
+          "SCORING_ACTIVATION",
+          "ACCOUNT_CHANGE",
+          "FEEDBACK",
+          "OVERRIDE"
+        ],
+        "title": "PipelineRunTrigger",
+        "type": "string"
+      },
+      "Run": {
+        "additionalProperties": false,
+        "description": "[`Run`](/architecture/interfaces.md#run).",
+        "properties": {
+          "account": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RunRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ai_cost_eur": {
+            "title": "Ai Cost Eur",
+            "type": "number"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/RunError"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/PipelineRunKind"
+          },
+          "progress": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Progress",
+            "type": "object"
+          },
+          "question": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RunQuestion"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "requested_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested By Name"
+          },
+          "service": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RunRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PipelineRunStage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PipelineRunStatus"
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/PipelineRunTrigger"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "trigger",
+          "status",
+          "stage",
+          "progress",
+          "errors",
+          "account",
+          "service",
+          "question",
+          "requested_by_name",
+          "created_at",
+          "started_at",
+          "finished_at",
+          "ai_cost_eur"
+        ],
+        "title": "Run",
+        "type": "object"
+      },
+      "RunError": {
+        "additionalProperties": false,
+        "description": "One entry of `Run.errors`, as [`pipeline_run`](/architecture/sql-store.md#pipeline_run)\n`errors` states it.",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "plugin_code": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SourcePluginCode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stage": {
+            "$ref": "#/components/schemas/PipelineRunStage"
+          }
+        },
+        "required": [
+          "stage",
+          "code",
+          "message"
+        ],
+        "title": "RunError",
+        "type": "object"
+      },
+      "RunQuestion": {
+        "additionalProperties": false,
+        "description": "`Run.question`: `{id, key}`.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "key"
+        ],
+        "title": "RunQuestion",
+        "type": "object"
+      },
+      "RunRef": {
+        "additionalProperties": false,
+        "description": "`Run.account` and `Run.service`: `{id, name}`.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "RunRef",
+        "type": "object"
+      },
       "SignalQuestionPolarity": {
         "description": "`signal_question.polarity`.",
         "enum": [
@@ -842,6 +1139,76 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/accounts/{id}/refresh": {
+      "post": {
+        "description": "`API-33`: `202` with a new refresh, or `200` with the one already queued or running.",
+        "operationId": "post_account_refresh_api_v1_accounts__id__refresh_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Run"
+                }
+              }
+            },
+            "description": "The refresh already queued"
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Run"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Post Account Refresh",
+        "tags": [
+          "runs-and-source-plugins"
+        ]
+      }
+    },
     "/api/v1/accounts/{id}/scores/{service_id}/feedback": {
       "post": {
         "description": "`API-46`: applies the api's half of [Feedback effects]\n(/architecture/rules.md#feedback-effects) to the account's lead.",
@@ -1196,6 +1563,270 @@
         "summary": "Get Impact",
         "tags": [
           "evaluation"
+        ]
+      }
+    },
+    "/api/v1/runs": {
+      "get": {
+        "description": "`API-34`: runs newest first, filtered by kind, status, account and service.",
+        "operationId": "get_runs_api_v1_runs_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/PipelineRunKind"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/PipelineRunStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "account_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Account Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "service_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Service Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Page Size"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_Run_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Runs",
+        "tags": [
+          "runs-and-source-plugins"
+        ]
+      }
+    },
+    "/api/v1/runs/{id}": {
+      "get": {
+        "description": "`API-35`: one run with its stage, progress and errors.",
+        "operationId": "get_run_by_id_api_v1_runs__id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Run"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Run By Id",
+        "tags": [
+          "runs-and-source-plugins"
+        ]
+      }
+    },
+    "/api/v1/runs/{id}/cancel": {
+      "post": {
+        "description": "`API-36`: cancels a queued or running run; Admin only for `RECLASSIFY`, `RESCORE` and\n`EVALUATION` runs.",
+        "operationId": "post_run_cancel_api_v1_runs__id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Run"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Post Run Cancel",
+        "tags": [
+          "runs-and-source-plugins"
         ]
       }
     },
