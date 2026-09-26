@@ -4,6 +4,646 @@
  */
 
 export interface paths {
+    "/api/v1/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Accounts
+         * @description `API-20`.
+         */
+        get: operations["list_accounts_api_v1_accounts_get"];
+        put?: never;
+        /**
+         * Create Account
+         * @description `API-21`.
+         */
+        post: operations["create_account_api_v1_accounts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounts/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Accounts
+         * @description `API-22`. `AccountImportRow` describes the uploaded CSV's columns.
+         */
+        post: operations["import_accounts_api_v1_accounts_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Account
+         * @description `API-23`.
+         */
+        get: operations["get_account_api_v1_accounts__id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Account
+         * @description `API-24`.
+         */
+        patch: operations["update_account_api_v1_accounts__id__patch"];
+        trace?: never;
+    };
+    "/api/v1/accounts/{id}/contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Contacts
+         * @description `API-25`.
+         */
+        get: operations["list_contacts_api_v1_accounts__id__contacts_get"];
+        put?: never;
+        /**
+         * Create Contact
+         * @description `API-26`.
+         */
+        post: operations["create_contact_api_v1_accounts__id__contacts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounts/{id}/findings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Findings
+         * @description `API-42`.
+         */
+        get: operations["list_findings_api_v1_accounts__id__findings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounts/{id}/outreach-drafts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Outreach Drafts
+         * @description `API-57`.
+         */
+        get: operations["list_outreach_drafts_api_v1_accounts__id__outreach_drafts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounts/{id}/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refresh Account
+         * @description `API-33`.
+         */
+        post: operations["refresh_account_api_v1_accounts__id__refresh_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounts/{id}/scores/{service_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Score
+         * @description `API-40`.
+         */
+        get: operations["get_score_api_v1_accounts__id__scores__service_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounts/{id}/scores/{service_id}/crm-push": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Push To Crm
+         * @description `API-59`.
+         */
+        post: operations["push_to_crm_api_v1_accounts__id__scores__service_id__crm_push_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounts/{id}/scores/{service_id}/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Lead Feedback
+         * @description `API-46`.
+         */
+        post: operations["create_lead_feedback_api_v1_accounts__id__scores__service_id__feedback_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounts/{id}/scores/{service_id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Score History
+         * @description `API-41`.
+         */
+        get: operations["get_score_history_api_v1_accounts__id__scores__service_id__history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounts/{id}/scores/{service_id}/outreach-drafts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Outreach Draft
+         * @description `API-56`.
+         */
+        post: operations["create_outreach_draft_api_v1_accounts__id__scores__service_id__outreach_drafts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounts/{id}/scores/{service_id}/overrides": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Override
+         * @description `API-44`.
+         */
+        post: operations["create_override_api_v1_accounts__id__scores__service_id__overrides_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Alerts
+         * @description `API-48`.
+         */
+        get: operations["list_alerts_api_v1_alerts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alerts/{id}/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Acknowledge Alert
+         * @description `API-49`.
+         */
+        post: operations["acknowledge_alert_api_v1_alerts__id__acknowledge_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Audit Entries
+         * @description `API-60`.
+         */
+        get: operations["list_audit_entries_api_v1_audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/demo-login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Demo Login
+         * @description `API-78`.
+         */
+        post: operations["demo_login_api_v1_auth_demo_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Login
+         * @description `API-01`.
+         */
+        post: operations["login_api_v1_auth_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Logout
+         * @description `API-02`.
+         */
+        post: operations["logout_api_v1_auth_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Current User
+         * @description `API-03`.
+         */
+        get: operations["get_current_user_api_v1_auth_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contacts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Contact
+         * @description `API-28`.
+         */
+        delete: operations["delete_contact_api_v1_contacts__id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Contact
+         * @description `API-27`.
+         */
+        patch: operations["update_contact_api_v1_contacts__id__patch"];
+        trace?: never;
+    };
+    "/api/v1/discovery-candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Discovery Candidates
+         * @description `API-30`.
+         */
+        get: operations["list_discovery_candidates_api_v1_discovery_candidates_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/discovery-candidates/{id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept Discovery Candidate
+         * @description `API-31`.
+         */
+        post: operations["accept_discovery_candidate_api_v1_discovery_candidates__id__accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/discovery-candidates/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject Discovery Candidate
+         * @description `API-32`.
+         */
+        post: operations["reject_discovery_candidate_api_v1_discovery_candidates__id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/evaluation/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Evaluation Items
+         * @description `API-52`.
+         */
+        get: operations["list_evaluation_items_api_v1_evaluation_items_get"];
+        put?: never;
+        /**
+         * Create Label
+         * @description `API-51`.
+         */
+        post: operations["create_label_api_v1_evaluation_items_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/evaluation/label-queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Label Queue
+         * @description `API-50`.
+         */
+        get: operations["get_label_queue_api_v1_evaluation_label_queue_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/evaluation/results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Evaluation Results
+         * @description `API-54`.
+         */
+        get: operations["list_evaluation_results_api_v1_evaluation_results_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/evaluation/results/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Evaluation Result
+         * @description `API-55`.
+         */
+        get: operations["get_evaluation_result_api_v1_evaluation_results__run_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/evaluation/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Evaluation Run
+         * @description `API-53`.
+         */
+        post: operations["start_evaluation_run_api_v1_evaluation_runs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/findings/{id}/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Evidence
+         * @description `API-43`.
+         */
+        get: operations["get_evidence_api_v1_findings__id__evidence_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/findings/{id}/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Finding Feedback
+         * @description `API-47`.
+         */
+        post: operations["create_finding_feedback_api_v1_findings__id__feedback_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health": {
         parameters: {
             query?: never;
@@ -24,10 +664,1399 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Impact
+         * @description `API-77`.
+         */
+        get: operations["get_impact_api_v1_impact_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/industries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Industries
+         * @description `API-71`.
+         */
+        get: operations["list_industries_api_v1_industries_get"];
+        put?: never;
+        /**
+         * Create Industry
+         * @description `API-72`.
+         */
+        post: operations["create_industry_api_v1_industries_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/industries/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Industry
+         * @description `API-73`.
+         */
+        patch: operations["update_industry_api_v1_industries__code__patch"];
+        trace?: never;
+    };
+    "/api/v1/markets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Markets
+         * @description `API-74`.
+         */
+        get: operations["list_markets_api_v1_markets_get"];
+        put?: never;
+        /**
+         * Create Market
+         * @description `API-75`.
+         */
+        post: operations["create_market_api_v1_markets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/markets/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Market
+         * @description `API-76`.
+         */
+        patch: operations["update_market_api_v1_markets__code__patch"];
+        trace?: never;
+    };
+    "/api/v1/outreach-drafts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Outreach Draft
+         * @description `API-58`.
+         */
+        patch: operations["update_outreach_draft_api_v1_outreach_drafts__id__patch"];
+        trace?: never;
+    };
+    "/api/v1/overrides/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke Override
+         * @description `API-45`.
+         */
+        post: operations["revoke_override_api_v1_overrides__id__revoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/questions/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview Question
+         * @description `API-14`.
+         */
+        post: operations["preview_question_api_v1_questions_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/questions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Question
+         * @description `API-13`.
+         */
+        patch: operations["update_question_api_v1_questions__id__patch"];
+        trace?: never;
+    };
+    "/api/v1/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Runs
+         * @description `API-34`.
+         */
+        get: operations["list_runs_api_v1_runs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/runs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Run
+         * @description `API-35`.
+         */
+        get: operations["get_run_api_v1_runs__id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/runs/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel Run
+         * @description `API-36`.
+         */
+        post: operations["cancel_run_api_v1_runs__id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/scoring-configs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Scoring Config
+         * @description `API-16`.
+         */
+        get: operations["get_scoring_config_api_v1_scoring_configs__id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/scoring-configs/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Activate Scoring Config
+         * @description `API-18`.
+         */
+        post: operations["activate_scoring_config_api_v1_scoring_configs__id__activate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/scoring-configs/{id}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview Scoring Config
+         * @description `API-19`.
+         */
+        post: operations["preview_scoring_config_api_v1_scoring_configs__id__preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Services
+         * @description `API-07`.
+         */
+        get: operations["list_services_api_v1_services_get"];
+        put?: never;
+        /**
+         * Create Service
+         * @description `API-08`.
+         */
+        post: operations["create_service_api_v1_services_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Service
+         * @description `API-09`.
+         */
+        get: operations["get_service_api_v1_services__id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Service
+         * @description `API-10`.
+         */
+        patch: operations["update_service_api_v1_services__id__patch"];
+        trace?: never;
+    };
+    "/api/v1/services/{id}/discovery-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Discovery Run
+         * @description `API-29`.
+         */
+        post: operations["start_discovery_run_api_v1_services__id__discovery_runs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/{id}/prospects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Prospects
+         * @description `API-39`.
+         */
+        get: operations["list_prospects_api_v1_services__id__prospects_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/{id}/questions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Questions
+         * @description `API-11`.
+         */
+        get: operations["list_questions_api_v1_services__id__questions_get"];
+        put?: never;
+        /**
+         * Create Question
+         * @description `API-12`.
+         */
+        post: operations["create_question_api_v1_services__id__questions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/{id}/scoring-configs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Scoring Configs
+         * @description `API-15`.
+         */
+        get: operations["list_scoring_configs_api_v1_services__id__scoring_configs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/{id}/scoring-configs/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update Scoring Draft
+         * @description `API-17`.
+         */
+        put: operations["update_scoring_draft_api_v1_services__id__scoring_configs_draft_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/source-plugins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Source Plugins
+         * @description `API-37`.
+         */
+        get: operations["list_source_plugins_api_v1_source_plugins_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/source-plugins/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Source Plugin
+         * @description `API-38`.
+         */
+        patch: operations["update_source_plugin_api_v1_source_plugins__code__patch"];
+        trace?: never;
+    };
+    "/api/v1/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Users
+         * @description `API-04`.
+         */
+        get: operations["list_users_api_v1_users_get"];
+        put?: never;
+        /**
+         * Create User
+         * @description `API-05`.
+         */
+        post: operations["create_user_api_v1_users_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update User
+         * @description `API-06`.
+         */
+        patch: operations["update_user_api_v1_users__id__patch"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * Account
+         * @description [`Account`](/architecture/interfaces.md#account): every field of
+         *     [`AccountRow`](#accountrow) plus these.
+         */
+        Account: {
+            /** Active Run Id */
+            active_run_id: string | null;
+            /** Aliases */
+            aliases: string[];
+            /** Attribute Origin */
+            attribute_origin: {
+                [key: string]: string;
+            };
+            /** Country Code */
+            country_code: string;
+            /** Crunchbase Id */
+            crunchbase_id: string | null;
+            /** Domain */
+            domain: string;
+            /** Employee Count */
+            employee_count: number | null;
+            /** Id */
+            id: string;
+            /** Industry */
+            industry: string | null;
+            /** Last Refreshed At */
+            last_refreshed_at: string | null;
+            /** Linkedin Url */
+            linkedin_url: string | null;
+            /** Name */
+            name: string;
+            /** Next Refresh At */
+            next_refresh_at: string | null;
+            /** Notes */
+            notes: string | null;
+            operational_complexity: components["schemas"]["AccountOperationalComplexity"] | null;
+            origin: components["schemas"]["AccountOrigin"];
+            parent: components["schemas"]["AccountParent"] | null;
+            /** Revenue Eur */
+            revenue_eur: number | null;
+            /** Sources */
+            sources: components["schemas"]["AccountSource"][];
+            status: components["schemas"]["AccountStatus"];
+        };
+        /**
+         * AccountCreate
+         * @description [`AccountCreate`](/architecture/interfaces.md#accountcreate).
+         */
+        AccountCreate: {
+            /** Aliases */
+            aliases?: string[] | null;
+            /** Country Code */
+            country_code?: string | null;
+            /** Domain */
+            domain: string;
+            /** Employee Count */
+            employee_count?: number | null;
+            /** Industry */
+            industry?: string | null;
+            /** Linkedin Url */
+            linkedin_url?: string | null;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes?: string | null;
+            operational_complexity?: components["schemas"]["AccountOperationalComplexity"] | null;
+            /** Parent Account Id */
+            parent_account_id?: string | null;
+            /** Revenue Eur */
+            revenue_eur?: number | null;
+            /** Sources */
+            sources?: components["schemas"]["AccountSourceCreate"][] | null;
+        };
+        /**
+         * AccountOperationalComplexity
+         * @description `account.operational_complexity`.
+         * @enum {string}
+         */
+        AccountOperationalComplexity: "LOW" | "MEDIUM" | "HIGH";
+        /**
+         * AccountOrigin
+         * @description `account.origin`.
+         * @enum {string}
+         */
+        AccountOrigin: "IMPORTED" | "MANUAL" | "DISCOVERED";
+        /**
+         * AccountParent
+         * @description `Account.parent`.
+         */
+        AccountParent: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /**
+         * AccountRow
+         * @description [`AccountRow`](/architecture/interfaces.md#accountrow).
+         */
+        AccountRow: {
+            /** Active Run Id */
+            active_run_id: string | null;
+            /** Country Code */
+            country_code: string;
+            /** Domain */
+            domain: string;
+            /** Id */
+            id: string;
+            /** Industry */
+            industry: string | null;
+            /** Last Refreshed At */
+            last_refreshed_at: string | null;
+            /** Name */
+            name: string;
+            origin: components["schemas"]["AccountOrigin"];
+            status: components["schemas"]["AccountStatus"];
+        };
+        /**
+         * AccountScoreBand
+         * @description `account_score.band`.
+         * @enum {string}
+         */
+        AccountScoreBand: "HOT" | "WARM" | "COLD";
+        /**
+         * AccountScoreStanding
+         * @description `account_score.standing`.
+         * @enum {string}
+         */
+        AccountScoreStanding: "RANKED" | "BELOW_FIT" | "DISQUALIFIED" | "CUSTOMER";
+        /**
+         * AccountSource
+         * @description One entry of `Account.sources`.
+         */
+        AccountSource: {
+            kind: components["schemas"]["AccountSourceKind"];
+            origin: components["schemas"]["AccountSourceOrigin"];
+            status: components["schemas"]["AccountSourceStatus"];
+            /** Url */
+            url: string;
+        };
+        /**
+         * AccountSourceCreate
+         * @description One entry of `AccountCreate.sources`.
+         */
+        AccountSourceCreate: {
+            kind: components["schemas"]["AccountSourceKind"];
+            /** Url */
+            url: string;
+        };
+        /**
+         * AccountSourceKind
+         * @description `account_source.kind`.
+         * @enum {string}
+         */
+        AccountSourceKind: "WEBSITE" | "NEWSROOM" | "INVESTOR_RELATIONS" | "CAREERS" | "RSS_FEED";
+        /**
+         * AccountSourceOrigin
+         * @description `account_source.origin`.
+         * @enum {string}
+         */
+        AccountSourceOrigin: "MANUAL" | "DETECTED";
+        /**
+         * AccountSourceStatus
+         * @description `account_source.status`.
+         * @enum {string}
+         */
+        AccountSourceStatus: "ACTIVE" | "INACTIVE";
+        /**
+         * AccountSourceUpdate
+         * @description One entry of `AccountUpdate.sources`.
+         */
+        AccountSourceUpdate: {
+            kind: components["schemas"]["AccountSourceKind"];
+            status?: components["schemas"]["AccountSourceStatus"] | null;
+            /** Url */
+            url: string;
+        };
+        /**
+         * AccountStatus
+         * @description `account.status`.
+         * @enum {string}
+         */
+        AccountStatus: "ACTIVE" | "INACTIVE";
+        /**
+         * AccountUpdate
+         * @description [`AccountUpdate`](/architecture/interfaces.md#accountupdate): every field of
+         *     [`AccountCreate`](#accountcreate) except `domain`, optional, plus `sources` and `status`.
+         */
+        AccountUpdate: {
+            /** Aliases */
+            aliases?: string[] | null;
+            /** Country Code */
+            country_code?: string | null;
+            /** Employee Count */
+            employee_count?: number | null;
+            /** Industry */
+            industry?: string | null;
+            /** Linkedin Url */
+            linkedin_url?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Notes */
+            notes?: string | null;
+            operational_complexity?: components["schemas"]["AccountOperationalComplexity"] | null;
+            /** Parent Account Id */
+            parent_account_id?: string | null;
+            /** Revenue Eur */
+            revenue_eur?: number | null;
+            /** Sources */
+            sources?: components["schemas"]["AccountSourceUpdate"][] | null;
+            status?: components["schemas"]["AccountStatus"] | null;
+        };
+        /**
+         * ActivationRequest
+         * @description [`ActivationRequest`](/architecture/interfaces.md#activationrequest).
+         */
+        ActivationRequest: {
+            /** Change Note */
+            change_note: string;
+        };
+        /**
+         * AlertBandChange
+         * @description `AlertView.band_change`.
+         */
+        AlertBandChange: {
+            /** From */
+            from: string;
+            /** To */
+            to: string;
+        };
+        /**
+         * AlertFinding
+         * @description `AlertView.finding`.
+         */
+        AlertFinding: {
+            /** Id */
+            id: string;
+            /** Question Text */
+            question_text: string;
+            /** Quote */
+            quote: string | null;
+            strength: components["schemas"]["FindingStrength"];
+        };
+        /**
+         * AlertKind
+         * @description `alert.kind`.
+         * @enum {string}
+         */
+        AlertKind: "STRONG_SIGNAL" | "BAND_UP";
+        /**
+         * AlertView
+         * @description [`AlertView`](/architecture/interfaces.md#alertview).
+         */
+        AlertView: {
+            account: components["schemas"]["IdName"];
+            /** Acknowledged At */
+            acknowledged_at: string | null;
+            /** Acknowledged By Name */
+            acknowledged_by_name: string | null;
+            band_change: components["schemas"]["AlertBandChange"] | null;
+            /** Created At */
+            created_at: string;
+            finding: components["schemas"]["AlertFinding"] | null;
+            /** Id */
+            id: string;
+            kind: components["schemas"]["AlertKind"];
+            service: components["schemas"]["IdName"];
+        };
+        /**
+         * AppUserRole
+         * @description `app_user.role`.
+         * @enum {string}
+         */
+        AppUserRole: "SALES" | "ADMIN";
+        /**
+         * AppUserStatus
+         * @description `app_user.status`.
+         * @enum {string}
+         */
+        AppUserStatus: "ACTIVE" | "DISABLED";
+        /**
+         * AuditEntry
+         * @description [`AuditEntry`](/architecture/interfaces.md#auditentry).
+         */
+        AuditEntry: {
+            /** Action */
+            action: string;
+            /** Actor Name */
+            actor_name: string | null;
+            /** Entity Id */
+            entity_id: string | null;
+            /** Entity Type */
+            entity_type: string | null;
+            /** Id */
+            id: string;
+            kind: components["schemas"]["AuditEventKind"];
+            /** Occurred At */
+            occurred_at: string;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Request Id */
+            request_id: string | null;
+            /** Run Id */
+            run_id: string | null;
+        };
+        /**
+         * AuditEventKind
+         * @description `audit_event.kind`.
+         * @enum {string}
+         */
+        AuditEventKind: "AUTH" | "USER" | "CONFIG" | "ACCOUNT" | "CONTACT" | "RUN" | "OVERRIDE" | "FEEDBACK" | "OUTREACH" | "CRM" | "AI_CALL";
+        /**
+         * AuthenticatedUser
+         * @description [`AuthenticatedUser`](/architecture/interfaces.md#authenticateduser).
+         */
+        AuthenticatedUser: {
+            /** Display Name */
+            display_name: string;
+            /** Email */
+            email: string;
+            /** Id */
+            id: string;
+            role: components["schemas"]["AppUserRole"];
+        };
+        /** Body_import_accounts_api_v1_accounts_import_post */
+        Body_import_accounts_api_v1_accounts_import_post: {
+            /** Dry Run */
+            dry_run: boolean;
+            /** File */
+            file: string;
+        };
+        /**
+         * CandidateDecision
+         * @description [`CandidateDecision`](/architecture/interfaces.md#candidatedecision).
+         */
+        CandidateDecision: {
+            /** Domain */
+            domain?: string | null;
+            /** Reason */
+            reason?: string | null;
+        };
+        /**
+         * Contact
+         * @description [`Contact`](/architecture/interfaces.md#contact).
+         */
+        Contact: {
+            /** Account Id */
+            account_id: string;
+            /** Full Name */
+            full_name: string;
+            /** Id */
+            id: string;
+            /** Job Title */
+            job_title: string;
+            persona: components["schemas"]["ContactPersona"];
+            persona_origin: components["schemas"]["ContactPersonaOrigin"];
+            /** Retain Until */
+            retain_until: string;
+            /** Source Url */
+            source_url: string;
+        };
+        /**
+         * ContactCreate
+         * @description [`ContactCreate`](/architecture/interfaces.md#contactcreate).
+         */
+        ContactCreate: {
+            /** Full Name */
+            full_name: string;
+            /** Job Title */
+            job_title: string;
+            persona?: components["schemas"]["ContactPersona"] | null;
+            /** Source Url */
+            source_url: string;
+        };
+        /**
+         * ContactPersona
+         * @description `contact.persona` (the Persona values table).
+         * @enum {string}
+         */
+        ContactPersona: "CIO" | "CTO" | "COO" | "CFO" | "CISO" | "HEAD_OF_DIGITAL_TRANSFORMATION" | "HEAD_OF_AUTOMATION" | "HEAD_OF_PROCESS_EXCELLENCE" | "HEAD_OF_SHARED_SERVICES" | "OTHER";
+        /**
+         * ContactPersonaOrigin
+         * @description `contact.persona_origin`.
+         * @enum {string}
+         */
+        ContactPersonaOrigin: "MANUAL" | "CLASSIFIER";
+        /**
+         * ContactUpdate
+         * @description [`ContactUpdate`](/architecture/interfaces.md#contactupdate).
+         */
+        ContactUpdate: {
+            /** Full Name */
+            full_name?: string | null;
+            /** Job Title */
+            job_title?: string | null;
+            persona?: components["schemas"]["ContactPersona"] | null;
+            /** Source Url */
+            source_url?: string | null;
+        };
+        /**
+         * CrmSyncStatus
+         * @description `crm_sync.status`.
+         * @enum {string}
+         */
+        CrmSyncStatus: "SUCCEEDED" | "FAILED";
+        /**
+         * CrmSyncTarget
+         * @description `crm_sync.target`.
+         * @enum {string}
+         */
+        CrmSyncTarget: "HUBSPOT";
+        /**
+         * CrmSyncView
+         * @description [`CrmSyncView`](/architecture/interfaces.md#crmsyncview).
+         */
+        CrmSyncView: {
+            /** Created At */
+            created_at: string;
+            /** Error */
+            error: string | null;
+            /** External Id */
+            external_id: string | null;
+            /** Id */
+            id: string;
+            status: components["schemas"]["CrmSyncStatus"];
+            target: components["schemas"]["CrmSyncTarget"];
+        };
+        /**
+         * DemoLoginRequest
+         * @description [`DemoLoginRequest`](/architecture/interfaces.md#demologinrequest).
+         */
+        DemoLoginRequest: {
+            role: components["schemas"]["AppUserRole"];
+        };
+        /**
+         * DiscoveryCandidate
+         * @description [`DiscoveryCandidate`](/architecture/interfaces.md#discoverycandidate).
+         */
+        DiscoveryCandidate: {
+            /** Account Id */
+            account_id: string | null;
+            /** Country Code */
+            country_code: string | null;
+            /** Domain */
+            domain: string | null;
+            /** Employee Count */
+            employee_count: number | null;
+            evidence: components["schemas"]["DiscoveryCandidateEvidence"] | null;
+            /** Fit Estimate */
+            fit_estimate: number;
+            /** Id */
+            id: string;
+            /** Industry */
+            industry: string | null;
+            /** Name */
+            name: string;
+            origin: components["schemas"]["DiscoveryCandidateOrigin"];
+            /** Reject Reason */
+            reject_reason: string | null;
+            /** Service Id */
+            service_id: string;
+            status: components["schemas"]["DiscoveryCandidateStatus"];
+        };
+        /**
+         * DiscoveryCandidateEvidence
+         * @description `DiscoveryCandidate.evidence`.
+         */
+        DiscoveryCandidateEvidence: {
+            /** Document Id */
+            document_id: string;
+            /** Published At */
+            published_at: string | null;
+            /** Quote */
+            quote: string;
+            /** Title */
+            title: string;
+            /** Url */
+            url: string;
+        };
+        /**
+         * DiscoveryCandidateOrigin
+         * @description `discovery_candidate.origin`.
+         * @enum {string}
+         */
+        DiscoveryCandidateOrigin: "CRUNCHBASE_SEARCH" | "NEWS_MENTION";
+        /**
+         * DiscoveryCandidateStatus
+         * @description `discovery_candidate.status`.
+         * @enum {string}
+         */
+        DiscoveryCandidateStatus: "PENDING" | "ACCEPTED" | "REJECTED";
+        /**
+         * Disqualifier
+         * @description One entry of `disqualifiers`.
+         */
+        Disqualifier: {
+            /** Criterion Key */
+            criterion_key?: string | null;
+            /** Key */
+            key: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "ICP_MISMATCH" | "SIGNAL";
+            /** Label */
+            label: string;
+            min_strength?: components["schemas"]["FindingStrength"] | null;
+            /** Question Key */
+            question_key?: string | null;
+        };
+        /**
+         * DisqualifierBreakdown
+         * @description One entry of `disqualifiers`.
+         */
+        DisqualifierBreakdown: {
+            /** Finding Id */
+            finding_id: string | null;
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Matched */
+            matched: boolean;
+            /** Overridden */
+            overridden: boolean;
+            /** Override Id */
+            override_id: string | null;
+        };
+        /**
+         * DisqualifierOverrideStatus
+         * @description `disqualifier_override.status`.
+         * @enum {string}
+         */
+        DisqualifierOverrideStatus: "ACTIVE" | "REVOKED";
+        /**
+         * DocumentSourceType
+         * @description `document.source_type`.
+         * @enum {string}
+         */
+        DocumentSourceType: "NEWS" | "COMPANY_PUBLICATION" | "JOB_POSTING" | "COMPANY_PROFILE";
+        /**
+         * DocumentTriageClassifier
+         * @description `document_triage.classifier`; reused by `classification.classifier` and
+         *     `evaluation_result.classifier`.
+         * @enum {string}
+         */
+        DocumentTriageClassifier: "JEV" | "LLM";
+        /**
+         * ErrorBody
+         * @description `error` of [Conventions](/architecture/interfaces.md#conventions) `ErrorEnvelope`.
+         */
+        ErrorBody: {
+            /** Code */
+            code: string;
+            /** Details */
+            details?: {
+                [key: string]: unknown;
+            } | null;
+            /** Message */
+            message: string;
+        };
+        /**
+         * ErrorEnvelope
+         * @description The `{"error": {...}}` shape of [Conventions](/architecture/interfaces.md#conventions),
+         *     named `ErrorEnvelope` in the OpenAPI document.
+         */
+        ErrorEnvelope: {
+            error: components["schemas"]["ErrorBody"];
+        };
+        /**
+         * EvaluationItem
+         * @description [`EvaluationItem`](/architecture/interfaces.md#evaluationitem).
+         */
+        EvaluationItem: {
+            /** Chunk Id */
+            chunk_id: string;
+            /** Created At */
+            created_at: string;
+            expected_strength: components["schemas"]["FindingStrength"];
+            /** Id */
+            id: string;
+            /** Labelled By Name */
+            labelled_by_name: string;
+            origin: components["schemas"]["EvaluationItemOrigin"];
+            /** Question Id */
+            question_id: string;
+            /** Question Key */
+            question_key: string;
+            /** Question Revision */
+            question_revision: number;
+            status: components["schemas"]["EvaluationItemStatus"];
+        };
+        /**
+         * EvaluationItemOrigin
+         * @description `evaluation_item.origin`.
+         * @enum {string}
+         */
+        EvaluationItemOrigin: "MANUAL" | "FINDING_FEEDBACK";
+        /**
+         * EvaluationItemStatus
+         * @description `evaluation_item.status`.
+         * @enum {string}
+         */
+        EvaluationItemStatus: "ACTIVE" | "STALE";
+        /**
+         * EvaluationResult
+         * @description [`EvaluationResult`](/architecture/interfaces.md#evaluationresult): every field of
+         *     [`EvaluationResultSummary`](#evaluationresultsummary) plus these.
+         */
+        EvaluationResult: {
+            classifier: components["schemas"]["DocumentTriageClassifier"];
+            /** Created At */
+            created_at: string;
+            /** Escalation Lower */
+            escalation_lower: number;
+            /** Escalation Rate */
+            escalation_rate: number | null;
+            /** Escalation Rate Target */
+            escalation_rate_target: number;
+            /** Escalation Upper */
+            escalation_upper: number;
+            /** Items */
+            items: number;
+            /** Metrics */
+            metrics: {
+                [key: string]: unknown;
+            };
+            /** Min Items */
+            min_items: number;
+            /** Min Precision */
+            min_precision: number;
+            /** Passed */
+            passed: boolean;
+            /** Precision */
+            precision: number | null;
+            /** Recall */
+            recall: number | null;
+            /** Run Id */
+            run_id: string;
+        };
+        /**
+         * EvaluationResultSummary
+         * @description [`EvaluationResultSummary`](/architecture/interfaces.md#evaluationresultsummary).
+         */
+        EvaluationResultSummary: {
+            classifier: components["schemas"]["DocumentTriageClassifier"];
+            /** Created At */
+            created_at: string;
+            /** Escalation Rate */
+            escalation_rate: number | null;
+            /** Items */
+            items: number;
+            /** Passed */
+            passed: boolean;
+            /** Precision */
+            precision: number | null;
+            /** Recall */
+            recall: number | null;
+            /** Run Id */
+            run_id: string;
+        };
+        /**
+         * EvidenceView
+         * @description [`EvidenceView`](/architecture/interfaces.md#evidenceview).
+         */
+        EvidenceView: {
+            document: components["schemas"]["FindingDocument"];
+            /** Excerpt */
+            excerpt: string | null;
+            /** Finding Id */
+            finding_id: string;
+            /** Purged */
+            purged: boolean;
+            /** Quote End */
+            quote_end: number | null;
+            /** Quote Start */
+            quote_start: number | null;
+            /** Section */
+            section: string | null;
+        };
+        /**
+         * FeedbackCreate
+         * @description [`FeedbackCreate`](/architecture/interfaces.md#feedbackcreate).
+         */
+        FeedbackCreate: {
+            /** Note */
+            note?: string | null;
+            /** Verdict */
+            verdict: components["schemas"]["LeadFeedbackVerdict"] | components["schemas"]["FindingFeedbackVerdict"];
+        };
+        /**
+         * FindingDecidedBy
+         * @description `finding.decided_by`.
+         * @enum {string}
+         */
+        FindingDecidedBy: "CLASSIFIER" | "LLM";
+        /**
+         * FindingDocument
+         * @description `FindingView.document`, reused by `EvidenceView.document`.
+         */
+        FindingDocument: {
+            /** Id */
+            id: string;
+            /** Language */
+            language: string;
+            plugin_code: components["schemas"]["SourcePluginCode"];
+            /** Published At */
+            published_at: string | null;
+            source_type: components["schemas"]["DocumentSourceType"];
+            /** Title */
+            title: string;
+            /** Url */
+            url: string;
+        };
+        /**
+         * FindingFeedback
+         * @description `FindingView.feedback`.
+         */
+        FindingFeedback: {
+            /** Created At */
+            created_at: string;
+            /** User Name */
+            user_name: string;
+            verdict: components["schemas"]["FindingFeedbackVerdict"];
+        };
+        /**
+         * FindingFeedbackVerdict
+         * @description `finding_feedback.verdict`.
+         * @enum {string}
+         */
+        FindingFeedbackVerdict: "CORRECT" | "WRONG";
+        /**
+         * FindingOption
+         * @description `FindingView.option`.
+         */
+        FindingOption: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+        };
+        /**
+         * FindingQuestion
+         * @description `FindingView.question`.
+         */
+        FindingQuestion: {
+            /** Id */
+            id: string;
+            /** Key */
+            key: string;
+            polarity: components["schemas"]["SignalQuestionPolarity"];
+            /** Text */
+            text: string;
+        };
+        /**
+         * FindingStatus
+         * @description `finding.status`.
+         * @enum {string}
+         */
+        FindingStatus: "ACTIVE" | "SUPERSEDED" | "REJECTED";
+        /**
+         * FindingStrength
+         * @description `finding.strength`; reused by `classification.strength` and
+         *     `evaluation_item.expected_strength`.
+         * @enum {string}
+         */
+        FindingStrength: "NONE" | "WEAK" | "MEDIUM" | "STRONG";
+        /**
+         * FindingView
+         * @description [`FindingView`](/architecture/interfaces.md#findingview).
+         */
+        FindingView: {
+            /** Account Id */
+            account_id: string;
+            /** Confidence */
+            confidence: number;
+            decided_by: components["schemas"]["FindingDecidedBy"];
+            document: components["schemas"]["FindingDocument"];
+            feedback: components["schemas"]["FindingFeedback"] | null;
+            /** Id */
+            id: string;
+            /** Observed At */
+            observed_at: string;
+            option: components["schemas"]["FindingOption"] | null;
+            /** Points */
+            points: number | null;
+            question: components["schemas"]["FindingQuestion"];
+            /** Question Revision */
+            question_revision: number;
+            /** Quote */
+            quote: string | null;
+            /** Quote En */
+            quote_en: string | null;
+            /** Rationale */
+            rationale: string | null;
+            /** Service Id */
+            service_id: string;
+            status: components["schemas"]["FindingStatus"];
+            strength: components["schemas"]["FindingStrength"];
+        };
+        /**
+         * FitBreakdown
+         * @description The `fit` object.
+         */
+        FitBreakdown: {
+            /** Criteria */
+            criteria: components["schemas"]["FitCriterionBreakdown"][];
+            /** Value */
+            value: number;
+        };
+        /**
+         * FitCriterionBreakdown
+         * @description One entry of `fit.criteria`.
+         */
+        FitCriterionBreakdown: {
+            /** Attribute */
+            attribute: string | null;
+            /** Credit */
+            credit: number;
+            /** Key */
+            key: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "INDUSTRY" | "GEOGRAPHY" | "EMPLOYEE_RANGE" | "REVENUE_RANGE" | "OPERATIONAL_COMPLEXITY";
+            /**
+             * Match
+             * @enum {string}
+             */
+            match: "MATCH" | "MISMATCH" | "UNKNOWN";
+            /** Points */
+            points: number;
+            /**
+             * Weight
+             * @enum {string}
+             */
+            weight: "HIGH" | "MEDIUM" | "LOW" | "NONE";
+            /** Weight Value */
+            weight_value: number;
+        };
         /**
          * Health
          * @description [Health](/architecture/interfaces.md#health), the response of `API-61`.
@@ -58,6 +2087,1226 @@ export interface components {
          * @enum {string}
          */
         HealthStatus: "OK" | "DEGRADED" | "DOWN";
+        /**
+         * IcpCriterion
+         * @description One entry of `icp_criteria`.
+         */
+        IcpCriterion: {
+            /** Key */
+            key: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "INDUSTRY" | "GEOGRAPHY" | "EMPLOYEE_RANGE" | "REVENUE_RANGE" | "OPERATIONAL_COMPLEXITY";
+            /** Max */
+            max?: number | null;
+            /** Min */
+            min?: number | null;
+            /** Values */
+            values?: string[] | null;
+            /**
+             * Weight
+             * @enum {string}
+             */
+            weight: "HIGH" | "MEDIUM" | "LOW" | "NONE";
+        };
+        /**
+         * IdName
+         * @description The anonymous `{id, name}` shape nested by several responses.
+         */
+        IdName: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /**
+         * Impact
+         * @description [`Impact`](/architecture/interfaces.md#impact).
+         */
+        Impact: {
+            /** Accounts Refreshed */
+            accounts_refreshed: number;
+            /** Cost Per Refresh Eur */
+            cost_per_refresh_eur: number | null;
+            /** Findings Created */
+            findings_created: number;
+            /** Labelled Items */
+            labelled_items: number | null;
+            /** Manual Hours Replaced */
+            manual_hours_replaced: number;
+            /** Manual Minutes Per Account */
+            manual_minutes_per_account: number;
+            /** Minutes Per Refresh */
+            minutes_per_refresh: number | null;
+            /** Period Days */
+            period_days: number;
+            /** Precision */
+            precision: number | null;
+            /** Refreshes */
+            refreshes: number;
+        };
+        /**
+         * ImportResult
+         * @description [`ImportResult`](/architecture/interfaces.md#importresult).
+         */
+        ImportResult: {
+            /** Created */
+            created: number;
+            /** Dry Run */
+            dry_run: boolean;
+            /** Duplicates */
+            duplicates: number;
+            /** Invalid */
+            invalid: number;
+            /** Rows */
+            rows: components["schemas"]["ImportRowResult"][];
+            /** Updated */
+            updated: number;
+        };
+        /**
+         * ImportRowResult
+         * @description One entry of `ImportResult.rows`.
+         */
+        ImportRowResult: {
+            /** Account Id */
+            account_id: string | null;
+            /** Domain */
+            domain: string;
+            /** Errors */
+            errors: {
+                [key: string]: string;
+            }[];
+            /** Line */
+            line: number;
+            /** Outcome */
+            outcome: string;
+        };
+        /**
+         * Industry
+         * @description [`Industry`](/architecture/interfaces.md#industry).
+         */
+        Industry: {
+            /** Account Count */
+            account_count: number;
+            /** Code */
+            code: string;
+            /** Label */
+            label: string;
+            status: components["schemas"]["IndustryStatus"];
+        };
+        /**
+         * IndustryCreate
+         * @description [`IndustryCreate`](/architecture/interfaces.md#industrycreate).
+         */
+        IndustryCreate: {
+            /** Code */
+            code: string;
+            /** Label */
+            label: string;
+        };
+        /**
+         * IndustryStatus
+         * @description `industry.status`.
+         * @enum {string}
+         */
+        IndustryStatus: "ACTIVE" | "INACTIVE";
+        /**
+         * IndustryUpdate
+         * @description [`IndustryUpdate`](/architecture/interfaces.md#industryupdate).
+         */
+        IndustryUpdate: {
+            /** Label */
+            label?: string | null;
+            status?: components["schemas"]["IndustryStatus"] | null;
+        };
+        /**
+         * LabelCreate
+         * @description [`LabelCreate`](/architecture/interfaces.md#labelcreate).
+         */
+        LabelCreate: {
+            /** Chunk Id */
+            chunk_id: string;
+            expected_strength: components["schemas"]["FindingStrength"];
+            /** Question Id */
+            question_id: string;
+            /** Question Revision */
+            question_revision: number;
+        };
+        /**
+         * LabelQueue
+         * @description [`LabelQueue`](/architecture/interfaces.md#labelqueue).
+         */
+        LabelQueue: {
+            /** Active Items */
+            active_items: number;
+            /** Min Items */
+            min_items: number;
+            /** Tasks */
+            tasks: components["schemas"]["LabelTask"][];
+        };
+        /**
+         * LabelTask
+         * @description [`LabelTask`](/architecture/interfaces.md#labeltask).
+         */
+        LabelTask: {
+            account: components["schemas"]["LabelTaskAccount"];
+            /** Chunk Id */
+            chunk_id: string;
+            document: components["schemas"]["LabelTaskDocument"];
+            /** Passage Text */
+            passage_text: string;
+            question: components["schemas"]["LabelTaskQuestion"];
+            /** Question Revision */
+            question_revision: number;
+        };
+        /**
+         * LabelTaskAccount
+         * @description `LabelTask.account`.
+         */
+        LabelTaskAccount: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /**
+         * LabelTaskDocument
+         * @description `LabelTask.document`.
+         */
+        LabelTaskDocument: {
+            /** Language */
+            language: string;
+            /** Published At */
+            published_at: string | null;
+            /** Title */
+            title: string;
+            /** Url */
+            url: string;
+        };
+        /**
+         * LabelTaskQuestion
+         * @description `LabelTask.question`.
+         */
+        LabelTaskQuestion: {
+            answer_type: components["schemas"]["SignalQuestionAnswerType"];
+            /** Id */
+            id: string;
+            /** Key */
+            key: string;
+            /** Options */
+            options: components["schemas"]["QuestionOption"][] | null;
+            polarity: components["schemas"]["SignalQuestionPolarity"];
+            /** Text */
+            text: string;
+        };
+        /**
+         * LeadFeedback
+         * @description [`LeadFeedback`](/architecture/interfaces.md#leadfeedback).
+         */
+        LeadFeedback: {
+            /** Created At */
+            created_at: string;
+            /** Id */
+            id: string;
+            /** Note */
+            note: string | null;
+            /** User Name */
+            user_name: string;
+            verdict: components["schemas"]["LeadFeedbackVerdict"];
+        };
+        /**
+         * LeadFeedbackVerdict
+         * @description `lead_feedback.verdict`.
+         * @enum {string}
+         */
+        LeadFeedbackVerdict: "RELEVANT" | "NOT_RELEVANT" | "ALREADY_CUSTOMER";
+        /**
+         * LoginRequest
+         * @description [`LoginRequest`](/architecture/interfaces.md#loginrequest).
+         */
+        LoginRequest: {
+            /** Email */
+            email: string;
+            /** Password */
+            password: string;
+        };
+        /**
+         * Market
+         * @description [`Market`](/architecture/interfaces.md#market).
+         */
+        Market: {
+            /** Code */
+            code: string;
+            /** Country Codes */
+            country_codes: string[];
+            /** Name */
+            name: string;
+            status: components["schemas"]["MarketStatus"];
+        };
+        /**
+         * MarketCreate
+         * @description [`MarketCreate`](/architecture/interfaces.md#marketcreate).
+         */
+        MarketCreate: {
+            /** Code */
+            code: string;
+            /** Country Codes */
+            country_codes: string[];
+            /** Name */
+            name: string;
+        };
+        /**
+         * MarketStatus
+         * @description `market.status`.
+         * @enum {string}
+         */
+        MarketStatus: "ACTIVE" | "INACTIVE";
+        /**
+         * MarketUpdate
+         * @description [`MarketUpdate`](/architecture/interfaces.md#marketupdate).
+         */
+        MarketUpdate: {
+            /** Country Codes */
+            country_codes?: string[] | null;
+            /** Name */
+            name?: string | null;
+            status?: components["schemas"]["MarketStatus"] | null;
+        };
+        /**
+         * OutreachDraft
+         * @description [`OutreachDraft`](/architecture/interfaces.md#outreachdraft).
+         */
+        OutreachDraft: {
+            /** Account Id */
+            account_id: string;
+            /** Body */
+            body: string;
+            channel: components["schemas"]["OutreachDraftChannel"];
+            contact: components["schemas"]["OutreachDraftContact"] | null;
+            /** Created At */
+            created_at: string;
+            /** Created By Name */
+            created_by_name: string;
+            /** Edited */
+            edited: boolean;
+            /** Findings */
+            findings: components["schemas"]["OutreachDraftFinding"][];
+            /** Id */
+            id: string;
+            /** Service Id */
+            service_id: string;
+            status: components["schemas"]["OutreachDraftStatus"];
+            /** Subject */
+            subject: string | null;
+        };
+        /**
+         * OutreachDraftChannel
+         * @description `outreach_draft.channel`.
+         * @enum {string}
+         */
+        OutreachDraftChannel: "EMAIL" | "LINKEDIN_INMAIL";
+        /**
+         * OutreachDraftContact
+         * @description `OutreachDraft.contact`.
+         */
+        OutreachDraftContact: {
+            /** Full Name */
+            full_name: string;
+            /** Id */
+            id: string;
+            /** Job Title */
+            job_title: string;
+        };
+        /**
+         * OutreachDraftFinding
+         * @description One entry of `OutreachDraft.findings`.
+         */
+        OutreachDraftFinding: {
+            /** Id */
+            id: string;
+            /** Question Text */
+            question_text: string;
+            /** Quote */
+            quote: string;
+        };
+        /**
+         * OutreachDraftStatus
+         * @description `outreach_draft.status`.
+         * @enum {string}
+         */
+        OutreachDraftStatus: "DRAFT" | "EXPORTED";
+        /**
+         * OutreachDraftUpdate
+         * @description [`OutreachDraftUpdate`](/architecture/interfaces.md#outreachdraftupdate).
+         */
+        OutreachDraftUpdate: {
+            /** Body */
+            body?: string | null;
+            status?: components["schemas"]["OutreachDraftStatus"] | null;
+            /** Subject */
+            subject?: string | null;
+        };
+        /**
+         * OutreachRequest
+         * @description [`OutreachRequest`](/architecture/interfaces.md#outreachrequest).
+         */
+        OutreachRequest: {
+            channel: components["schemas"]["OutreachDraftChannel"];
+            /** Contact Id */
+            contact_id?: string | null;
+        };
+        /**
+         * Override
+         * @description [`Override`](/architecture/interfaces.md#override).
+         */
+        Override: {
+            /** Account Id */
+            account_id: string;
+            /** Created At */
+            created_at: string | null;
+            /** Created By Name */
+            created_by_name: string | null;
+            /** Id */
+            id: string;
+            /** Note */
+            note: string;
+            /** Revoked At */
+            revoked_at: string | null;
+            /** Revoked By Name */
+            revoked_by_name: string | null;
+            /** Rule Key */
+            rule_key: string;
+            /** Rule Label */
+            rule_label: string;
+            /** Service Id */
+            service_id: string;
+            status: components["schemas"]["DisqualifierOverrideStatus"];
+        };
+        /**
+         * OverrideCreate
+         * @description [`OverrideCreate`](/architecture/interfaces.md#overridecreate).
+         */
+        OverrideCreate: {
+            /** Note */
+            note: string;
+            /** Rule Key */
+            rule_key: string;
+        };
+        /** Page[AccountRow] */
+        Page_AccountRow_: {
+            /** Items */
+            items: components["schemas"]["AccountRow"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /** Page[AlertView] */
+        Page_AlertView_: {
+            /** Items */
+            items: components["schemas"]["AlertView"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /** Page[AuditEntry] */
+        Page_AuditEntry_: {
+            /** Items */
+            items: components["schemas"]["AuditEntry"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /** Page[DiscoveryCandidate] */
+        Page_DiscoveryCandidate_: {
+            /** Items */
+            items: components["schemas"]["DiscoveryCandidate"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /** Page[EvaluationItem] */
+        Page_EvaluationItem_: {
+            /** Items */
+            items: components["schemas"]["EvaluationItem"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /** Page[Run] */
+        Page_Run_: {
+            /** Items */
+            items: components["schemas"]["Run"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /**
+         * PipelineRunKind
+         * @description `pipeline_run.kind`.
+         * @enum {string}
+         */
+        PipelineRunKind: "ACCOUNT_REFRESH" | "RECLASSIFY" | "RESCORE" | "DISCOVERY" | "EVALUATION";
+        /**
+         * PipelineRunStage
+         * @description `pipeline_run.stage`.
+         * @enum {string}
+         */
+        PipelineRunStage: "FETCH" | "PROCESS" | "TRIAGE" | "CLASSIFY" | "EVIDENCE" | "SCORE";
+        /**
+         * PipelineRunStatus
+         * @description `pipeline_run.status`.
+         * @enum {string}
+         */
+        PipelineRunStatus: "QUEUED" | "RUNNING" | "SUCCEEDED" | "PARTIAL" | "FAILED" | "CANCELLED";
+        /**
+         * PipelineRunTrigger
+         * @description `pipeline_run.trigger`.
+         * @enum {string}
+         */
+        PipelineRunTrigger: "SCHEDULE" | "USER" | "QUESTION_CHANGE" | "SCORING_ACTIVATION" | "ACCOUNT_CHANGE" | "FEEDBACK" | "OVERRIDE";
+        /**
+         * ProspectAccount
+         * @description `ProspectRow.account`.
+         */
+        ProspectAccount: {
+            /** Country Code */
+            country_code: string;
+            /** Domain */
+            domain: string;
+            /** Id */
+            id: string;
+            /** Industry */
+            industry: string | null;
+            /** Name */
+            name: string;
+        };
+        /**
+         * ProspectPage
+         * @description [`ProspectPage`](/architecture/interfaces.md#prospectpage): `Page<ProspectRow>` plus
+         *     `band_counts`.
+         */
+        ProspectPage: {
+            /** Band Counts */
+            band_counts: {
+                [key: string]: number;
+            };
+            /** Items */
+            items: components["schemas"]["ProspectRow"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /**
+         * ProspectRow
+         * @description [`ProspectRow`](/architecture/interfaces.md#prospectrow).
+         */
+        ProspectRow: {
+            account: components["schemas"]["ProspectAccount"];
+            /** As Of */
+            as_of: string;
+            band: components["schemas"]["AccountScoreBand"];
+            /** Finding Count */
+            finding_count: number;
+            /** Fit */
+            fit: number;
+            /** Intent */
+            intent: number;
+            /** Last Refreshed At */
+            last_refreshed_at: string | null;
+            /** Priority */
+            priority: number;
+            /** Rank */
+            rank: number | null;
+            standing: components["schemas"]["AccountScoreStanding"];
+            /** Top Signals */
+            top_signals: components["schemas"]["ProspectTopSignal"][];
+            /** Unread Alerts */
+            unread_alerts: number;
+        };
+        /**
+         * ProspectTopSignal
+         * @description One entry of `ProspectRow.top_signals`.
+         */
+        ProspectTopSignal: {
+            /** Observed At */
+            observed_at: string;
+            /** Question Key */
+            question_key: string;
+            /** Question Text */
+            question_text: string;
+            strength: components["schemas"]["FindingStrength"];
+        };
+        /**
+         * QuestionOption
+         * @description One entry of `SignalQuestion.options`.
+         */
+        QuestionOption: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            strength: components["schemas"]["FindingStrength"];
+        };
+        /**
+         * QuestionPreview
+         * @description [`QuestionPreview`](/architecture/interfaces.md#questionpreview).
+         */
+        QuestionPreview: {
+            classifier: components["schemas"]["DocumentTriageClassifier"];
+            /** Results */
+            results: components["schemas"]["QuestionPreviewResult"][];
+        };
+        /**
+         * QuestionPreviewDocument
+         * @description `QuestionPreview.results[].document`.
+         */
+        QuestionPreviewDocument: {
+            /** Published At */
+            published_at: string | null;
+            /** Title */
+            title: string;
+            /** Url */
+            url: string;
+        };
+        /**
+         * QuestionPreviewRequest
+         * @description [`QuestionPreviewRequest`](/architecture/interfaces.md#questionpreviewrequest).
+         */
+        QuestionPreviewRequest: {
+            /** Account Id */
+            account_id?: string | null;
+            answer_type?: components["schemas"]["SignalQuestionAnswerType"] | null;
+            /** Hint Terms */
+            hint_terms?: string[] | null;
+            /** Options */
+            options?: components["schemas"]["QuestionOption"][] | null;
+            /** Question Id */
+            question_id?: string | null;
+            /** Sample Text */
+            sample_text?: string | null;
+            /** Service Id */
+            service_id: string;
+            /** Source Types */
+            source_types?: components["schemas"]["DocumentSourceType"][] | null;
+            /** Text */
+            text?: string | null;
+        };
+        /**
+         * QuestionPreviewResult
+         * @description One entry of `QuestionPreview.results`.
+         */
+        QuestionPreviewResult: {
+            document: components["schemas"]["QuestionPreviewDocument"] | null;
+            /** Escalated */
+            escalated: boolean;
+            /** P Positive */
+            p_positive: number;
+            /** Passage */
+            passage: string;
+            /** Quote */
+            quote: string | null;
+            /** Quote En */
+            quote_en: string | null;
+            /** Rationale */
+            rationale: string | null;
+            strength: components["schemas"]["FindingStrength"];
+        };
+        /**
+         * QuestionSetting
+         * @description One entry of `questions`.
+         */
+        QuestionSetting: {
+            /** Half Life Days */
+            half_life_days?: number | null;
+            /** Question Key */
+            question_key: string;
+            /**
+             * Weight
+             * @enum {string}
+             */
+            weight: "HIGH" | "MEDIUM" | "LOW" | "NONE";
+        };
+        /**
+         * Run
+         * @description [`Run`](/architecture/interfaces.md#run).
+         */
+        Run: {
+            account: components["schemas"]["IdName"] | null;
+            /** Ai Cost Eur */
+            ai_cost_eur: number;
+            /** Created At */
+            created_at: string | null;
+            /** Errors */
+            errors: {
+                [key: string]: unknown;
+            }[];
+            /** Finished At */
+            finished_at: string | null;
+            /** Id */
+            id: string;
+            kind: components["schemas"]["PipelineRunKind"];
+            /** Progress */
+            progress: {
+                [key: string]: unknown;
+            };
+            question: components["schemas"]["RunQuestion"] | null;
+            /** Requested By Name */
+            requested_by_name: string | null;
+            service: components["schemas"]["IdName"] | null;
+            stage: components["schemas"]["PipelineRunStage"] | null;
+            /** Started At */
+            started_at: string | null;
+            status: components["schemas"]["PipelineRunStatus"];
+            trigger: components["schemas"]["PipelineRunTrigger"];
+        };
+        /**
+         * RunQuestion
+         * @description `Run.question`.
+         */
+        RunQuestion: {
+            /** Id */
+            id: string;
+            /** Key */
+            key: string;
+        };
+        /**
+         * ScoreChange
+         * @description [`ScoreChange`](/architecture/interfaces.md#scorechange).
+         */
+        ScoreChange: {
+            /** As Of */
+            as_of: string;
+            band: components["schemas"]["AccountScoreBand"];
+            /** Change Note */
+            change_note: string | null;
+            /** Findings Added */
+            findings_added: components["schemas"]["ScoreChangeFinding"][];
+            /** Findings Removed */
+            findings_removed: components["schemas"]["ScoreChangeFinding"][];
+            /** Fit */
+            fit: number;
+            /** Intent */
+            intent: number;
+            /** Overrides Changed */
+            overrides_changed: components["schemas"]["ScoreChangeOverride"][];
+            /** Priority */
+            priority: number;
+            /** Run Id */
+            run_id: string;
+            /** Score Id */
+            score_id: string;
+            /** Scoring Version */
+            scoring_version: number;
+            standing: components["schemas"]["AccountScoreStanding"];
+            /** Trigger */
+            trigger: string;
+        };
+        /**
+         * ScoreChangeFinding
+         * @description One entry of `ScoreChange.findings_added` and `.findings_removed`.
+         */
+        ScoreChangeFinding: {
+            /** Finding Id */
+            finding_id: string;
+            /** Question Key */
+            question_key: string;
+        };
+        /**
+         * ScoreChangeOverride
+         * @description One entry of `ScoreChange.overrides_changed`.
+         */
+        ScoreChangeOverride: {
+            /** Overridden */
+            overridden: boolean;
+            /** Rule Key */
+            rule_key: string;
+        };
+        /**
+         * ScoreView
+         * @description [`ScoreView`](/architecture/interfaces.md#scoreview).
+         */
+        ScoreView: {
+            /** Account Id */
+            account_id: string;
+            /** As Of */
+            as_of: string;
+            band: components["schemas"]["AccountScoreBand"];
+            breakdown: components["schemas"]["ScoreViewBreakdown"];
+            /** Fit */
+            fit: number;
+            /** Intent */
+            intent: number;
+            last_crm_sync: components["schemas"]["CrmSyncView"] | null;
+            lead_feedback: components["schemas"]["LeadFeedback"] | null;
+            /** Overrides */
+            overrides: components["schemas"]["Override"][];
+            /** Priority */
+            priority: number;
+            /** Rank */
+            rank: number | null;
+            /** Score Id */
+            score_id: string;
+            /** Scoring Version */
+            scoring_version: number;
+            /** Service Id */
+            service_id: string;
+            standing: components["schemas"]["AccountScoreStanding"];
+        };
+        /**
+         * ScoreViewBreakdown
+         * @description `ScoreView.breakdown`: [Score breakdown](/architecture/rules.md#score-breakdown) with
+         *     each question entry's `question_text` added.
+         */
+        ScoreViewBreakdown: {
+            /**
+             * As Of
+             * Format: date-time
+             */
+            as_of: string;
+            band: components["schemas"]["AccountScoreBand"];
+            /** Disqualifiers */
+            disqualifiers: components["schemas"]["DisqualifierBreakdown"][];
+            fit: components["schemas"]["FitBreakdown"];
+            intent: components["schemas"]["ScoreViewIntentBreakdown"];
+            /** Priority */
+            priority: number;
+            /** Settings Version */
+            settings_version: number;
+            standing: components["schemas"]["AccountScoreStanding"];
+        };
+        /**
+         * ScoreViewIntentBreakdown
+         * @description `ScoreView.breakdown.intent`, whose question entries carry `question_text`.
+         */
+        ScoreViewIntentBreakdown: {
+            /** Max Positive */
+            max_positive: number;
+            /** Negative Sum */
+            negative_sum: number;
+            /** Positive Sum */
+            positive_sum: number;
+            /** Questions */
+            questions: components["schemas"]["ScoreViewQuestionBreakdown"][];
+            /** Value */
+            value: number;
+        };
+        /**
+         * ScoreViewQuestionBreakdown
+         * @description `ScoreView.breakdown`'s question entries, with `question_text` added on read
+         *     ([`ScoreView`](/architecture/interfaces.md#scoreview)).
+         */
+        ScoreViewQuestionBreakdown: {
+            /** Decay */
+            decay: number;
+            /**
+             * Finding Id
+             * Format: uuid
+             */
+            finding_id: string;
+            /** Points */
+            points: number;
+            polarity: components["schemas"]["SignalQuestionPolarity"];
+            /** Question Key */
+            question_key: string;
+            /** Question Text */
+            question_text: string;
+            strength: components["schemas"]["FindingStrength"];
+            /** Value */
+            value: number;
+            /**
+             * Weight
+             * @enum {string}
+             */
+            weight: "HIGH" | "MEDIUM" | "LOW" | "NONE";
+            /** Weight Value */
+            weight_value: number;
+        };
+        /**
+         * ScoringConfig
+         * @description [`ScoringConfig`](/architecture/interfaces.md#scoringconfig): every field of
+         *     [`ScoringConfigSummary`](#scoringconfigsummary) plus `settings`.
+         */
+        ScoringConfig: {
+            /** Activated At */
+            activated_at: string | null;
+            /** Activated By Name */
+            activated_by_name: string | null;
+            /** Change Note */
+            change_note: string | null;
+            /** Id */
+            id: string;
+            /** Service Id */
+            service_id: string;
+            settings: components["schemas"]["ScoringSettingsDocument"];
+            status: components["schemas"]["ScoringConfigStatus"];
+            /** Version */
+            version: number;
+        };
+        /**
+         * ScoringConfigStatus
+         * @description `scoring_config.status`.
+         * @enum {string}
+         */
+        ScoringConfigStatus: "DRAFT" | "ACTIVE" | "RETIRED";
+        /**
+         * ScoringConfigSummary
+         * @description [`ScoringConfigSummary`](/architecture/interfaces.md#scoringconfigsummary).
+         */
+        ScoringConfigSummary: {
+            /** Activated At */
+            activated_at: string | null;
+            /** Activated By Name */
+            activated_by_name: string | null;
+            /** Change Note */
+            change_note: string | null;
+            /** Id */
+            id: string;
+            /** Service Id */
+            service_id: string;
+            status: components["schemas"]["ScoringConfigStatus"];
+            /** Version */
+            version: number;
+        };
+        /**
+         * ScoringDraftUpdate
+         * @description [`ScoringDraftUpdate`](/architecture/interfaces.md#scoringdraftupdate).
+         */
+        ScoringDraftUpdate: {
+            /** Change Note */
+            change_note?: string | null;
+            settings: components["schemas"]["ScoringSettingsDocument"];
+        };
+        /**
+         * ScoringPreview
+         * @description [`ScoringPreview`](/architecture/interfaces.md#scoringpreview).
+         */
+        ScoringPreview: {
+            /** Active Version */
+            active_version: number;
+            /** Changes */
+            changes: components["schemas"]["ScoringPreviewChange"][];
+            /** Draft Version */
+            draft_version: number;
+            /** Unchanged Count */
+            unchanged_count: number;
+        };
+        /**
+         * ScoringPreviewAccount
+         * @description `ScoringPreview.changes[].account`.
+         */
+        ScoringPreviewAccount: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /**
+         * ScoringPreviewChange
+         * @description One entry of `ScoringPreview.changes`.
+         */
+        ScoringPreviewChange: {
+            account: components["schemas"]["ScoringPreviewAccount"];
+            current: components["schemas"]["ScoringPreviewScore"];
+            proposed: components["schemas"]["ScoringPreviewScore"];
+        };
+        /**
+         * ScoringPreviewScore
+         * @description `ScoringPreview.changes[].current` and `.proposed`.
+         */
+        ScoringPreviewScore: {
+            band: components["schemas"]["AccountScoreBand"];
+            /** Priority */
+            priority: number;
+            /** Rank */
+            rank: number | null;
+            standing: components["schemas"]["AccountScoreStanding"];
+        };
+        /**
+         * ScoringSettingsDocument
+         * @description The document itself.
+         */
+        ScoringSettingsDocument: {
+            /** Default Half Life Days */
+            default_half_life_days: {
+                [key: string]: number;
+            };
+            /** Disqualifiers */
+            disqualifiers: components["schemas"]["Disqualifier"][];
+            /** Fit Weight */
+            fit_weight: number;
+            /** Hot Threshold */
+            hot_threshold: number;
+            /** Icp Criteria */
+            icp_criteria: components["schemas"]["IcpCriterion"][];
+            /** Intent Saturation */
+            intent_saturation: number;
+            /** Intent Weight */
+            intent_weight: number;
+            /** Min Decay */
+            min_decay: number;
+            /** Min Fit */
+            min_fit: number;
+            /** Negative Factor */
+            negative_factor: number;
+            /** Questions */
+            questions: components["schemas"]["QuestionSetting"][];
+            /** Strength Values */
+            strength_values: {
+                [key: string]: number;
+            };
+            /** Unknown Match */
+            unknown_match: number;
+            /** Warm Threshold */
+            warm_threshold: number;
+            /** Weight Values */
+            weight_values: {
+                [key: string]: number;
+            };
+        };
+        /**
+         * Service
+         * @description [`Service`](/architecture/interfaces.md#service).
+         */
+        Service: {
+            /** Active Version */
+            active_version: number | null;
+            /** Code */
+            code: string;
+            /** Description */
+            description: string;
+            /** Draft Version */
+            draft_version: number | null;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Question Count */
+            question_count: number;
+            status: components["schemas"]["ServiceStatus"];
+            /** Value Proposition */
+            value_proposition: string;
+        };
+        /**
+         * ServiceCreate
+         * @description [`ServiceCreate`](/architecture/interfaces.md#servicecreate).
+         */
+        ServiceCreate: {
+            /** Code */
+            code: string;
+            /** Description */
+            description: string;
+            /** Name */
+            name: string;
+            /** Value Proposition */
+            value_proposition: string;
+        };
+        /**
+         * ServiceStatus
+         * @description `service.status`.
+         * @enum {string}
+         */
+        ServiceStatus: "ACTIVE" | "INACTIVE";
+        /**
+         * ServiceUpdate
+         * @description [`ServiceUpdate`](/architecture/interfaces.md#serviceupdate).
+         */
+        ServiceUpdate: {
+            /** Description */
+            description?: string | null;
+            /** Name */
+            name?: string | null;
+            status?: components["schemas"]["ServiceStatus"] | null;
+            /** Value Proposition */
+            value_proposition?: string | null;
+        };
+        /**
+         * SignalQuestion
+         * @description [`SignalQuestion`](/architecture/interfaces.md#signalquestion).
+         */
+        SignalQuestion: {
+            answer_type: components["schemas"]["SignalQuestionAnswerType"];
+            /** Finding Count */
+            finding_count: number;
+            /** Hint Terms */
+            hint_terms: string[];
+            /** Id */
+            id: string;
+            /** Key */
+            key: string;
+            /** Options */
+            options: components["schemas"]["QuestionOption"][] | null;
+            polarity: components["schemas"]["SignalQuestionPolarity"];
+            /** Revision */
+            revision: number;
+            /** Service Id */
+            service_id: string;
+            /** Source Types */
+            source_types: components["schemas"]["DocumentSourceType"][];
+            status: components["schemas"]["SignalQuestionStatus"];
+            /** Text */
+            text: string;
+        };
+        /**
+         * SignalQuestionAnswerType
+         * @description `signal_question.answer_type`.
+         * @enum {string}
+         */
+        SignalQuestionAnswerType: "YES_NO" | "SCALE" | "CHOICE";
+        /**
+         * SignalQuestionCreate
+         * @description [`SignalQuestionCreate`](/architecture/interfaces.md#signalquestioncreate).
+         */
+        SignalQuestionCreate: {
+            answer_type: components["schemas"]["SignalQuestionAnswerType"];
+            /** Hint Terms */
+            hint_terms?: string[] | null;
+            /** Key */
+            key: string;
+            /** Options */
+            options?: components["schemas"]["QuestionOption"][] | null;
+            polarity: components["schemas"]["SignalQuestionPolarity"];
+            /** Source Types */
+            source_types: components["schemas"]["DocumentSourceType"][];
+            /** Text */
+            text: string;
+        };
+        /**
+         * SignalQuestionPolarity
+         * @description `signal_question.polarity`.
+         * @enum {string}
+         */
+        SignalQuestionPolarity: "POSITIVE" | "NEGATIVE";
+        /**
+         * SignalQuestionStatus
+         * @description `signal_question.status`.
+         * @enum {string}
+         */
+        SignalQuestionStatus: "ACTIVE" | "INACTIVE";
+        /**
+         * SignalQuestionUpdate
+         * @description [`SignalQuestionUpdate`](/architecture/interfaces.md#signalquestionupdate).
+         */
+        SignalQuestionUpdate: {
+            answer_type?: components["schemas"]["SignalQuestionAnswerType"] | null;
+            /** Hint Terms */
+            hint_terms?: string[] | null;
+            /** Options */
+            options?: components["schemas"]["QuestionOption"][] | null;
+            /** Source Types */
+            source_types?: components["schemas"]["DocumentSourceType"][] | null;
+            status?: components["schemas"]["SignalQuestionStatus"] | null;
+            /** Text */
+            text?: string | null;
+        };
+        /**
+         * SourcePlugin
+         * @description [`SourcePlugin`](/architecture/interfaces.md#sourceplugin).
+         */
+        SourcePlugin: {
+            /** Available */
+            available: boolean;
+            code: components["schemas"]["SourcePluginCode"];
+            /** Daily Quota */
+            daily_quota: number;
+            /** Enabled */
+            enabled: boolean;
+            /** Key Configured */
+            key_configured: boolean;
+            /** Last Error */
+            last_error: string | null;
+            /** Last Error At */
+            last_error_at: string | null;
+            /** Last Success At */
+            last_success_at: string | null;
+            /** Needs Key */
+            needs_key: boolean;
+            /** Rate Limit Per Minute */
+            rate_limit_per_minute: number;
+            /** Requests Today */
+            requests_today: number;
+        };
+        /**
+         * SourcePluginCode
+         * @description `source_plugin.code`; reused by `plugin_usage.plugin_code` and `document.plugin_code`.
+         * @enum {string}
+         */
+        SourcePluginCode: "GDELT" | "RSS" | "WEBSITE" | "CAREERS" | "CRUNCHBASE" | "NEWSAPI" | "SERPAPI";
+        /**
+         * SourcePluginUpdate
+         * @description [`SourcePluginUpdate`](/architecture/interfaces.md#sourcepluginupdate).
+         */
+        SourcePluginUpdate: {
+            /** Daily Quota */
+            daily_quota?: number | null;
+            /** Enabled */
+            enabled?: boolean | null;
+            /** Rate Limit Per Minute */
+            rate_limit_per_minute?: number | null;
+        };
+        /**
+         * User
+         * @description [`User`](/architecture/interfaces.md#user).
+         */
+        User: {
+            /** Display Name */
+            display_name: string;
+            /** Email */
+            email: string;
+            /** Id */
+            id: string;
+            /** Last Login At */
+            last_login_at: string | null;
+            role: components["schemas"]["AppUserRole"];
+            status: components["schemas"]["AppUserStatus"];
+        };
+        /**
+         * UserCreate
+         * @description [`UserCreate`](/architecture/interfaces.md#usercreate).
+         */
+        UserCreate: {
+            /** Display Name */
+            display_name: string;
+            /** Email */
+            email: string;
+            /** Password */
+            password: string;
+            role: components["schemas"]["AppUserRole"];
+        };
+        /**
+         * UserUpdate
+         * @description [`UserUpdate`](/architecture/interfaces.md#userupdate).
+         */
+        UserUpdate: {
+            /** Display Name */
+            display_name?: string | null;
+            /** Password */
+            password?: string | null;
+            role?: components["schemas"]["AppUserRole"] | null;
+            status?: components["schemas"]["AppUserStatus"] | null;
+        };
     };
     responses: never;
     parameters: never;
@@ -67,6 +3316,1525 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    list_accounts_api_v1_accounts_get: {
+        parameters: {
+            query?: {
+                q?: string | null;
+                status?: components["schemas"]["AccountStatus"] | null;
+                country_code?: string | null;
+                industry?: string | null;
+                origin?: components["schemas"]["AccountOrigin"] | null;
+                page?: number;
+                page_size?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_AccountRow_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_account_api_v1_accounts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Account"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    import_accounts_api_v1_accounts_import_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_import_accounts_api_v1_accounts_import_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportResult"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_account_api_v1_accounts__id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Account"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    update_account_api_v1_accounts__id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Account"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_contacts_api_v1_accounts__id__contacts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Contact"][];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_contact_api_v1_accounts__id__contacts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Contact"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_findings_api_v1_accounts__id__findings_get: {
+        parameters: {
+            query?: {
+                service_id?: string | null;
+                question_id?: string | null;
+                status?: components["schemas"]["FindingStatus"] | null;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FindingView"][];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_outreach_drafts_api_v1_accounts__id__outreach_drafts_get: {
+        parameters: {
+            query: {
+                service_id: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutreachDraft"][];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    refresh_account_api_v1_accounts__id__refresh_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Run"];
+                };
+            };
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Run"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_score_api_v1_accounts__id__scores__service_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                service_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoreView"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    push_to_crm_api_v1_accounts__id__scores__service_id__crm_push_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                service_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CrmSyncView"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_lead_feedback_api_v1_accounts__id__scores__service_id__feedback_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                service_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeedbackCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadFeedback"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_score_history_api_v1_accounts__id__scores__service_id__history_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                service_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoreChange"][];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_outreach_draft_api_v1_accounts__id__scores__service_id__outreach_drafts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                service_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OutreachRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutreachDraft"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_override_api_v1_accounts__id__scores__service_id__overrides_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                service_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OverrideCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Override"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_alerts_api_v1_alerts_get: {
+        parameters: {
+            query?: {
+                service_id?: string | null;
+                unread?: boolean | null;
+                page?: number;
+                page_size?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_AlertView_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    acknowledge_alert_api_v1_alerts__id__acknowledge_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlertView"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_audit_entries_api_v1_audit_get: {
+        parameters: {
+            query?: {
+                kind?: components["schemas"]["AuditEventKind"][] | null;
+                action?: string | null;
+                actor_id?: string | null;
+                entity_id?: string | null;
+                run_id?: string | null;
+                from?: string | null;
+                to?: string | null;
+                page?: number;
+                page_size?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_AuditEntry_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    demo_login_api_v1_auth_demo_login_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DemoLoginRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthenticatedUser"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    login_api_v1_auth_login_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthenticatedUser"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    logout_api_v1_auth_logout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_current_user_api_v1_auth_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthenticatedUser"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    delete_contact_api_v1_contacts__id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    update_contact_api_v1_contacts__id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Contact"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_discovery_candidates_api_v1_discovery_candidates_get: {
+        parameters: {
+            query: {
+                service_id: string;
+                status?: components["schemas"]["DiscoveryCandidateStatus"] | null;
+                page?: number;
+                page_size?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_DiscoveryCandidate_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    accept_discovery_candidate_api_v1_discovery_candidates__id__accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CandidateDecision"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Account"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    reject_discovery_candidate_api_v1_discovery_candidates__id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CandidateDecision"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscoveryCandidate"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_evaluation_items_api_v1_evaluation_items_get: {
+        parameters: {
+            query?: {
+                question_id?: string | null;
+                origin?: components["schemas"]["EvaluationItemOrigin"] | null;
+                status?: components["schemas"]["EvaluationItemStatus"] | null;
+                page?: number;
+                page_size?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_EvaluationItem_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_label_api_v1_evaluation_items_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LabelCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationItem"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_label_queue_api_v1_evaluation_label_queue_get: {
+        parameters: {
+            query: {
+                service_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabelQueue"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_evaluation_results_api_v1_evaluation_results_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationResultSummary"][];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_evaluation_result_api_v1_evaluation_results__run_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluationResult"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    start_evaluation_run_api_v1_evaluation_runs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Run"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_evidence_api_v1_findings__id__evidence_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvidenceView"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_finding_feedback_api_v1_findings__id__feedback_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeedbackCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FindingView"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     get_health_api_v1_health_get: {
         parameters: {
             query?: never;
@@ -92,6 +4860,1342 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Health"];
+                };
+            };
+        };
+    };
+    get_impact_api_v1_impact_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Impact"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_industries_api_v1_industries_get: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["IndustryStatus"] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Industry"][];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_industry_api_v1_industries_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IndustryCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Industry"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    update_industry_api_v1_industries__code__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IndustryUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Industry"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_markets_api_v1_markets_get: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["MarketStatus"] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Market"][];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_market_api_v1_markets_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarketCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Market"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    update_market_api_v1_markets__code__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarketUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Market"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    update_outreach_draft_api_v1_outreach_drafts__id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OutreachDraftUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutreachDraft"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    revoke_override_api_v1_overrides__id__revoke_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Override"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    preview_question_api_v1_questions_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuestionPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuestionPreview"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    update_question_api_v1_questions__id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignalQuestionUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignalQuestion"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_runs_api_v1_runs_get: {
+        parameters: {
+            query?: {
+                kind?: components["schemas"]["PipelineRunKind"] | null;
+                status?: components["schemas"]["PipelineRunStatus"] | null;
+                account_id?: string | null;
+                service_id?: string | null;
+                page?: number;
+                page_size?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_Run_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_run_api_v1_runs__id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Run"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    cancel_run_api_v1_runs__id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Run"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_scoring_config_api_v1_scoring_configs__id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoringConfig"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    activate_scoring_config_api_v1_scoring_configs__id__activate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActivationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoringConfig"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    preview_scoring_config_api_v1_scoring_configs__id__preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoringPreview"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_services_api_v1_services_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Service"][];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_service_api_v1_services_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Service"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_service_api_v1_services__id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Service"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    update_service_api_v1_services__id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Service"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    start_discovery_run_api_v1_services__id__discovery_runs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Run"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_prospects_api_v1_services__id__prospects_get: {
+        parameters: {
+            query?: {
+                standing?: components["schemas"]["AccountScoreStanding"];
+                band?: components["schemas"]["AccountScoreBand"][] | null;
+                country_code?: string[] | null;
+                industry?: string[] | null;
+                q?: string | null;
+                sort?: string | null;
+                page?: number;
+                page_size?: number | null;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProspectPage"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_questions_api_v1_services__id__questions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignalQuestion"][];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_question_api_v1_services__id__questions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignalQuestionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignalQuestion"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_scoring_configs_api_v1_services__id__scoring_configs_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoringConfigSummary"][];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    update_scoring_draft_api_v1_services__id__scoring_configs_draft_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScoringDraftUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoringConfig"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_source_plugins_api_v1_source_plugins_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourcePlugin"][];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    update_source_plugin_api_v1_source_plugins__code__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SourcePluginUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourcePlugin"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_users_api_v1_users_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"][];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_user_api_v1_users_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    update_user_api_v1_users__id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

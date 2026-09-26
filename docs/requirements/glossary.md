@@ -31,6 +31,7 @@ A term is the one name of its concept in prose. **Identifier** is the name code,
 | Classifier | The fast model that returns probabilities over fixed answers: Jev, or the LLM classifier adapter. | `CLASSIFIER` | [Classifier](/architecture/interfaces.md#classifier) |
 | Confidence | How sure the deciding model was of a finding, from 0 to 1. | `confidence` | [`finding`](/architecture/sql-store.md#finding) |
 | Contact | A decision-maker at an account, kept to the minimum. | `contact` | [`contact`](/architecture/sql-store.md#contact) |
+| Demo sign-in | Signing in without a password as the demo dataset's Sales or Admin user, offered only in replay fixture mode. | `demo-login` | `API-78` in [Authentication and users](/architecture/interfaces.md#authentication-and-users) |
 | Discovery | A run that proposes companies not yet accounts for a service. | `DISCOVERY` | [Discovery](/architecture/rules.md#discovery) |
 | Discovery candidate | A company proposed by discovery that a person accepts or rejects. | `discovery_candidate` | [`discovery_candidate`](/architecture/sql-store.md#discovery_candidate) |
 | Disqualifier | A rule of the scoring settings that excludes an account from the ranking. | `disqualifiers` | [scoring settings document](/architecture/sql-store.md#scoring-settings-document) |

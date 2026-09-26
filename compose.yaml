@@ -68,6 +68,9 @@ services:
       dockerfile: apps/web/Dockerfile
     ports:
       - "8080:80"
+    env_file:
+      - path: .env
+        required: false
     depends_on:
       - api
 

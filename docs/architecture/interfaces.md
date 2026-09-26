@@ -24,7 +24,7 @@ tags: [accounts-and-discovery, audit-trail, evaluation-and-feedback, identity-an
 
 Authorisation is enforced by the api on every route ([S-SEC-02](/requirements/system.md)); a signed-in user without the role gets `403 FORBIDDEN`.
 
-**Authentication.** `API-01` sets an HTTP-only, `Secure`, `SameSite=Lax` session cookie whose token is recorded as a hash in [`auth_session`](/architecture/sql-store.md#auth_session) and expires after `SESSION_TTL_HOURS`. Every other route except `API-61` requires it and accepts no other credential. `API-02` revokes it.
+**Authentication.** `API-01` and `API-78` set an HTTP-only, `Secure`, `SameSite=Lax` session cookie whose token is recorded as a hash in [`auth_session`](/architecture/sql-store.md#auth_session) and expires after `SESSION_TTL_HOURS`. Every other route except `API-61` requires it and accepts no other credential. `API-02` revokes it.
 
 **CSRF.** A `POST`, `PUT`, `PATCH` or `DELETE` without an `X-Requested-With` header is refused `403 FORBIDDEN`. The browser reaches the api only through the frontend's proxy on the same origin.
 
@@ -32,7 +32,7 @@ Authorisation is enforced by the api on every route ([S-SEC-02](/requirements/sy
 
 **Runs.** A request that starts background work answers `202` with the [`Run`](#run). A refresh requested while one is queued or running for the same account answers `200` with the existing run.
 
-**Envelope.** Success returns the resource. An error returns `{"error": {"code", "message", "details"?}}`:
+**Envelope.** Success returns the resource. An error returns `{"error": {"code", "message", "details"?}}`, named `ErrorEnvelope` in the OpenAPI document, its `error` object `ErrorBody`:
 
 | Code | HTTP | Raised when |
 |---|---|---|
@@ -44,7 +44,8 @@ Authorisation is enforced by the api on every route ([S-SEC-02](/requirements/sy
 | `VALIDATION` | 422 | The input is invalid; `details.fields[]` lists `{field, message}`, where `field` is a body field name or a JSON pointer into it |
 | `LOCKED` | 423 | Too many failed sign-ins; `details.retry_after_min` |
 | `BUDGET_EXHAUSTED` | 429 | The [Budget guard](/architecture/rules.md#budget-guard) stops an LLM call; `details.resets_at` |
-| `UPSTREAM_UNAVAILABLE` | 503 | The classifier, the LLM, the embedder or a provider is unavailable or returned invalid output; `details.dependency`, `details.reason` |
+| `UPSTREAM_UNAVAILABLE` | 503 | The classifier, the LLM, the embedder, HubSpot or a source plug-in is unavailable or returned invalid output; `details.dependency` is one value of the `details.dependency` column of [Degradation](/architecture/overview.md#degradation), `details.reason` says what failed in words |
+| `NOT_IMPLEMENTED` | 501 | The contract is declared but its feature is not built yet; answered to every caller, before authentication and before its input is validated |
 | `INTERNAL` | 500 | Anything else |
 
 Degraded behaviour is an explicit error, never a placeholder result ([Degradation](/architecture/overview.md#degradation)).
@@ -61,9 +62,11 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 | `API-04` | GET | `/users` | `A` | — → [`User`](#user)`[]` |
 | `API-05` | POST | `/users` | `A` | [`UserCreate`](#usercreate) → [`User`](#user) |
 | `API-06` | PATCH | `/users/{id}` | `A` | [`UserUpdate`](#userupdate) → [`User`](#user) |
+| `API-78` | POST | `/auth/demo-login` | `-` | [`DemoLoginRequest`](#demologinrequest) → [`AuthenticatedUser`](#authenticateduser) |
 
 - `API-01` — wrong email or password answers `401` with one message that does not reveal which was wrong. The failure that reaches `LOGIN_MAX_FAILURES` locks the account for `LOGIN_LOCK_MINUTES`; while locked every attempt answers `423 LOCKED`. A disabled account answers `403 FORBIDDEN` only when the password is correct.
 - `API-06` — an Admin cannot change their own role or disable themselves (`409 CONFLICT`). Disabling a user revokes their sessions.
+- `API-78` — answers only while the api runs with `FIXTURE_MODE` `replay`, and `404 NOT_FOUND` in any other mode. It signs in as the [demo dataset](/architecture/overview.md#demo-dataset) user of the requested role and answers exactly as `API-01` with that user's correct password would: the same session cookie and `LOGIN_SUCCEEDED` row, `403 FORBIDDEN` for a disabled user and `423 LOCKED` for a locked one. It answers `404 NOT_FOUND` when that user does not exist.
 
 ### Authentication and users shapes
 
@@ -73,6 +76,12 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 |---|---|---|
 | `email` | string | [`app_user`](/architecture/sql-store.md#app_user) `email` |
 | `password` | string | checked against `password_hash`; never stored or logged |
+
+#### DemoLoginRequest
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `role` | enum | [`app_user`](/architecture/sql-store.md#app_user) `role` |
 
 #### AuthenticatedUser
 

@@ -1,15 +1,58 @@
 """Router of the [Audit and health](/architecture/interfaces.md#audit-and-health) family.
-`API-61` `GET /health` is anonymous; `API-60` `GET /audit` needs sessions and roles."""
+`API-61` `GET /health` is anonymous and built; `API-60` `GET /audit` is a declared stub
+answering `501 NOT_IMPLEMENTED` until Admin sessions and roles exist."""
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict
 
+from leadradar.api.common import Page
+from leadradar.api.errors import ErrorEnvelope
+from leadradar.api.not_built import contract_not_built
 from leadradar.audit.health import HealthCheckStatus, HealthStatus, read_health
+from leadradar.core.enums import AuditEventKind
 
 router = APIRouter(tags=["audit-and-health"])
+audit_stub_router = APIRouter(
+    tags=["audit-and-health"],
+    dependencies=[Depends(contract_not_built)],
+    responses={422: {"model": ErrorEnvelope}, 501: {"model": ErrorEnvelope}},
+)
+
+
+class AuditEntry(BaseModel):
+    """[`AuditEntry`](/architecture/interfaces.md#auditentry)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    id: str
+    occurred_at: str
+    entity_type: str | None
+    entity_id: str | None
+    run_id: str | None
+    request_id: str | None
+    payload: dict[str, object]
+    kind: AuditEventKind
+    action: str
+    actor_name: str | None
+
+
+@audit_stub_router.get("/audit", response_model=Page[AuditEntry])
+async def list_audit_entries(
+    kind: list[AuditEventKind] | None = Query(default=None),
+    action: str | None = None,
+    actor_id: str | None = None,
+    entity_id: str | None = None,
+    run_id: str | None = None,
+    from_: str | None = Query(default=None, alias="from"),
+    to: str | None = None,
+    page: int = 1,
+    page_size: int | None = None,
+) -> Page[AuditEntry]:
+    """`API-60`."""
+    raise AssertionError("unreachable: contract_not_built already raised")
 
 
 class HealthChecks(BaseModel):

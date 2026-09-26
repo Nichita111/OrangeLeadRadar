@@ -1,4 +1,6 @@
-// `App` is the empty mount point of the web bundle.
-export function App(): null {
-  return null;
+import type { ReactElement } from "react";
+import { AppRoutes } from "./shell/router";
+
+export function App(): ReactElement {
+  return <AppRoutes />;
 }

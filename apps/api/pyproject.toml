@@ -13,6 +13,9 @@ dependencies = [
   "alembic>=1.14",
   "pgvector>=0.3.6",
   "httpx>=0.27",
+  # `API-22` (POST /accounts/import) takes a multipart CSV upload; FastAPI's `UploadFile`
+  # form-parsing needs this parser, which is not in the standard library.
+  "python-multipart>=0.0.12",
 ]
 
 [dependency-groups]
@@ -43,6 +46,21 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
+
+# FastAPI's parameter markers (`Depends`, `File`, `Form`, `Query`, ...) are immutable sentinels
+# read at request time, not the mutable-default-argument bug B008 checks for; the api's FastAPI
+# guideline (Python guidelines, FastAPI) uses them as default values throughout.
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = [
+  "fastapi.Depends",
+  "fastapi.File",
+  "fastapi.Form",
+  "fastapi.Query",
+  "fastapi.Path",
+  "fastapi.Body",
+  "fastapi.Header",
+  "fastapi.Cookie",
+]
 
 [tool.mypy]
 strict = true

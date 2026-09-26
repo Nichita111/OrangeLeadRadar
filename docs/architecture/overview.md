@@ -125,15 +125,15 @@ No role produces a score, a band, a standing or an exclusion, and no role's text
 
 A failure is degrading when a deterministic path remains, blocking when it does not. Nothing is replaced by a placeholder: an unavailable dependency is an error that names it.
 
-| Dependency down | What happens | What still works |
-|---|---|---|
-| One source plug-in | Its fetch step fails; the run ends `PARTIAL` naming it | The other plug-ins, the rest of the pipeline, every screen |
-| Classifier | `SIGNAL` jobs fail and are retried; the run ends `PARTIAL`; question preview, and a contact added without a persona, answer `503` | Fetching and processing; scoring from existing findings; every screen |
-| OpenRouter | Every classifier and LLM call fails, Jev's included: `SIGNAL` jobs fail and are retried and the run ends `PARTIAL`; preview, outreach and a contact added without a persona answer `503` | Fetching and processing; scoring from existing findings; every screen |
-| LLM daily budget reached | Escalation and evidence pairs wait as `PENDING_LLM`, and with the LLM classifier adapter classification waits too; preview and outreach answer `429`, and so does a contact added without a persona under the LLM classifier adapter | Classification by Jev; confident negatives; scoring from existing findings; every screen |
-| Embedder | `PROCESS` jobs fail and are retried; the run ends `PARTIAL`; question preview on an account, or on pasted text longer than `WHOLE_DOCUMENT_MAX_CHARS`, answers `503` | Scoring, every screen, preview on shorter pasted text |
-| HubSpot | The push answers `503`; the attempt is recorded | Everything else |
-| Database | Blocking: the api answers `503` and `/health` reports `DOWN`; the worker stops claiming jobs | Nothing |
+| `details.dependency` | Dependency down | What happens | What still works |
+|---|---|---|---|
+| the plug-in's `code` | One source plug-in | Its fetch step fails; the run ends `PARTIAL` naming it | The other plug-ins, the rest of the pipeline, every screen |
+| `classifier` | Classifier | `SIGNAL` jobs fail and are retried; the run ends `PARTIAL`; question preview, and a contact added without a persona, answer `503` | Fetching and processing; scoring from existing findings; every screen |
+| `llm` | OpenRouter | Every classifier and LLM call fails, Jev's included: `SIGNAL` jobs fail and are retried and the run ends `PARTIAL`; preview, outreach and a contact added without a persona answer `503` | Fetching and processing; scoring from existing findings; every screen |
+| none, answered `429 BUDGET_EXHAUSTED` | LLM daily budget reached | Escalation and evidence pairs wait as `PENDING_LLM`, and with the LLM classifier adapter classification waits too; preview and outreach answer `429`, and so does a contact added without a persona under the LLM classifier adapter | Classification by Jev; confident negatives; scoring from existing findings; every screen |
+| `embedder` | Embedder | `PROCESS` jobs fail and are retried; the run ends `PARTIAL`; question preview on an account, or on pasted text longer than `WHOLE_DOCUMENT_MAX_CHARS`, answers `503` | Scoring, every screen, preview on shorter pasted text |
+| `hubspot` | HubSpot | The push answers `503`; the attempt is recorded | Everything else |
+| `database` | Database | Blocking: the api answers `503` and `/health` reports `DOWN`; the worker stops claiming jobs | Nothing |
 
 ## Production path
 
