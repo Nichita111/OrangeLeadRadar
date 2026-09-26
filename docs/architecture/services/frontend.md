@@ -45,6 +45,7 @@ React with TypeScript in strict mode, built by Vite; React Router for routes; Ta
 | `/services/:id` | [Service editor](/features/service-configuration.md#service-editor) | Admin | service-configuration |
 | `/services/:id/scoring` | [Scoring settings](/features/service-configuration.md#scoring-settings) | Admin | service-configuration |
 | `/settings/industries-markets` | [Industries and markets](/features/service-configuration.md#industries-and-markets) | Admin | service-configuration |
+| `/settings/orange-systems-profile` | [Orange Systems profile](/features/service-configuration.md#orange-systems-profile) | Admin | service-configuration |
 | `/quality` | [Quality report](/features/evaluation-and-feedback.md#quality-report) | Admin | evaluation-and-feedback |
 | `/settings/source-plugins` | [Source plug-ins](/features/signal-pipeline.md#source-plug-ins) | Admin | signal-pipeline |
 | `/users` | [Users](/features/identity-and-access.md#users) | Admin | identity-and-access |
@@ -68,6 +69,7 @@ React with TypeScript in strict mode, built by Vite; React Router for routes; Ta
 │ Admin only    │                                                              │
 │ Services      │                                                              │
 │ Industries    │                                                              │
+│ Orange profile│                                                              │
 │ Quality       │                                                              │
 │ Source plug-ins│                                                             │
 │ Users         │                                                              │
@@ -83,7 +85,7 @@ WF-01 — application shell
 
 | ID | Requirement |
 |---|---|
-| `FR-001` | The shell shall show a left navigation with Prospects, Alerts, Accounts, Suggested accounts, Runs and Labelling for every user, and an Admin section with Services, Industries and markets, Quality, Source plug-ins, Users and Audit log shown only to Admins. |
+| `FR-001` | The shell shall show a left navigation with Prospects, Alerts, Accounts, Suggested accounts, Runs and Labelling for every user, and an Admin section with Services, Industries and markets, Orange Systems profile, Quality, Source plug-ins, Users and Audit log shown only to Admins. |
 | `FR-002` | The Alerts entry shall show the number of unread alerts of the selected service when it is greater than zero. |
 | `FR-003` | The header shall carry a service selector listing the active services; the selected service applies to Prospects, Alerts, Suggested accounts and Account detail, and is remembered in the browser's local storage per user, falling back to the first active service. |
 | `FR-004` | The user card at the foot of the navigation shall show the user's display name and role and offer Sign out. |
@@ -205,7 +207,12 @@ The words the screens show for glossary terms. A label is a presentation of the 
 | Finding | Signal |
 | Fit score, Intent score, Priority score | Fit, Intent, Priority |
 | Band `HOT`, `WARM`, `COLD` | Hot, Warm, Cold |
-| Standing `RANKED`, `BELOW_FIT`, `DISQUALIFIED`, `CUSTOMER` | Ranked, Below fit, Excluded, Customer |
+| Standing `RANKED`, `DISQUALIFIED`, `CUSTOMER`, `REJECTED` | Ranked, Excluded, Customer, Rejected |
+| Engagement status `NOT_CONTACTED`, `CONTACTED`, `ANSWERED`, `MEETING_BOOKED`, `REJECTED` | Not contacted, Contacted, Answered, Meeting booked, Rejected |
+| Interpretation | Our read |
+| Open signal | Other signal |
+| Provider fact | Orange Systems fact |
+| Daily summary | Since yesterday |
 | Disqualifier | Exclusion rule |
 | Disqualifier override | Exception |
 | Discovery candidate | Suggested account |

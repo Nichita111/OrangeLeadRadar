@@ -1,7 +1,7 @@
 ---
 type: Interface
 title: Interfaces
-description: Every contract that crosses a boundary - the REST API the frontend calls, the in-process classifier, LLM, embedder, source plug-in and CRM ports - with every shape each carries and its source of truth.
+description: Every contract that crosses a boundary - the REST API the frontend calls, including provider facts, open signals and engagement, and the in-process classifier, LLM, embedder, source plug-in and CRM ports - with every shape each carries and its source of truth.
 status: draft
 tags: [accounts-and-discovery, audit-trail, evaluation-and-feedback, identity-and-access, outreach-and-crm, prospect-dashboard, service-configuration, signal-pipeline]
 ---
@@ -334,6 +334,76 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 | `country_codes` | string[], optional | [`market`](/architecture/sql-store.md#market) |
 | `status` | enum, optional | [`market`](/architecture/sql-store.md#market) `status` |
 
+## Provider facts
+
+### Provider facts contracts
+
+| ID | Method | Path | Roles | Request → response |
+|---|---|---|---|---|
+| `API-78` | GET | `/provider-facts` | `*` | query `status`, `service_id` → [`ProviderFact`](#providerfact)`[]` |
+| `API-79` | POST | `/provider-facts` | `A` | [`ProviderFactCreate`](#providerfactcreate) → [`ProviderFact`](#providerfact) |
+| `API-80` | PATCH | `/provider-facts/{id}` | `A` | [`ProviderFactUpdate`](#providerfactupdate) → [`ProviderFact`](#providerfact) |
+
+- `API-78` — `service_id` lists the facts that apply to that service: those naming it and those naming none, in the order [Outreach grounding](/architecture/rules.md#outreach-grounding) selects them.
+- `API-79`, `API-80` — an empty text, a text longer than `PROVIDER_FACT_MAX_CHARS`, an unknown service id or a `source_url` that is not an absolute `https` URL answers `422`. Setting `status` to `INACTIVE` retires the fact; no fact is deleted.
+
+### Provider facts shapes
+
+#### ProviderFact
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `id`, `text`, `source_url`, `created_at`, `updated_at` | | [`provider_fact`](/architecture/sql-store.md#provider_fact) |
+| `services` | array of `{id, name}` | the [`service`](/architecture/sql-store.md#service) rows of `service_ids`; empty for every service |
+| `status` | enum | [`provider_fact`](/architecture/sql-store.md#provider_fact) `status` |
+
+#### ProviderFactCreate
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `text` | string | [`provider_fact`](/architecture/sql-store.md#provider_fact) |
+| `service_ids` | string[], optional | [`provider_fact`](/architecture/sql-store.md#provider_fact); omitted for every service |
+| `source_url` | string, optional | [`provider_fact`](/architecture/sql-store.md#provider_fact) |
+
+#### ProviderFactUpdate
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `text`, `source_url` | string, optional | [`provider_fact`](/architecture/sql-store.md#provider_fact) |
+| `service_ids` | string[], optional | [`provider_fact`](/architecture/sql-store.md#provider_fact) |
+| `status` | enum, optional | [`provider_fact`](/architecture/sql-store.md#provider_fact) `status` |
+
+## Open signals
+
+### Open signals contracts
+
+| ID | Method | Path | Roles | Request → response |
+|---|---|---|---|---|
+| `API-81` | GET | `/open-signals` | `*` | query `service_id`, `account_id`, `status` → `Page<`[`OpenSignalView`](#opensignalview)`>` |
+| `API-82` | POST | `/open-signals/{id}/decide` | `A` | [`OpenSignalDecision`](#opensignaldecision) → [`OpenSignalView`](#opensignalview) |
+
+- `API-81` — default `status` is `ACTIVE`; newest `observed_at` first.
+- `API-82` — only an `ACTIVE` open signal is decided (`409` otherwise). `PROMOTE` creates the question as `API-12` does, with its audit row and `RECLASSIFY` run, in the same transaction as the decision; a question the rules of `API-12` refuse answers as `API-12` would.
+
+### Open signals shapes
+
+#### OpenSignalView
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `id`, `label`, `quote`, `quote_en`, `rationale`, `observed_at`, `question_id`, `decided_at` | | [`open_signal`](/architecture/sql-store.md#open_signal) |
+| `polarity`, `status` | enum | [`open_signal`](/architecture/sql-store.md#open_signal) |
+| `account`, `service` | `{id, name}` | [`account`](/architecture/sql-store.md#account), [`service`](/architecture/sql-store.md#service) |
+| `document` | as in [`FindingView`](#findingview) | the passage's [`document`](/architecture/sql-store.md#document) |
+| `decided_by_name` | string, null | `display_name` of `decided_by` |
+
+#### OpenSignalDecision
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `action` | `DISMISS` or `PROMOTE` | [Open signals](/architecture/rules.md#open-signals) |
+| `question` | [`SignalQuestionCreate`](#signalquestioncreate), null | `PROMOTE` only: the question the Admin confirmed |
+
 ## Accounts and contacts
 
 ### Accounts and contacts contracts
@@ -351,7 +421,7 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 | `API-28` | DELETE | `/contacts/{id}` | `*` | — → `204` |
 
 - `API-20` — `q` matches the name, any alias or the domain.
-- `API-21` — the domain is normalised by [Account identity](/architecture/rules.md#account-identity); an existing domain answers `409 CONFLICT` with `details.entity_id`. Creates the name alias, the `WEBSITE` source and any sources given; `next_refresh_at` stays null, so the scheduler treats the account as due ([Refresh scheduling](/architecture/rules.md#refresh-scheduling)).
+- `API-21` — the domain is normalised by [Account identity](/architecture/rules.md#account-identity); an existing domain answers `409 CONFLICT` with `details.entity_id`. Creates the name alias, the `WEBSITE` source and any sources given; `next_refresh_at` stays null, so the scheduler treats the account as due ([Scheduling](/architecture/rules.md#scheduling)).
 - `API-22` — at most `IMPORT_MAX_ROWS` rows, else `422`. Each row is matched by [Account identity](/architecture/rules.md#account-identity): a new domain is created; an existing domain is updated with the columns the row fills, as `MANUAL` values, and an update that changes an attribute enqueues a `RESCORE` with trigger `ACCOUNT_CHANGE` for that account, as `API-24` does; a new domain whose name matches another account is reported `POSSIBLE_DUPLICATE` and skipped; an invalid row is reported with its errors. With `dry_run` true nothing is written.
 - `API-24` — `aliases` replaces the aliases (the name alias is kept); `sources` replaces the `MANUAL` sources and may set a `DETECTED` source's status. Any attribute change enqueues a `RESCORE` with trigger `ACCOUNT_CHANGE`.
 - `API-26`, `API-27` — a contact without `source_url` answers `422`; a body field not in the shape, such as an email address, answers `422`. The persona is mapped by [Persona mapping](/architecture/rules.md#persona-mapping) unless one is given; when the classifier is unavailable the request answers `503`, or `429` when the [Budget guard](/architecture/rules.md#budget-guard) stops the LLM classifier adapter, and nothing is stored.
@@ -483,6 +553,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `fit_estimate` | integer | [`discovery_candidate`](/architecture/sql-store.md#discovery_candidate) |
 | `evidence` | `{document_id, title, url, published_at, quote}`, null | the candidate's [`document`](/architecture/sql-store.md#document) and `quote`; `NEWS_MENTION` only |
 | `reject_reason`, `account_id` | string, null | [`discovery_candidate`](/architecture/sql-store.md#discovery_candidate) |
+| `run_trigger`, `proposed_at` | | the [`pipeline_run`](/architecture/sql-store.md#pipeline_run) `trigger` of its run, `SCHEDULE` for the daily cycle, and the candidate's `created_at` |
 
 #### CandidateDecision
 
@@ -500,7 +571,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `API-33` | POST | `/accounts/{id}/refresh` | `*` | — → [`Run`](#run) |
 | `API-34` | GET | `/runs` | `*` | query `kind`, `status`, `account_id`, `service_id` → `Page<`[`Run`](#run)`>` |
 | `API-35` | GET | `/runs/{id}` | `*` | — → [`Run`](#run) |
-| `API-36` | POST | `/runs/{id}/cancel` | `*`; `A` for `RECLASSIFY`, `RESCORE` and `EVALUATION` runs | — → [`Run`](#run) |
+| `API-36` | POST | `/runs/{id}/cancel` | `*`; `A` for `RECLASSIFY`, `RESCORE`, `EVALUATION` and `ENGAGEMENT_SYNC` runs | — → [`Run`](#run) |
 | `API-37` | GET | `/source-plugins` | `A` | — → [`SourcePlugin`](#sourceplugin)`[]` |
 | `API-38` | PATCH | `/source-plugins/{code}` | `A` | [`SourcePluginUpdate`](#sourcepluginupdate) → [`SourcePlugin`](#sourceplugin) |
 
@@ -547,7 +618,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 
 | ID | Method | Path | Roles | Request → response |
 |---|---|---|---|---|
-| `API-39` | GET | `/services/{id}/prospects` | `*` | query `standing` (default `RANKED`), `band[]`, `country_code[]`, `industry[]`, `q`, `sort` → [`ProspectPage`](#prospectpage) |
+| `API-39` | GET | `/services/{id}/prospects` | `*` | query `standing` (default `RANKED`), `band[]`, `country_code[]`, `industry[]`, `engagement_status[]`, `q`, `sort` → [`ProspectPage`](#prospectpage) |
 | `API-40` | GET | `/accounts/{id}/scores/{service_id}` | `*` | — → [`ScoreView`](#scoreview) |
 | `API-41` | GET | `/accounts/{id}/scores/{service_id}/history` | `*` | — → [`ScoreChange`](#scorechange)`[]` |
 | `API-42` | GET | `/accounts/{id}/findings` | `*` | query `service_id`, `question_id`, `status` → [`FindingView`](#findingview)`[]` |
@@ -581,6 +652,8 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `top_signals` | array of `{question_key, question_text, strength, observed_at}`, at most `PROSPECT_TOP_SIGNALS` | the positive findings with the most `points` in the breakdown |
 | `finding_count` | integer | in-force [`finding`](/architecture/sql-store.md#finding) rows of the service |
 | `unread_alerts` | integer | unacknowledged [`alert`](/architecture/sql-store.md#alert) rows |
+| `engagement_status` | [`EngagementStatusView`](#engagementstatusview), null | the in-force [`engagement_status`](/architecture/sql-store.md#engagement_status); null when none |
+| `interpretation_summary` | string, null | `summary` of the current score's [`score_interpretation`](/architecture/sql-store.md#score_interpretation) |
 | `as_of` | string | current [`account_score`](/architecture/sql-store.md#account_score) |
 | `last_refreshed_at` | string, null | [`account`](/architecture/sql-store.md#account) |
 
@@ -597,6 +670,17 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `overrides` | [`Override`](#override)`[]` | the account's overrides for the service, active and revoked |
 | `lead_feedback` | [`LeadFeedback`](#leadfeedback), null | the in-force [`lead_feedback`](/architecture/sql-store.md#lead_feedback) |
 | `last_crm_sync` | [`CrmSyncView`](#crmsyncview), null | the latest [`crm_sync`](/architecture/sql-store.md#crm_sync) of the account and service |
+| `interpretation` | [`InterpretationView`](#interpretationview), null | the current score's [`score_interpretation`](/architecture/sql-store.md#score_interpretation); null when not `RANKED` or not written yet |
+| `engagement_status` | [`EngagementStatusView`](#engagementstatusview), null | the in-force [`engagement_status`](/architecture/sql-store.md#engagement_status) |
+
+#### InterpretationView
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `summary`, `holding_back`, `created_at` | | [`score_interpretation`](/architecture/sql-store.md#score_interpretation) |
+| `finding_notes` | array of `{finding_id, question_text, why_it_matters}` | [`score_interpretation`](/architecture/sql-store.md#score_interpretation) `finding_notes`, with the finding's question text |
+| `open_signals` | array of `{id, label, quote, quote_en}` | the [`open_signal`](/architecture/sql-store.md#open_signal) rows of `open_signal_ids` |
+| `provider_facts` | array of `{id, text, source_url}` | the [`provider_fact`](/architecture/sql-store.md#provider_fact) rows of `provider_fact_ids` |
 
 #### ScoreChange
 
@@ -660,11 +744,13 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `API-47` | POST | `/findings/{id}/feedback` | `*` | [`FeedbackCreate`](#feedbackcreate) → [`FindingView`](#findingview) |
 | `API-48` | GET | `/alerts` | `*` | query `service_id`, `unread` → `Page<`[`AlertView`](#alertview)`>` |
 | `API-49` | POST | `/alerts/{id}/acknowledge` | `*` | — → [`AlertView`](#alertview) |
+| `API-89` | GET | `/services/{id}/daily-summary` | `*` | — → [`DailySummary`](#dailysummary) |
 
 - `API-46`, `API-47` — apply [Feedback effects](/architecture/rules.md#feedback-effects). The verdict must be a [`lead_feedback`](/architecture/sql-store.md#lead_feedback) or [`finding_feedback`](/architecture/sql-store.md#finding_feedback) `verdict` value respectively.
 - `API-46` — `404 NOT_FOUND` when the account has no score for the service yet, as `API-40`: the verdict records the score it was given on.
 - `API-48` — newest first; `unread` true lists unacknowledged alerts only.
 - `API-49` — acknowledging an acknowledged alert returns it unchanged.
+- `API-89` — computes [Daily summary](/architecture/rules.md#daily-summary) for the service at the time of the request.
 
 ### Feedback and alerts shapes
 
@@ -689,10 +775,21 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 |---|---|---|
 | `id`, `created_at`, `acknowledged_at` | | [`alert`](/architecture/sql-store.md#alert) |
 | `kind` | enum | [`alert`](/architecture/sql-store.md#alert) `kind` |
-| `account`, `service` | `{id, name}` | [`account`](/architecture/sql-store.md#account), [`service`](/architecture/sql-store.md#service) |
+| `account` | `{id, name}`, null | [`account`](/architecture/sql-store.md#account); null for `NEW_CANDIDATES` |
+| `service` | `{id, name}` | [`service`](/architecture/sql-store.md#service) |
 | `finding` | `{id, question_text, strength, quote}`, null | [`finding`](/architecture/sql-store.md#finding); `STRONG_SIGNAL` only |
 | `band_change` | `{from, to}`, null | bands of the previous and the alert's [`account_score`](/architecture/sql-store.md#account_score); `BAND_UP` only |
+| `candidates` | `{run_id, count}`, null | the [`discovery_candidate`](/architecture/sql-store.md#discovery_candidate) rows of the alert's run; `NEW_CANDIDATES` only |
+| `engagement` | [`EngagementStatusView`](#engagementstatusview), null | the alert's [`engagement_status`](/architecture/sql-store.md#engagement_status) row; `REPLY_RECEIVED` only |
 | `acknowledged_by_name` | string, null | `display_name` of `acknowledged_by` |
+
+#### DailySummary
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `period_start`, `period_end` | string | the period of [Daily summary](/architecture/rules.md#daily-summary) |
+| `findings_created`, `band_up`, `band_down`, `candidates_proposed`, `open_signals_noticed` | integer | [Daily summary](/architecture/rules.md#daily-summary) |
+| `engagement_changes` | object: engagement status → integer | [Daily summary](/architecture/rules.md#daily-summary) |
 
 ## Evaluation
 
@@ -812,6 +909,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `channel`, `status` | enum | [`outreach_draft`](/architecture/sql-store.md#outreach_draft) |
 | `contact` | `{id, full_name, job_title}`, null | [`contact`](/architecture/sql-store.md#contact) |
 | `findings` | array of `{id, question_text, quote}` | the [`finding`](/architecture/sql-store.md#finding) rows of `finding_ids` |
+| `provider_facts` | array of `{id, text}` | the [`provider_fact`](/architecture/sql-store.md#provider_fact) rows of `provider_fact_ids` |
 | `created_by_name` | string | `display_name` of `created_by` |
 
 #### OutreachDraftUpdate
@@ -827,6 +925,47 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 |---|---|---|
 | `id`, `external_id`, `error`, `created_at` | | [`crm_sync`](/architecture/sql-store.md#crm_sync) |
 | `target`, `status` | enum | [`crm_sync`](/architecture/sql-store.md#crm_sync) |
+
+## Engagement
+
+### Engagement contracts
+
+| ID | Method | Path | Roles | Request → response |
+|---|---|---|---|---|
+| `API-85` | POST | `/accounts/{id}/engagement` | `*` | [`EngagementCreate`](#engagementcreate) → [`EngagementStatusView`](#engagementstatusview) |
+| `API-86` | GET | `/accounts/{id}/engagement` | `*` | query `service_id` → [`EngagementStatusView`](#engagementstatusview)`[]` |
+| `API-87` | GET | `/services/{id}/engagement-stats` | `*` | — → [`EngagementStats`](#engagementstats) |
+
+- `API-85` — appends an [`engagement_status`](/architecture/sql-store.md#engagement_status) row with origin `MANUAL` and an `ENGAGEMENT_SET` audit row, and enqueues a `RESCORE` of the account and service with trigger `ENGAGEMENT`, in one transaction; a status equal to the one in force answers the row in force and writes nothing. An inactive service answers `422`.
+- `API-86` — the account's statuses, newest first; the first of each service is in force.
+- `API-87` — computes [Engagement statistics](/architecture/rules.md#engagement-statistics) for the service.
+
+### Engagement shapes
+
+#### EngagementCreate
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `service_id` | string | an active [`service`](/architecture/sql-store.md#service) |
+| `status` | enum | [`engagement_status`](/architecture/sql-store.md#engagement_status) `status` |
+| `note` | string, optional | [`engagement_status`](/architecture/sql-store.md#engagement_status) |
+
+#### EngagementStatusView
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `id`, `service_id`, `occurred_at`, `note`, `created_at` | | [`engagement_status`](/architecture/sql-store.md#engagement_status) |
+| `status`, `origin` | enum | [`engagement_status`](/architecture/sql-store.md#engagement_status) |
+| `set_by_name` | string, null | `display_name` of `set_by`; null for `HUBSPOT` |
+
+#### EngagementStats
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `counts` | object: engagement status → integer | [Engagement statistics](/architecture/rules.md#engagement-statistics) |
+| `by_band` | object: band or `NONE` → object: engagement status → integer | [Engagement statistics](/architecture/rules.md#engagement-statistics) |
+| `contacted` | integer | [Engagement statistics](/architecture/rules.md#engagement-statistics) |
+| `answered_share`, `meeting_share` | number, null | [Engagement statistics](/architecture/rules.md#engagement-statistics) |
 
 ## Audit and health
 
@@ -889,7 +1028,7 @@ The in-process port every classification goes through ([ADR-02](/architecture/ad
 
 ## LLM
 
-The in-process port for the four generation roles, all calling OpenRouter's chat completions API with a versioned prompt and structured output ([AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries)).
+The in-process port for the six generation roles, all calling OpenRouter's chat completions API with a versioned prompt and structured output ([AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries)).
 
 ### LLM contracts
 
@@ -899,6 +1038,8 @@ The in-process port for the four generation roles, all calling OpenRouter's chat
 | `API-64` | `extract_evidence(input)` | AI gateway, `LLM_EVIDENCE_MODEL` | none | [`EvidenceOutput`](#evidenceoutput) |
 | `API-65` | `extract_organisations(input)` | AI gateway, `LLM_EVIDENCE_MODEL` | none | [`Organisation`](#organisation)`[]` |
 | `API-66` | `draft_outreach(input)` | AI gateway, `LLM_OUTREACH_MODEL` | none | [`OutreachOutput`](#outreachoutput) |
+| `API-83` | `extract_open_signals(input)` | AI gateway, `LLM_EVIDENCE_MODEL` | none | [`OpenSignalOutput`](#opensignaloutput)`[]` |
+| `API-84` | `interpret(input)` | AI gateway, `LLM_INTERPRETATION_MODEL` | none | [`InterpretationOutput`](#interpretationoutput) |
 
 - Every call passes the [Budget guard](/architecture/rules.md#budget-guard) first, times out after `AI_CALL_TIMEOUT_S`, writes one `AI_CALL` audit row and returns output that its rule has validated, or fails with `UPSTREAM_UNAVAILABLE` or `BUDGET_EXHAUSTED`.
 
@@ -957,6 +1098,7 @@ The in-process port for the four generation roles, all calling OpenRouter's chat
 | `account_name` | string | [`account`](/architecture/sql-store.md#account) |
 | `service` | `{name, value_proposition}` | [`service`](/architecture/sql-store.md#service) |
 | `findings` | array of `{id, question_text, quote, quote_en, observed_at, url}` | selected by [Outreach grounding](/architecture/rules.md#outreach-grounding) |
+| `provider_facts` | array of `{id, text}` | selected by [Outreach grounding](/architecture/rules.md#outreach-grounding) |
 | `contact` | `{full_name, job_title, persona}`, null | [`contact`](/architecture/sql-store.md#contact) |
 | `channel` | enum | [`outreach_draft`](/architecture/sql-store.md#outreach_draft) `channel` |
 | `sender_name` | string | the user's `display_name` |
@@ -968,6 +1110,46 @@ The in-process port for the four generation roles, all calling OpenRouter's chat
 | `subject` | string, null | `EMAIL` only |
 | `body` | string | validated by [Outreach grounding](/architecture/rules.md#outreach-grounding) |
 | `cited_finding_ids` | string[] | becomes [`outreach_draft`](/architecture/sql-store.md#outreach_draft) `finding_ids` |
+| `cited_provider_fact_ids` | string[] | becomes [`outreach_draft`](/architecture/sql-store.md#outreach_draft) `provider_fact_ids` |
+
+#### OpenSignalInput
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `account_name` | string | [`account`](/architecture/sql-store.md#account) |
+| `service_description` | string | [`service`](/architecture/sql-store.md#service) `description` |
+| `questions` | string[] | the `text` of the service's active [`signal_question`](/architecture/sql-store.md#signal_question) rows, which an answer must not repeat |
+| `passages` | array of `{ordinal, header, text}` | the document's selected [`chunk`](/architecture/sql-store.md#chunk) rows with their passage headers |
+| `language` | string | [`document`](/architecture/sql-store.md#document) |
+
+#### OpenSignalOutput
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `ordinal` | integer | the passage the quote comes from |
+| `label`, `rationale` | string | become [`open_signal`](/architecture/sql-store.md#open_signal) `label` and `rationale` |
+| `polarity` | enum | [`open_signal`](/architecture/sql-store.md#open_signal) `polarity` |
+| `quote`, `quote_en` | string, `quote_en` null for English | validated by [Open signals](/architecture/rules.md#open-signals) |
+
+#### InterpretationInput
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `account` | `{name, country_code, industry_label}` | [`account`](/architecture/sql-store.md#account), [`industry`](/architecture/sql-store.md#industry) |
+| `service` | `{name, description, value_proposition}` | [`service`](/architecture/sql-store.md#service) |
+| `score` | `{fit, intent, priority, band}` | the [`account_score`](/architecture/sql-store.md#account_score) |
+| `criteria` | array of `{key, kind, match, attribute}` | the breakdown's `fit.criteria` |
+| `findings` | array of `{id, question_text, polarity, strength, age_days, quote, quote_en, rationale}` | the counted findings of the breakdown |
+| `open_signals` | array of `{id, label, polarity, quote, quote_en, rationale}` | selected by [Interpretation](/architecture/rules.md#interpretation) |
+| `provider_facts` | array of `{id, text}` | selected by [Interpretation](/architecture/rules.md#interpretation) |
+
+#### InterpretationOutput
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `summary`, `holding_back` | string, `holding_back` null | become [`score_interpretation`](/architecture/sql-store.md#score_interpretation) columns |
+| `finding_notes` | array of `{finding_id, why_it_matters}` | validated by [Interpretation](/architecture/rules.md#interpretation) |
+| `open_signal_ids`, `provider_fact_ids` | string[] | validated by [Interpretation](/architecture/rules.md#interpretation) |
 
 ## Embedder
 
@@ -1031,6 +1213,9 @@ The in-process port each [source plug-in](/architecture/services/worker.md#sourc
 | ID | Operation | Module | Transaction | Returns |
 |---|---|---|---|---|
 | `API-70` | `upsert_company(push)` | HubSpot adapter: CRM v3 companies API, search by `domain`, then update or create | none | the HubSpot company id, or `UPSTREAM_UNAVAILABLE` |
+| `API-88` | `read_company_engagement(domain)` | HubSpot adapter: CRM v3 companies search by `domain`, the company's contact associations, then a batch read of those contacts' `hs_sales_email_last_replied`, `hs_last_booked_meeting_date` and `hs_lead_status` only | none | [`CompanyEngagement`](#companyengagement), or `UPSTREAM_UNAVAILABLE` |
+
+The api calls `API-70`; the worker calls `API-88` for [Engagement sync](/architecture/rules.md#engagement-sync). Both honour fixture mode as the AI gateway does, so HubSpot exchanges are recorded and replayed ([ADR-11](/architecture/adrs/adr-11-recorded-fixtures.md)).
 
 ### CRM shapes
 
@@ -1043,3 +1228,14 @@ The in-process port each [source plug-in](/architecture/services/worker.md#sourc
 | `leadradar_priority`, `leadradar_band`, `leadradar_standing` | | the current [`account_score`](/architecture/sql-store.md#account_score) |
 | `leadradar_top_signals` | string | the question texts and quotes of up to `HUBSPOT_TOP_SIGNALS` top findings, one per line |
 | `leadradar_url` | string | `APP_BASE_URL` + the account detail route |
+
+#### CompanyEngagement
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `found` | boolean | whether HubSpot holds a company with the domain |
+| `last_reply_at` | string, null | the latest `hs_sales_email_last_replied` of the company's contacts |
+| `last_meeting_at` | string, null | the latest `hs_last_booked_meeting_date` of the company's contacts |
+| `lead_statuses` | string[] | the distinct `hs_lead_status` values of the company's contacts |
+
+Nothing else about a contact crosses the port ([RULE-07](/requirements/business.md#business-rules)).
