@@ -1,4 +1,30 @@
 {
+<<<<<<< HEAD
+  "openapi": "3.1.0",
+  "info": {
+    "title": "LeadRadar API",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "tags": [
+          "audit-and-health"
+        ],
+        "summary": "Get Health",
+        "description": "`API-61`: anonymous, `200` when the database check is `OK`, else `503`.",
+        "operationId": "get_health_api_v1_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+=======
   "components": {
     "schemas": {
       "DocumentSourceType": {
@@ -372,45 +398,149 @@
         "properties": {
           "checks": {
             "$ref": "#/components/schemas/HealthChecks"
+>>>>>>> origin/main
           },
-          "status": {
-            "$ref": "#/components/schemas/HealthStatus"
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/scoring-configs/{config_id}/activate": {
+      "post": {
+        "tags": [
+          "scoring"
+        ],
+        "summary": "API-18: Activate a DRAFT scoring config",
+        "description": "[`API-18`](/architecture/interfaces.md#scoring): Admin only.\n\nActivates the target DRAFT scoring config, retires the previous ACTIVE version, and\nenqueues a RESCORE run. Returns the activated `ScoringConfig`.\n`409 CONFLICT` when the config is not DRAFT. `422` when `change_note` is missing.\n`403 FORBIDDEN` for non-Admin.",
+        "operationId": "activate_scoring_config_route_api_v1_scoring_configs__config_id__activate_post",
+        "parameters": [
+          {
+            "name": "config_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Config Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivationRequest"
+              }
+            }
           }
         },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ActivationRequest": {
+        "properties": {
+          "change_note": {
+            "type": "string",
+            "title": "Change Note"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "change_note"
+        ],
+        "title": "ActivationRequest",
+        "description": "`ActivationRequest`: `change_note` required."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Health": {
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/HealthStatus"
+          },
+          "checks": {
+            "$ref": "#/components/schemas/HealthChecks"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
         "required": [
           "status",
           "checks"
         ],
         "title": "Health",
-        "type": "object"
+        "description": "[Health](/architecture/interfaces.md#health), the response of `API-61`."
       },
       "HealthCheckStatus": {
-        "description": "One dependency's check outcome, of the [Health](/architecture/interfaces.md#health) shape.",
+        "type": "string",
         "enum": [
           "OK",
           "DOWN",
           "NOT_CONFIGURED"
         ],
         "title": "HealthCheckStatus",
-        "type": "string"
+        "description": "One dependency's check outcome, of the [Health](/architecture/interfaces.md#health) shape."
       },
       "HealthChecks": {
-        "additionalProperties": false,
-        "description": "The `checks` object of [Health](/architecture/interfaces.md#health).",
         "properties": {
-          "classifier": {
-            "$ref": "#/components/schemas/HealthCheckStatus"
-          },
           "database": {
             "$ref": "#/components/schemas/HealthCheckStatus"
           },
           "embedder": {
             "$ref": "#/components/schemas/HealthCheckStatus"
           },
+          "classifier": {
+            "$ref": "#/components/schemas/HealthCheckStatus"
+          },
           "llm": {
             "$ref": "#/components/schemas/HealthCheckStatus"
           }
         },
+        "additionalProperties": false,
+        "type": "object",
         "required": [
           "database",
           "embedder",
@@ -418,16 +548,22 @@
           "llm"
         ],
         "title": "HealthChecks",
-        "type": "object"
+        "description": "The `checks` object of [Health](/architecture/interfaces.md#health)."
       },
       "HealthStatus": {
-        "description": "The overall `status` of the [Health](/architecture/interfaces.md#health) shape.",
+        "type": "string",
         "enum": [
           "OK",
           "DEGRADED",
           "DOWN"
         ],
         "title": "HealthStatus",
+<<<<<<< HEAD
+        "description": "The overall `status` of the [Health](/architecture/interfaces.md#health) shape."
+      },
+      "ValidationError": {
+        "properties": {
+=======
         "type": "string"
       },
       "Impact": {
@@ -603,6 +739,7 @@
           "input": {
             "title": "Input"
           },
+>>>>>>> origin/main
           "loc": {
             "items": {
               "anyOf": [
@@ -611,6 +748,8 @@
                 },
                 {
                   "type": "integer"
+<<<<<<< HEAD
+=======
                 }
               ]
             },
@@ -802,26 +941,29 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Health"
+>>>>>>> origin/main
                 }
-              }
+              ]
             },
-            "description": "Successful Response"
+            "type": "array",
+            "title": "Location"
           },
-          "503": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Health"
-                }
-              }
-            },
-            "description": "Service Unavailable"
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
           }
         },
-        "summary": "Get Health",
-        "tags": [
-          "audit-and-health"
-        ]
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
       }
     },
     "/api/v1/impact": {

@@ -13,13 +13,19 @@ from alembic.config import Config
 from alembic.migration import MigrationContext
 from pydantic import SecretStr
 from sqlalchemy import create_engine, inspect, text
+<<<<<<< HEAD
+=======
 from testcontainers.community.postgres import PostgresContainer
+>>>>>>> origin/main
 
 from alembic import command
 from leadradar.api.main import _API_ROOT, apply_migrations
 from leadradar.db.base import Base
 from leadradar.logs import configure_json_logging
 from leadradar.settings import ApiSettings
+
+# Imported for its side effect: populates Base.metadata with every model.
+importlib.import_module("leadradar.db.models")
 
 # Imported for its side effect: populates Base.metadata with every model.
 importlib.import_module("leadradar.db.models")

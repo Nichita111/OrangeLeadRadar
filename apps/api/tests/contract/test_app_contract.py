@@ -195,9 +195,17 @@ async def test_an_unknown_path_answers_404_with_the_not_found_envelope(
 async def test_a_non_404_http_exception_keeps_its_own_status_and_is_not_mapped_to_internal(
     client: httpx.AsyncClient,
 ) -> None:
+<<<<<<< HEAD
+    """ "No other codes are mapped yet" (design): a `405` stays a `405`, not `500 INTERNAL`."""
+    response = await client.post("/api/v1/health")
+
+    assert response.status_code == 405
+    assert response.json() != {"error": {"code": "INTERNAL", "message": "Method Not Allowed"}}
+=======
     """No code but `NOT_FOUND` is mapped yet: a `405` stays a `405`, not `500 INTERNAL`. The CSRF
     header is sent so the request reaches routing instead of being refused by `CsrfMiddleware`."""
     response = await client.post("/api/v1/health", headers={"X-Requested-With": "XMLHttpRequest"})
 
     assert response.status_code == 405
     assert response.json().get("error", {}).get("code") != "INTERNAL"
+>>>>>>> origin/main
