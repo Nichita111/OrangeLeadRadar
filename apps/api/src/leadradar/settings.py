@@ -24,6 +24,7 @@ class ApiSettings(BaseSettings):
     model_config = SettingsConfigDict(extra="ignore")
 
     database_url: SecretStr
+    migration_database_url: SecretStr
     log_level: str = "INFO"
     health_timeout_ms: int = 2000
 
@@ -39,3 +40,7 @@ class ApiSettings(BaseSettings):
 
     impact_period_days: int = 30
     manual_research_minutes_per_account: int = 120
+    session_ttl_hours: int = 12
+    login_max_failures: int = 5
+    login_lock_minutes: int = 15
+    password_min_length: int = 12

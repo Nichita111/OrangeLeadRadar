@@ -1,54 +1,25 @@
-"""Fixtures shared by the integration tests
-([Integration tests](/guidelines/testing.md#integration-tests)): one `pgvector/pgvector:pg16`
-container for the session, migrated once to head; each test gets its own connection wrapped in
-a transaction that is rolled back, so tests stay independent."""
+"""Per-test fixtures of the integration tests
+([Integration tests](/guidelines/testing.md#integration-tests)): the shared container of the
+root `conftest.py`, migrated once to head as the owner with the application role granted; each
+test gets its own connection, as `leadradar_app`, wrapped in a transaction that is rolled back so
+tests stay independent."""
 
 from __future__ import annotations
 
 from collections.abc import AsyncIterator, Iterator
 
 import pytest
-from alembic.config import Config
-from pydantic import SecretStr
 from sqlalchemy import Connection, create_engine
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, AsyncSession
-from testcontainers.community.postgres import PostgresContainer
 
-from alembic import command
 from leadradar.db.session import build_engine
 from leadradar.settings import ApiSettings
-
-_ALEMBIC_ROOT = __import__("pathlib").Path(__file__).resolve().parents[2]
-
-
-def _plain_url(container: PostgresContainer) -> str:
-    host = container.get_container_host_ip()
-    port = container.get_exposed_port(container.port)
-    return (
-        f"postgresql://{container.username}:{container.password}@{host}:{port}/{container.dbname}"
-    )
-
-
-@pytest.fixture(scope="session")
-def database_url() -> Iterator[str]:
-    with PostgresContainer("pgvector/pgvector:pg16", driver=None) as container:
-        url = _plain_url(container)
-        settings = ApiSettings(database_url=SecretStr(url))
-        config = Config(str(_ALEMBIC_ROOT / "alembic.ini"))
-        config.set_main_option("script_location", str(_ALEMBIC_ROOT / "alembic"))
-        config.attributes["settings"] = settings
-        command.upgrade(config, "head")
-        yield url
-
-
-@pytest.fixture(scope="session")
-def api_settings(database_url: str) -> ApiSettings:
-    return ApiSettings(database_url=SecretStr(database_url))
 
 
 @pytest.fixture
 def sync_connection(database_url: str) -> Iterator[Connection]:
-    """One connection per test, in a transaction that is rolled back at the end."""
+    """One connection per test, as the application role, in a transaction that is rolled back at
+    the end."""
     engine = create_engine(database_url.replace("postgresql://", "postgresql+psycopg://"))
     with engine.connect() as connection:
         trans = connection.begin()
@@ -90,3 +61,21 @@ async def async_session(async_connection: AsyncConnection) -> AsyncIterator[Asyn
         bind=async_connection, join_transaction_mode="create_savepoint", expire_on_commit=False
     ) as session:
         yield session
+
+
+@pytest.fixture
+async def db_session(async_engine: AsyncEngine) -> AsyncIterator[AsyncSession]:
+    """One `AsyncSession` per test, joined onto an outer transaction through a savepoint: a
+    capability function's own `commit()` only releases the savepoint, so the whole test is
+    rolled back at the end regardless of how many transactions the code under test committed
+    (Risks, `design.md`)."""
+    async with async_engine.connect() as connection:
+        await connection.begin()
+        session = AsyncSession(
+            bind=connection, join_transaction_mode="create_savepoint", expire_on_commit=False
+        )
+        try:
+            yield session
+        finally:
+            await session.close()
+            await connection.rollback()

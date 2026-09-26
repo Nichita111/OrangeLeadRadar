@@ -1,11 +1,8 @@
-"""CSRF ([Conventions](/architecture/interfaces.md#conventions) CSRF, G6 (a)): a `POST`, `PUT`,
-`PATCH` or `DELETE` without an `X-Requested-With` header is refused `403 FORBIDDEN`.
-
-A plain ASGI middleware, like [`RequestIdentityMiddleware`](request_identity.py), and for the
-same reason: `api/app.py` adds it before `RequestIdentityMiddleware`, so it sits inside that
-layer and a refusal still carries `X-Request-Id` and the one request log line. It answers
-directly instead of raising, because it sits outside FastAPI's own routing and exception
-handling and a raised exception there would otherwise surface as `500 INTERNAL`."""
+"""CSRF check ([Conventions](/architecture/interfaces.md#conventions) CSRF, `S-SEC-02`): a
+`POST`, `PUT`, `PATCH` or `DELETE` without an `X-Requested-With` header is refused `403 FORBIDDEN`
+before routing or authentication, so an anonymous request and a request to an unknown path get
+the same answer. Added inside `RequestIdentityMiddleware` so its response still carries
+`X-Request-Id` and is written to the request log line."""
 
 from __future__ import annotations
 
@@ -14,25 +11,26 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 from leadradar.api.errors import envelope
 
-_STATE_CHANGING_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+_UNSAFE_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 
 
 class CsrfMiddleware:
-    """Refuses a state-changing request that carries no `X-Requested-With` header."""
+    """Refuses every unsafe method without `X-Requested-With`."""
 
     def __init__(self, app: ASGIApp) -> None:
         self.app = app
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] != "http" or scope["method"] not in _STATE_CHANGING_METHODS:
+        if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
 
-        headers = dict(scope["headers"])
-        if b"x-requested-with" not in headers:
+        if scope["method"] in _UNSAFE_METHODS and not any(
+            name == b"x-requested-with" for name, _value in scope["headers"]
+        ):
             response = JSONResponse(
                 status_code=403,
-                content=envelope("FORBIDDEN", "This request is missing the CSRF header."),
+                content=envelope("FORBIDDEN", "Missing the X-Requested-With header."),
             )
             await response(scope, receive, send)
             return
