@@ -48,6 +48,8 @@ It never fetches from a source, never classifies in batch, never writes a score,
 | Key | Default | Meaning |
 |---|---|---|
 | `DATABASE_URL` | — (required) | PostgreSQL connection string, as the application role of [Runtime](/architecture/overview.md#runtime) |
+| `API_HOST` | `0.0.0.0` | Interface on which the api listens |
+| `API_PORT` | `8000` | Port on which the api listens |
 | `POSTGRES_PASSWORD` | — (required by the Compose file) | Password of the `db` container's database user, the owner; the Compose file builds `MIGRATION_DATABASE_URL` from it |
 | `MIGRATION_DATABASE_URL` | — (required) | PostgreSQL connection string as the owner; used only to apply migrations at start |
 | `APP_DB_PASSWORD` | — (required by the Compose file) | Password of the application role; the `db` init script creates the role with it and the Compose file builds `DATABASE_URL` from it |

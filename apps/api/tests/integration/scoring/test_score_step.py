@@ -8,11 +8,14 @@ test. No mocks; assertions are on the database state.
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime
 
 import pytest
 from sqlalchemy import Connection, text
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
+from leadradar.configuration.errors import DraftInvalid
+from leadradar.logs import request_id_var
 from leadradar.scoring.activate import activate_scoring_config
 from leadradar.scoring.errors import NotADraft
 
@@ -172,13 +175,18 @@ async def test_activation_sets_draft_to_active_and_retires_previous(
         lambda c: _insert_scoring_config(c, service_id, status="DRAFT", version=2)
     )
 
-    await activate_scoring_config(
-        async_session,
-        config_id=draft_config_id,
-        actor_id=actor_id,
-        change_note="v2 go live",
-        request_id="req-1",
-    )
+    current_time = datetime(2026, 9, 26, 12, tzinfo=UTC)
+    token = request_id_var.set("req-1")
+    try:
+        await activate_scoring_config(
+            async_session,
+            config_id=draft_config_id,
+            actor_id=actor_id,
+            change_note="v2 go live",
+            now=current_time,
+        )
+    finally:
+        request_id_var.reset(token)
 
     async def scalar(sql: str, **params: object) -> object:
         return (await async_session.execute(text(sql), params)).scalar_one()
@@ -207,6 +215,47 @@ async def test_activation_sets_draft_to_active_and_retires_previous(
         actor=actor_id,
     )
     assert audit_count == 2
+    audit_rows = (
+        await async_session.execute(
+            text(
+                "SELECT request_id, occurred_at FROM audit_event WHERE actor_id = :actor "
+                "AND action IN ('SCORING_ACTIVATED', 'RUN_REQUESTED')"
+            ),
+            {"actor": actor_id},
+        )
+    ).all()
+    assert all(row.request_id == "req-1" and row.occurred_at == current_time for row in audit_rows)
+
+
+async def test_activation_revalidates_a_draft_before_writing(
+    async_connection: AsyncConnection, async_session: AsyncSession
+) -> None:
+    service_id = await async_connection.run_sync(_insert_service)
+    actor_id = await async_connection.run_sync(_insert_user)
+    draft_id = await async_connection.run_sync(
+        lambda c: _insert_scoring_config(c, service_id, status="DRAFT")
+    )
+    await async_session.execute(
+        text(
+            "UPDATE scoring_config SET settings = jsonb_set(settings, '{fit_weight}', '0.9') "
+            "WHERE id = :id"
+        ),
+        {"id": draft_id},
+    )
+
+    with pytest.raises(DraftInvalid):
+        await activate_scoring_config(
+            async_session,
+            config_id=draft_id,
+            actor_id=actor_id,
+            change_note="invalid weights",
+            now=datetime(2026, 9, 26, 12, tzinfo=UTC),
+        )
+    assert (
+        await async_session.execute(
+            text("SELECT status FROM scoring_config WHERE id = :id"), {"id": draft_id}
+        )
+    ).scalar_one() == "DRAFT"
 
 
 async def test_activation_of_non_draft_raises(
@@ -225,5 +274,5 @@ async def test_activation_of_non_draft_raises(
             config_id=active_id,
             actor_id=actor_id,
             change_note="should fail",
-            request_id=None,
+            now=datetime.now(tz=UTC),
         )

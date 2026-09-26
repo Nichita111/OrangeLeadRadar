@@ -32,15 +32,6 @@ logger = logging.getLogger(__name__)
 _ACTIVE_STATUSES = (PipelineRunStatus.QUEUED, PipelineRunStatus.RUNNING)
 
 
-class RefreshSettings(ApiSettings):
-    """Adds the two [worker runtime](/architecture/services/worker.md#runtime) keys this entry
-    point's wait needs; the api already reads `EVAL_MIN_ITEMS` of the same section for the same
-    reason ([api Runtime](/architecture/services/api.md#runtime))."""
-
-    job_poll_interval_s: float = 1.0
-    refresh_target_minutes: float = 10.0
-
-
 def _plugins_with_a_key(settings: ApiSettings) -> frozenset[SourcePluginCode]:
     """The plug-ins whose key is set in the runtime, exactly as `api.post_account_refresh`
     (`API-33`) computes it, so a refresh queued here sees the same available plug-ins."""
@@ -67,7 +58,7 @@ async def _active_account_ids(db: AsyncSession) -> list[uuid.UUID]:
     )
 
 
-async def refresh_demo_accounts(db: AsyncSession, settings: RefreshSettings) -> list[uuid.UUID]:
+async def refresh_demo_accounts(db: AsyncSession, settings: ApiSettings) -> list[uuid.UUID]:
     """Requests one `USER` refresh per active account through `request_account_refresh`
     (`API-33`), each in its own transaction, and returns the run ids to wait for."""
     admin = await _require_admin(db)
@@ -97,7 +88,7 @@ async def _run_statuses(
 
 
 async def wait_for_runs_final(
-    db: AsyncSession, run_ids: list[uuid.UUID], settings: RefreshSettings
+    db: AsyncSession, run_ids: list[uuid.UUID], settings: ApiSettings
 ) -> None:
     """Polls the runs `request_account_refresh` created until every one leaves `QUEUED` or
     `RUNNING`. The deadline is one `REFRESH_TARGET_MINUTES` per run - the target duration of one
@@ -119,7 +110,7 @@ async def wait_for_runs_final(
         db.expire_all()
 
 
-async def _run(settings: RefreshSettings) -> None:
+async def _run(settings: ApiSettings) -> None:
     engine = build_engine(settings.database_url.get_secret_value())
     try:
         async with AsyncSession(engine, expire_on_commit=False) as db:
@@ -132,7 +123,7 @@ async def _run(settings: RefreshSettings) -> None:
 def run() -> None:
     """`leadradar-refresh-demo`: fails loudly (a non-zero exit, one JSON log line) rather than
     leaving the demo dataset partially refreshed."""
-    settings = RefreshSettings()
+    settings = ApiSettings()
     configure_json_logging(settings.log_level)
     try:
         asyncio.run(_run(settings))

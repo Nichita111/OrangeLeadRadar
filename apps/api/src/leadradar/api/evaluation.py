@@ -1,11 +1,5 @@
-"""Router of the [Evaluation](/architecture/interfaces.md#evaluation-contracts) family. Only
-`API-77` `GET /impact` is in scope of this task.
-
-The route carries **no role dependency**: `API-77`'s Roles column says `A` (Admin), but no
-session or role guard exists yet, and [No skipped tests]
-(/guidelines/testing.md#no-skipped-tests) forbids writing the two role contract tests before one
-can pass. This is a recorded deviation (`.work/impact-panel/design.md`), closed by issue #11
-(`S-SEC-01` to `S-SEC-03`), which attaches the Admin dependency to this router."""
+"""Admin-only `API-77` Impact route of the
+[Evaluation](/architecture/interfaces.md#evaluation-contracts) family."""
 
 from __future__ import annotations
 

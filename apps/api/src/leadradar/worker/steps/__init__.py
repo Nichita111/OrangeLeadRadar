@@ -20,6 +20,7 @@ from typing import Literal
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from leadradar.ai.gateway import AiGateway
 from leadradar.core.enums import JobStep, PipelineRunKind, PipelineRunTrigger
 from leadradar.db.models.ingestion import Job, PipelineRun
 from leadradar.worker.settings import WorkerSettings
@@ -56,6 +57,7 @@ class StepContext:
     session: AsyncSession
     now: datetime
     settings: WorkerSettings
+    gateway: AiGateway | None = None
 
 
 class StepFailed(Exception):
@@ -82,6 +84,8 @@ async def _run_signal(context: StepContext) -> None:
     from leadradar.worker.steps.signal import run_signal_job
 
     job, run = await _load_job_and_run(context)
+    if context.gateway is None:
+        raise RuntimeError("The SIGNAL step requires the AI gateway")
     await run_signal_job(
         context.session,
         job=job,
@@ -89,6 +93,8 @@ async def _run_signal(context: StepContext) -> None:
         worker_instance_id=str(context.job.id),
         alert_max_age_days=context.settings.alert_max_age_days,
         settings=context.settings,
+        gateway=context.gateway,
+        now=context.now,
     )
 
 
@@ -103,6 +109,7 @@ async def _run_score(context: StepContext) -> None:
         run=run,
         worker_instance_id=str(context.job.id),
         alert_max_age_days=context.settings.alert_max_age_days,
+        now=context.now,
     )
 
 

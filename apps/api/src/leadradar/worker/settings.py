@@ -28,6 +28,8 @@ class WorkerSettings(AiGatewaySettings):
     refresh_interval_hours: int = 24
     scheduler_tick_s: int = 60
     scheduler_max_enqueue: int = 20
+    housekeeping_hour_utc: int = 3
+    refresh_target_minutes: int = 10
 
     #: [Plug-in availability](/architecture/rules.md#plug-in-availability): unset by default;
     #: a plug-in whose key is unset is unavailable. Declared here too, as `DATABASE_URL` is,
@@ -38,6 +40,16 @@ class WorkerSettings(AiGatewaySettings):
 
     #: Alert window ([Alerts](/architecture/rules.md#alerts))
     alert_max_age_days: int = 14
+    attribute_min_p: float = 0.6
+    discovery_max_candidates: int = 50
+    discovery_lookback_days: int = 30
+    discovery_max_documents: int = 100
+    eval_classifier_only_p: float = 0.5
+    eval_calibration_bins: int = 10
+    eval_max_errors: int = 50
+    eval_min_precision: float = 0.8
+    eval_min_items: int = 200
+    escalation_rate_target: float = 0.15
 
     # SIGNAL step ([worker Configuration](/architecture/services/worker.md#runtime))
     triage_chars: int = 2000
@@ -65,6 +77,10 @@ class WorkerSettings(AiGatewaySettings):
     whole_document_max_chars: int = 8000
     chunk_target_chars: int = 1600
     chunk_overlap_chars: int = 200
+    passages_per_question: int = 3
+    max_passages_per_document: int = 20
+    retrieval_candidates: int = 50
+    retrieval_rrf_k: int = 60
     near_duplicate_similarity: float = 0.95
     near_duplicate_window_days: int = 7
     document_retention_days: int = 730
