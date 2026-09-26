@@ -1132,6 +1132,77 @@
         "title": "Body_post_accounts_import_api_v1_accounts_import_post",
         "type": "object"
       },
+      "CrmSyncStatus": {
+        "description": "`crm_sync.status`.",
+        "enum": [
+          "SUCCEEDED",
+          "FAILED"
+        ],
+        "title": "CrmSyncStatus",
+        "type": "string"
+      },
+      "CrmSyncTarget": {
+        "description": "`crm_sync.target`.",
+        "enum": [
+          "HUBSPOT"
+        ],
+        "title": "CrmSyncTarget",
+        "type": "string"
+      },
+      "CrmSyncView": {
+        "additionalProperties": false,
+        "description": "[`CrmSyncView`](/architecture/interfaces.md#crmsyncview), the response of `API-59`.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "external_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Id"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CrmSyncStatus"
+          },
+          "target": {
+            "$ref": "#/components/schemas/CrmSyncTarget"
+          }
+        },
+        "required": [
+          "id",
+          "external_id",
+          "error",
+          "created_at",
+          "target",
+          "status"
+        ],
+        "title": "CrmSyncView",
+        "type": "object"
+      },
       "Disqualifier": {
         "additionalProperties": false,
         "description": "One entry of `disqualifiers`.",
@@ -4274,6 +4345,76 @@
         "summary": "Post Account Refresh",
         "tags": [
           "runs-and-source-plugins"
+        ]
+      }
+    },
+    "/api/v1/accounts/{id}/scores/{service_id}/crm-push": {
+      "post": {
+        "description": "`API-59`: pushes the account's current score for the service to HubSpot and records the\noutcome in [`crm_sync`](/architecture/sql-store.md#crm_sync).",
+        "operationId": "post_crm_push_api_v1_accounts__id__scores__service_id__crm_push_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Service Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrmSyncView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Post Crm Push",
+        "tags": [
+          "outreach-and-crm"
         ]
       }
     },

@@ -811,7 +811,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 
 - `API-56` — follows [Outreach grounding](/architecture/rules.md#outreach-grounding); an account without an in-force positive finding for the service answers `422`. There is no contract that sends a message.
 - `API-58` — changing `subject` or `body` sets `edited`; `status` may only move to `EXPORTED`.
-- `API-59` — `404` when the account has no score for the service; without `HUBSPOT_ACCESS_TOKEN` answers `409 NOT_CONFIGURED`; otherwise calls `API-70` and records the outcome in [`crm_sync`](/architecture/sql-store.md#crm_sync).
+- `API-59` — without `HUBSPOT_ACCESS_TOKEN` answers `409 NOT_CONFIGURED` and writes nothing, whatever the account's data; otherwise `404` when the account has no score for the service; otherwise calls `API-70` and records the outcome in [`crm_sync`](/architecture/sql-store.md#crm_sync), answering `503 UPSTREAM_UNAVAILABLE` with `details.dependency` `HUBSPOT` when the call fails, the `FAILED` row recorded.
 
 ### Outreach and CRM shapes
 
@@ -1048,7 +1048,7 @@ The in-process port each [source plug-in](/architecture/services/worker.md#sourc
 
 | ID | Operation | Module | Transaction | Returns |
 |---|---|---|---|---|
-| `API-70` | `upsert_company(push)` | HubSpot adapter: CRM v3 companies API, search by `domain`, then update or create | none | the HubSpot company id, or `UPSTREAM_UNAVAILABLE` |
+| `API-70` | `upsert_company(push)` | HubSpot adapter: CRM v3 companies API at `https://api.hubapi.com`, search by `domain`, then update or create | none | the HubSpot company id, or `UPSTREAM_UNAVAILABLE` |
 
 ### CRM shapes
 
@@ -1058,6 +1058,9 @@ The in-process port each [source plug-in](/architecture/services/worker.md#sourc
 |---|---|---|
 | `domain`, `name` | string | [`account`](/architecture/sql-store.md#account) |
 | `leadradar_service` | string | [`service`](/architecture/sql-store.md#service) `name` |
-| `leadradar_priority`, `leadradar_band`, `leadradar_standing` | | the current [`account_score`](/architecture/sql-store.md#account_score) |
-| `leadradar_top_signals` | string | the question texts and quotes of up to `HUBSPOT_TOP_SIGNALS` top findings, one per line |
+| `leadradar_priority`, `leadradar_standing` | string | the current [`account_score`](/architecture/sql-store.md#account_score) |
+| `leadradar_band` | string | the current [`account_score`](/architecture/sql-store.md#account_score) `band`; empty when `band` is null |
+| `leadradar_top_signals` | string | one line per finding, `question text — "quote"`, for up to `HUBSPOT_TOP_SIGNALS` of the positive findings with the most `points` in the current breakdown, as [`ProspectRow`](#prospectrow) `top_signals`, then `observed_at` descending as `API-42`; empty when there is none |
 | `leadradar_url` | string | `APP_BASE_URL` + the account detail route |
+
+The `leadradar_*` properties are created in the target portal by its HubSpot administrator before the first push, as single-line text properties on the company object; a push against a portal without them fails and is recorded `FAILED`.

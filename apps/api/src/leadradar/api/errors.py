@@ -31,6 +31,7 @@ from leadradar.auth.errors import (
 )
 from leadradar.configuration.errors import Conflict, DraftInvalid, NotFound, QuestionInvalid
 from leadradar.feedback.errors import FeedbackError
+from leadradar.outreach.errors import CrmUnavailable, HubspotNotConfigured, ScoreNotFound
 from leadradar.runs.errors import (
     AccountInactive,
     RefreshAccountNotFound,
@@ -183,6 +184,27 @@ def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(FeedbackError)
     async def handle_feedback_error(request: Request, exc: FeedbackError) -> Response:
         return JSONResponse(status_code=404, content=envelope("NOT_FOUND", str(exc)))
+
+    @app.exception_handler(HubspotNotConfigured)
+    async def handle_hubspot_not_configured(
+        request: Request, exc: HubspotNotConfigured
+    ) -> Response:
+        return JSONResponse(status_code=409, content=envelope("NOT_CONFIGURED", str(exc)))
+
+    @app.exception_handler(ScoreNotFound)
+    async def handle_outreach_score_not_found(request: Request, exc: ScoreNotFound) -> Response:
+        return JSONResponse(status_code=404, content=envelope("NOT_FOUND", str(exc)))
+
+    @app.exception_handler(CrmUnavailable)
+    async def handle_crm_unavailable(request: Request, exc: CrmUnavailable) -> Response:
+        return JSONResponse(
+            status_code=503,
+            content=envelope(
+                "UPSTREAM_UNAVAILABLE",
+                "HubSpot is unavailable.",
+                {"dependency": "HUBSPOT", "reason": str(exc)},
+            ),
+        )
 
     @app.exception_handler(RunNotFound)
     @app.exception_handler(RefreshAccountNotFound)

@@ -93,6 +93,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/accounts/{id}/scores/{service_id}/crm-push": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Crm Push
+         * @description `API-59`: pushes the account's current score for the service to HubSpot and records the
+         *     outcome in [`crm_sync`](/architecture/sql-store.md#crm_sync).
+         */
+        post: operations["post_crm_push_api_v1_accounts__id__scores__service_id__crm_push_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/accounts/{id}/scores/{service_id}/feedback": {
         parameters: {
             query?: never;
@@ -1100,6 +1121,40 @@ export interface components {
             dry_run: boolean;
             /** File */
             file: string;
+        };
+        /**
+         * CrmSyncStatus
+         * @description `crm_sync.status`.
+         * @enum {string}
+         */
+        CrmSyncStatus: "SUCCEEDED" | "FAILED";
+        /**
+         * CrmSyncTarget
+         * @description `crm_sync.target`.
+         * @enum {string}
+         */
+        CrmSyncTarget: "HUBSPOT";
+        /**
+         * CrmSyncView
+         * @description [`CrmSyncView`](/architecture/interfaces.md#crmsyncview), the response of `API-59`.
+         */
+        CrmSyncView: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Error */
+            error: string | null;
+            /** External Id */
+            external_id: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            status: components["schemas"]["CrmSyncStatus"];
+            target: components["schemas"]["CrmSyncTarget"];
         };
         /**
          * Disqualifier
@@ -2360,6 +2415,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Run"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_crm_push_api_v1_accounts__id__scores__service_id__crm_push_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                service_id: string;
+            };
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CrmSyncView"];
                 };
             };
             /** @description Validation Error */

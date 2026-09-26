@@ -2,6 +2,8 @@
 
 ## 2026-09-26
 
+* **Update**: HubSpot push (`S-OUT-02`): [api Runtime](/architecture/services/api.md#runtime) gains `HUBSPOT_TIMEOUT_S` (`10`); [CRM contracts](/architecture/interfaces.md#crm) states `API-70`'s address as `https://api.hubapi.com`; [Outreach and CRM contracts](/architecture/interfaces.md#outreach-and-crm) restates `API-59`'s outcomes, token check first; [`CompanyPush`](/architecture/interfaces.md#companypush) types `leadradar_priority`, `leadradar_band`, `leadradar_standing` as `string`, restates `leadradar_top_signals`' source as the `ProspectRow` `top_signals` selection, and states that the target portal's HubSpot administrator creates the `leadradar_*` properties by hand before the first push; the [Outreach and CRM](/features/outreach-and-crm.md) Open questions section is removed, its one question answered.
+* **Update**: HubSpot push (`S-OUT-02`): [`CompanyPush`](/architecture/interfaces.md#companypush) splits the `leadradar_band` row from `leadradar_priority` and `leadradar_standing`, stating it is empty when the current `account_score` `band` is null.
 * **Update**: [Conventions](/architecture/interfaces.md#conventions) names the `METHOD_NOT_ALLOWED` envelope code for HTTP 405.
 * **Update**: [api Runtime](/architecture/services/api.md#runtime) names the API bind host and port as `API_HOST` and `API_PORT`.
 * **Update**: The [release gate](/requirements/acceptance.md#release-gate) remains limited to P0 behaviour, and [system requirements](/requirements/system.md) name the top-signal key used by the prospect view.

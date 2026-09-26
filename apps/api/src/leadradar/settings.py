@@ -30,6 +30,8 @@ class ApiSettings(AiGatewaySettings):
 
     impact_period_days: int = 30
     manual_research_minutes_per_account: int = 120
+    app_base_url: str = "http://localhost:8080"
+    hubspot_timeout_s: float = 10
     session_ttl_hours: int = 12
     login_max_failures: int = 5
     login_lock_minutes: int = 15

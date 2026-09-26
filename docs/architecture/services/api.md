@@ -76,6 +76,7 @@ It never fetches from a source, never classifies in batch, never writes a score,
 | `HEALTH_TIMEOUT_MS` | `2000` | Timeout of each health check |
 | `INTERACTIVE_P95_TARGET_MS` | `800` | Target p95 latency of interactive reads ([N-01](/requirements/system.md)) |
 | `HUBSPOT_ACCESS_TOKEN` | unset | HubSpot private-app token; unset disables the push |
+| `HUBSPOT_TIMEOUT_S` | `10` | Timeout of a HubSpot call |
 | `SEED_ADMIN_PASSWORD`, `SEED_SALES_PASSWORD` | — (required by `make seed-demo`) | Passwords of the demo users |
 | `LOG_LEVEL` | `INFO` | Log level; logs are JSON lines |
 
