@@ -50,10 +50,17 @@ def stage_after_claim(current: PipelineRunStage | None, step: JobStep) -> Pipeli
     return claimed
 
 
-def owed_final_job(kind: PipelineRunKind, steps_in_run: Collection[JobStep]) -> JobStep | None:
-    """With every job of the run final: the step the job loop must still enqueue — `SCORE` for
-    an `ACCOUNT_REFRESH` or `RECLASSIFY` run that has no `SCORE` job — or `None` when the run is
+def owed_job(kind: PipelineRunKind, steps_in_run: Collection[JobStep]) -> JobStep | None:
+    """With every job of the run final: the step the job loop must still enqueue — `PROCESS` for
+    an `ACCOUNT_REFRESH` that has `FETCH` jobs and no `PROCESS` job, else `SCORE` for an
+    `ACCOUNT_REFRESH` or `RECLASSIFY` run that has no `SCORE` job — or `None` when the run is
     ready to finish."""
+    if (
+        kind is PipelineRunKind.ACCOUNT_REFRESH
+        and JobStep.FETCH in steps_in_run
+        and JobStep.PROCESS not in steps_in_run
+    ):
+        return JobStep.PROCESS
     if kind in _KINDS_OWED_A_SCORE_JOB and JobStep.SCORE not in steps_in_run:
         return JobStep.SCORE
     return None

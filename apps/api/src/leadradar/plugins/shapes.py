@@ -6,11 +6,9 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal
 
+from leadradar.core.document_normalisation import ContentType
 from leadradar.core.enums import AccountSourceKind, DocumentSourceType, SourcePluginCode
-
-ContentType = Literal["HTML", "PDF", "JSON"]
 
 
 @dataclass(frozen=True)

@@ -50,3 +50,9 @@ def news_queries_by_service(
         service_id: news_query(name=name, aliases=aliases, hint_terms=terms)
         for service_id, terms in hint_terms_by_service.items()
     }
+
+
+def plugin_share(max_documents: int, plugin_count: int) -> int:
+    """[Fetch window](/architecture/rules.md#fetch-window) step 7: one plug-in's share of
+    `MAX_DOCUMENTS_PER_REFRESH`, so the shares of a refresh's plug-ins never exceed it."""
+    return max_documents // plugin_count

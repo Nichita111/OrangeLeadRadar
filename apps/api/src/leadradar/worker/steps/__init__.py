@@ -58,6 +58,10 @@ class StepContext:
     now: datetime
     settings: WorkerSettings
     gateway: AiGateway | None = None
+    #: Opens a session of its own, for a step whose work must not share the step's fate: the
+    #: `FETCH` step reads its inputs before it uses the network, and commits its usage and
+    #: errors whether or not the step later fails.
+    sessions: Callable[[], AsyncSession] | None = None
 
 
 class StepFailed(Exception):
@@ -113,7 +117,14 @@ async def _run_score(context: StepContext) -> None:
     )
 
 
+async def _run_fetch(context: StepContext) -> None:
+    from leadradar.worker.steps.fetch import run_fetch_step
+
+    await run_fetch_step(context)
+
+
 STEP_HANDLERS: Mapping[JobStep, StepHandler] = {
+    JobStep.FETCH: _run_fetch,
     JobStep.SIGNAL: _run_signal,
     JobStep.SCORE: _run_score,
 }

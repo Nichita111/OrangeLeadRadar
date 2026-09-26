@@ -175,7 +175,11 @@ async def test_a_failed_plugin_makes_the_refresh_partial_and_it_is_still_scored(
         if context.job.payload["plugin_code"] == "GDELT":
             raise StepFailed("UPSTREAM_UNAVAILABLE", "GDELT answered 503.")
 
-    handlers: dict[JobStep, StepHandler] = {JobStep.FETCH: fetch, JobStep.SCORE: _succeed}
+    handlers: dict[JobStep, StepHandler] = {
+        JobStep.FETCH: fetch,
+        JobStep.PROCESS: _succeed,
+        JobStep.SCORE: _succeed,
+    }
     settings = SETTINGS.model_copy(update={"job_max_attempts": 1})
     clock = Clock()
     while await _process(connection, handlers, clock, settings):
@@ -197,12 +201,50 @@ async def test_a_failed_plugin_makes_the_refresh_partial_and_it_is_still_scored(
         [
             (JobStep.FETCH, JobStatus.FAILED),
             (JobStep.FETCH, JobStatus.DONE),
+            (JobStep.PROCESS, JobStatus.DONE),
             (JobStep.SCORE, JobStatus.DONE),
         ]
     )
     account = (await connection.execute(select(Account).where(Account.id == account_id))).one()
     assert account.last_refreshed_at == T0
     assert account.next_refresh_at == T0 + timedelta(hours=SETTINGS.refresh_interval_hours)
+
+
+async def test_process_is_enqueued_once_after_every_fetch_job_is_final_even_if_the_last_failed(
+    connection: AsyncConnection,
+) -> None:
+    def build(conn: Connection) -> uuid.UUID:
+        run_id = f.make_pipeline_run(conn, account_id=f.make_account(conn))
+        for code in (SourcePluginCode.GDELT, SourcePluginCode.RSS):
+            f.make_job(
+                conn, run_id, step=JobStep.FETCH, payload={"plugin_code": code}, not_before=T0
+            )
+        return run_id
+
+    run_id = await _insert(connection, build)
+    processed: list[int] = []
+
+    async def fetch(context: StepContext) -> None:
+        # The `PROCESS` job is not owed while a `FETCH` job is still open.
+        steps = [job.step for job in await _jobs(connection, context.job.run_id)]
+        processed.append(steps.count(JobStep.PROCESS))
+        if context.job.payload["plugin_code"] == "RSS":
+            raise StepFailed("UPSTREAM_UNAVAILABLE", "RSS answered 503.")
+
+    handlers: dict[JobStep, StepHandler] = {
+        JobStep.FETCH: fetch,
+        JobStep.PROCESS: _succeed,
+        JobStep.SCORE: _succeed,
+    }
+    settings = SETTINGS.model_copy(update={"job_max_attempts": 1})
+    clock = Clock()
+    while await _process(connection, handlers, clock, settings):
+        pass
+
+    assert processed == [0, 0]
+    steps = [job.step for job in await _jobs(connection, run_id)]
+    assert steps.count(JobStep.PROCESS) == 1
+    assert steps.count(JobStep.SCORE) == 1
 
 
 async def test_a_failing_step_is_retried_with_backoff_then_fails_its_run(

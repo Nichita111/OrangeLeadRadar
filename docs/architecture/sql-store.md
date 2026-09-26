@@ -410,7 +410,7 @@ The work queue behind runs ([ADR-04](/architecture/adrs/adr-04-postgres-job-queu
 | Column | Type | Notes |
 |---|---|---|
 | `run_id` | uuid FK → [`pipeline_run`](#pipeline_run) | Owning run. |
-| `step` | enum: `FETCH`, `PROCESS`, `SIGNAL`, `SCORE`, `DISCOVER`, `EVALUATE` | `FETCH`: one plug-in for one account. `PROCESS`: normalise, deduplicate, chunk and embed a batch of fetched documents. `SIGNAL`: run the [signal graph](/architecture/services/worker.md#signal-graph) over a batch of documents or passages. `SCORE`: rescore. `DISCOVER`: one discovery source for one service. `EVALUATE`: a batch of labelled pairs. |
+| `step` | enum: `FETCH`, `PROCESS`, `SIGNAL`, `SCORE`, `DISCOVER`, `EVALUATE` | `FETCH`: one plug-in for one account; stores each new item it fetches as a normalised document with its passages. `PROCESS`: embed the passages of a batch of fetched documents and mark near duplicates. `SIGNAL`: run the [signal graph](/architecture/services/worker.md#signal-graph) over a batch of documents or passages. `SCORE`: rescore. `DISCOVER`: one discovery source for one service. `EVALUATE`: a batch of labelled pairs. |
 | `payload` | jsonb | Step input: identifiers only, never document text. |
 | `status` | enum: `READY`, `RUNNING`, `DONE`, `FAILED`, `CANCELLED` | `FAILED` after `JOB_MAX_ATTEMPTS` attempts. |
 | `priority` | smallint | Lower runs first, as the [job queue](/architecture/services/worker.md#job-queue) assigns it. |

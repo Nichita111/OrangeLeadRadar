@@ -7,9 +7,11 @@ from __future__ import annotations
 
 import hashlib
 import io
+import json
 import re
 import unicodedata
 from dataclasses import dataclass
+from typing import Literal
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import py3langid
@@ -217,3 +219,61 @@ def extract_json_record(*, title: str | None, description: str | None, content: 
     """A provider's JSON record read as plain text: its `title`, `description` and `content`
     fields joined, blanks dropped."""
     return normalise_text("\n\n".join(field for field in (title, description, content) if field))
+
+
+ContentType = Literal["HTML", "PDF", "JSON"]
+
+
+@dataclass(frozen=True)
+class NormalisedItem:
+    """A fetched item after steps 1-5 of [Document
+    normalisation](/architecture/rules.md#document-normalisation): what a `document` row and its
+    passages are built from."""
+
+    text: str
+    sections: tuple[tuple[int, str], ...]
+    canonical_url: str
+    content_hash: str
+    language: str
+
+
+def _json_field(record: object, key: str) -> str | None:
+    value = record.get(key) if isinstance(record, dict) else None
+    return value if isinstance(value, str) else None
+
+
+def normalise_item(
+    *,
+    url: str,
+    content_type: ContentType,
+    body: bytes,
+    title: str | None,
+    min_document_chars: int,
+) -> NormalisedItem | None:
+    """Steps 1-4 of [Document normalisation](/architecture/rules.md#document-normalisation)
+    over one raw item; `None` when its text is shorter than `MIN_DOCUMENT_CHARS`. `title` is
+    the plug-in's own, used when a JSON record carries none."""
+    if content_type == "HTML":
+        extracted = extract_html(body.decode("utf-8", errors="replace"))
+    elif content_type == "PDF":
+        extracted = extract_pdf(body)
+    else:
+        record = json.loads(body)
+        extracted = ExtractedDocument(
+            text=extract_json_record(
+                title=_json_field(record, "title") or title,
+                description=_json_field(record, "description"),
+                content=_json_field(record, "content"),
+            ),
+            sections=(),
+            canonical_link=None,
+        )
+    if len(extracted.text) < min_document_chars:
+        return None
+    return NormalisedItem(
+        text=extracted.text,
+        sections=extracted.sections,
+        canonical_url=canonicalize_url(url, extracted.canonical_link),
+        content_hash=content_hash(extracted.text),
+        language=detect_language(extracted.text),
+    )

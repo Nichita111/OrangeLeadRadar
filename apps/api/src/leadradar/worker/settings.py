@@ -9,6 +9,7 @@ from pydantic import SecretStr
 from pydantic_settings import SettingsConfigDict
 
 from leadradar.ai.settings import AiGatewaySettings
+from leadradar.core.enums import SourcePluginCode
 
 
 class WorkerSettings(AiGatewaySettings):
@@ -89,3 +90,13 @@ class WorkerSettings(AiGatewaySettings):
         """`CRAWLER_USER_AGENT`'s default names `APP_BASE_URL`, so an unset override is resolved
         against it rather than baked into a second literal."""
         return self.crawler_user_agent or f"LeadRadar/0.1 (+{self.app_base_url}/crawler)"
+
+    def plugin_keys_configured(self) -> frozenset[SourcePluginCode]:
+        """The plug-ins whose key is set in the runtime, as `api.runs_and_source_plugins` reads
+        them from `ApiSettings`; the keys themselves stay in the settings."""
+        keys = {
+            SourcePluginCode.CRUNCHBASE: self.crunchbase_api_key,
+            SourcePluginCode.NEWSAPI: self.newsapi_key,
+            SourcePluginCode.SERPAPI: self.serpapi_key,
+        }
+        return frozenset(code for code, key in keys.items() if key is not None)

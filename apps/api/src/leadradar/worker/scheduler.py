@@ -43,17 +43,6 @@ _ACTIVE_STATUSES = (PipelineRunStatus.QUEUED, PipelineRunStatus.RUNNING)
 _SCHEDULER_LOCK_KEY = 72710010
 
 
-def _plugin_keys_configured(settings: WorkerSettings) -> frozenset[SourcePluginCode]:
-    """The plug-ins whose key is set in the runtime, as `api.runs_and_source_plugins` reads
-    them from `ApiSettings`; the keys themselves stay in `settings`."""
-    keys = {
-        SourcePluginCode.CRUNCHBASE: settings.crunchbase_api_key,
-        SourcePluginCode.NEWSAPI: settings.newsapi_key,
-        SourcePluginCode.SERPAPI: settings.serpapi_key,
-    }
-    return frozenset(code for code, key in keys.items() if key is not None)
-
-
 async def _refresh_candidates(session: AsyncSession) -> list[RefreshCandidate]:
     active_refresh_ids = select(PipelineRun.account_id).where(
         PipelineRun.kind == PipelineRunKind.ACCOUNT_REFRESH,
@@ -141,7 +130,7 @@ async def run_scheduler_loop(
     stop: asyncio.Event,
 ) -> None:
     """Ticks every `SCHEDULER_TICK_S` until `stop` is set."""
-    keys_configured = _plugin_keys_configured(settings)
+    keys_configured = settings.plugin_keys_configured()
     while not stop.is_set():
         try:
             await run_scheduler_tick(

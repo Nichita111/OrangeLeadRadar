@@ -1,5 +1,9 @@
 # Update Log
 
+## 2026-09-27
+
+* **Update**: FETCH stage (`S-ING-01`, `S-ING-02`, `S-PIP-03`, `S-PIP-05`, `N-09`): [`job`](/architecture/sql-store.md#job) and the [worker](/architecture/services/worker.md#examples) state that `FETCH` stores normalised documents with their passages and `PROCESS` embeds them; the [Job queue](/architecture/services/worker.md#job-queue) owes the `PROCESS` job like `SCORE`; [Plug-in availability](/architecture/rules.md#plug-in-availability) limits run errors to a failed fetch and re-checks availability at job start.
+
 ## 2026-09-26
 
 * **Update**: HubSpot push (`S-OUT-02`): [api Runtime](/architecture/services/api.md#runtime) gains `HUBSPOT_TIMEOUT_S` (`10`); [CRM contracts](/architecture/interfaces.md#crm) states `API-70`'s address as `https://api.hubapi.com`; [Outreach and CRM contracts](/architecture/interfaces.md#outreach-and-crm) restates `API-59`'s outcomes, token check first; [`CompanyPush`](/architecture/interfaces.md#companypush) types `leadradar_priority`, `leadradar_band`, `leadradar_standing` as `string`, restates `leadradar_top_signals`' source as the `ProspectRow` `top_signals` selection, and states that the target portal's HubSpot administrator creates the `leadradar_*` properties by hand before the first push; the [Outreach and CRM](/features/outreach-and-crm.md) Open questions section is removed, its one question answered.

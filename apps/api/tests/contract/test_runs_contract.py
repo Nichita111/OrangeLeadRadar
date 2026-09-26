@@ -5,16 +5,19 @@ real database with real sign-in."""
 from __future__ import annotations
 
 import uuid
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
 from datetime import UTC, datetime
 from typing import Any
 
 import httpx
 import pytest
 from fastapi import FastAPI
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from leadradar.core.enums import AccountStatus, PipelineRunTrigger
+from leadradar.core.enums import AccountStatus, JobStep, PipelineRunTrigger, SourcePluginCode
+from leadradar.db.models.ingestion import Job
+from leadradar.db.models.ingestion import SourcePlugin as SourcePluginRow
 from leadradar.runs.enqueue import enqueue_account_rescore
 from tests.contract.conftest import _http_client
 from tests.integration import factories as f
@@ -202,3 +205,69 @@ async def test_cancel_of_an_unknown_run_answers_404(admin_client: httpx.AsyncCli
     response = await admin_client.post(f"/api/v1/runs/{uuid.uuid4()}/cancel")
 
     assert response.status_code == 404
+
+
+# --- API-37, API-38 (AC-32) -------------------------------------------------------------------
+
+
+@pytest.fixture
+async def seeded_plugins(running_app: FastAPI) -> AsyncIterator[None]:
+    """One enabled `source_plugin` row per plug-in code, removed again afterwards."""
+    async with running_app.state.engine.begin() as conn:
+        await conn.execute(delete(SourcePluginRow))
+        await conn.run_sync(
+            lambda sync: [f.make_source_plugin(sync, code=code) for code in SourcePluginCode]
+        )
+    yield
+    async with running_app.state.engine.begin() as conn:
+        await conn.execute(delete(SourcePluginRow))
+
+
+@pytest.mark.usefixtures("seeded_plugins")
+async def test_source_plugins_list_shows_a_keyed_plugin_without_its_key_as_unavailable(
+    admin_client: httpx.AsyncClient,
+) -> None:
+    response = await admin_client.get("/api/v1/source-plugins")
+
+    assert response.status_code == 200
+    newsapi = next(entry for entry in response.json() if entry["code"] == "NEWSAPI")
+    assert newsapi["needs_key"] is True
+    assert newsapi["key_configured"] is False
+    assert newsapi["enabled"] is True
+    assert newsapi["available"] is False
+
+
+@pytest.mark.usefixtures("seeded_plugins")
+async def test_source_plugin_routes_refuse_sales(sales_client: httpx.AsyncClient) -> None:
+    listed = await sales_client.get("/api/v1/source-plugins")
+    patched = await sales_client.patch("/api/v1/source-plugins/GDELT", json={"enabled": False})
+
+    assert listed.status_code == 403
+    assert patched.status_code == 403
+
+
+@pytest.mark.usefixtures("seeded_plugins")
+async def test_disabling_gdelt_removes_its_fetch_job_from_the_next_refresh(
+    admin_client: httpx.AsyncClient, running_app: FastAPI, make_account: MakeAccount
+) -> None:
+    disabled = await admin_client.patch("/api/v1/source-plugins/GDELT", json={"enabled": False})
+    try:
+        account_id = await make_account()
+        run_id = (await admin_client.post(f"/api/v1/accounts/{account_id}/refresh")).json()["id"]
+        async with AsyncSession(running_app.state.engine) as session:
+            payloads = (
+                await session.execute(
+                    select(Job.payload).where(
+                        Job.run_id == uuid.UUID(run_id), Job.step == JobStep.FETCH
+                    )
+                )
+            ).scalars()
+            fetched = {payload["plugin_code"] for payload in payloads}
+    finally:
+        await admin_client.patch("/api/v1/source-plugins/GDELT", json={"enabled": True})
+
+    assert disabled.status_code == 200
+    assert disabled.json()["enabled"] is False
+    assert disabled.json()["available"] is False
+    assert fetched
+    assert "GDELT" not in fetched

@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, ValidationInfo, field_validator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -31,6 +31,7 @@ from leadradar.accounts.queries import (
     list_accounts,
 )
 from leadradar.api.authentication import CurrentUser
+from leadradar.core.account_import import is_refused_feed
 from leadradar.core.enums import (
     AccountOperationalComplexity,
     AccountOrigin,
@@ -120,6 +121,12 @@ class Account(BaseModel):
     next_refresh_at: datetime | None
 
 
+def _accept_feed_url(kind: AccountSourceKind | None, url: str) -> str:
+    if kind is not None and is_refused_feed(kind, url):
+        raise ValueError("a news.google.com feed is refused.")
+    return url
+
+
 class AccountCreateSource(BaseModel):
     """One entry of [`AccountCreate`](/architecture/interfaces.md#accountcreate) `sources`."""
 
@@ -127,6 +134,11 @@ class AccountCreateSource(BaseModel):
 
     kind: AccountSourceKind
     url: str
+
+    @field_validator("url")
+    @classmethod
+    def _url_is_not_a_refused_feed(cls, url: str, info: ValidationInfo) -> str:
+        return _accept_feed_url(info.data.get("kind"), url)
 
 
 class AccountCreate(BaseModel):
@@ -156,6 +168,11 @@ class AccountUpdateSource(BaseModel):
     kind: AccountSourceKind
     url: str
     status: AccountSourceStatus = AccountSourceStatus.ACTIVE
+
+    @field_validator("url")
+    @classmethod
+    def _url_is_not_a_refused_feed(cls, url: str, info: ValidationInfo) -> str:
+        return _accept_feed_url(info.data.get("kind"), url)
 
 
 class AccountUpdate(BaseModel):

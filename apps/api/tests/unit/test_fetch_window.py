@@ -6,7 +6,12 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from leadradar.core.fetch_window import fetch_window, news_queries_by_service, news_query
+from leadradar.core.fetch_window import (
+    fetch_window,
+    news_queries_by_service,
+    news_query,
+    plugin_share,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -48,3 +53,9 @@ def test_news_queries_by_service_keys_one_query_per_service() -> None:
         hint_terms_by_service={"svc-1": ["automation"], "svc-2": []},
     )
     assert queries == {"svc-1": '("DHL Group") ("automation")', "svc-2": '"DHL Group"'}
+
+
+@pytest.mark.parametrize(("plugins", "expected"), [(4, 25), (3, 33), (1, 100)])
+def test_plugin_share_splits_the_maximum_and_never_exceeds_it(plugins: int, expected: int) -> None:
+    assert plugin_share(100, plugins) == expected
+    assert plugin_share(100, plugins) * plugins <= 100

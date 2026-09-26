@@ -17,7 +17,7 @@ from leadradar.core.enums import (
 )
 from leadradar.core.job_queue import next_attempt_at
 from leadradar.core.run_lifecycle import (
-    owed_final_job,
+    owed_job,
     refresh_first_jobs,
     run_outcome,
     stage_after_claim,
@@ -52,8 +52,14 @@ def test_stage_after_claim(
 @pytest.mark.parametrize(
     ("kind", "steps", "expected"),
     [
-        (PipelineRunKind.ACCOUNT_REFRESH, {JobStep.FETCH}, JobStep.SCORE),
-        (PipelineRunKind.ACCOUNT_REFRESH, {JobStep.FETCH, JobStep.SCORE}, None),
+        (PipelineRunKind.ACCOUNT_REFRESH, {JobStep.FETCH}, JobStep.PROCESS),
+        (PipelineRunKind.ACCOUNT_REFRESH, {JobStep.FETCH, JobStep.PROCESS}, JobStep.SCORE),
+        (
+            PipelineRunKind.ACCOUNT_REFRESH,
+            {JobStep.FETCH, JobStep.PROCESS, JobStep.SCORE},
+            None,
+        ),
+        (PipelineRunKind.ACCOUNT_REFRESH, {JobStep.SCORE}, None),
         (PipelineRunKind.RECLASSIFY, {JobStep.SIGNAL}, JobStep.SCORE),
         (PipelineRunKind.RECLASSIFY, set(), JobStep.SCORE),
         (PipelineRunKind.RESCORE, {JobStep.SCORE}, None),
@@ -61,8 +67,8 @@ def test_stage_after_claim(
         (PipelineRunKind.EVALUATION, {JobStep.EVALUATE}, None),
     ],
 )
-def test_owed_final_job(kind: PipelineRunKind, steps: set[JobStep], expected: JobStep) -> None:
-    assert owed_final_job(kind, steps) == expected
+def test_owed_job(kind: PipelineRunKind, steps: set[JobStep], expected: JobStep | None) -> None:
+    assert owed_job(kind, steps) == expected
 
 
 @pytest.mark.parametrize(

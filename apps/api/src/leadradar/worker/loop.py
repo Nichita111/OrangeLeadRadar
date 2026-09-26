@@ -96,7 +96,12 @@ async def _run_claimed_job(
         async with session_factory() as session, session.begin():
             await handler(
                 StepContext(
-                    job=job, session=session, now=clock(), settings=settings, gateway=gateway
+                    job=job,
+                    session=session,
+                    now=clock(),
+                    settings=settings,
+                    gateway=gateway,
+                    sessions=session_factory,
                 )
             )
             await complete_job(

@@ -10,6 +10,7 @@ does, so two transactions never wait on each other in a cycle."""
 from __future__ import annotations
 
 import uuid
+from collections.abc import Mapping
 from datetime import datetime, timedelta
 
 from sqlalchemy import select, update
@@ -21,7 +22,7 @@ from leadradar.core.job_queue import job_priority
 from leadradar.core.refresh_scheduling import refresh_times_after
 from leadradar.core.run_lifecycle import (
     FINAL_STEP,
-    owed_final_job,
+    owed_job,
     run_outcome,
     stage_after_claim,
 )
@@ -128,6 +129,23 @@ async def claim_next_job(
         )
 
 
+async def add_run_progress(
+    session: AsyncSession, *, job_id: uuid.UUID, run_id: uuid.UUID, counts: Mapping[str, int]
+) -> None:
+    """Adds `counts` to the run's `progress` counters. Locks the job row before the run row,
+    as this module requires; does not commit."""
+    await session.get(Job, job_id, with_for_update=True)
+    run = await _lock_run(session, run_id)
+    progress = dict(run.progress)
+    for key, count in counts.items():
+        current = progress.get(key, 0)
+        if not isinstance(current, int):
+            raise TypeError(f"Run {run_id} progress.{key} is not a count: {current!r}")
+        progress[key] = current + count
+    run.progress = progress
+    await session.flush()
+
+
 async def _finish_job(
     session: AsyncSession, job: ClaimedJob, *, worker_id: str, values: dict[str, object]
 ) -> None:
@@ -227,15 +245,16 @@ async def _settle_run(
     refresh_interval_hours: int,
 ) -> None:
     """With the run locked and `job` just final: when every job of the run is final, enqueues
-    the `SCORE` job the run is owed, or finishes the run with its `RUN_FINISHED` audit row and,
-    for a refresh, the account's refresh times. A cancelled run is left as it is."""
+    the `PROCESS` or `SCORE` job the run is owed, or finishes the run with its `RUN_FINISHED`
+    audit row and, for a refresh, the account's refresh times. A cancelled run is left as it
+    is."""
     if run.status not in _ACTIVE_RUN_STATUSES:
         return
     jobs = (await session.execute(select(Job.step, Job.status).where(Job.run_id == run.id))).all()
     if any(status in _OPEN_JOB_STATUSES for _, status in jobs):
         return
 
-    owed = owed_final_job(run.kind, {step for step, _ in jobs})
+    owed = owed_job(run.kind, {step for step, _ in jobs})
     if owed is not None:
         add_job(
             session,

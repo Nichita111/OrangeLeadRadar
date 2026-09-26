@@ -13,10 +13,11 @@ from datetime import UTC, datetime
 from urllib.parse import urlencode
 
 from leadradar.core.crawl_pacing import seconds_to_wait
+from leadradar.core.document_normalisation import ContentType
 from leadradar.core.enums import DocumentSourceType, SourcePluginCode
 from leadradar.plugins.errors import PluginFetchFailed
 from leadradar.plugins.http import CrawlHttpClient, RobotsDisallowed
-from leadradar.plugins.shapes import ContentType, FetchContext, RawItem
+from leadradar.plugins.shapes import FetchContext, RawItem
 
 logger = logging.getLogger(__name__)
 

@@ -63,7 +63,7 @@ When `SERPAPI` is available and a kind is still missing, one web search `"{name}
 
 **Inputs.** [`source_plugin`](/architecture/sql-store.md#source_plugin), [`plugin_usage`](/architecture/sql-store.md#plugin_usage), the plug-in's key configuration.
 
-**Algorithm.** A plug-in is **available** when it is `enabled`, its key is configured if it needs one, and today's `requests` are below `daily_quota` when a quota is set. Requests to one provider are spaced to stay within `rate_limit_per_minute` in each worker process. Every request increments `plugin_usage` for the UTC day, whether it succeeds or not. A failed request sets `last_error` and `last_error_at` and adds an entry to the run's `errors`; the other plug-ins of the run continue.
+**Algorithm.** A plug-in is **available** when it is `enabled`, its key is configured if it needs one, and today's `requests` are below `daily_quota` when a quota is set. Requests to one provider are spaced to stay within `rate_limit_per_minute` in each worker process. Every request increments `plugin_usage` for the UTC day, whether it succeeds or not. A request that succeeds sets `last_success_at`; one that fails sets `last_error` and `last_error_at`. A plug-in whose fetch fails adds an entry to the run's `errors`, and the other plug-ins of the run continue; an item the plug-in skips after a failed request adds none. Availability is checked again when a plug-in's `FETCH` job starts: a plug-in that is no longer available makes no request and adds no error, and one that reaches its `daily_quota` during the job sends no further request.
 
 **Invariants.** An unavailable plug-in makes no request. Every P0 capability works with only the free-core plug-ins available ([RULE-08](/requirements/business.md#business-rules)).
 
