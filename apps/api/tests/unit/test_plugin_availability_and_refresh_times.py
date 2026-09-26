@@ -1,15 +1,22 @@
 """Unit tests of [Plug-in availability](/architecture/rules.md#plug-in-availability) and of the
-refresh times of [Refresh scheduling](/architecture/rules.md#refresh-scheduling)."""
+refresh times and due-account selection of
+[Refresh scheduling](/architecture/rules.md#refresh-scheduling)."""
 
 from __future__ import annotations
 
+import uuid
 from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from leadradar.core.enums import PipelineRunStatus, SourcePluginCode
+from leadradar.core.enums import AccountStatus, PipelineRunStatus, SourcePluginCode
 from leadradar.core.plugin_availability import is_plugin_available
-from leadradar.core.refresh_scheduling import RefreshTimes, refresh_times_after
+from leadradar.core.refresh_scheduling import (
+    RefreshCandidate,
+    RefreshTimes,
+    due_refresh_account_ids,
+    refresh_times_after,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -66,3 +73,53 @@ def test_a_cancelled_refresh_changes_nothing() -> None:
         refresh_times_after(PipelineRunStatus.CANCELLED, _FINISHED, refresh_interval_hours=24)
         is None
     )
+
+
+_NOW = datetime(2026, 9, 26, 0, 0, tzinfo=UTC)
+
+
+def _candidate(
+    *,
+    status: AccountStatus = AccountStatus.ACTIVE,
+    next_refresh_at: datetime | None,
+    has_active_refresh: bool = False,
+    account_id: uuid.UUID | None = None,
+) -> RefreshCandidate:
+    return RefreshCandidate(
+        account_id=account_id or uuid.uuid4(),
+        status=status,
+        next_refresh_at=next_refresh_at,
+        has_active_refresh=has_active_refresh,
+    )
+
+
+def test_due_account_selection_excludes_inactive_and_active_refresh_and_not_yet_due() -> None:
+    # AC-29: three active accounts due and one inactive account due.
+    due_a = _candidate(next_refresh_at=_NOW - timedelta(hours=1))
+    due_b = _candidate(next_refresh_at=_NOW)
+    due_new = _candidate(next_refresh_at=None)
+    inactive_due = _candidate(
+        status=AccountStatus.INACTIVE, next_refresh_at=_NOW - timedelta(hours=1)
+    )
+    not_yet_due = _candidate(next_refresh_at=_NOW + timedelta(hours=1))
+    already_refreshing = _candidate(
+        next_refresh_at=_NOW - timedelta(hours=1), has_active_refresh=True
+    )
+
+    selected = due_refresh_account_ids(
+        [due_a, due_b, due_new, inactive_due, not_yet_due, already_refreshing], now=_NOW, limit=20
+    )
+
+    assert set(selected) == {due_a.account_id, due_b.account_id, due_new.account_id}
+
+
+def test_due_account_selection_orders_oldest_due_first_and_caps_at_limit() -> None:
+    newest_due = _candidate(next_refresh_at=_NOW - timedelta(hours=1))
+    oldest_due = _candidate(next_refresh_at=_NOW - timedelta(hours=5))
+    never_refreshed = _candidate(next_refresh_at=None)
+
+    selected = due_refresh_account_ids(
+        [newest_due, oldest_due, never_refreshed], now=_NOW, limit=2
+    )
+
+    assert selected == [never_refreshed.account_id, oldest_due.account_id]
