@@ -6,12 +6,18 @@ from __future__ import annotations
 
 import json
 import uuid
+from datetime import UTC, datetime
 
 import pytest
 
+from leadradar.core.enums import AccountScoreStanding
 from leadradar.core.score_breakdown import ScoreBreakdown, counted_points
+from leadradar.core.scoring.breakdown import ScoreInputs, breakdown_to_json, score_account
+from leadradar.core.scoring.settings import ScoringSettings
 
 pytestmark = pytest.mark.unit
+
+AS_OF = datetime(2026, 9, 25, 6, 0, 0, tzinfo=UTC)
 
 FINDING_ID = str(uuid.uuid4())
 
@@ -56,6 +62,9 @@ EXAMPLE = {
         {
             "key": "OUTSIDE_REGION",
             "label": "Outside DACH",
+            "kind": "ICP_MISMATCH",
+            "criterion_key": "REGION",
+            "question_key": None,
             "matched": False,
             "overridden": False,
             "override_id": None,
@@ -104,3 +113,45 @@ def test_none_for_an_entry_with_finding_id_null() -> None:
     finding_id = uuid.uuid4()
     breakdown: dict[str, object] = {"intent": {"questions": [{"finding_id": None, "points": 1.0}]}}
     assert counted_points(breakdown, finding_id) is None
+
+
+def _inputs(*, min_fit: int) -> tuple[ScoreInputs, ScoringSettings]:
+    settings = ScoringSettings(min_fit=min_fit)
+    inputs = ScoreInputs(
+        account_id="account-1",
+        service_id="service-1",
+        scoring_config_id="config-1",
+        settings_version=1,
+        attributes={},
+        findings=[],
+        lead_feedback_verdict=None,
+        active_overrides=[],
+    )
+    return inputs, settings
+
+
+def test_score_account_breakdown_validates_against_score_breakdown_for_a_ranked_result() -> None:
+    """#43's `score_account` builds the dict; `breakdown_to_json` round-trips it; the one
+    `ScoreBreakdown` model it is bound to parses it back ([Score breakdown]
+    (/architecture/rules.md#score-breakdown); G16)."""
+    inputs, settings = _inputs(min_fit=40)
+
+    result = score_account(inputs, as_of=AS_OF, settings=settings)
+
+    assert result.standing == AccountScoreStanding.RANKED
+    parsed = ScoreBreakdown.model_validate(json.loads(breakdown_to_json(result.breakdown)))
+    assert parsed.standing == AccountScoreStanding.RANKED
+    assert parsed.band is not None
+
+
+def test_score_account_breakdown_validates_against_score_breakdown_for_a_below_fit_result() -> None:
+    """A `BELOW_FIT` result's `band` is `null`, and `ScoreBreakdown.band` accepts it (G16)."""
+    inputs, settings = _inputs(min_fit=101)
+
+    result = score_account(inputs, as_of=AS_OF, settings=settings)
+
+    assert result.standing == AccountScoreStanding.BELOW_FIT
+    assert result.band is None
+    parsed = ScoreBreakdown.model_validate(json.loads(breakdown_to_json(result.breakdown)))
+    assert parsed.standing == AccountScoreStanding.BELOW_FIT
+    assert parsed.band is None

@@ -106,13 +106,13 @@ WF-25 — Prospects, account drawer
 | `FR-062` | The list shall show, for the selected service, rank, account name with country and industry, band with a shape as well as a colour, Priority, Fit, Intent, its top signals, at most `PROSPECT_TOP_SIGNALS`, with strength label and age, the in-force signal count, the last refresh and an unread-alert marker. |
 | `FR-063` | The default view shall be ranked accounts in ranking order; filters shall narrow by band, country and industry, and search by name; sorting by Intent, Fit, name or last refresh shall be available. |
 | `FR-064` | The status filter shall also show accounts below fit, excluded or marked as customers, each with its reason in one line — the minimum fit, the disqualifier's label, or who marked it a customer — and without a rank or band. |
-| `FR-065` | When the service has no scores yet, the empty state shall explain that accounts appear after their first refresh and link to [Accounts](/features/accounts-and-discovery.md#accounts). |
+| `FR-065` | When the selected service has no active scoring version, the empty state shall explain that accounts appear after their first refresh and link to [Accounts](/features/accounts-and-discovery.md#accounts); any other empty result shall show a filtered-empty state with a Clear filters action. |
 | `FR-129` | The band filter shall show the number of ranked accounts in each band beside its label, with All first, and a legend under the list shall explain Hot, Warm and Cold, reading their thresholds as [FR-117](/architecture/services/frontend.md#score-presentation) states. |
-| `FR-130` | Selecting a row shall open a drawer over the right side of the list, without moving the rows, showing the account's name and band, Priority, Fit and Intent each with its meaning in words, its top signals from the list row with strength and age, and Open full explanation to [Account detail](#account-detail); Escape or a close button shall dismiss it and return focus to the row. |
+| `FR-130` | Selecting a row shall open a drawer over the right side of the list, without moving the rows, showing the account's name and band, Priority, and Fit and Intent each with its meaning in words, its top signals from the list row with strength and age, and Open full explanation to [Account detail](#account-detail); Escape or a close button shall dismiss it and return focus to the row. |
 
 Obligations: `S-PRO-01`, `S-SCO-05`, `N-01`, `N-10`, `N-13`.
 
-**Data**: `API-39`, `API-71`. **States**: [States](/architecture/services/frontend.md#states).
+**Data**: `API-07`, `API-15`, `API-16`, `API-39`, `API-71`, `API-74`. **States**: [States](/architecture/services/frontend.md#states); with no active service the screen says there is no active service yet, with no action for Sales.
 
 ## Account detail
 
@@ -175,12 +175,12 @@ WF-15 — Account detail, History tab
 | `FR-066` | The header shall show name, domain linking to the website, country, industry, parent account as a link — a parent's view never combines its subsidiaries' signals — standing and band, Priority, Fit and Intent, when it was scored and with which scoring version. |
 | `FR-067` | Refresh now shall request a refresh and show the run's stage and counters in the header until it finishes, then reload the score; a refresh already running shall be shown instead of starting another. |
 | `FR-068` | The lead verdict buttons shall record Relevant, Not relevant or Already a customer with an optional note and show the verdict in force with who gave it and when. |
-| `FR-069` | The Why tab shall open with an "In short" paragraph composed from the breakdown only: the matched, unknown and unmatched criteria by label; the two counted positive signals with the most points, with strength label and age; the counted negative signals; and, when not ranked, the reason — below the minimum fit, the matched disqualifier's label, or marked as a customer. |
+| `FR-069` | The Why tab shall open with an "In short" paragraph composed from the breakdown only: the matched, unknown and unmatched criteria by name; the two counted positive signals with the most points, with strength label and age; the counted negative signals; and, when not ranked, the reason — below the minimum fit, the matched disqualifier's label, or marked as a customer. |
 | `FR-070` | The Fit section shall list every criterion with match mark (matched, unknown, not matched), the account's value, weight level and points; the Intent section shall list every question that counts with its counted signal's strength, the matched option for a choice question, age, source domain, quote, English translation and points, positive and negative separately, and the number of other signals for the same question. |
 | `FR-071` | The Exclusions section shall list every matched disqualifier with its label and the fact or signal that matched; an Admin shall be able to add an exception with a required note, or revoke one, with confirmation. |
 | `FR-072` | The Signals tab shall list the account's signals for the service, filtered by question and by status (Counting, Marked wrong, Outdated question), each with question, strength label, the matched option for a choice question, confidence word, Quick check or Detailed check, quote, translation, source and age. |
 | `FR-073` | Correct and Wrong on a signal shall record the verdict with an optional note, show it on the signal, and say that the score will be updated. |
-| `FR-074` | Evidence shall open the passage with its section path, surrounding text and the quote highlighted, and a link to the original page, credited to the GDELT Project with a link to it when GDELT found the document ([ADR-19](/architecture/adrs/adr-19-source-provider-terms-and-limits.md)); for a purged document it shall show the quote, the link and a sentence that the full text is no longer stored. |
+| `FR-074` | Evidence shall open the passage with its section path, surrounding text and the quote highlighted, and a link to the original page, credited to the GDELT Project with a link to `https://www.gdeltproject.org/` when GDELT found the document ([ADR-19](/architecture/adrs/adr-19-source-provider-terms-and-limits.md)); for a purged document it shall show the quote, the link and a sentence that the full text is no longer stored. |
 | `FR-075` | The History tab shall list score changes newest first, each with when, the cause in words (refresh, scoring version with its change note, feedback, exception, account change, question change), the Priority and band before and after, the signals added and removed, and the exceptions changed. |
 | `FR-131` | Each counted signal on the Why tab shall offer Read the evidence, which opens the Signals tab on that signal with its evidence open. |
 | `FR-132` | The running state of [FR-067](#account-detail) shall be a callout below the header that lists the run's stages with done, current and pending marks and the current stage's counter, while the Refresh now button reads Refreshing. |
@@ -189,7 +189,7 @@ WF-15 — Account detail, History tab
 
 Obligations: `S-PRO-02`, `S-PRO-03`, `S-PRO-04`, `S-PRO-05`, `S-PIP-01`, `S-SCO-04`, `S-SCO-06`, `S-SIG-09`, `S-EVL-01`, `S-EVL-02`, `N-13`.
 
-**Data**: `API-23`, `API-33`, `API-35`, `API-40` to `API-47`, `API-71`. **States**: [States](/architecture/services/frontend.md#states); an account never scored for the service shows its profile and Refresh now.
+**Data**: `API-23`, `API-33`, `API-35`, `API-40` to `API-47`, `API-71`. **States**: [States](/architecture/services/frontend.md#states); an account never scored for the service shows its header and a note that it gets a score at its next refresh, and, once those screens exist, its profile and Refresh now; with no active service the screen says there is no active service yet, with no action for Sales. Its breadcrumb parent is Prospects.
 
 ## Alerts
 

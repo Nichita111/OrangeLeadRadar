@@ -1,6 +1,7 @@
-import type { components } from "../../api/schema.gen";
+import type { Schemas } from "../../api/contract";
 
-export function EvidenceExcerpt({ evidence }: { evidence: components["schemas"]["EvidenceView"] }) {
+/** `FR-116`: the quoted sentence highlighted inside its passage; plain text when purged. */
+export function EvidenceExcerpt({ evidence }: { evidence: Schemas["EvidenceView"] }) {
   const { excerpt, quote_start: start, quote_end: end } = evidence;
   if (excerpt === null || start === null || end === null) return <p>{excerpt}</p>;
   return (

@@ -33,7 +33,10 @@ _ROUTE_LINKED_NAMES = {
     for name in re.findall(r"\[`(\w+)`\]\(#[\w-]+\)", row.request_response)
 } - {"AccountImportRow"}
 
-_SETTINGS = ApiSettings(database_url=SecretStr("postgresql://u:p@localhost/db"))
+_SETTINGS = ApiSettings(
+    database_url=SecretStr("postgresql://u:p@localhost/db"),
+    migration_database_url=SecretStr("postgresql://u:p@localhost/db"),
+)
 _COMPONENTS = create_app(_SETTINGS).openapi()["components"]["schemas"]
 
 

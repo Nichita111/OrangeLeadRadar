@@ -34,10 +34,69 @@ def _fill_path(row: ContractRow) -> str:
     return path
 
 
+def _normalise_params(path: str) -> str:
+    """A path with every `{param}` segment reduced to `{}`, so a contract's path matches its
+    route even when the route's own parameter name differs (`API-18`'s `{config_id}` for
+    interfaces.md's `{id}`; the wire path is the same)."""
+    result = ""
+    depth_start = None
+    for index, char in enumerate(path):
+        if char == "{":
+            depth_start = index
+        elif char == "}" and depth_start is not None:
+            result += "{}"
+            depth_start = None
+        elif depth_start is None:
+            result += char
+    return result
+
+
 REST_CONTRACTS = rest_contracts()
-# `API-61` (`GET /health`), `API-46`/`API-47` (feedback) and `API-77` (impact) are built by now;
-# every other row is still a declared stub.
-_BUILT_CONTRACTS = {"API-61", "API-46", "API-47", "API-77"}
+# Built by now; every other row is still a declared stub.
+_BUILT_CONTRACTS = {
+    "API-01",
+    "API-02",
+    "API-03",
+    "API-04",
+    "API-05",
+    "API-06",
+    "API-07",
+    "API-08",
+    "API-09",
+    "API-10",
+    "API-11",
+    "API-12",
+    "API-13",
+    "API-15",
+    "API-16",
+    "API-17",
+    "API-18",
+    "API-20",
+    "API-21",
+    "API-22",
+    "API-23",
+    "API-24",
+    "API-33",
+    "API-34",
+    "API-35",
+    "API-36",
+    "API-37",
+    "API-38",
+    "API-41",
+    "API-46",
+    "API-47",
+    "API-48",
+    "API-49",
+    "API-60",
+    "API-61",
+    "API-71",
+    "API-72",
+    "API-73",
+    "API-74",
+    "API-75",
+    "API-76",
+    "API-77",
+}
 STUB_CONTRACTS = [row for row in REST_CONTRACTS if row.id not in _BUILT_CONTRACTS]
 
 
@@ -52,12 +111,12 @@ def test_every_rest_contract_of_interfaces_is_a_route_with_its_method_and_path(
 ) -> None:
     schema = app.openapi()
     declared = {
-        (method.upper(), path)
+        (method.upper(), _normalise_params(path))
         for path, methods in schema["paths"].items()
         for method in methods
         if method in {"get", "post", "put", "patch", "delete"}
     }
-    expected = {(row.method, f"/api/v1{row.path}") for row in REST_CONTRACTS}
+    expected = {(row.method, _normalise_params(f"/api/v1{row.path}")) for row in REST_CONTRACTS}
     assert expected <= declared, f"missing routes: {expected - declared}"
     assert declared == expected, f"undeclared extra routes: {declared - expected}"
 

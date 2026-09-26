@@ -1,98 +1,74 @@
 import {
+  ArrowsClockwiseIcon,
   BellIcon,
   BuildingsIcon,
-  ClipboardTextIcon,
   FactoryIcon,
-  GaugeIcon,
-  ListChecksIcon,
-  MagnifyingGlassIcon,
-  PlayIcon,
-  PlugsIcon,
-  ShieldCheckIcon,
-  SlidersIcon,
+  PuzzlePieceIcon,
+  ReceiptIcon,
+  SealCheckIcon,
+  SlidersHorizontalIcon,
   SparkleIcon,
+  TagIcon,
+  TargetIcon,
   UsersIcon,
+  type Icon,
 } from "@phosphor-icons/react";
-import type { IconProps } from "@phosphor-icons/react";
-import type { ForwardRefExoticComponent, ReactElement, RefAttributes } from "react";
 import { NavLink } from "react-router";
 
-import type { components } from "../api/schema.gen";
-import { AlertsBadge } from "./AlertsBadge";
+import { cn } from "../components/cn";
+import { ADMIN_ENTRIES, WORK_ENTRIES, type NavEntry, type NavIconName } from "./navigationEntries";
 
-type Role = components["schemas"]["AppUserRole"];
-type Icon = ForwardRefExoticComponent<IconProps & RefAttributes<SVGSVGElement>>;
+const ICONS: Record<NavIconName, Icon> = {
+  Target: TargetIcon,
+  Bell: BellIcon,
+  Buildings: BuildingsIcon,
+  Sparkle: SparkleIcon,
+  ArrowsClockwise: ArrowsClockwiseIcon,
+  Tag: TagIcon,
+  SlidersHorizontal: SlidersHorizontalIcon,
+  Factory: FactoryIcon,
+  SealCheck: SealCheckIcon,
+  PuzzlePiece: PuzzlePieceIcon,
+  Users: UsersIcon,
+  Receipt: ReceiptIcon,
+};
 
-const WORK: readonly [string, string, Icon][] = [
-  ["/prospects", "Prospects", MagnifyingGlassIcon],
-  ["/alerts", "Alerts", BellIcon],
-  ["/accounts", "Accounts", BuildingsIcon],
-  ["/suggested-accounts", "Suggested accounts", SparkleIcon],
-  ["/runs", "Runs", PlayIcon],
-  ["/labelling", "Labelling", ListChecksIcon],
-];
-const ADMIN: readonly [string, string, Icon][] = [
-  ["/services", "Services", SlidersIcon],
-  ["/settings/industries-markets", "Industries and markets", FactoryIcon],
-  ["/quality", "Quality", GaugeIcon],
-  ["/settings/source-plugins", "Source plug-ins", PlugsIcon],
-  ["/users", "Users", UsersIcon],
-  ["/audit", "Audit log", ClipboardTextIcon],
-];
-
-function Links({
-  entries,
-  alertCount,
-}: {
-  entries: readonly [string, string, Icon][];
-  alertCount: number;
-}) {
+function Group({ heading, entries }: { heading: string; entries: NavEntry[] }) {
   return (
-    <ul className="flex flex-col gap-1">
-      {entries.map(([to, label, IconComponent]) => (
-        <li key={to}>
-          <NavLink
-            to={to}
-            className={({ isActive }) =>
-              `flex items-center gap-2 rounded-control px-3 py-2 text-sm ${isActive ? "bg-accent-soft text-accent-ink" : "text-text"}`
-            }
-          >
-            <IconComponent size={20} />
-            <span>{label}</span>
-            {to === "/alerts" ? <AlertsBadge count={alertCount} /> : null}
-          </NavLink>
-        </li>
-      ))}
-    </ul>
+    <div className="flex flex-col gap-1">
+      <h2 className="m-0 px-3 text-hint font-semibold text-text-tertiary">{heading}</h2>
+      <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
+        {entries.map((entry) => {
+          const EntryIcon = ICONS[entry.icon];
+          return (
+            <li key={entry.route}>
+              <NavLink
+                to={entry.route}
+                className={({ isActive }) =>
+                  cn(
+                    "flex h-control items-center gap-2.5 rounded-control px-3 text-text no-underline hover:bg-page",
+                    // The current entry: tint, weight and aria-current, never colour alone (FR-101).
+                    isActive && "bg-accent-soft font-semibold text-accent-ink",
+                  )
+                }
+              >
+                <EntryIcon size={20} data-icon={entry.icon} aria-hidden />
+                {entry.label}
+              </NavLink>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
 
-export function Navigation({
-  userRole,
-  alertCount = 0,
-}: {
-  userRole: Role;
-  alertCount?: number;
-}): ReactElement {
+/** FR-001, FR-101: the Work group for everyone, the Admin only group for Admins. */
+export function Navigation({ isAdmin }: { isAdmin: boolean }) {
   return (
-    <nav aria-label="Main navigation" className="flex flex-col gap-5">
-      <section aria-labelledby="work-navigation">
-        <h2 id="work-navigation" className="mb-2 text-xs font-semibold text-text-tertiary">
-          Work
-        </h2>
-        <Links entries={WORK} alertCount={alertCount} />
-      </section>
-      {userRole === "ADMIN" ? (
-        <section aria-labelledby="admin-navigation">
-          <h2
-            id="admin-navigation"
-            className="mb-2 flex items-center gap-1 text-xs font-semibold text-text-tertiary"
-          >
-            <ShieldCheckIcon size={16} /> Admin only
-          </h2>
-          <Links entries={ADMIN} alertCount={alertCount} />
-        </section>
-      ) : null}
+    <nav aria-label="Main" className="flex flex-col gap-5">
+      <Group heading="Work" entries={WORK_ENTRIES} />
+      {isAdmin && <Group heading="Admin only" entries={ADMIN_ENTRIES} />}
     </nav>
   );
 }

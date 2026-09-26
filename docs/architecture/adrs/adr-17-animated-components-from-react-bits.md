@@ -20,7 +20,7 @@ The frontend animates with the `motion` library. Animated components are taken f
 
 - One small motion vocabulary, each pattern tied to what it communicates, so a new animation needs a new row in the Motion section first.
 - Copied components are reviewed and tested like the rest of the client: keyboard behaviour, reduced motion and contrast are checked on the copy, not assumed from the source.
-- React Bits is published under MIT with the Commons Clause. The owner confirms that this licence fits LeadRadar's use before the first component ships.
+- React Bits is published under MIT with the Commons Clause. The owner has confirmed that this licence fits LeadRadar's internal use.
 - The dependencies a copied component needs (`motion`, and `gsap`, `three` or `ogl` for the few that use them) are added only when a component that needs them is adopted.
 
 ## Alternatives considered

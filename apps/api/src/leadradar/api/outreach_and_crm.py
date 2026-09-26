@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict
+from pydantic.json_schema import SkipJsonSchema
 
 from leadradar.api.router_utils import stub_router
 from leadradar.core.enums import (
@@ -22,7 +23,7 @@ class OutreachRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     channel: OutreachDraftChannel
-    contact_id: str | None = None
+    contact_id: str | SkipJsonSchema[None] = None
 
 
 class OutreachDraftContact(BaseModel):
@@ -69,9 +70,9 @@ class OutreachDraftUpdate(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    subject: str | None = None
-    body: str | None = None
-    status: OutreachDraftStatus | None = None
+    subject: str | SkipJsonSchema[None] = None
+    body: str | SkipJsonSchema[None] = None
+    status: OutreachDraftStatus | SkipJsonSchema[None] = None
 
 
 class CrmSyncView(BaseModel):

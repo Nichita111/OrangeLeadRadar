@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: ADR-20 Landing scene, mock layer and demo sign-in
-description: The live demo opens on a three.js landing page animated with Anime.js, the frontend is built against a mock layer and declared contract stubs before the backend exists, and demo shortcuts sign in without a password in replay mode only.
+description: The live demo opens on a three.js landing page animated with Anime.js, every REST contract is declared from the start and answers 501 until built while a development-only mock answers the contracts not yet built, and demo shortcuts sign in without a password in replay mode only.
 status: draft
 tags: [identity-and-access]
 ---
@@ -15,7 +15,7 @@ The jury meets LeadRadar through the live demo. [ADR-17](/architecture/adrs/adr-
 ## Decision
 
 1. `/` is a Landing page whose one scene is built with three.js (`@react-three/fiber`, drei, postprocessing) and animated by Anime.js scrubbed by scroll. It is loaded lazily, and it is the only screen outside ADR-17's pattern list and the only other WebGL screen; React Bits remains the only source of animated components on app screens.
-2. Every REST contract is declared in the api from the start and answers `501 NOT_IMPLEMENTED` until built, so the OpenAPI document and the generated client are complete. With `MOCK_API` true, MSW answers contracts in the browser from fixtures typed by that client, and every invented value is tagged `PLACEHOLDER(<origin>)` inside `src/mocks/` only. A family's handlers are deleted when the family is built.
+2. Every REST contract is declared in the api from the start and answers `501 NOT_IMPLEMENTED` until built, so the OpenAPI document and the client generated from it are complete, and the client holds no hand-written copy of a shape. In development only, Mock Service Worker answers the contracts not yet built, from handlers typed with that client; the production build carries no mock. A family's handlers are deleted when the api builds the family.
 3. `API-78` signs in as a demo dataset user without a password, only in `FIXTURE_MODE` `replay`; the client shows the shortcuts only when `DEMO_SIGN_IN` is true.
 
 ## Consequences
@@ -27,3 +27,5 @@ three.js and Anime.js weigh only on the Landing chunk. Reduced motion and no-Web
 - **A scroll-driven site template library (Scrolltide) and GSAP.** Rejected: a second animation vocabulary and licence risk.
 - **A hand-written mock server.** Rejected: it duplicates shapes already declared in [interfaces](/architecture/interfaces.md).
 - **Typing the seeded passwords into Sign in from the client.** Rejected: the client would hold a secret ([frontend Responsibilities](/architecture/services/frontend.md#responsibilities)).
+- **A hand-written OpenAPI fragment per pending family in the client.** Rejected: a second copy of each shape ([TypeScript Types](/guidelines/typescript.md#types)).
+- **A runtime switch that starts the mocks in the built image.** Rejected: no requirement runs the built stack on mocks, and the production build would carry the mock.

@@ -1,21 +1,21 @@
-import type { ReactElement, ReactNode } from "react";
+import type { ReactNode } from "react";
 
-export function PageHeader({
-  title,
-  lead,
-  action,
-}: {
+interface PageHeaderProps {
   title: string;
+  /** One sentence: what the screen is for and what a user does on it (FR-103). */
   lead: string;
+  /** The one primary action, at the right (FR-104). */
   action?: ReactNode;
-}): ReactElement {
+}
+
+export function PageHeader({ title, lead, action }: PageHeaderProps) {
   return (
-    <header className="flex items-start justify-between gap-6">
-      <div>
-        <h1 className="text-page-title font-semibold text-text">{title}</h1>
-        <p className="mt-1 text-text-secondary">{lead}</p>
+    <div className="flex items-end justify-between gap-6">
+      <div className="flex max-w-3xl flex-col gap-1">
+        <h1 className="m-0 text-title font-semibold">{title}</h1>
+        <p className="m-0 text-text-secondary">{lead}</p>
       </div>
       {action}
-    </header>
+    </div>
   );
 }

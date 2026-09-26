@@ -31,7 +31,7 @@ The rules are pure functions in the product package's core module; the api impor
 
 ### Job queue
 
-A worker process runs `WORKER_CONCURRENCY` job loops. A loop claims the next job with one statement — `status = 'READY' AND not_before <= now()`, ordered by `priority` then `not_before`, `FOR UPDATE SKIP LOCKED LIMIT 1` — sets it `RUNNING` with `locked_by` and `locked_at`, runs its step, and sets it `DONE` or schedules a retry. Several worker containers can share the queue safely ([ADR-04](/architecture/adrs/adr-04-postgres-job-queue-and-a-worker.md)).
+A worker process runs `WORKER_CONCURRENCY` job loops. A loop claims the next job with one statement — `status = 'READY' AND not_before <= now()`, ordered by `priority` then `not_before`, `FOR UPDATE SKIP LOCKED LIMIT 1` — sets it `RUNNING` with `locked_by` and `locked_at`, runs its step, and sets it `DONE` or schedules a retry. Several worker containers can share the queue safely ([ADR-04](/architecture/adrs/adr-04-postgres-job-queue-and-a-worker.md)). A loop that finds no job waits `JOB_POLL_INTERVAL_S` before it tries again. A job whose step the worker has no code for is `FAILED` at once, without retries, and its run records the error: no job is ever set `DONE` without its step having run.
 
 | Priority | Jobs |
 |---|---|
@@ -41,9 +41,9 @@ A worker process runs `WORKER_CONCURRENCY` job loops. A loop claims the next job
 | 5 | `ACCOUNT_REFRESH` from `SCHEDULE` |
 | 7 | `DISCOVERY`, `EVALUATION` |
 
-**Retries.** A step that raises is retried with `not_before` = now + `JOB_RETRY_BACKOFF_S × 2^(attempts − 1)`, up to `JOB_MAX_ATTEMPTS` attempts, after which the job is `FAILED` and its run records the error. A `RUNNING` job whose `locked_at` is older than `JOB_LOCK_TIMEOUT_S` is returned to `READY`; this is safe because every step is idempotent: it writes through the unique constraints of the [SQL store](/architecture/sql-store.md#constraints-and-indexes) and skips work already recorded ([N-05](/requirements/system.md)).
+**Retries.** A step that raises is retried with `not_before` = now + `JOB_RETRY_BACKOFF_S × 2^(attempts − 1)`, up to `JOB_MAX_ATTEMPTS` attempts, after which the job is `FAILED` and its run records the error: an entry of `errors` with the stage the step was in, the `plugin_code` of a `FETCH` job, and the code the step raised, else `INTERNAL`. A `RUNNING` job whose `locked_at` is older than `JOB_LOCK_TIMEOUT_S` is returned to `READY`; this is safe because every step is idempotent: it writes through the unique constraints of the [SQL store](/architecture/sql-store.md#constraints-and-indexes) and skips work already recorded ([N-05](/requirements/system.md)).
 
-**Fan-out.** A step that finishes a stage enqueues the next stage's jobs in the same transaction as its own results. The last job of a run to finish sets the run's final status.
+**Fan-out.** A step that finishes a stage enqueues the next stage's jobs in the same transaction as its own results. When every job of an `ACCOUNT_REFRESH` or `RECLASSIFY` run is final and none is a `SCORE` job, the job loop enqueues the run's `SCORE` job, so a refresh whose fetches all failed is still scored. Otherwise the last job of a run to finish sets the run's final status.
 
 ### Run lifecycle
 
@@ -66,7 +66,11 @@ stateDiagram-v2
 | `DISCOVERY` | `FETCH` → `TRIAGE` → `SCORE` | one `DISCOVER` per available discovery source; the last one ranks and caps candidates |
 | `EVALUATION` | `CLASSIFY` | `EVALUATE` per batch of items; the last one writes the [`evaluation_result`](/architecture/sql-store.md#evaluation_result) |
 
-A `SCORE` job's `payload` is `{}`: its scope is its run's `account_id` and `service_id`, as the Jobs column states.
+A `SCORE` job's `payload` is `{}`: its scope is its run's `account_id` and `service_id`, as the Jobs column states. A `FETCH` job's `payload` is `{plugin_code}`: its account is its run's `account_id`. A refresh requested when no plug-in is available starts with its `SCORE` job.
+
+The first job claimed sets its run `RUNNING` with `started_at`. Claiming a job moves its run's `stage` to the first stage its step covers — `FETCH` for `FETCH` and `DISCOVER`, `PROCESS` for `PROCESS`, `TRIAGE` for `SIGNAL`, `CLASSIFY` for `EVALUATE`, `SCORE` for `SCORE` — never back to an earlier stage; the `SIGNAL` step moves it on through `CLASSIFY` and `EVIDENCE` itself.
+
+Cancelling a run sets it `CANCELLED` with `finished_at` and its `READY` jobs `CANCELLED`; a running job finishes its step, and any job that step enqueues is `CANCELLED` with it. A cancelled run writes a `RUN_CANCELLED` audit row and no `RUN_FINISHED` row, and sets no refresh times.
 
 A run is `FAILED` when its final stage — `SCORE`, the last `DISCOVER` or the last `EVALUATE` — fails after its retries; a failed earlier job makes it `PARTIAL`. The `SCORE` stage of a refresh runs even when every fetch failed, so decay is applied every interval. On finish a `RUN_FINISHED` audit row is written and, for `ACCOUNT_REFRESH`, the account's refresh times are set by [Refresh scheduling](/architecture/rules.md#refresh-scheduling).
 
@@ -106,15 +110,17 @@ One module owns every classifier and LLM call, for the worker and the api. For e
 
 1. checks the [Budget guard](/architecture/rules.md#budget-guard) for LLM calls;
 2. in `replay` fixture mode answers from `FIXTURE_DIR`, or fails with `FIXTURE_MISSING`; in `record` mode stores the exchange;
-3. sends the request with `CLASSIFIER_TIMEOUT_S` or `AI_CALL_TIMEOUT_S`, retrying a transport error, `429` or `5xx` up to `AI_TRANSPORT_RETRIES` times with backoff;
+3. sends the request with `CLASSIFIER_TIMEOUT_S` or `AI_CALL_TIMEOUT_S`, retrying a transport error, `429` or `5xx` up to `AI_TRANSPORT_RETRIES` times after `AI_TRANSPORT_BACKOFF_MS × 2^(retry − 1)`;
 4. validates the output against the port's shape;
 5. writes the `AI_CALL` audit row with the payload of [Audit actions](/architecture/sql-store.md#audit-actions), computing `cost_eur` from the response's `usage.cost` at `USD_EUR_RATE`.
 
-**Jev adapter.** Maps a [`ClassifierRequest`](/architecture/interfaces.md#classifierrequest) to one Jev request: the passage and the context line are Jev's state, and each question becomes one of Jev's typed questions — `YES_NO` a yes/no question, `SCALE` a score question over its ordered levels, `CHOICE` a choice question over its options — so that one call answers them all. Jev's per-answer probabilities become the answer's `probabilities`. Requests go to `JEV_DECISIONS_URL`, OpenRouter's Decisions API, for the model `JEV_MODEL` with the `OPENROUTER_API_KEY` bearer token, and the response's `usage.cost` is the call's cost ([ADR-15](/architecture/adrs/adr-15-openrouter-as-the-llm-provider.md)).
+A call stopped before it is sent — by the budget guard, by a missing recording, or because `OPENROUTER_API_KEY` outside `replay` or the role's model id is unset — writes no `AI_CALL` row, since nothing answered it. Every other call writes exactly one, whatever its outcome, with its latency across all attempts. A failure is `UPSTREAM_UNAVAILABLE` with `details.dependency` `classifier` for the `CLASSIFIER` role and `llm` otherwise and `details.reason` the call's `outcome`, or `NOT_CONFIGURED` for an unset key or model id; a budget stop is `BUDGET_EXHAUSTED` with `details.resets_at` the next 00:00 UTC; a missing recording is `FIXTURE_MISSING`.
+
+**Jev adapter.** Maps a [`ClassifierRequest`](/architecture/interfaces.md#classifierrequest) to one Jev request: the passage and the context line are Jev's state, and each question, keyed by its `id`, becomes one of Jev's typed questions — `YES_NO` a `noul` question, `SCALE` a `score` question whose `criteria` are its levels' labels in order, `CHOICE` a `choice` question whose `criteria` map each option key to its label — so that one call answers them all. The state is the passage alone without a context line, else `{context, text}`. A `noul` answer is P(`YES`), and P(`NO`) is its complement; a `score` or `choice` answer's `probabilities`, keyed by option key or, for a score, by the level's position from 0, become the answer's `probabilities`; an answer without them is `INVALID_OUTPUT`. Requests go to `JEV_DECISIONS_URL`, OpenRouter's Decisions API, for the model `JEV_MODEL` with the `OPENROUTER_API_KEY` bearer token, and the response's `usage.cost` is the call's cost ([ADR-15](/architecture/adrs/adr-15-openrouter-as-the-llm-provider.md)).
 
 **LLM classifier adapter.** Sends the same request through the OpenRouter adapter to `LLM_CLASSIFIER_MODEL`, with a response schema that requires a probability for every answer value of every question, and normalises each question's probabilities to sum to 1.
 
-**OpenRouter adapter.** Every generation role has a prompt versioned in the repository as `prompts/<role>/v<n>.md`; the version is recorded in the audit. Calls go to `{OPENROUTER_BASE_URL}/chat/completions` in the OpenAI chat format with the `OPENROUTER_API_KEY` bearer token, at temperature 0, with a `response_format` of type `json_schema` whose schema is the role's output shape of [LLM shapes](/architecture/interfaces.md#llm-shapes), and with `provider.require_parameters` true so that only providers that honour the schema serve the call; the rule that owns the role then validates the content ([ADR-15](/architecture/adrs/adr-15-openrouter-as-the-llm-provider.md)).
+**OpenRouter adapter.** Every generation role, and the LLM classifier adapter, has a prompt versioned in the repository as `prompts/<role>/v<n>.md`, `<role>` being the AI role in lower case; the highest `n` is the one in use, and `v<n>` is recorded in the audit as `prompt_version`. The prompt is the system message; the user message is the role's input shape as JSON. Calls go to `{OPENROUTER_BASE_URL}/chat/completions` in the OpenAI chat format with the `OPENROUTER_API_KEY` bearer token, at temperature 0, with a `response_format` of type `json_schema` whose schema is the role's output shape of [LLM shapes](/architecture/interfaces.md#llm-shapes), with `provider.require_parameters` true so that only providers that honour the schema serve the call, and with `usage.include` true so that the response carries its cost; the rule that owns the role then validates the content ([ADR-15](/architecture/adrs/adr-15-openrouter-as-the-llm-provider.md)).
 
 ### Source plug-ins
 
@@ -163,6 +169,7 @@ One worker at a time runs the scheduler: each loop takes a PostgreSQL advisory l
 | `JOB_MAX_ATTEMPTS` | `3` | Attempts before a job fails |
 | `JOB_RETRY_BACKOFF_S` | `30` | Base retry backoff |
 | `JOB_LOCK_TIMEOUT_S` | `900` | Age after which a running job is reclaimed |
+| `JOB_POLL_INTERVAL_S` | `1` | Wait of a job loop that found no job before it looks again |
 | `SCHEDULER_TICK_S` | `60` | Scheduler interval |
 | `SCHEDULER_MAX_ENQUEUE` | `20` | Refreshes enqueued per tick |
 | `REFRESH_INTERVAL_HOURS` | `24` | Time between refreshes of an account |
@@ -239,6 +246,7 @@ One worker at a time runs the scheduler: each loop takes a PostgreSQL advisory l
 | `CLASSIFIER_TIMEOUT_S` | `10` | Timeout of one classifier call |
 | `AI_CALL_TIMEOUT_S` | `60` | Timeout of one LLM call |
 | `AI_TRANSPORT_RETRIES` | `2` | Retries of a transport error, `429` or `5xx` |
+| `AI_TRANSPORT_BACKOFF_MS` | `500` | Wait before the first retry of an AI call; each further retry doubles it |
 | `EMBEDDER_URL` | `http://embedder:80` | Text Embeddings Inference endpoint |
 | `EMBEDDING_DIM` | `1024` | Dimension of a bge-m3 dense vector |
 | `EMBED_BATCH_SIZE` | `32` | Texts per embedding call |

@@ -3,11 +3,12 @@
     "schemas": {
       "Account": {
         "additionalProperties": false,
-        "description": "[`Account`](/architecture/interfaces.md#account): every field of\n[`AccountRow`](#accountrow) plus these.",
+        "description": "[`Account`](/architecture/interfaces.md#account), the response of `API-21`, `API-23` and\n`API-24`.",
         "properties": {
           "active_run_id": {
             "anyOf": [
               {
+                "format": "uuid",
                 "type": "string"
               },
               {
@@ -31,8 +32,15 @@
             "type": "object"
           },
           "country_code": {
-            "title": "Country Code",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country Code"
           },
           "crunchbase_id": {
             "anyOf": [
@@ -61,6 +69,7 @@
             "title": "Employee Count"
           },
           "id": {
+            "format": "uuid",
             "title": "Id",
             "type": "string"
           },
@@ -78,6 +87,7 @@
           "last_refreshed_at": {
             "anyOf": [
               {
+                "format": "date-time",
                 "type": "string"
               },
               {
@@ -104,6 +114,7 @@
           "next_refresh_at": {
             "anyOf": [
               {
+                "format": "date-time",
                 "type": "string"
               },
               {
@@ -159,7 +170,7 @@
           },
           "sources": {
             "items": {
-              "$ref": "#/components/schemas/AccountSource"
+              "$ref": "#/components/schemas/AccountSourceItem"
             },
             "title": "Sources",
             "type": "array"
@@ -195,21 +206,15 @@
       },
       "AccountCreate": {
         "additionalProperties": false,
-        "description": "[`AccountCreate`](/architecture/interfaces.md#accountcreate).",
+        "description": "[`AccountCreate`](/architecture/interfaces.md#accountcreate), the request of `API-21`.",
         "properties": {
           "aliases": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Aliases"
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Aliases",
+            "type": "array"
           },
           "country_code": {
             "anyOf": [
@@ -287,6 +292,7 @@
           "parent_account_id": {
             "anyOf": [
               {
+                "format": "uuid",
                 "type": "string"
               },
               {
@@ -307,18 +313,12 @@
             "title": "Revenue Eur"
           },
           "sources": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AccountSourceCreate"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Sources"
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AccountCreateSource"
+            },
+            "title": "Sources",
+            "type": "array"
           }
         },
         "required": [
@@ -326,6 +326,25 @@
           "name"
         ],
         "title": "AccountCreate",
+        "type": "object"
+      },
+      "AccountCreateSource": {
+        "additionalProperties": false,
+        "description": "One entry of [`AccountCreate`](/architecture/interfaces.md#accountcreate) `sources`.",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/AccountSourceKind"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "url"
+        ],
+        "title": "AccountCreateSource",
         "type": "object"
       },
       "AccountOperationalComplexity": {
@@ -353,6 +372,7 @@
         "description": "`Account.parent`.",
         "properties": {
           "id": {
+            "format": "uuid",
             "title": "Id",
             "type": "string"
           },
@@ -370,11 +390,12 @@
       },
       "AccountRow": {
         "additionalProperties": false,
-        "description": "[`AccountRow`](/architecture/interfaces.md#accountrow).",
+        "description": "[`AccountRow`](/architecture/interfaces.md#accountrow), one item of `API-20`.",
         "properties": {
           "active_run_id": {
             "anyOf": [
               {
+                "format": "uuid",
                 "type": "string"
               },
               {
@@ -384,14 +405,22 @@
             "title": "Active Run Id"
           },
           "country_code": {
-            "title": "Country Code",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country Code"
           },
           "domain": {
             "title": "Domain",
             "type": "string"
           },
           "id": {
+            "format": "uuid",
             "title": "Id",
             "type": "string"
           },
@@ -409,6 +438,7 @@
           "last_refreshed_at": {
             "anyOf": [
               {
+                "format": "date-time",
                 "type": "string"
               },
               {
@@ -463,7 +493,7 @@
         "title": "AccountScoreStanding",
         "type": "string"
       },
-      "AccountSource": {
+      "AccountSourceItem": {
         "additionalProperties": false,
         "description": "One entry of `Account.sources`.",
         "properties": {
@@ -487,26 +517,7 @@
           "origin",
           "status"
         ],
-        "title": "AccountSource",
-        "type": "object"
-      },
-      "AccountSourceCreate": {
-        "additionalProperties": false,
-        "description": "One entry of `AccountCreate.sources`.",
-        "properties": {
-          "kind": {
-            "$ref": "#/components/schemas/AccountSourceKind"
-          },
-          "url": {
-            "title": "Url",
-            "type": "string"
-          }
-        },
-        "required": [
-          "kind",
-          "url"
-        ],
-        "title": "AccountSourceCreate",
+        "title": "AccountSourceItem",
         "type": "object"
       },
       "AccountSourceKind": {
@@ -539,35 +550,6 @@
         "title": "AccountSourceStatus",
         "type": "string"
       },
-      "AccountSourceUpdate": {
-        "additionalProperties": false,
-        "description": "One entry of `AccountUpdate.sources`.",
-        "properties": {
-          "kind": {
-            "$ref": "#/components/schemas/AccountSourceKind"
-          },
-          "status": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AccountSourceStatus"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "url": {
-            "title": "Url",
-            "type": "string"
-          }
-        },
-        "required": [
-          "kind",
-          "url"
-        ],
-        "title": "AccountSourceUpdate",
-        "type": "object"
-      },
       "AccountStatus": {
         "description": "`account.status`.",
         "enum": [
@@ -579,7 +561,7 @@
       },
       "AccountUpdate": {
         "additionalProperties": false,
-        "description": "[`AccountUpdate`](/architecture/interfaces.md#accountupdate): every field of\n[`AccountCreate`](#accountcreate) except `domain`, optional, plus `sources` and `status`.",
+        "description": "[`AccountUpdate`](/architecture/interfaces.md#accountupdate), the request of `API-24`.\nEvery field of [`AccountCreate`](#accountcreate) except `domain`, optional, plus `status`; a\nfield left unset changes nothing ([`AccountUpdateData`](../accounts/commands.py)).",
         "properties": {
           "aliases": {
             "anyOf": [
@@ -639,17 +621,6 @@
             ],
             "title": "Linkedin Url"
           },
-          "name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name"
-          },
           "notes": {
             "anyOf": [
               {
@@ -674,6 +645,7 @@
           "parent_account_id": {
             "anyOf": [
               {
+                "format": "uuid",
                 "type": "string"
               },
               {
@@ -697,7 +669,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/AccountSourceUpdate"
+                  "$ref": "#/components/schemas/AccountUpdateSource"
                 },
                 "type": "array"
               },
@@ -721,9 +693,32 @@
         "title": "AccountUpdate",
         "type": "object"
       },
+      "AccountUpdateSource": {
+        "additionalProperties": false,
+        "description": "One entry of [`AccountUpdate`](/architecture/interfaces.md#accountupdate) `sources`.",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/AccountSourceKind"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AccountSourceStatus",
+            "default": "ACTIVE"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "url"
+        ],
+        "title": "AccountUpdateSource",
+        "type": "object"
+      },
       "ActivationRequest": {
         "additionalProperties": false,
-        "description": "[`ActivationRequest`](/architecture/interfaces.md#activationrequest).",
+        "description": "[`ActivationRequest`](/architecture/interfaces.md#activationrequest): `change_note`\nrequired.",
         "properties": {
           "change_note": {
             "title": "Change Note",
@@ -738,13 +733,27 @@
       },
       "AlertBandChange": {
         "additionalProperties": false,
-        "description": "`AlertView.band_change`.",
+        "description": "`AlertView.band_change`; `BAND_UP` only.",
         "properties": {
           "from": {
-            "$ref": "#/components/schemas/AccountScoreBand"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountScoreBand"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "to": {
-            "$ref": "#/components/schemas/AccountScoreBand"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountScoreBand"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -756,9 +765,10 @@
       },
       "AlertFinding": {
         "additionalProperties": false,
-        "description": "`AlertView.finding`.",
+        "description": "`AlertView.finding`; `STRONG_SIGNAL` only.",
         "properties": {
           "id": {
+            "format": "uuid",
             "title": "Id",
             "type": "string"
           },
@@ -767,15 +777,8 @@
             "type": "string"
           },
           "quote": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Quote"
+            "title": "Quote",
+            "type": "string"
           },
           "strength": {
             "$ref": "#/components/schemas/FindingStrength"
@@ -799,16 +802,38 @@
         "title": "AlertKind",
         "type": "string"
       },
+      "AlertRef": {
+        "additionalProperties": false,
+        "description": "`AlertView.account` and `AlertView.service`: `{id, name}`.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "AlertRef",
+        "type": "object"
+      },
       "AlertView": {
         "additionalProperties": false,
-        "description": "[`AlertView`](/architecture/interfaces.md#alertview).",
+        "description": "[`AlertView`](/architecture/interfaces.md#alertview), the response of `API-48` and\n`API-49`.",
         "properties": {
           "account": {
-            "$ref": "#/components/schemas/IdName"
+            "$ref": "#/components/schemas/AlertRef"
           },
           "acknowledged_at": {
             "anyOf": [
               {
+                "format": "date-time",
                 "type": "string"
               },
               {
@@ -839,6 +864,7 @@
             ]
           },
           "created_at": {
+            "format": "date-time",
             "title": "Created At",
             "type": "string"
           },
@@ -853,6 +879,7 @@
             ]
           },
           "id": {
+            "format": "uuid",
             "title": "Id",
             "type": "string"
           },
@@ -860,7 +887,7 @@
             "$ref": "#/components/schemas/AlertKind"
           },
           "service": {
-            "$ref": "#/components/schemas/IdName"
+            "$ref": "#/components/schemas/AlertRef"
           }
         },
         "required": [
@@ -895,9 +922,53 @@
         "title": "AppUserStatus",
         "type": "string"
       },
+      "AuditAction": {
+        "description": "`audit_event.action`, the closed vocabulary of\n[Audit actions](/architecture/sql-store.md#audit-actions) in full: the store closes it and\nevery capability that appends an audit row (this task's sign-in and user changes, and every\nlater task) writes from this one set.",
+        "enum": [
+          "LOGIN_SUCCEEDED",
+          "LOGIN_FAILED",
+          "LOGOUT",
+          "USER_CREATED",
+          "USER_UPDATED",
+          "SERVICE_CREATED",
+          "SERVICE_UPDATED",
+          "INDUSTRY_CREATED",
+          "INDUSTRY_UPDATED",
+          "MARKET_CREATED",
+          "MARKET_UPDATED",
+          "QUESTION_CREATED",
+          "QUESTION_UPDATED",
+          "SCORING_DRAFT_SAVED",
+          "SCORING_ACTIVATED",
+          "PLUGIN_UPDATED",
+          "ACCOUNT_CREATED",
+          "ACCOUNT_UPDATED",
+          "ACCOUNTS_IMPORTED",
+          "CANDIDATE_ACCEPTED",
+          "CANDIDATE_REJECTED",
+          "CONTACT_CREATED",
+          "CONTACT_UPDATED",
+          "CONTACT_ERASED",
+          "RUN_REQUESTED",
+          "RUN_FINISHED",
+          "RUN_CANCELLED",
+          "OVERRIDE_CREATED",
+          "OVERRIDE_REVOKED",
+          "LEAD_FEEDBACK_GIVEN",
+          "FINDING_FEEDBACK_GIVEN",
+          "ITEM_LABELLED",
+          "DRAFT_CREATED",
+          "DRAFT_UPDATED",
+          "DRAFT_EXPORTED",
+          "CRM_PUSHED",
+          "AI_CALL"
+        ],
+        "title": "AuditAction",
+        "type": "string"
+      },
       "AuditEntry": {
         "additionalProperties": false,
-        "description": "[`AuditEntry`](/architecture/interfaces.md#auditentry).",
+        "description": "[`AuditEntry`](/architecture/interfaces.md#auditentry), one item of `API-60`'s page.",
         "properties": {
           "action": {
             "title": "Action",
@@ -917,6 +988,7 @@
           "entity_id": {
             "anyOf": [
               {
+                "format": "uuid",
                 "type": "string"
               },
               {
@@ -937,6 +1009,7 @@
             "title": "Entity Type"
           },
           "id": {
+            "format": "uuid",
             "title": "Id",
             "type": "string"
           },
@@ -944,6 +1017,7 @@
             "$ref": "#/components/schemas/AuditEventKind"
           },
           "occurred_at": {
+            "format": "date-time",
             "title": "Occurred At",
             "type": "string"
           },
@@ -966,6 +1040,7 @@
           "run_id": {
             "anyOf": [
               {
+                "format": "uuid",
                 "type": "string"
               },
               {
@@ -978,13 +1053,13 @@
         "required": [
           "id",
           "occurred_at",
+          "kind",
+          "action",
           "entity_type",
           "entity_id",
           "run_id",
           "request_id",
           "payload",
-          "kind",
-          "action",
           "actor_name"
         ],
         "title": "AuditEntry",
@@ -1021,6 +1096,7 @@
             "type": "string"
           },
           "id": {
+            "format": "uuid",
             "title": "Id",
             "type": "string"
           },
@@ -1037,7 +1113,7 @@
         "title": "AuthenticatedUser",
         "type": "object"
       },
-      "Body_import_accounts_api_v1_accounts_import_post": {
+      "Body_post_accounts_import_api_v1_accounts_import_post": {
         "properties": {
           "dry_run": {
             "title": "Dry Run",
@@ -1053,7 +1129,7 @@
           "file",
           "dry_run"
         ],
-        "title": "Body_import_accounts_api_v1_accounts_import_post",
+        "title": "Body_post_accounts_import_api_v1_accounts_import_post",
         "type": "object"
       },
       "CandidateDecision": {
@@ -1061,26 +1137,12 @@
         "description": "[`CandidateDecision`](/architecture/interfaces.md#candidatedecision).",
         "properties": {
           "domain": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Domain"
+            "title": "Domain",
+            "type": "string"
           },
           "reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Reason"
+            "title": "Reason",
+            "type": "string"
           }
         },
         "title": "CandidateDecision",
@@ -1147,14 +1209,8 @@
             "type": "string"
           },
           "persona": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ContactPersona"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/ContactPersona",
+            "title": "Persona"
           },
           "source_url": {
             "title": "Source Url",
@@ -1200,47 +1256,20 @@
         "description": "[`ContactUpdate`](/architecture/interfaces.md#contactupdate).",
         "properties": {
           "full_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Full Name"
+            "title": "Full Name",
+            "type": "string"
           },
           "job_title": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Job Title"
+            "title": "Job Title",
+            "type": "string"
           },
           "persona": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ContactPersona"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/ContactPersona",
+            "title": "Persona"
           },
           "source_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Source Url"
+            "title": "Source Url",
+            "type": "string"
           }
         },
         "title": "ContactUpdate",
@@ -1328,6 +1357,18 @@
         ],
         "title": "DemoLoginRequest",
         "type": "object"
+      },
+      "Dependency": {
+        "description": "`details.dependency` of `UPSTREAM_UNAVAILABLE`, exactly the\n[Dependencies](/architecture/interfaces.md#conventions) table's column: a wire-only enum,\nowned by interfaces and defined here once.",
+        "enum": [
+          "DATABASE",
+          "CLASSIFIER",
+          "LLM",
+          "EMBEDDER",
+          "HUBSPOT"
+        ],
+        "title": "Dependency",
+        "type": "string"
       },
       "DiscoveryCandidate": {
         "additionalProperties": false,
@@ -1531,12 +1572,7 @@
             "type": "string"
           },
           "kind": {
-            "enum": [
-              "ICP_MISMATCH",
-              "SIGNAL"
-            ],
-            "title": "Kind",
-            "type": "string"
+            "$ref": "#/components/schemas/DisqualifierKind"
           },
           "label": {
             "title": "Label",
@@ -1574,8 +1610,19 @@
       },
       "DisqualifierBreakdown": {
         "additionalProperties": false,
-        "description": "One entry of `disqualifiers`.",
+        "description": "One entry of `disqualifiers`: names the fact it tests by `kind` and its `criterion_key`\nor `question_key`, the other null.",
         "properties": {
+          "criterion_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Criterion Key"
+          },
           "finding_id": {
             "anyOf": [
               {
@@ -1591,6 +1638,9 @@
           "key": {
             "title": "Key",
             "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/DisqualifierKind"
           },
           "label": {
             "title": "Label",
@@ -1615,11 +1665,25 @@
               }
             ],
             "title": "Override Id"
+          },
+          "question_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question Key"
           }
         },
         "required": [
           "key",
           "label",
+          "kind",
+          "criterion_key",
+          "question_key",
           "matched",
           "overridden",
           "override_id",
@@ -1627,6 +1691,15 @@
         ],
         "title": "DisqualifierBreakdown",
         "type": "object"
+      },
+      "DisqualifierKind": {
+        "description": "The `kind` of a disqualifier of the [scoring settings document]\n(/architecture/sql-store.md#scoring-settings-document).",
+        "enum": [
+          "ICP_MISMATCH",
+          "SIGNAL"
+        ],
+        "title": "DisqualifierKind",
+        "type": "string"
       },
       "DisqualifierOverrideStatus": {
         "description": "`disqualifier_override.status`.",
@@ -1666,15 +1739,7 @@
             "type": "string"
           },
           "details": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "$ref": "#/components/schemas/ErrorDetails",
             "title": "Details"
           },
           "message": {
@@ -1687,6 +1752,62 @@
           "message"
         ],
         "title": "ErrorBody",
+        "type": "object"
+      },
+      "ErrorDetailField": {
+        "additionalProperties": false,
+        "description": "One entry of `details.fields[]` ([Conventions](/architecture/interfaces.md#conventions)\n`VALIDATION`).",
+        "properties": {
+          "field": {
+            "title": "Field",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "field",
+          "message"
+        ],
+        "title": "ErrorDetailField",
+        "type": "object"
+      },
+      "ErrorDetails": {
+        "additionalProperties": false,
+        "description": "`details` of [Conventions](/architecture/interfaces.md#conventions) `ErrorEnvelope`: the\nclosed set of names the Envelope table gives. Every field is optional and, per the Naming\nparagraph (G10), absent rather than `null` when unset.",
+        "properties": {
+          "dependency": {
+            "$ref": "#/components/schemas/Dependency"
+          },
+          "entity_id": {
+            "format": "uuid",
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorDetailField"
+            },
+            "title": "Fields",
+            "type": "array"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "resets_at": {
+            "format": "date-time",
+            "title": "Resets At",
+            "type": "string"
+          },
+          "retry_after_min": {
+            "title": "Retry After Min",
+            "type": "integer"
+          }
+        },
+        "title": "ErrorDetails",
         "type": "object"
       },
       "ErrorEnvelope": {
@@ -2025,15 +2146,8 @@
         "additionalProperties": false,
         "properties": {
           "note": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Note"
+            "title": "Note",
+            "type": "string"
           },
           "verdict": {
             "$ref": "#/components/schemas/FindingFeedbackVerdict"
@@ -2049,15 +2163,8 @@
         "additionalProperties": false,
         "properties": {
           "note": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Note"
+            "title": "Note",
+            "type": "string"
           },
           "verdict": {
             "$ref": "#/components/schemas/LeadFeedbackVerdict"
@@ -2080,7 +2187,7 @@
       },
       "FindingDocument": {
         "additionalProperties": false,
-        "description": "`FindingView.document`, reused by `EvidenceView.document`.",
+        "description": "`FindingView.document`, reused by `EvidenceView.document` (\"as in `FindingView`\").",
         "properties": {
           "id": {
             "title": "Id",
@@ -2108,8 +2215,15 @@
             "$ref": "#/components/schemas/DocumentSourceType"
           },
           "title": {
-            "title": "Title",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
           },
           "url": {
             "title": "Url",
@@ -2459,15 +2573,7 @@
             "type": "string"
           },
           "kind": {
-            "enum": [
-              "INDUSTRY",
-              "GEOGRAPHY",
-              "EMPLOYEE_RANGE",
-              "REVENUE_RANGE",
-              "OPERATIONAL_COMPLEXITY"
-            ],
-            "title": "Kind",
-            "type": "string"
+            "$ref": "#/components/schemas/ICPCriterionKind"
           },
           "match": {
             "enum": [
@@ -2483,14 +2589,7 @@
             "type": "number"
           },
           "weight": {
-            "enum": [
-              "HIGH",
-              "MEDIUM",
-              "LOW",
-              "NONE"
-            ],
-            "title": "Weight",
-            "type": "string"
+            "$ref": "#/components/schemas/WeightLevel"
           },
           "weight_value": {
             "title": "Weight Value",
@@ -2508,19 +2607,6 @@
           "points"
         ],
         "title": "FitCriterionBreakdown",
-        "type": "object"
-      },
-      "HTTPValidationError": {
-        "properties": {
-          "detail": {
-            "items": {
-              "$ref": "#/components/schemas/ValidationError"
-            },
-            "title": "Detail",
-            "type": "array"
-          }
-        },
-        "title": "HTTPValidationError",
         "type": "object"
       },
       "Health": {
@@ -2587,24 +2673,16 @@
         "title": "HealthStatus",
         "type": "string"
       },
-      "IcpCriterion": {
+      "ICPCriterion": {
         "additionalProperties": false,
-        "description": "One entry of `icp_criteria`.",
+        "description": "One entry of `icp_criteria`. Kind-specific operand validity is [Scoring settings\nvalidation](#validate_scoring_settings), not a type, because it depends on the service's\nactive industries.",
         "properties": {
           "key": {
             "title": "Key",
             "type": "string"
           },
           "kind": {
-            "enum": [
-              "INDUSTRY",
-              "GEOGRAPHY",
-              "EMPLOYEE_RANGE",
-              "REVENUE_RANGE",
-              "OPERATIONAL_COMPLEXITY"
-            ],
-            "title": "Kind",
-            "type": "string"
+            "$ref": "#/components/schemas/ICPCriterionKind"
           },
           "max": {
             "anyOf": [
@@ -2643,14 +2721,7 @@
             "title": "Values"
           },
           "weight": {
-            "enum": [
-              "HIGH",
-              "MEDIUM",
-              "LOW",
-              "NONE"
-            ],
-            "title": "Weight",
-            "type": "string"
+            "$ref": "#/components/schemas/WeightLevel"
           }
         },
         "required": [
@@ -2658,28 +2729,20 @@
           "kind",
           "weight"
         ],
-        "title": "IcpCriterion",
+        "title": "ICPCriterion",
         "type": "object"
       },
-      "IdName": {
-        "additionalProperties": false,
-        "description": "The anonymous `{id, name}` shape nested by several responses.",
-        "properties": {
-          "id": {
-            "title": "Id",
-            "type": "string"
-          },
-          "name": {
-            "title": "Name",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "name"
+      "ICPCriterionKind": {
+        "description": "The `kind` of an ICP criterion of the [scoring settings document]\n(/architecture/sql-store.md#scoring-settings-document).",
+        "enum": [
+          "INDUSTRY",
+          "GEOGRAPHY",
+          "EMPLOYEE_RANGE",
+          "REVENUE_RANGE",
+          "OPERATIONAL_COMPLEXITY"
         ],
-        "title": "IdName",
-        "type": "object"
+        "title": "ICPCriterionKind",
+        "type": "string"
       },
       "Impact": {
         "additionalProperties": false,
@@ -2771,7 +2834,7 @@
       },
       "ImportResult": {
         "additionalProperties": false,
-        "description": "[`ImportResult`](/architecture/interfaces.md#importresult).",
+        "description": "[`ImportResult`](/architecture/interfaces.md#importresult), the response of `API-22`.",
         "properties": {
           "created": {
             "title": "Created",
@@ -2791,7 +2854,7 @@
           },
           "rows": {
             "items": {
-              "$ref": "#/components/schemas/ImportRowResult"
+              "$ref": "#/components/schemas/ImportRowItem"
             },
             "title": "Rows",
             "type": "array"
@@ -2812,13 +2875,34 @@
         "title": "ImportResult",
         "type": "object"
       },
-      "ImportRowResult": {
+      "ImportRowFieldError": {
+        "additionalProperties": false,
+        "description": "One entry of an import row's `errors`, in the shape of `details.fields[]`\n([Conventions](/architecture/interfaces.md#conventions) Envelope).",
+        "properties": {
+          "field": {
+            "title": "Field",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "field",
+          "message"
+        ],
+        "title": "ImportRowFieldError",
+        "type": "object"
+      },
+      "ImportRowItem": {
         "additionalProperties": false,
         "description": "One entry of `ImportResult.rows`.",
         "properties": {
           "account_id": {
             "anyOf": [
               {
+                "format": "uuid",
                 "type": "string"
               },
               {
@@ -2828,15 +2912,19 @@
             "title": "Account Id"
           },
           "domain": {
-            "title": "Domain",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domain"
           },
           "errors": {
             "items": {
-              "additionalProperties": {
-                "type": "string"
-              },
-              "type": "object"
+              "$ref": "#/components/schemas/ImportRowFieldError"
             },
             "title": "Errors",
             "type": "array"
@@ -2846,12 +2934,6 @@
             "type": "integer"
           },
           "outcome": {
-            "enum": [
-              "CREATED",
-              "UPDATED",
-              "POSSIBLE_DUPLICATE",
-              "INVALID"
-            ],
             "title": "Outcome",
             "type": "string"
           }
@@ -2863,7 +2945,7 @@
           "account_id",
           "errors"
         ],
-        "title": "ImportRowResult",
+        "title": "ImportRowItem",
         "type": "object"
       },
       "Industry": {
@@ -2900,6 +2982,7 @@
         "description": "[`IndustryCreate`](/architecture/interfaces.md#industrycreate).",
         "properties": {
           "code": {
+            "pattern": "^[A-Z][A-Z0-9_]*$",
             "title": "Code",
             "type": "string"
           },
@@ -3214,8 +3297,10 @@
             "type": "string"
           },
           "password": {
+            "format": "password",
             "title": "Password",
-            "type": "string"
+            "type": "string",
+            "writeOnly": true
           }
         },
         "required": [
@@ -3262,6 +3347,7 @@
         "description": "[`MarketCreate`](/architecture/interfaces.md#marketcreate).",
         "properties": {
           "code": {
+            "pattern": "^[A-Z][A-Z0-9_]*$",
             "title": "Code",
             "type": "string"
           },
@@ -3269,6 +3355,7 @@
             "items": {
               "type": "string"
             },
+            "minItems": 1,
             "title": "Country Codes",
             "type": "array"
           },
@@ -3304,6 +3391,7 @@
                 "items": {
                   "type": "string"
                 },
+                "minItems": 1,
                 "type": "array"
               },
               {
@@ -3494,36 +3582,16 @@
         "description": "[`OutreachDraftUpdate`](/architecture/interfaces.md#outreachdraftupdate).",
         "properties": {
           "body": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Body"
+            "title": "Body",
+            "type": "string"
           },
           "status": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/OutreachDraftStatus"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/OutreachDraftStatus",
+            "title": "Status"
           },
           "subject": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Subject"
+            "title": "Subject",
+            "type": "string"
           }
         },
         "title": "OutreachDraftUpdate",
@@ -3537,15 +3605,8 @@
             "$ref": "#/components/schemas/OutreachDraftChannel"
           },
           "contact_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Contact Id"
+            "title": "Contact Id",
+            "type": "string"
           }
         },
         "required": [
@@ -3563,26 +3624,12 @@
             "type": "string"
           },
           "created_at": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Created At"
+            "title": "Created At",
+            "type": "string"
           },
           "created_by_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Created By Name"
+            "title": "Created By Name",
+            "type": "string"
           },
           "id": {
             "title": "Id",
@@ -3622,6 +3669,17 @@
             "title": "Rule Label",
             "type": "string"
           },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
           "service_id": {
             "title": "Service Id",
             "type": "string"
@@ -3641,7 +3699,8 @@
           "created_by_name",
           "created_at",
           "revoked_by_name",
-          "revoked_at"
+          "revoked_at",
+          "run_id"
         ],
         "title": "Override",
         "type": "object"
@@ -3915,8 +3974,15 @@
         "description": "`ProspectRow.account`.",
         "properties": {
           "country_code": {
-            "title": "Country Code",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country Code"
           },
           "domain": {
             "title": "Domain",
@@ -3996,6 +4062,55 @@
         "title": "ProspectPage",
         "type": "object"
       },
+      "ProspectReason": {
+        "additionalProperties": false,
+        "description": "`ProspectRow.reason`: null when `RANKED`; the other members are null besides the one its\nstanding names.",
+        "properties": {
+          "customer_marked_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Marked By Name"
+          },
+          "disqualifier_labels": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Disqualifier Labels"
+          },
+          "min_fit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Fit"
+          }
+        },
+        "required": [
+          "min_fit",
+          "disqualifier_labels",
+          "customer_marked_by_name"
+        ],
+        "title": "ProspectReason",
+        "type": "object"
+      },
       "ProspectRow": {
         "additionalProperties": false,
         "description": "[`ProspectRow`](/architecture/interfaces.md#prospectrow).",
@@ -4008,7 +4123,14 @@
             "type": "string"
           },
           "band": {
-            "$ref": "#/components/schemas/AccountScoreBand"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountScoreBand"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "finding_count": {
             "title": "Finding Count",
@@ -4048,6 +4170,16 @@
             ],
             "title": "Rank"
           },
+          "reason": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProspectReason"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "standing": {
             "$ref": "#/components/schemas/AccountScoreStanding"
           },
@@ -4071,6 +4203,7 @@
           "priority",
           "standing",
           "band",
+          "reason",
           "top_signals",
           "finding_count",
           "unread_alerts",
@@ -4111,9 +4244,10 @@
       },
       "QuestionOption": {
         "additionalProperties": false,
-        "description": "One entry of `SignalQuestion.options`.",
+        "description": "One entry of [`SignalQuestion`](/architecture/interfaces.md#signalquestion) `options`.",
         "properties": {
           "key": {
+            "pattern": "^[A-Z][A-Z0-9_]*$",
             "title": "Key",
             "type": "string"
           },
@@ -4192,104 +4326,49 @@
         "description": "[`QuestionPreviewRequest`](/architecture/interfaces.md#questionpreviewrequest).",
         "properties": {
           "account_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Account Id"
+            "title": "Account Id",
+            "type": "string"
           },
           "answer_type": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SignalQuestionAnswerType"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/SignalQuestionAnswerType",
+            "title": "Answer Type"
           },
           "hint_terms": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Hint Terms"
+            "items": {
+              "type": "string"
+            },
+            "title": "Hint Terms",
+            "type": "array"
           },
           "options": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/QuestionOption"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Options"
+            "items": {
+              "$ref": "#/components/schemas/QuestionOption"
+            },
+            "title": "Options",
+            "type": "array"
           },
           "question_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Question Id"
+            "title": "Question Id",
+            "type": "string"
           },
           "sample_text": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Sample Text"
+            "title": "Sample Text",
+            "type": "string"
           },
           "service_id": {
             "title": "Service Id",
             "type": "string"
           },
           "source_types": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/DocumentSourceType"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Source Types"
+            "items": {
+              "$ref": "#/components/schemas/DocumentSourceType"
+            },
+            "title": "Source Types",
+            "type": "array"
           },
           "text": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Text"
+            "title": "Text",
+            "type": "string"
           }
         },
         "required": [
@@ -4394,14 +4473,7 @@
             "type": "string"
           },
           "weight": {
-            "enum": [
-              "HIGH",
-              "MEDIUM",
-              "LOW",
-              "NONE"
-            ],
-            "title": "Weight",
-            "type": "string"
+            "$ref": "#/components/schemas/WeightLevel"
           }
         },
         "required": [
@@ -4418,7 +4490,7 @@
           "account": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/IdName"
+                "$ref": "#/components/schemas/RunRef"
               },
               {
                 "type": "null"
@@ -4430,20 +4502,13 @@
             "type": "number"
           },
           "created_at": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Created At"
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
           },
           "errors": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/RunError"
             },
             "title": "Errors",
             "type": "array"
@@ -4451,6 +4516,7 @@
           "finished_at": {
             "anyOf": [
               {
+                "format": "date-time",
                 "type": "string"
               },
               {
@@ -4460,6 +4526,7 @@
             "title": "Finished At"
           },
           "id": {
+            "format": "uuid",
             "title": "Id",
             "type": "string"
           },
@@ -4467,7 +4534,9 @@
             "$ref": "#/components/schemas/PipelineRunKind"
           },
           "progress": {
-            "additionalProperties": true,
+            "additionalProperties": {
+              "type": "integer"
+            },
             "title": "Progress",
             "type": "object"
           },
@@ -4495,7 +4564,7 @@
           "service": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/IdName"
+                "$ref": "#/components/schemas/RunRef"
               },
               {
                 "type": "null"
@@ -4515,6 +4584,7 @@
           "started_at": {
             "anyOf": [
               {
+                "format": "date-time",
                 "type": "string"
               },
               {
@@ -4550,11 +4620,46 @@
         "title": "Run",
         "type": "object"
       },
+      "RunError": {
+        "additionalProperties": false,
+        "description": "One entry of `Run.errors`, as [`pipeline_run`](/architecture/sql-store.md#pipeline_run)\n`errors` states it.",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "plugin_code": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SourcePluginCode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stage": {
+            "$ref": "#/components/schemas/PipelineRunStage"
+          }
+        },
+        "required": [
+          "stage",
+          "code",
+          "message"
+        ],
+        "title": "RunError",
+        "type": "object"
+      },
       "RunQuestion": {
         "additionalProperties": false,
-        "description": "`Run.question`.",
+        "description": "`Run.question`: `{id, key}`.",
         "properties": {
           "id": {
+            "format": "uuid",
             "title": "Id",
             "type": "string"
           },
@@ -4570,16 +4675,45 @@
         "title": "RunQuestion",
         "type": "object"
       },
+      "RunRef": {
+        "additionalProperties": false,
+        "description": "`Run.account` and `Run.service`: `{id, name}`.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "RunRef",
+        "type": "object"
+      },
       "ScoreChange": {
         "additionalProperties": false,
-        "description": "[`ScoreChange`](/architecture/interfaces.md#scorechange).",
+        "description": "[`ScoreChange`](/architecture/interfaces.md#scorechange), one item of `API-41`.",
         "properties": {
           "as_of": {
+            "format": "date-time",
             "title": "As Of",
             "type": "string"
           },
           "band": {
-            "$ref": "#/components/schemas/AccountScoreBand"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountScoreBand"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "change_note": {
             "anyOf": [
@@ -4626,10 +4760,12 @@
             "type": "integer"
           },
           "run_id": {
+            "format": "uuid",
             "title": "Run Id",
             "type": "string"
           },
           "score_id": {
+            "format": "uuid",
             "title": "Score Id",
             "type": "string"
           },
@@ -4665,9 +4801,10 @@
       },
       "ScoreChangeFinding": {
         "additionalProperties": false,
-        "description": "One entry of `ScoreChange.findings_added` and `.findings_removed`.",
+        "description": "One entry of `ScoreChange.findings_added` or `findings_removed`.",
         "properties": {
           "finding_id": {
+            "format": "uuid",
             "title": "Finding Id",
             "type": "string"
           },
@@ -4716,7 +4853,14 @@
             "type": "string"
           },
           "band": {
-            "$ref": "#/components/schemas/AccountScoreBand"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountScoreBand"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "breakdown": {
             "$ref": "#/components/schemas/ScoreViewBreakdown"
@@ -4817,7 +4961,14 @@
             "type": "string"
           },
           "band": {
-            "$ref": "#/components/schemas/AccountScoreBand"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountScoreBand"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "disqualifiers": {
             "items": {
@@ -4897,16 +5048,42 @@
       },
       "ScoreViewQuestionBreakdown": {
         "additionalProperties": false,
-        "description": "`ScoreView.breakdown`'s question entries, with `question_text` added on read\n([`ScoreView`](/architecture/interfaces.md#scoreview)).",
+        "description": "`ScoreView.breakdown`'s question entries, with `question_text` and the counted finding's\n`observed_at` added on read ([`ScoreView`](/architecture/interfaces.md#scoreview)).",
         "properties": {
           "decay": {
-            "title": "Decay",
-            "type": "number"
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decay"
           },
           "finding_id": {
-            "format": "uuid",
-            "title": "Finding Id",
-            "type": "string"
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finding Id"
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed At"
           },
           "points": {
             "title": "Points",
@@ -4924,21 +5101,21 @@
             "type": "string"
           },
           "strength": {
-            "$ref": "#/components/schemas/FindingStrength"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FindingStrength"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "value": {
             "title": "Value",
             "type": "number"
           },
           "weight": {
-            "enum": [
-              "HIGH",
-              "MEDIUM",
-              "LOW",
-              "NONE"
-            ],
-            "title": "Weight",
-            "type": "string"
+            "$ref": "#/components/schemas/WeightLevel"
           },
           "weight_value": {
             "title": "Weight Value",
@@ -4955,14 +5132,15 @@
           "decay",
           "value",
           "points",
-          "question_text"
+          "question_text",
+          "observed_at"
         ],
         "title": "ScoreViewQuestionBreakdown",
         "type": "object"
       },
       "ScoringConfig": {
         "additionalProperties": false,
-        "description": "[`ScoringConfig`](/architecture/interfaces.md#scoringconfig): every field of\n[`ScoringConfigSummary`](#scoringconfigsummary) plus `settings`.",
+        "description": "[`ScoringConfig`](/architecture/interfaces.md#scoringconfig).",
         "properties": {
           "activated_at": {
             "anyOf": [
@@ -5006,7 +5184,9 @@
             "type": "string"
           },
           "settings": {
-            "$ref": "#/components/schemas/ScoringSettingsDocument"
+            "additionalProperties": true,
+            "title": "Settings",
+            "type": "object"
           },
           "status": {
             "$ref": "#/components/schemas/ScoringConfigStatus"
@@ -5029,23 +5209,14 @@
         "title": "ScoringConfig",
         "type": "object"
       },
-      "ScoringConfigStatus": {
-        "description": "`scoring_config.status`.",
-        "enum": [
-          "DRAFT",
-          "ACTIVE",
-          "RETIRED"
-        ],
-        "title": "ScoringConfigStatus",
-        "type": "string"
-      },
-      "ScoringConfigSummary": {
+      "ScoringConfigModel": {
         "additionalProperties": false,
-        "description": "[`ScoringConfigSummary`](/architecture/interfaces.md#scoringconfigsummary).",
+        "description": "[`ScoringConfig`](/architecture/interfaces.md#scoringconfig).",
         "properties": {
           "activated_at": {
             "anyOf": [
               {
+                "format": "date-time",
                 "type": "string"
               },
               {
@@ -5077,10 +5248,96 @@
             "title": "Change Note"
           },
           "id": {
+            "format": "uuid",
             "title": "Id",
             "type": "string"
           },
           "service_id": {
+            "format": "uuid",
+            "title": "Service Id",
+            "type": "string"
+          },
+          "settings": {
+            "additionalProperties": true,
+            "title": "Settings",
+            "type": "object"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ScoringConfigStatus"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "service_id",
+          "version",
+          "status",
+          "change_note",
+          "activated_at",
+          "activated_by_name",
+          "settings"
+        ],
+        "title": "ScoringConfigModel",
+        "type": "object"
+      },
+      "ScoringConfigStatus": {
+        "description": "`scoring_config.status`.",
+        "enum": [
+          "DRAFT",
+          "ACTIVE",
+          "RETIRED"
+        ],
+        "title": "ScoringConfigStatus",
+        "type": "string"
+      },
+      "ScoringConfigSummaryModel": {
+        "additionalProperties": false,
+        "description": "[`ScoringConfigSummary`](/architecture/interfaces.md#scoringconfigsummary).",
+        "properties": {
+          "activated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activated At"
+          },
+          "activated_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activated By Name"
+          },
+          "change_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Note"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "service_id": {
+            "format": "uuid",
             "title": "Service Id",
             "type": "string"
           },
@@ -5101,7 +5358,7 @@
           "activated_at",
           "activated_by_name"
         ],
-        "title": "ScoringConfigSummary",
+        "title": "ScoringConfigSummaryModel",
         "type": "object"
       },
       "ScoringDraftUpdate": {
@@ -5209,7 +5466,14 @@
         "description": "`ScoringPreview.changes[].current` and `.proposed`.",
         "properties": {
           "band": {
-            "$ref": "#/components/schemas/AccountScoreBand"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountScoreBand"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "priority": {
             "title": "Priority",
@@ -5241,19 +5505,17 @@
       },
       "ScoringSettingsDocument": {
         "additionalProperties": false,
-        "description": "The document itself.",
+        "description": "The `settings` column of [`scoring_config`](/architecture/sql-store.md#scoring_config).",
         "properties": {
           "default_half_life_days": {
             "additionalProperties": {
               "type": "integer"
             },
-            "propertyNames": {
-              "$ref": "#/components/schemas/DocumentSourceType"
-            },
             "title": "Default Half Life Days",
             "type": "object"
           },
           "disqualifiers": {
+            "default": [],
             "items": {
               "$ref": "#/components/schemas/Disqualifier"
             },
@@ -5269,8 +5531,9 @@
             "type": "integer"
           },
           "icp_criteria": {
+            "default": [],
             "items": {
-              "$ref": "#/components/schemas/IcpCriterion"
+              "$ref": "#/components/schemas/ICPCriterion"
             },
             "title": "Icp Criteria",
             "type": "array"
@@ -5296,6 +5559,7 @@
             "type": "number"
           },
           "questions": {
+            "default": [],
             "items": {
               "$ref": "#/components/schemas/QuestionSetting"
             },
@@ -5305,13 +5569,6 @@
           "strength_values": {
             "additionalProperties": {
               "type": "number"
-            },
-            "propertyNames": {
-              "enum": [
-                "WEAK",
-                "MEDIUM",
-                "STRONG"
-              ]
             },
             "title": "Strength Values",
             "type": "object"
@@ -5327,14 +5584,6 @@
           "weight_values": {
             "additionalProperties": {
               "type": "number"
-            },
-            "propertyNames": {
-              "enum": [
-                "HIGH",
-                "MEDIUM",
-                "LOW",
-                "NONE"
-              ]
             },
             "title": "Weight Values",
             "type": "object"
@@ -5352,10 +5601,7 @@
           "min_decay",
           "negative_factor",
           "intent_saturation",
-          "unknown_match",
-          "icp_criteria",
-          "questions",
-          "disqualifiers"
+          "unknown_match"
         ],
         "title": "ScoringSettingsDocument",
         "type": "object"
@@ -5395,6 +5641,7 @@
             "title": "Draft Version"
           },
           "id": {
+            "format": "uuid",
             "title": "Id",
             "type": "string"
           },
@@ -5433,6 +5680,7 @@
         "description": "[`ServiceCreate`](/architecture/interfaces.md#servicecreate).",
         "properties": {
           "code": {
+            "pattern": "^[A-Z][A-Z0-9_]*$",
             "title": "Code",
             "type": "string"
           },
@@ -5537,6 +5785,7 @@
             "type": "array"
           },
           "id": {
+            "format": "uuid",
             "title": "Id",
             "type": "string"
           },
@@ -5566,6 +5815,7 @@
             "type": "integer"
           },
           "service_id": {
+            "format": "uuid",
             "title": "Service Id",
             "type": "string"
           },
@@ -5619,20 +5869,15 @@
             "$ref": "#/components/schemas/SignalQuestionAnswerType"
           },
           "hint_terms": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Hint Terms"
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Hint Terms",
+            "type": "array"
           },
           "key": {
+            "pattern": "^[A-Z][A-Z0-9_]*$",
             "title": "Key",
             "type": "string"
           },
@@ -5657,6 +5902,7 @@
             "items": {
               "$ref": "#/components/schemas/DocumentSourceType"
             },
+            "minItems": 1,
             "title": "Source Types",
             "type": "array"
           },
@@ -5786,8 +6032,15 @@
             "$ref": "#/components/schemas/SourcePluginCode"
           },
           "daily_quota": {
-            "title": "Daily Quota",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Daily Quota"
           },
           "enabled": {
             "title": "Enabled",
@@ -5811,6 +6064,7 @@
           "last_error_at": {
             "anyOf": [
               {
+                "format": "date-time",
                 "type": "string"
               },
               {
@@ -5822,6 +6076,7 @@
           "last_success_at": {
             "anyOf": [
               {
+                "format": "date-time",
                 "type": "string"
               },
               {
@@ -5927,12 +6182,14 @@
             "type": "string"
           },
           "id": {
+            "format": "uuid",
             "title": "Id",
             "type": "string"
           },
           "last_login_at": {
             "anyOf": [
               {
+                "format": "date-time",
                 "type": "string"
               },
               {
@@ -5961,7 +6218,7 @@
       },
       "UserCreate": {
         "additionalProperties": false,
-        "description": "[`UserCreate`](/architecture/interfaces.md#usercreate).",
+        "description": "[`UserCreate`](/architecture/interfaces.md#usercreate). `password`'s `PASSWORD_MIN_LENGTH`\nis enforced once, by `auth.users.create_user` (its one owner), not a static `Field`\nconstraint: the minimum is a runtime setting, and a model built inside a router factory\ncannot be resolved by FastAPI's OpenAPI generation (`from __future__ import annotations`\nturns the route's own annotation into a forward reference that must be a module-level\nname).",
         "properties": {
           "display_name": {
             "title": "Display Name",
@@ -5972,8 +6229,10 @@
             "type": "string"
           },
           "password": {
+            "format": "password",
             "title": "Password",
-            "type": "string"
+            "type": "string",
+            "writeOnly": true
           },
           "role": {
             "$ref": "#/components/schemas/AppUserRole"
@@ -5990,7 +6249,7 @@
       },
       "UserUpdate": {
         "additionalProperties": false,
-        "description": "[`UserUpdate`](/architecture/interfaces.md#userupdate).",
+        "description": "[`UserUpdate`](/architecture/interfaces.md#userupdate). `password`'s `PASSWORD_MIN_LENGTH`\nis enforced once, by `auth.users.update_user` (`UserCreate`'s note).",
         "properties": {
           "display_name": {
             "anyOf": [
@@ -6006,7 +6265,9 @@
           "password": {
             "anyOf": [
               {
-                "type": "string"
+                "format": "password",
+                "type": "string",
+                "writeOnly": true
               },
               {
                 "type": "null"
@@ -6038,45 +6299,16 @@
         "title": "UserUpdate",
         "type": "object"
       },
-      "ValidationError": {
-        "properties": {
-          "ctx": {
-            "title": "Context",
-            "type": "object"
-          },
-          "input": {
-            "title": "Input"
-          },
-          "loc": {
-            "items": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "integer"
-                }
-              ]
-            },
-            "title": "Location",
-            "type": "array"
-          },
-          "msg": {
-            "title": "Message",
-            "type": "string"
-          },
-          "type": {
-            "title": "Error Type",
-            "type": "string"
-          }
-        },
-        "required": [
-          "loc",
-          "msg",
-          "type"
+      "WeightLevel": {
+        "description": "A weight level of the [scoring settings document]\n(/architecture/sql-store.md#scoring-settings-document): `weight_values`, and the `weight` of\nan ICP criterion or a question setting. `NONE` keeps a question out of Intent while a\ndisqualifier still reads it.",
+        "enum": [
+          "HIGH",
+          "MEDIUM",
+          "LOW",
+          "NONE"
         ],
-        "title": "ValidationError",
-        "type": "object"
+        "title": "WeightLevel",
+        "type": "string"
       }
     }
   },
@@ -6088,8 +6320,8 @@
   "paths": {
     "/api/v1/accounts": {
       "get": {
-        "description": "`API-20`.",
-        "operationId": "list_accounts_api_v1_accounts_get",
+        "description": "`API-20`: `q` matches the name, any alias or the domain.",
+        "operationId": "get_accounts_api_v1_accounts_get",
         "parameters": [
           {
             "in": "query",
@@ -6177,6 +6409,7 @@
             "required": false,
             "schema": {
               "default": 1,
+              "minimum": 1,
               "title": "Page",
               "type": "integer"
             }
@@ -6188,6 +6421,7 @@
             "schema": {
               "anyOf": [
                 {
+                  "minimum": 1,
                   "type": "integer"
                 },
                 {
@@ -6195,6 +6429,22 @@
                 }
               ],
               "title": "Page Size"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -6209,7 +6459,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -6217,27 +6467,35 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
-        "summary": "List Accounts",
+        "summary": "Get Accounts",
         "tags": [
           "accounts-and-contacts"
         ]
       },
       "post": {
         "description": "`API-21`.",
-        "operationId": "create_account_api_v1_accounts_post",
+        "operationId": "post_account_api_v1_accounts_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -6259,7 +6517,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -6267,20 +6525,10 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
-        "summary": "Create Account",
+        "summary": "Post Account",
         "tags": [
           "accounts-and-contacts"
         ]
@@ -6288,13 +6536,31 @@
     },
     "/api/v1/accounts/import": {
       "post": {
-        "description": "`API-22`. `AccountImportRow` describes the uploaded CSV's columns.",
-        "operationId": "import_accounts_api_v1_accounts_import_post",
+        "description": "`API-22`: multipart `file` ([`AccountImportRow`](\n/architecture/interfaces.md#accountimportrow) CSV) and `dry_run`.",
+        "operationId": "post_accounts_import_api_v1_accounts_import_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_import_accounts_api_v1_accounts_import_post"
+                "$ref": "#/components/schemas/Body_post_accounts_import_api_v1_accounts_import_post"
               }
             }
           },
@@ -6311,7 +6577,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -6319,20 +6585,10 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
-        "summary": "Import Accounts",
+        "summary": "Post Accounts Import",
         "tags": [
           "accounts-and-contacts"
         ]
@@ -6348,8 +6604,25 @@
             "name": "id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -6364,7 +6637,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -6372,17 +6645,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
         "summary": "Get Account",
@@ -6392,15 +6655,32 @@
       },
       "patch": {
         "description": "`API-24`.",
-        "operationId": "update_account_api_v1_accounts__id__patch",
+        "operationId": "patch_account_api_v1_accounts__id__patch",
         "parameters": [
           {
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -6425,7 +6705,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -6433,20 +6713,10 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
-        "summary": "Update Account",
+        "summary": "Patch Account",
         "tags": [
           "accounts-and-contacts"
         ]
@@ -6482,7 +6752,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -6490,17 +6760,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
         "summary": "List Contacts",
@@ -6543,7 +6803,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -6551,17 +6811,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
         "summary": "Create Contact",
@@ -6648,7 +6898,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -6656,17 +6906,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
         "summary": "List Findings",
@@ -6714,7 +6954,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -6722,17 +6962,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
         "summary": "List Outreach Drafts",
@@ -6743,16 +6973,33 @@
     },
     "/api/v1/accounts/{id}/refresh": {
       "post": {
-        "description": "`API-33`.",
-        "operationId": "refresh_account_api_v1_accounts__id__refresh_post",
+        "description": "`API-33`: `202` with a new refresh, or `200` with the one already queued or running.",
+        "operationId": "post_account_refresh_api_v1_accounts__id__refresh_post",
         "parameters": [
           {
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -6765,7 +7012,7 @@
                 }
               }
             },
-            "description": "OK"
+            "description": "The refresh already queued"
           },
           "202": {
             "content": {
@@ -6777,7 +7024,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -6785,20 +7032,10 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
-        "summary": "Refresh Account",
+        "summary": "Post Account Refresh",
         "tags": [
           "runs-and-source-plugins"
         ]
@@ -6839,7 +7076,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -6847,17 +7084,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
         "summary": "Get Score",
@@ -6901,7 +7128,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -6909,17 +7136,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
         "summary": "Push To Crm",
@@ -6991,15 +7208,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Post Lead Feedback",
@@ -7010,7 +7227,7 @@
     },
     "/api/v1/accounts/{id}/scores/{service_id}/history": {
       "get": {
-        "description": "`API-41`.",
+        "description": "`API-41`: the account and service's score history, newest first, each entry compared with\nthe row before it. An account with no score for the service yet answers an empty list.",
         "operationId": "get_score_history_api_v1_accounts__id__scores__service_id__history_get",
         "parameters": [
           {
@@ -7018,6 +7235,7 @@
             "name": "id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Id",
               "type": "string"
             }
@@ -7027,8 +7245,25 @@
             "name": "service_id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Service Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -7047,7 +7282,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -7055,22 +7290,12 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
         "summary": "Get Score History",
         "tags": [
-          "prospects-and-evidence"
+          "feedback-and-alerts"
         ]
       }
     },
@@ -7119,7 +7344,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -7127,17 +7352,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
         "summary": "Create Outreach Draft",
@@ -7191,7 +7406,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -7199,17 +7414,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
         "summary": "Create Override",
@@ -7220,8 +7425,8 @@
     },
     "/api/v1/alerts": {
       "get": {
-        "description": "`API-48`.",
-        "operationId": "list_alerts_api_v1_alerts_get",
+        "description": "`API-48`: newest first; `unread` true lists unacknowledged alerts only.",
+        "operationId": "get_alerts_api_v1_alerts_get",
         "parameters": [
           {
             "in": "query",
@@ -7230,6 +7435,7 @@
             "schema": {
               "anyOf": [
                 {
+                  "format": "uuid",
                   "type": "string"
                 },
                 {
@@ -7261,6 +7467,7 @@
             "required": false,
             "schema": {
               "default": 1,
+              "minimum": 1,
               "title": "Page",
               "type": "integer"
             }
@@ -7272,6 +7479,7 @@
             "schema": {
               "anyOf": [
                 {
+                  "minimum": 1,
                   "type": "integer"
                 },
                 {
@@ -7279,6 +7487,22 @@
                 }
               ],
               "title": "Page Size"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -7293,7 +7517,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -7301,20 +7525,10 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
-        "summary": "List Alerts",
+        "summary": "Get Alerts",
         "tags": [
           "feedback-and-alerts"
         ]
@@ -7322,16 +7536,33 @@
     },
     "/api/v1/alerts/{id}/acknowledge": {
       "post": {
-        "description": "`API-49`.",
-        "operationId": "acknowledge_alert_api_v1_alerts__id__acknowledge_post",
+        "description": "`API-49`: acknowledging an already acknowledged alert returns it unchanged.",
+        "operationId": "post_alert_acknowledge_api_v1_alerts__id__acknowledge_post",
         "parameters": [
           {
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -7346,7 +7577,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -7354,20 +7585,10 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
-        "summary": "Acknowledge Alert",
+        "summary": "Post Alert Acknowledge",
         "tags": [
           "feedback-and-alerts"
         ]
@@ -7375,8 +7596,8 @@
     },
     "/api/v1/audit": {
       "get": {
-        "description": "`API-60`.",
-        "operationId": "list_audit_entries_api_v1_audit_get",
+        "description": "`API-60`: newest first, filtered by kind, action, user, entity, run and date range;\nwithout `from` the range is the last `AUDIT_DEFAULT_RANGE_DAYS` days.",
+        "operationId": "get_audit_api_v1_audit_get",
         "parameters": [
           {
             "in": "query",
@@ -7404,7 +7625,7 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "$ref": "#/components/schemas/AuditAction"
                 },
                 {
                   "type": "null"
@@ -7420,6 +7641,7 @@
             "schema": {
               "anyOf": [
                 {
+                  "format": "uuid",
                   "type": "string"
                 },
                 {
@@ -7436,6 +7658,7 @@
             "schema": {
               "anyOf": [
                 {
+                  "format": "uuid",
                   "type": "string"
                 },
                 {
@@ -7452,6 +7675,7 @@
             "schema": {
               "anyOf": [
                 {
+                  "format": "uuid",
                   "type": "string"
                 },
                 {
@@ -7468,6 +7692,7 @@
             "schema": {
               "anyOf": [
                 {
+                  "format": "date-time",
                   "type": "string"
                 },
                 {
@@ -7484,6 +7709,7 @@
             "schema": {
               "anyOf": [
                 {
+                  "format": "date-time",
                   "type": "string"
                 },
                 {
@@ -7499,6 +7725,7 @@
             "required": false,
             "schema": {
               "default": 1,
+              "minimum": 1,
               "title": "Page",
               "type": "integer"
             }
@@ -7510,6 +7737,7 @@
             "schema": {
               "anyOf": [
                 {
+                  "minimum": 1,
                   "type": "integer"
                 },
                 {
@@ -7517,6 +7745,22 @@
                 }
               ],
               "title": "Page Size"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -7531,7 +7775,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -7539,20 +7783,10 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
-        "summary": "List Audit Entries",
+        "summary": "Get Audit",
         "tags": [
           "audit-and-health"
         ]
@@ -7583,7 +7817,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -7591,28 +7825,17 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
         "summary": "Demo Login",
         "tags": [
-          "auth-and-users"
+          "authentication-and-users"
         ]
       }
     },
     "/api/v1/auth/login": {
       "post": {
-        "description": "`API-01`.",
         "operationId": "login_api_v1_auth_login_post",
         "requestBody": {
           "content": {
@@ -7635,7 +7858,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -7643,34 +7866,34 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
         "summary": "Login",
         "tags": [
-          "auth-and-users"
+          "authentication-and-users"
         ]
       }
     },
     "/api/v1/auth/logout": {
       "post": {
-        "description": "`API-02`.",
         "operationId": "logout_api_v1_auth_logout_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": true,
+            "schema": {
+              "title": "Leadradar Session",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "204": {
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -7678,29 +7901,36 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
         "summary": "Logout",
         "tags": [
-          "auth-and-users"
+          "authentication-and-users"
         ]
       }
     },
     "/api/v1/auth/me": {
       "get": {
-        "description": "`API-03`.",
-        "operationId": "get_current_user_api_v1_auth_me_get",
+        "operationId": "me_api_v1_auth_me_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -7712,7 +7942,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -7720,22 +7950,12 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
-        "summary": "Get Current User",
+        "summary": "Me",
         "tags": [
-          "auth-and-users"
+          "authentication-and-users"
         ]
       }
     },
@@ -7758,7 +7978,7 @@
           "204": {
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -7766,17 +7986,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
         "summary": "Delete Contact",
@@ -7819,7 +8029,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -7827,17 +8037,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
         "summary": "Update Contact",
@@ -7914,7 +8114,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -7922,17 +8122,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
         "summary": "List Discovery Candidates",
@@ -7977,7 +8167,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -7985,17 +8175,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
         "summary": "Accept Discovery Candidate",
@@ -8040,7 +8220,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -8048,17 +8228,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
         "summary": "Reject Discovery Candidate",
@@ -8158,7 +8328,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -8166,17 +8336,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
         "summary": "List Evaluation Items",
@@ -8208,7 +8368,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -8216,17 +8376,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
         "summary": "Create Label",
@@ -8261,7 +8411,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -8269,17 +8419,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
         "summary": "Get Label Queue",
@@ -8307,7 +8447,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -8315,17 +8455,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
         "summary": "List Evaluation Results",
@@ -8360,7 +8490,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -8368,17 +8498,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
         "summary": "Get Evaluation Result",
@@ -8402,7 +8522,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -8410,17 +8530,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
         "summary": "Start Evaluation Run",
@@ -8455,7 +8565,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -8463,17 +8573,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
         "summary": "Get Evidence",
@@ -8535,15 +8635,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Post Finding Feedback",
@@ -8576,6 +8676,16 @@
               }
             },
             "description": "Service Unavailable"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Error"
           }
         },
         "summary": "Get Health",
@@ -8588,6 +8698,24 @@
       "get": {
         "description": "`API-77`: computed on read by [Impact](/architecture/rules.md#impact); writes nothing.",
         "operationId": "get_impact_api_v1_impact_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -8598,6 +8726,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Error"
           }
         },
         "summary": "Get Impact",
@@ -8609,7 +8747,7 @@
     "/api/v1/industries": {
       "get": {
         "description": "`API-71`.",
-        "operationId": "list_industries_api_v1_industries_get",
+        "operationId": "list_industries_route_api_v1_industries_get",
         "parameters": [
           {
             "in": "query",
@@ -8626,6 +8764,22 @@
               ],
               "title": "Status"
             }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
           }
         ],
         "responses": {
@@ -8636,14 +8790,14 @@
                   "items": {
                     "$ref": "#/components/schemas/Industry"
                   },
-                  "title": "Response List Industries Api V1 Industries Get",
+                  "title": "Response List Industries Route Api V1 Industries Get",
                   "type": "array"
                 }
               }
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -8651,27 +8805,35 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
-        "summary": "List Industries",
+        "summary": "List Industries Route",
         "tags": [
-          "industries-and-markets"
+          "configuration"
         ]
       },
       "post": {
         "description": "`API-72`.",
-        "operationId": "create_industry_api_v1_industries_post",
+        "operationId": "create_industry_route_api_v1_industries_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -8693,7 +8855,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -8701,29 +8863,19 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
-        "summary": "Create Industry",
+        "summary": "Create Industry Route",
         "tags": [
-          "industries-and-markets"
+          "configuration"
         ]
       }
     },
     "/api/v1/industries/{code}": {
       "patch": {
         "description": "`API-73`.",
-        "operationId": "update_industry_api_v1_industries__code__patch",
+        "operationId": "update_industry_route_api_v1_industries__code__patch",
         "parameters": [
           {
             "in": "path",
@@ -8732,6 +8884,22 @@
             "schema": {
               "title": "Code",
               "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -8756,7 +8924,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -8764,29 +8932,19 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
-        "summary": "Update Industry",
+        "summary": "Update Industry Route",
         "tags": [
-          "industries-and-markets"
+          "configuration"
         ]
       }
     },
     "/api/v1/markets": {
       "get": {
         "description": "`API-74`.",
-        "operationId": "list_markets_api_v1_markets_get",
+        "operationId": "list_markets_route_api_v1_markets_get",
         "parameters": [
           {
             "in": "query",
@@ -8803,6 +8961,22 @@
               ],
               "title": "Status"
             }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
           }
         ],
         "responses": {
@@ -8813,14 +8987,14 @@
                   "items": {
                     "$ref": "#/components/schemas/Market"
                   },
-                  "title": "Response List Markets Api V1 Markets Get",
+                  "title": "Response List Markets Route Api V1 Markets Get",
                   "type": "array"
                 }
               }
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -8828,27 +9002,35 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
-        "summary": "List Markets",
+        "summary": "List Markets Route",
         "tags": [
-          "industries-and-markets"
+          "configuration"
         ]
       },
       "post": {
         "description": "`API-75`.",
-        "operationId": "create_market_api_v1_markets_post",
+        "operationId": "create_market_route_api_v1_markets_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -8870,7 +9052,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -8878,29 +9060,19 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
-        "summary": "Create Market",
+        "summary": "Create Market Route",
         "tags": [
-          "industries-and-markets"
+          "configuration"
         ]
       }
     },
     "/api/v1/markets/{code}": {
       "patch": {
         "description": "`API-76`.",
-        "operationId": "update_market_api_v1_markets__code__patch",
+        "operationId": "update_market_route_api_v1_markets__code__patch",
         "parameters": [
           {
             "in": "path",
@@ -8909,6 +9081,22 @@
             "schema": {
               "title": "Code",
               "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -8933,7 +9121,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -8941,22 +9129,12 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
-        "summary": "Update Market",
+        "summary": "Update Market Route",
         "tags": [
-          "industries-and-markets"
+          "configuration"
         ]
       }
     },
@@ -8996,7 +9174,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -9004,17 +9182,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
         "summary": "Update Outreach Draft",
@@ -9049,7 +9217,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -9057,17 +9225,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
         "summary": "Revoke Override",
@@ -9101,7 +9259,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -9109,17 +9267,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
         "summary": "Preview Question",
@@ -9131,15 +9279,32 @@
     "/api/v1/questions/{id}": {
       "patch": {
         "description": "`API-13`.",
-        "operationId": "update_question_api_v1_questions__id__patch",
+        "operationId": "update_question_route_api_v1_questions__id__patch",
         "parameters": [
           {
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -9164,7 +9329,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -9172,29 +9337,19 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
-        "summary": "Update Question",
+        "summary": "Update Question Route",
         "tags": [
-          "services-and-questions"
+          "configuration"
         ]
       }
     },
     "/api/v1/runs": {
       "get": {
-        "description": "`API-34`.",
-        "operationId": "list_runs_api_v1_runs_get",
+        "description": "`API-34`: runs newest first, filtered by kind, status, account and service.",
+        "operationId": "get_runs_api_v1_runs_get",
         "parameters": [
           {
             "in": "query",
@@ -9235,6 +9390,7 @@
             "schema": {
               "anyOf": [
                 {
+                  "format": "uuid",
                   "type": "string"
                 },
                 {
@@ -9251,6 +9407,7 @@
             "schema": {
               "anyOf": [
                 {
+                  "format": "uuid",
                   "type": "string"
                 },
                 {
@@ -9266,6 +9423,7 @@
             "required": false,
             "schema": {
               "default": 1,
+              "minimum": 1,
               "title": "Page",
               "type": "integer"
             }
@@ -9277,6 +9435,7 @@
             "schema": {
               "anyOf": [
                 {
+                  "minimum": 1,
                   "type": "integer"
                 },
                 {
@@ -9284,6 +9443,22 @@
                 }
               ],
               "title": "Page Size"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -9298,7 +9473,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -9306,20 +9481,10 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
-        "summary": "List Runs",
+        "summary": "Get Runs",
         "tags": [
           "runs-and-source-plugins"
         ]
@@ -9327,16 +9492,33 @@
     },
     "/api/v1/runs/{id}": {
       "get": {
-        "description": "`API-35`.",
-        "operationId": "get_run_api_v1_runs__id__get",
+        "description": "`API-35`: one run with its stage, progress and errors.",
+        "operationId": "get_run_by_id_api_v1_runs__id__get",
         "parameters": [
           {
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -9351,7 +9533,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -9359,20 +9541,10 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
-        "summary": "Get Run",
+        "summary": "Get Run By Id",
         "tags": [
           "runs-and-source-plugins"
         ]
@@ -9380,16 +9552,33 @@
     },
     "/api/v1/runs/{id}/cancel": {
       "post": {
-        "description": "`API-36`.",
-        "operationId": "cancel_run_api_v1_runs__id__cancel_post",
+        "description": "`API-36`: cancels a queued or running run; Admin only for `RECLASSIFY`, `RESCORE` and\n`EVALUATION` runs.",
+        "operationId": "post_run_cancel_api_v1_runs__id__cancel_post",
         "parameters": [
           {
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -9404,7 +9593,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -9412,90 +9601,44 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
-        "summary": "Cancel Run",
+        "summary": "Post Run Cancel",
         "tags": [
           "runs-and-source-plugins"
         ]
       }
     },
-    "/api/v1/scoring-configs/{id}": {
-      "get": {
-        "description": "`API-16`.",
-        "operationId": "get_scoring_config_api_v1_scoring_configs__id__get",
+    "/api/v1/scoring-configs/{config_id}/activate": {
+      "post": {
+        "description": "[`API-18`](/architecture/interfaces.md#scoring): Admin only.\n\nActivates the target DRAFT scoring config, retires the previous ACTIVE version, and\nenqueues a RESCORE run. Returns the activated `ScoringConfig`.\n`409 CONFLICT` when the config is not DRAFT. `422` when `change_note` is missing.\n`403 FORBIDDEN` for non-Admin.",
+        "operationId": "activate_scoring_config_route_api_v1_scoring_configs__config_id__activate_post",
         "parameters": [
           {
             "in": "path",
-            "name": "id",
+            "name": "config_id",
             "required": true,
             "schema": {
-              "title": "Id",
+              "format": "uuid",
+              "title": "Config Id",
               "type": "string"
             }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ScoringConfig"
-                }
-              }
-            },
-            "description": "Successful Response"
           },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
-          }
-        },
-        "summary": "Get Scoring Config",
-        "tags": [
-          "scoring"
-        ]
-      }
-    },
-    "/api/v1/scoring-configs/{id}/activate": {
-      "post": {
-        "description": "`API-18`.",
-        "operationId": "activate_scoring_config_api_v1_scoring_configs__id__activate_post",
-        "parameters": [
           {
-            "in": "path",
-            "name": "id",
-            "required": true,
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
             "schema": {
-              "title": "Id",
-              "type": "string"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -9520,7 +9663,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -9528,22 +9671,72 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
-        "summary": "Activate Scoring Config",
+        "summary": "API-18: Activate a DRAFT scoring config",
         "tags": [
           "scoring"
+        ]
+      }
+    },
+    "/api/v1/scoring-configs/{id}": {
+      "get": {
+        "description": "`API-16`.",
+        "operationId": "get_scoring_config_route_api_v1_scoring_configs__id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoringConfigModel"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get Scoring Config Route",
+        "tags": [
+          "configuration"
         ]
       }
     },
@@ -9573,7 +9766,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -9581,17 +9774,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
         "summary": "Preview Scoring Config",
@@ -9604,6 +9787,24 @@
       "get": {
         "description": "`API-07`.",
         "operationId": "list_services_api_v1_services_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -9619,7 +9820,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -9627,27 +9828,35 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
         "summary": "List Services",
         "tags": [
-          "services-and-questions"
+          "configuration"
         ]
       },
       "post": {
         "description": "`API-08`.",
-        "operationId": "create_service_api_v1_services_post",
+        "operationId": "create_service_route_api_v1_services_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -9669,7 +9878,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -9677,37 +9886,44 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
-        "summary": "Create Service",
+        "summary": "Create Service Route",
         "tags": [
-          "services-and-questions"
+          "configuration"
         ]
       }
     },
     "/api/v1/services/{id}": {
       "get": {
         "description": "`API-09`.",
-        "operationId": "get_service_api_v1_services__id__get",
+        "operationId": "get_service_route_api_v1_services__id__get",
         "parameters": [
           {
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -9722,7 +9938,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -9730,35 +9946,42 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
-        "summary": "Get Service",
+        "summary": "Get Service Route",
         "tags": [
-          "services-and-questions"
+          "configuration"
         ]
       },
       "patch": {
         "description": "`API-10`.",
-        "operationId": "update_service_api_v1_services__id__patch",
+        "operationId": "update_service_route_api_v1_services__id__patch",
         "parameters": [
           {
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -9783,7 +10006,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -9791,22 +10014,12 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
-        "summary": "Update Service",
+        "summary": "Update Service Route",
         "tags": [
-          "services-and-questions"
+          "configuration"
         ]
       }
     },
@@ -9836,7 +10049,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -9844,17 +10057,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
         "summary": "Start Discovery Run",
@@ -10020,7 +10223,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -10028,17 +10231,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
         "summary": "List Prospects",
@@ -10050,15 +10243,32 @@
     "/api/v1/services/{id}/questions": {
       "get": {
         "description": "`API-11`.",
-        "operationId": "list_questions_api_v1_services__id__questions_get",
+        "operationId": "list_questions_route_api_v1_services__id__questions_get",
         "parameters": [
           {
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -10070,14 +10280,14 @@
                   "items": {
                     "$ref": "#/components/schemas/SignalQuestion"
                   },
-                  "title": "Response List Questions Api V1 Services  Id  Questions Get",
+                  "title": "Response List Questions Route Api V1 Services  Id  Questions Get",
                   "type": "array"
                 }
               }
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -10085,35 +10295,42 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
-        "summary": "List Questions",
+        "summary": "List Questions Route",
         "tags": [
-          "services-and-questions"
+          "configuration"
         ]
       },
       "post": {
         "description": "`API-12`.",
-        "operationId": "create_question_api_v1_services__id__questions_post",
+        "operationId": "create_question_route_api_v1_services__id__questions_post",
         "parameters": [
           {
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -10138,7 +10355,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -10146,37 +10363,44 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
-        "summary": "Create Question",
+        "summary": "Create Question Route",
         "tags": [
-          "services-and-questions"
+          "configuration"
         ]
       }
     },
     "/api/v1/services/{id}/scoring-configs": {
       "get": {
         "description": "`API-15`.",
-        "operationId": "list_scoring_configs_api_v1_services__id__scoring_configs_get",
+        "operationId": "list_scoring_configs_route_api_v1_services__id__scoring_configs_get",
         "parameters": [
           {
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -10186,16 +10410,16 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/ScoringConfigSummary"
+                    "$ref": "#/components/schemas/ScoringConfigSummaryModel"
                   },
-                  "title": "Response List Scoring Configs Api V1 Services  Id  Scoring Configs Get",
+                  "title": "Response List Scoring Configs Route Api V1 Services  Id  Scoring Configs Get",
                   "type": "array"
                 }
               }
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -10203,37 +10427,44 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
-        "summary": "List Scoring Configs",
+        "summary": "List Scoring Configs Route",
         "tags": [
-          "scoring"
+          "configuration"
         ]
       }
     },
     "/api/v1/services/{id}/scoring-configs/draft": {
       "put": {
         "description": "`API-17`.",
-        "operationId": "update_scoring_draft_api_v1_services__id__scoring_configs_draft_put",
+        "operationId": "save_scoring_draft_route_api_v1_services__id__scoring_configs_draft_put",
         "parameters": [
           {
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -10252,13 +10483,13 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ScoringConfig"
+                  "$ref": "#/components/schemas/ScoringConfigModel"
                 }
               }
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -10266,29 +10497,37 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
-        "summary": "Update Scoring Draft",
+        "summary": "Save Scoring Draft Route",
         "tags": [
-          "scoring"
+          "configuration"
         ]
       }
     },
     "/api/v1/source-plugins": {
       "get": {
-        "description": "`API-37`.",
-        "operationId": "list_source_plugins_api_v1_source_plugins_get",
+        "description": "`API-37`: every plug-in, Admin only.",
+        "operationId": "get_source_plugins_api_v1_source_plugins_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -10297,14 +10536,14 @@
                   "items": {
                     "$ref": "#/components/schemas/SourcePlugin"
                   },
-                  "title": "Response List Source Plugins Api V1 Source Plugins Get",
+                  "title": "Response Get Source Plugins Api V1 Source Plugins Get",
                   "type": "array"
                 }
               }
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -10312,20 +10551,10 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
-        "summary": "List Source Plugins",
+        "summary": "Get Source Plugins",
         "tags": [
           "runs-and-source-plugins"
         ]
@@ -10333,16 +10562,31 @@
     },
     "/api/v1/source-plugins/{code}": {
       "patch": {
-        "description": "`API-38`.",
-        "operationId": "update_source_plugin_api_v1_source_plugins__code__patch",
+        "description": "`API-38`: saves the switch and limits, Admin only, with a `PLUGIN_UPDATED` audit row.",
+        "operationId": "patch_source_plugin_api_v1_source_plugins__code__patch",
         "parameters": [
           {
             "in": "path",
             "name": "code",
             "required": true,
             "schema": {
-              "title": "Code",
-              "type": "string"
+              "$ref": "#/components/schemas/SourcePluginCode"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -10367,7 +10611,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -10375,20 +10619,10 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
-        "summary": "Update Source Plugin",
+        "summary": "Patch Source Plugin",
         "tags": [
           "runs-and-source-plugins"
         ]
@@ -10396,8 +10630,25 @@
     },
     "/api/v1/users": {
       "get": {
-        "description": "`API-04`.",
-        "operationId": "list_users_api_v1_users_get",
+        "operationId": "get_users_api_v1_users_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -10406,14 +10657,14 @@
                   "items": {
                     "$ref": "#/components/schemas/User"
                   },
-                  "title": "Response List Users Api V1 Users Get",
+                  "title": "Response Get Users Api V1 Users Get",
                   "type": "array"
                 }
               }
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -10421,27 +10672,34 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
-        "summary": "List Users",
+        "summary": "Get Users",
         "tags": [
-          "auth-and-users"
+          "authentication-and-users"
         ]
       },
       "post": {
-        "description": "`API-05`.",
-        "operationId": "create_user_api_v1_users_post",
+        "operationId": "create_user_route_api_v1_users_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -10463,7 +10721,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -10471,37 +10729,43 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
-        "summary": "Create User",
+        "summary": "Create User Route",
         "tags": [
-          "auth-and-users"
+          "authentication-and-users"
         ]
       }
     },
-    "/api/v1/users/{id}": {
+    "/api/v1/users/{user_id}": {
       "patch": {
-        "description": "`API-06`.",
-        "operationId": "update_user_api_v1_users__id__patch",
+        "operationId": "update_user_route_api_v1_users__user_id__patch",
         "parameters": [
           {
             "in": "path",
-            "name": "id",
+            "name": "user_id",
             "required": true,
             "schema": {
-              "title": "Id",
+              "format": "uuid",
+              "title": "User Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -10526,7 +10790,7 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
@@ -10534,22 +10798,12 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Error"
           }
         },
-        "summary": "Update User",
+        "summary": "Update User Route",
         "tags": [
-          "auth-and-users"
+          "authentication-and-users"
         ]
       }
     }

@@ -42,7 +42,10 @@ def _clean_environment(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def make_settings(**overrides: Any) -> ApiSettings:
-    defaults: dict[str, Any] = {"database_url": SecretStr("postgresql://u:p@localhost/db")}
+    defaults: dict[str, Any] = {
+        "database_url": SecretStr("postgresql://u:p@localhost/db"),
+        "migration_database_url": SecretStr("postgresql://u:p@localhost/db"),
+    }
     defaults.update(overrides)
     return ApiSettings(**defaults)
 

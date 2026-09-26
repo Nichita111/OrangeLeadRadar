@@ -1,92 +1,54 @@
-/* [Visual language](/architecture/services/frontend.md#visual-language): every token as a CSS
-   variable with a light and a dark value, exposed through the Tailwind theme so no component
-   names a literal colour ([FR-106](/architecture/services/frontend.md#visual-language)). The
-   `@theme` values below are the light (default) values and also the Tailwind utility names
-   (`bg-page`, `text-text-secondary`, ...); the `prefers-color-scheme: dark` block reassigns the
-   same custom properties for dark, and `.theme-landing-dark` reassigns them again for
-   [Landing](/architecture/services/frontend.md#landing), which is dark in both colour schemes
-   ([FR-106](/architecture/services/frontend.md#visual-language) exception). */
-
-@theme {
-  --color-page: #f4f4f5;
-  --color-surface: #ffffff;
-  --color-border: #e4e4e7;
-  --color-control-border: #85858e;
-  --color-text: #18181b;
-  --color-text-secondary: #52525b;
-  --color-text-tertiary: #6b6b74;
-  --color-accent: #c2410c;
-  --color-on-accent: #ffffff;
-  --color-accent-soft: #fff1e7;
-  --color-accent-ink: #9a3412;
-  --color-positive: #14703a;
-  --color-positive-soft: #e8f5ec;
-  --color-negative: #b42318;
-  --color-negative-soft: #fcebe9;
-  --color-caution: #946200;
-  --color-caution-soft: #fbf3dc;
-  --color-cool: #475569;
-  --color-cool-soft: #eef1f5;
-  --color-highlight: #fdf0b8;
-
-  --radius-card: 14px;
-  --radius-control: 10px;
-
-  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "Geist Mono", ui-monospace, "SFMono-Regular", monospace;
-
-  --text-body: 14px;
-  --text-body--line-height: 1.5;
-  --text-page-title: 24px;
-  --text-page-title--font-weight: 600;
-  --text-section-title: 15px;
-  --text-section-title--font-weight: 600;
-  --text-hint: 12.5px;
-
-  --spacing-control-button: 36px;
-  --spacing-control-input: 38px;
-  --spacing-control-small: 30px;
+/* The design tokens of frontend Visual language: the only file that names a colour. The light value
+   is in :root, the dark value under prefers-color-scheme. */
+:root {
+  --page: #f4f4f5;
+  --surface: #ffffff;
+  --border: #e4e4e7;
+  --control-border: #8a8a93;
+  --text: #18181b;
+  --text-secondary: #52525b;
+  --text-tertiary: #6b6b74;
+  --accent: #c2410c;
+  --on-accent: #ffffff;
+  --accent-soft: #fff1e7;
+  --accent-ink: #9a3412;
+  --positive: #14703a;
+  --positive-soft: #e8f5ec;
+  --negative: #b42318;
+  --negative-soft: #fcebe9;
+  --caution: #946200;
+  --caution-soft: #fbf3dc;
+  --cool: #475569;
+  --cool-soft: #eef1f5;
+  --highlight: #fdf0b8;
+  /* Dialogs and toasts only, tinted to the page. */
+  --overlay-shadow: 0 12px 32px color-mix(in srgb, var(--text) 18%, transparent);
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-page: #0e0e10;
-    --color-surface: #17171a;
-    --color-border: #2a2a30;
-    --color-control-border: #6b6b74;
-    --color-text: #ececee;
-    --color-text-secondary: #a1a1aa;
-    --color-text-tertiary: #8a8a93;
-    --color-accent: #f0803f;
-    --color-on-accent: #1a0b03;
-    --color-accent-soft: #2a1b12;
-    --color-accent-ink: #fdba8c;
-    --color-positive: #4ade80;
-    --color-positive-soft: #12261a;
-    --color-negative: #f87171;
-    --color-negative-soft: #2c1416;
-    --color-caution: #facc15;
-    --color-caution-soft: #2a2410;
-    --color-cool: #a8b5c7;
-    --color-cool-soft: #1d232c;
-    --color-highlight: #4a3f12;
+    --page: #0e0e10;
+    --surface: #17171a;
+    --border: #2a2a30;
+    --control-border: #6b6b74;
+    --text: #ececee;
+    --text-secondary: #a1a1aa;
+    --text-tertiary: #8a8a93;
+    --accent: #f0803f;
+    --on-accent: #1a0b03;
+    --accent-soft: #2a1b12;
+    --accent-ink: #fdba8c;
+    --positive: #4ade80;
+    --positive-soft: #12261a;
+    --negative: #f87171;
+    --negative-soft: #2c1416;
+    --caution: #facc15;
+    --caution-soft: #2a2410;
+    --cool: #a8b5c7;
+    --cool-soft: #1d232c;
+    --highlight: #4a3f12;
+    --overlay-shadow: 0 12px 32px color-mix(in srgb, var(--page) 70%, black);
+    color-scheme: dark;
   }
-}
-
-/* [Landing](/architecture/services/frontend.md#landing): dark in both colour schemes. */
-.theme-landing-dark {
-  color-scheme: dark;
-  --color-page: #0e0e10;
-  --color-surface: #17171a;
-  --color-border: #2a2a30;
-  --color-control-border: #6b6b74;
-  --color-text: #ececee;
-  --color-text-secondary: #a1a1aa;
-  --color-text-tertiary: #8a8a93;
-  --color-accent: #f0803f;
-  --color-on-accent: #1a0b03;
-  --color-accent-soft: #2a1b12;
-  --color-accent-ink: #fdba8c;
-  --color-cool: #a8b5c7;
-  --color-cool-soft: #1d232c;
 }

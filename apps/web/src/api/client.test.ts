@@ -1,74 +1,68 @@
-// [Conventions](/architecture/interfaces.md#conventions): CSRF header on a mutating call; a
-// non-2xx answer becomes an `ApiError`; `VALIDATION` field errors map by field.
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { HttpResponse } from "msw";
+import { describe, expect, it } from "vitest";
 
-import { apiClient, unwrap } from "./client";
-import { ApiError, fieldErrors } from "./errors";
+import { errorEnvelope, errorResponse } from "./authenticationAndUsers.fixtures";
+import { ApiError, client, parseErrorEnvelope } from "./client";
+import { http, server } from "../testServer";
 
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
-
-function jsonResponse(status: number, body: unknown): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json" },
-  });
-}
-
-describe("apiClient", () => {
-  it("carries X-Requested-With on a mutating call", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
-    vi.stubGlobal("fetch", fetchMock);
-
-    await apiClient.POST("/api/v1/auth/logout", {});
-
-    const request = fetchMock.mock.calls[0]?.[0] as Request;
-    expect(request.headers.get("X-Requested-With")).toBe("XMLHttpRequest");
-  });
-
-  it("does not carry X-Requested-With on a GET", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(
-        jsonResponse(200, { id: "1", email: "a@b.c", display_name: "A", role: "SALES" }),
-      );
-    vi.stubGlobal("fetch", fetchMock);
-
-    await apiClient.GET("/api/v1/auth/me");
-
-    const request = fetchMock.mock.calls[0]?.[0] as Request;
-    expect(request.headers.get("X-Requested-With")).toBeNull();
-  });
-
-  it("unwrap() throws an ApiError with the code and message of a non-2xx answer", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(
-        jsonResponse(422, { error: { code: "VALIDATION", message: "The input is invalid." } }),
-      );
-    vi.stubGlobal("fetch", fetchMock);
-
-    const result = await apiClient.GET("/api/v1/auth/me");
-
-    expect(() => unwrap(result)).toThrow(ApiError);
-    try {
-      unwrap(result);
-      expect.unreachable();
-    } catch (error) {
-      expect(error).toBeInstanceOf(ApiError);
-      expect((error as ApiError).code).toBe("VALIDATION");
-      expect((error as ApiError).message).toBe("The input is invalid.");
-    }
-  });
-
-  it("fieldErrors() maps VALIDATION details.fields by field", () => {
-    const error = new ApiError(422, {
-      code: "VALIDATION",
-      message: "The input is invalid.",
-      details: { fields: [{ field: "email", message: "is required" }] },
+describe("api client", () => {
+  it("Conventions: sends X-Requested-With on POST and PATCH", async () => {
+    const seen: (string | null)[] = [];
+    server.use(
+      http.post("/api/v1/auth/logout", ({ request, response }) => {
+        seen.push(request.headers.get("X-Requested-With"));
+        return response(204).empty();
+      }),
+      http.patch("/api/v1/users/{user_id}", ({ request, response }) => {
+        seen.push(request.headers.get("X-Requested-With"));
+        return response(200).json({
+          id: "0b6f6f3e-5f0a-4f0e-9d0e-1a1a1a1a1a01",
+          email: "a@b.c",
+          display_name: "A",
+          role: "SALES",
+          status: "ACTIVE",
+          last_login_at: null,
+        });
+      }),
+    );
+    await client.POST("/api/v1/auth/logout", { params: { cookie: { leadradar_session: "" } } });
+    await client.PATCH("/api/v1/users/{user_id}", {
+      params: { path: { user_id: "0b6f6f3e-5f0a-4f0e-9d0e-1a1a1a1a1a01" } },
+      body: { display_name: "A" },
     });
+    expect(seen).toEqual(["XMLHttpRequest", "XMLHttpRequest"]);
+  });
 
-    expect(fieldErrors(error)).toEqual({ email: "is required" });
+  it("Conventions: an envelope parses into ApiError with the status", async () => {
+    const envelope = errorEnvelope("LOCKED", "Locked for 5 minutes.", { retry_after_min: 5 });
+    server.use(http.get("/api/v1/auth/me", () => errorResponse(envelope, 423)));
+    const failure = await client.GET("/api/v1/auth/me").catch((error: unknown) => error);
+    expect(failure).toBeInstanceOf(ApiError);
+    expect((failure as ApiError).status).toBe(423);
+    expect((failure as ApiError).envelope).toEqual(envelope);
+  });
+
+  it("Conventions: a body that is not an envelope throws with the status", async () => {
+    server.use(
+      http.untyped.get(`${window.location.origin}/api/v1/auth/me`, () =>
+        HttpResponse.text("<html>bad gateway</html>", { status: 502 }),
+      ),
+    );
+    const failure = await client.GET("/api/v1/auth/me").catch((error: unknown) => error);
+    expect(failure).toBeInstanceOf(Error);
+    expect(failure).not.toBeInstanceOf(ApiError);
+    expect((failure as Error).message).toContain("502");
+  });
+
+  it("a malformed field error makes the body a non-envelope, never a shorter list", () => {
+    expect(
+      parseErrorEnvelope({
+        error: {
+          code: "VALIDATION",
+          message: "Invalid.",
+          details: { fields: [{ field: "/email", message: "Bad." }, { field: "/role" }] },
+        },
+      }),
+    ).toBeNull();
   });
 });

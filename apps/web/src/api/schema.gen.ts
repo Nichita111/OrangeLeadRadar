@@ -12,16 +12,16 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Accounts
-         * @description `API-20`.
+         * Get Accounts
+         * @description `API-20`: `q` matches the name, any alias or the domain.
          */
-        get: operations["list_accounts_api_v1_accounts_get"];
+        get: operations["get_accounts_api_v1_accounts_get"];
         put?: never;
         /**
-         * Create Account
+         * Post Account
          * @description `API-21`.
          */
-        post: operations["create_account_api_v1_accounts_post"];
+        post: operations["post_account_api_v1_accounts_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -38,10 +38,11 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Import Accounts
-         * @description `API-22`. `AccountImportRow` describes the uploaded CSV's columns.
+         * Post Accounts Import
+         * @description `API-22`: multipart `file` ([`AccountImportRow`](
+         *     /architecture/interfaces.md#accountimportrow) CSV) and `dry_run`.
          */
-        post: operations["import_accounts_api_v1_accounts_import_post"];
+        post: operations["post_accounts_import_api_v1_accounts_import_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -66,10 +67,10 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Update Account
+         * Patch Account
          * @description `API-24`.
          */
-        patch: operations["update_account_api_v1_accounts__id__patch"];
+        patch: operations["patch_account_api_v1_accounts__id__patch"];
         trace?: never;
     };
     "/api/v1/accounts/{id}/contacts": {
@@ -146,10 +147,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Refresh Account
-         * @description `API-33`.
+         * Post Account Refresh
+         * @description `API-33`: `202` with a new refresh, or `200` with the one already queued or running.
          */
-        post: operations["refresh_account_api_v1_accounts__id__refresh_post"];
+        post: operations["post_account_refresh_api_v1_accounts__id__refresh_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -226,7 +227,8 @@ export interface paths {
         };
         /**
          * Get Score History
-         * @description `API-41`.
+         * @description `API-41`: the account and service's score history, newest first, each entry compared with
+         *     the row before it. An account with no score for the service yet answers an empty list.
          */
         get: operations["get_score_history_api_v1_accounts__id__scores__service_id__history_get"];
         put?: never;
@@ -285,10 +287,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Alerts
-         * @description `API-48`.
+         * Get Alerts
+         * @description `API-48`: newest first; `unread` true lists unacknowledged alerts only.
          */
-        get: operations["list_alerts_api_v1_alerts_get"];
+        get: operations["get_alerts_api_v1_alerts_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -307,10 +309,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Acknowledge Alert
-         * @description `API-49`.
+         * Post Alert Acknowledge
+         * @description `API-49`: acknowledging an already acknowledged alert returns it unchanged.
          */
-        post: operations["acknowledge_alert_api_v1_alerts__id__acknowledge_post"];
+        post: operations["post_alert_acknowledge_api_v1_alerts__id__acknowledge_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -325,10 +327,11 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Audit Entries
-         * @description `API-60`.
+         * Get Audit
+         * @description `API-60`: newest first, filtered by kind, action, user, entity, run and date range;
+         *     without `from` the range is the last `AUDIT_DEFAULT_RANGE_DAYS` days.
          */
-        get: operations["list_audit_entries_api_v1_audit_get"];
+        get: operations["get_audit_api_v1_audit_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -366,10 +369,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /**
-         * Login
-         * @description `API-01`.
-         */
+        /** Login */
         post: operations["login_api_v1_auth_login_post"];
         delete?: never;
         options?: never;
@@ -386,10 +386,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /**
-         * Logout
-         * @description `API-02`.
-         */
+        /** Logout */
         post: operations["logout_api_v1_auth_logout_post"];
         delete?: never;
         options?: never;
@@ -404,11 +401,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * Get Current User
-         * @description `API-03`.
-         */
-        get: operations["get_current_user_api_v1_auth_me_get"];
+        /** Me */
+        get: operations["me_api_v1_auth_me_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -694,16 +688,16 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Industries
+         * List Industries Route
          * @description `API-71`.
          */
-        get: operations["list_industries_api_v1_industries_get"];
+        get: operations["list_industries_route_api_v1_industries_get"];
         put?: never;
         /**
-         * Create Industry
+         * Create Industry Route
          * @description `API-72`.
          */
-        post: operations["create_industry_api_v1_industries_post"];
+        post: operations["create_industry_route_api_v1_industries_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -724,10 +718,10 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Update Industry
+         * Update Industry Route
          * @description `API-73`.
          */
-        patch: operations["update_industry_api_v1_industries__code__patch"];
+        patch: operations["update_industry_route_api_v1_industries__code__patch"];
         trace?: never;
     };
     "/api/v1/markets": {
@@ -738,16 +732,16 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Markets
+         * List Markets Route
          * @description `API-74`.
          */
-        get: operations["list_markets_api_v1_markets_get"];
+        get: operations["list_markets_route_api_v1_markets_get"];
         put?: never;
         /**
-         * Create Market
+         * Create Market Route
          * @description `API-75`.
          */
-        post: operations["create_market_api_v1_markets_post"];
+        post: operations["create_market_route_api_v1_markets_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -768,10 +762,10 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Update Market
+         * Update Market Route
          * @description `API-76`.
          */
-        patch: operations["update_market_api_v1_markets__code__patch"];
+        patch: operations["update_market_route_api_v1_markets__code__patch"];
         trace?: never;
     };
     "/api/v1/outreach-drafts/{id}": {
@@ -848,10 +842,10 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Update Question
+         * Update Question Route
          * @description `API-13`.
          */
-        patch: operations["update_question_api_v1_questions__id__patch"];
+        patch: operations["update_question_route_api_v1_questions__id__patch"];
         trace?: never;
     };
     "/api/v1/runs": {
@@ -862,10 +856,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Runs
-         * @description `API-34`.
+         * Get Runs
+         * @description `API-34`: runs newest first, filtered by kind, status, account and service.
          */
-        get: operations["list_runs_api_v1_runs_get"];
+        get: operations["get_runs_api_v1_runs_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -882,10 +876,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Run
-         * @description `API-35`.
+         * Get Run By Id
+         * @description `API-35`: one run with its stage, progress and errors.
          */
-        get: operations["get_run_api_v1_runs__id__get"];
+        get: operations["get_run_by_id_api_v1_runs__id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -904,10 +898,36 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Cancel Run
-         * @description `API-36`.
+         * Post Run Cancel
+         * @description `API-36`: cancels a queued or running run; Admin only for `RECLASSIFY`, `RESCORE` and
+         *     `EVALUATION` runs.
          */
-        post: operations["cancel_run_api_v1_runs__id__cancel_post"];
+        post: operations["post_run_cancel_api_v1_runs__id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/scoring-configs/{config_id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * API-18: Activate a DRAFT scoring config
+         * @description [`API-18`](/architecture/interfaces.md#scoring): Admin only.
+         *
+         *     Activates the target DRAFT scoring config, retires the previous ACTIVE version, and
+         *     enqueues a RESCORE run. Returns the activated `ScoringConfig`.
+         *     `409 CONFLICT` when the config is not DRAFT. `422` when `change_note` is missing.
+         *     `403 FORBIDDEN` for non-Admin.
+         */
+        post: operations["activate_scoring_config_route_api_v1_scoring_configs__config_id__activate_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -922,32 +942,12 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Scoring Config
+         * Get Scoring Config Route
          * @description `API-16`.
          */
-        get: operations["get_scoring_config_api_v1_scoring_configs__id__get"];
+        get: operations["get_scoring_config_route_api_v1_scoring_configs__id__get"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/scoring-configs/{id}/activate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Activate Scoring Config
-         * @description `API-18`.
-         */
-        post: operations["activate_scoring_config_api_v1_scoring_configs__id__activate_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -988,10 +988,10 @@ export interface paths {
         get: operations["list_services_api_v1_services_get"];
         put?: never;
         /**
-         * Create Service
+         * Create Service Route
          * @description `API-08`.
          */
-        post: operations["create_service_api_v1_services_post"];
+        post: operations["create_service_route_api_v1_services_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1006,20 +1006,20 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Service
+         * Get Service Route
          * @description `API-09`.
          */
-        get: operations["get_service_api_v1_services__id__get"];
+        get: operations["get_service_route_api_v1_services__id__get"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
         /**
-         * Update Service
+         * Update Service Route
          * @description `API-10`.
          */
-        patch: operations["update_service_api_v1_services__id__patch"];
+        patch: operations["update_service_route_api_v1_services__id__patch"];
         trace?: never;
     };
     "/api/v1/services/{id}/discovery-runs": {
@@ -1070,16 +1070,16 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Questions
+         * List Questions Route
          * @description `API-11`.
          */
-        get: operations["list_questions_api_v1_services__id__questions_get"];
+        get: operations["list_questions_route_api_v1_services__id__questions_get"];
         put?: never;
         /**
-         * Create Question
+         * Create Question Route
          * @description `API-12`.
          */
-        post: operations["create_question_api_v1_services__id__questions_post"];
+        post: operations["create_question_route_api_v1_services__id__questions_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1094,10 +1094,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Scoring Configs
+         * List Scoring Configs Route
          * @description `API-15`.
          */
-        get: operations["list_scoring_configs_api_v1_services__id__scoring_configs_get"];
+        get: operations["list_scoring_configs_route_api_v1_services__id__scoring_configs_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1115,10 +1115,10 @@ export interface paths {
         };
         get?: never;
         /**
-         * Update Scoring Draft
+         * Save Scoring Draft Route
          * @description `API-17`.
          */
-        put: operations["update_scoring_draft_api_v1_services__id__scoring_configs_draft_put"];
+        put: operations["save_scoring_draft_route_api_v1_services__id__scoring_configs_draft_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1134,10 +1134,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Source Plugins
-         * @description `API-37`.
+         * Get Source Plugins
+         * @description `API-37`: every plug-in, Admin only.
          */
-        get: operations["list_source_plugins_api_v1_source_plugins_get"];
+        get: operations["get_source_plugins_api_v1_source_plugins_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1160,10 +1160,10 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Update Source Plugin
-         * @description `API-38`.
+         * Patch Source Plugin
+         * @description `API-38`: saves the switch and limits, Admin only, with a `PLUGIN_UPDATED` audit row.
          */
-        patch: operations["update_source_plugin_api_v1_source_plugins__code__patch"];
+        patch: operations["patch_source_plugin_api_v1_source_plugins__code__patch"];
         trace?: never;
     };
     "/api/v1/users": {
@@ -1173,24 +1173,18 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * List Users
-         * @description `API-04`.
-         */
-        get: operations["list_users_api_v1_users_get"];
+        /** Get Users */
+        get: operations["get_users_api_v1_users_get"];
         put?: never;
-        /**
-         * Create User
-         * @description `API-05`.
-         */
-        post: operations["create_user_api_v1_users_post"];
+        /** Create User Route */
+        post: operations["create_user_route_api_v1_users_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/users/{id}": {
+    "/api/v1/users/{user_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1203,11 +1197,8 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /**
-         * Update User
-         * @description `API-06`.
-         */
-        patch: operations["update_user_api_v1_users__id__patch"];
+        /** Update User Route */
+        patch: operations["update_user_route_api_v1_users__user_id__patch"];
         trace?: never;
     };
 }
@@ -1216,8 +1207,8 @@ export interface components {
     schemas: {
         /**
          * Account
-         * @description [`Account`](/architecture/interfaces.md#account): every field of
-         *     [`AccountRow`](#accountrow) plus these.
+         * @description [`Account`](/architecture/interfaces.md#account), the response of `API-21`, `API-23` and
+         *     `API-24`.
          */
         Account: {
             /** Active Run Id */
@@ -1229,14 +1220,17 @@ export interface components {
                 [key: string]: string;
             };
             /** Country Code */
-            country_code: string;
+            country_code: string | null;
             /** Crunchbase Id */
             crunchbase_id: string | null;
             /** Domain */
             domain: string;
             /** Employee Count */
             employee_count: number | null;
-            /** Id */
+            /**
+             * Id
+             * Format: uuid
+             */
             id: string;
             /** Industry */
             industry: string | null;
@@ -1256,16 +1250,19 @@ export interface components {
             /** Revenue Eur */
             revenue_eur: number | null;
             /** Sources */
-            sources: components["schemas"]["AccountSource"][];
+            sources: components["schemas"]["AccountSourceItem"][];
             status: components["schemas"]["AccountStatus"];
         };
         /**
          * AccountCreate
-         * @description [`AccountCreate`](/architecture/interfaces.md#accountcreate).
+         * @description [`AccountCreate`](/architecture/interfaces.md#accountcreate), the request of `API-21`.
          */
         AccountCreate: {
-            /** Aliases */
-            aliases?: string[] | null;
+            /**
+             * Aliases
+             * @default []
+             */
+            aliases: string[];
             /** Country Code */
             country_code?: string | null;
             /** Domain */
@@ -1285,8 +1282,20 @@ export interface components {
             parent_account_id?: string | null;
             /** Revenue Eur */
             revenue_eur?: number | null;
-            /** Sources */
-            sources?: components["schemas"]["AccountSourceCreate"][] | null;
+            /**
+             * Sources
+             * @default []
+             */
+            sources: components["schemas"]["AccountCreateSource"][];
+        };
+        /**
+         * AccountCreateSource
+         * @description One entry of [`AccountCreate`](/architecture/interfaces.md#accountcreate) `sources`.
+         */
+        AccountCreateSource: {
+            kind: components["schemas"]["AccountSourceKind"];
+            /** Url */
+            url: string;
         };
         /**
          * AccountOperationalComplexity
@@ -1305,23 +1314,29 @@ export interface components {
          * @description `Account.parent`.
          */
         AccountParent: {
-            /** Id */
+            /**
+             * Id
+             * Format: uuid
+             */
             id: string;
             /** Name */
             name: string;
         };
         /**
          * AccountRow
-         * @description [`AccountRow`](/architecture/interfaces.md#accountrow).
+         * @description [`AccountRow`](/architecture/interfaces.md#accountrow), one item of `API-20`.
          */
         AccountRow: {
             /** Active Run Id */
             active_run_id: string | null;
             /** Country Code */
-            country_code: string;
+            country_code: string | null;
             /** Domain */
             domain: string;
-            /** Id */
+            /**
+             * Id
+             * Format: uuid
+             */
             id: string;
             /** Industry */
             industry: string | null;
@@ -1345,22 +1360,13 @@ export interface components {
          */
         AccountScoreStanding: "RANKED" | "BELOW_FIT" | "DISQUALIFIED" | "CUSTOMER";
         /**
-         * AccountSource
+         * AccountSourceItem
          * @description One entry of `Account.sources`.
          */
-        AccountSource: {
+        AccountSourceItem: {
             kind: components["schemas"]["AccountSourceKind"];
             origin: components["schemas"]["AccountSourceOrigin"];
             status: components["schemas"]["AccountSourceStatus"];
-            /** Url */
-            url: string;
-        };
-        /**
-         * AccountSourceCreate
-         * @description One entry of `AccountCreate.sources`.
-         */
-        AccountSourceCreate: {
-            kind: components["schemas"]["AccountSourceKind"];
             /** Url */
             url: string;
         };
@@ -1383,16 +1389,6 @@ export interface components {
          */
         AccountSourceStatus: "ACTIVE" | "INACTIVE";
         /**
-         * AccountSourceUpdate
-         * @description One entry of `AccountUpdate.sources`.
-         */
-        AccountSourceUpdate: {
-            kind: components["schemas"]["AccountSourceKind"];
-            status?: components["schemas"]["AccountSourceStatus"] | null;
-            /** Url */
-            url: string;
-        };
-        /**
          * AccountStatus
          * @description `account.status`.
          * @enum {string}
@@ -1400,8 +1396,9 @@ export interface components {
         AccountStatus: "ACTIVE" | "INACTIVE";
         /**
          * AccountUpdate
-         * @description [`AccountUpdate`](/architecture/interfaces.md#accountupdate): every field of
-         *     [`AccountCreate`](#accountcreate) except `domain`, optional, plus `sources` and `status`.
+         * @description [`AccountUpdate`](/architecture/interfaces.md#accountupdate), the request of `API-24`.
+         *     Every field of [`AccountCreate`](#accountcreate) except `domain`, optional, plus `status`; a
+         *     field left unset changes nothing ([`AccountUpdateData`](../accounts/commands.py)).
          */
         AccountUpdate: {
             /** Aliases */
@@ -1414,8 +1411,6 @@ export interface components {
             industry?: string | null;
             /** Linkedin Url */
             linkedin_url?: string | null;
-            /** Name */
-            name?: string | null;
             /** Notes */
             notes?: string | null;
             operational_complexity?: components["schemas"]["AccountOperationalComplexity"] | null;
@@ -1424,12 +1419,24 @@ export interface components {
             /** Revenue Eur */
             revenue_eur?: number | null;
             /** Sources */
-            sources?: components["schemas"]["AccountSourceUpdate"][] | null;
+            sources?: components["schemas"]["AccountUpdateSource"][] | null;
             status?: components["schemas"]["AccountStatus"] | null;
         };
         /**
+         * AccountUpdateSource
+         * @description One entry of [`AccountUpdate`](/architecture/interfaces.md#accountupdate) `sources`.
+         */
+        AccountUpdateSource: {
+            kind: components["schemas"]["AccountSourceKind"];
+            /** @default ACTIVE */
+            status: components["schemas"]["AccountSourceStatus"];
+            /** Url */
+            url: string;
+        };
+        /**
          * ActivationRequest
-         * @description [`ActivationRequest`](/architecture/interfaces.md#activationrequest).
+         * @description [`ActivationRequest`](/architecture/interfaces.md#activationrequest): `change_note`
+         *     required.
          */
         ActivationRequest: {
             /** Change Note */
@@ -1437,23 +1444,26 @@ export interface components {
         };
         /**
          * AlertBandChange
-         * @description `AlertView.band_change`.
+         * @description `AlertView.band_change`; `BAND_UP` only.
          */
         AlertBandChange: {
-            from: components["schemas"]["AccountScoreBand"];
-            to: components["schemas"]["AccountScoreBand"];
+            from: components["schemas"]["AccountScoreBand"] | null;
+            to: components["schemas"]["AccountScoreBand"] | null;
         };
         /**
          * AlertFinding
-         * @description `AlertView.finding`.
+         * @description `AlertView.finding`; `STRONG_SIGNAL` only.
          */
         AlertFinding: {
-            /** Id */
+            /**
+             * Id
+             * Format: uuid
+             */
             id: string;
             /** Question Text */
             question_text: string;
             /** Quote */
-            quote: string | null;
+            quote: string;
             strength: components["schemas"]["FindingStrength"];
         };
         /**
@@ -1463,23 +1473,43 @@ export interface components {
          */
         AlertKind: "STRONG_SIGNAL" | "BAND_UP";
         /**
+         * AlertRef
+         * @description `AlertView.account` and `AlertView.service`: `{id, name}`.
+         */
+        AlertRef: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /**
          * AlertView
-         * @description [`AlertView`](/architecture/interfaces.md#alertview).
+         * @description [`AlertView`](/architecture/interfaces.md#alertview), the response of `API-48` and
+         *     `API-49`.
          */
         AlertView: {
-            account: components["schemas"]["IdName"];
+            account: components["schemas"]["AlertRef"];
             /** Acknowledged At */
             acknowledged_at: string | null;
             /** Acknowledged By Name */
             acknowledged_by_name: string | null;
             band_change: components["schemas"]["AlertBandChange"] | null;
-            /** Created At */
+            /**
+             * Created At
+             * Format: date-time
+             */
             created_at: string;
             finding: components["schemas"]["AlertFinding"] | null;
-            /** Id */
+            /**
+             * Id
+             * Format: uuid
+             */
             id: string;
             kind: components["schemas"]["AlertKind"];
-            service: components["schemas"]["IdName"];
+            service: components["schemas"]["AlertRef"];
         };
         /**
          * AppUserRole
@@ -1494,8 +1524,17 @@ export interface components {
          */
         AppUserStatus: "ACTIVE" | "DISABLED";
         /**
+         * AuditAction
+         * @description `audit_event.action`, the closed vocabulary of
+         *     [Audit actions](/architecture/sql-store.md#audit-actions) in full: the store closes it and
+         *     every capability that appends an audit row (this task's sign-in and user changes, and every
+         *     later task) writes from this one set.
+         * @enum {string}
+         */
+        AuditAction: "LOGIN_SUCCEEDED" | "LOGIN_FAILED" | "LOGOUT" | "USER_CREATED" | "USER_UPDATED" | "SERVICE_CREATED" | "SERVICE_UPDATED" | "INDUSTRY_CREATED" | "INDUSTRY_UPDATED" | "MARKET_CREATED" | "MARKET_UPDATED" | "QUESTION_CREATED" | "QUESTION_UPDATED" | "SCORING_DRAFT_SAVED" | "SCORING_ACTIVATED" | "PLUGIN_UPDATED" | "ACCOUNT_CREATED" | "ACCOUNT_UPDATED" | "ACCOUNTS_IMPORTED" | "CANDIDATE_ACCEPTED" | "CANDIDATE_REJECTED" | "CONTACT_CREATED" | "CONTACT_UPDATED" | "CONTACT_ERASED" | "RUN_REQUESTED" | "RUN_FINISHED" | "RUN_CANCELLED" | "OVERRIDE_CREATED" | "OVERRIDE_REVOKED" | "LEAD_FEEDBACK_GIVEN" | "FINDING_FEEDBACK_GIVEN" | "ITEM_LABELLED" | "DRAFT_CREATED" | "DRAFT_UPDATED" | "DRAFT_EXPORTED" | "CRM_PUSHED" | "AI_CALL";
+        /**
          * AuditEntry
-         * @description [`AuditEntry`](/architecture/interfaces.md#auditentry).
+         * @description [`AuditEntry`](/architecture/interfaces.md#auditentry), one item of `API-60`'s page.
          */
         AuditEntry: {
             /** Action */
@@ -1506,10 +1545,16 @@ export interface components {
             entity_id: string | null;
             /** Entity Type */
             entity_type: string | null;
-            /** Id */
+            /**
+             * Id
+             * Format: uuid
+             */
             id: string;
             kind: components["schemas"]["AuditEventKind"];
-            /** Occurred At */
+            /**
+             * Occurred At
+             * Format: date-time
+             */
             occurred_at: string;
             /** Payload */
             payload: {
@@ -1535,12 +1580,15 @@ export interface components {
             display_name: string;
             /** Email */
             email: string;
-            /** Id */
+            /**
+             * Id
+             * Format: uuid
+             */
             id: string;
             role: components["schemas"]["AppUserRole"];
         };
-        /** Body_import_accounts_api_v1_accounts_import_post */
-        Body_import_accounts_api_v1_accounts_import_post: {
+        /** Body_post_accounts_import_api_v1_accounts_import_post */
+        Body_post_accounts_import_api_v1_accounts_import_post: {
             /** Dry Run */
             dry_run: boolean;
             /** File */
@@ -1552,9 +1600,9 @@ export interface components {
          */
         CandidateDecision: {
             /** Domain */
-            domain?: string | null;
+            domain?: string;
             /** Reason */
-            reason?: string | null;
+            reason?: string;
         };
         /**
          * Contact
@@ -1585,7 +1633,8 @@ export interface components {
             full_name: string;
             /** Job Title */
             job_title: string;
-            persona?: components["schemas"]["ContactPersona"] | null;
+            /** Persona */
+            persona?: components["schemas"]["ContactPersona"];
             /** Source Url */
             source_url: string;
         };
@@ -1607,12 +1656,13 @@ export interface components {
          */
         ContactUpdate: {
             /** Full Name */
-            full_name?: string | null;
+            full_name?: string;
             /** Job Title */
-            job_title?: string | null;
-            persona?: components["schemas"]["ContactPersona"] | null;
+            job_title?: string;
+            /** Persona */
+            persona?: components["schemas"]["ContactPersona"];
             /** Source Url */
-            source_url?: string | null;
+            source_url?: string;
         };
         /**
          * CrmSyncStatus
@@ -1649,6 +1699,14 @@ export interface components {
         DemoLoginRequest: {
             role: components["schemas"]["AppUserRole"];
         };
+        /**
+         * Dependency
+         * @description `details.dependency` of `UPSTREAM_UNAVAILABLE`, exactly the
+         *     [Dependencies](/architecture/interfaces.md#conventions) table's column: a wire-only enum,
+         *     owned by interfaces and defined here once.
+         * @enum {string}
+         */
+        Dependency: "DATABASE" | "CLASSIFIER" | "LLM" | "EMBEDDER" | "HUBSPOT";
         /**
          * DiscoveryCandidate
          * @description [`DiscoveryCandidate`](/architecture/interfaces.md#discoverycandidate).
@@ -1715,11 +1773,7 @@ export interface components {
             criterion_key?: string | null;
             /** Key */
             key: string;
-            /**
-             * Kind
-             * @enum {string}
-             */
-            kind: "ICP_MISMATCH" | "SIGNAL";
+            kind: components["schemas"]["DisqualifierKind"];
             /** Label */
             label: string;
             min_strength?: components["schemas"]["FindingStrength"] | null;
@@ -1728,13 +1782,17 @@ export interface components {
         };
         /**
          * DisqualifierBreakdown
-         * @description One entry of `disqualifiers`.
+         * @description One entry of `disqualifiers`: names the fact it tests by `kind` and its `criterion_key`
+         *     or `question_key`, the other null.
          */
         DisqualifierBreakdown: {
+            /** Criterion Key */
+            criterion_key: string | null;
             /** Finding Id */
             finding_id: string | null;
             /** Key */
             key: string;
+            kind: components["schemas"]["DisqualifierKind"];
             /** Label */
             label: string;
             /** Matched */
@@ -1743,7 +1801,16 @@ export interface components {
             overridden: boolean;
             /** Override Id */
             override_id: string | null;
+            /** Question Key */
+            question_key: string | null;
         };
+        /**
+         * DisqualifierKind
+         * @description The `kind` of a disqualifier of the [scoring settings document]
+         *     (/architecture/sql-store.md#scoring-settings-document).
+         * @enum {string}
+         */
+        DisqualifierKind: "ICP_MISMATCH" | "SIGNAL";
         /**
          * DisqualifierOverrideStatus
          * @description `disqualifier_override.status`.
@@ -1771,11 +1838,45 @@ export interface components {
             /** Code */
             code: string;
             /** Details */
-            details?: {
-                [key: string]: unknown;
-            } | null;
+            details?: components["schemas"]["ErrorDetails"];
             /** Message */
             message: string;
+        };
+        /**
+         * ErrorDetailField
+         * @description One entry of `details.fields[]` ([Conventions](/architecture/interfaces.md#conventions)
+         *     `VALIDATION`).
+         */
+        ErrorDetailField: {
+            /** Field */
+            field: string;
+            /** Message */
+            message: string;
+        };
+        /**
+         * ErrorDetails
+         * @description `details` of [Conventions](/architecture/interfaces.md#conventions) `ErrorEnvelope`: the
+         *     closed set of names the Envelope table gives. Every field is optional and, per the Naming
+         *     paragraph (G10), absent rather than `null` when unset.
+         */
+        ErrorDetails: {
+            dependency?: components["schemas"]["Dependency"];
+            /**
+             * Entity Id
+             * Format: uuid
+             */
+            entity_id?: string;
+            /** Fields */
+            fields?: components["schemas"]["ErrorDetailField"][];
+            /** Reason */
+            reason?: string;
+            /**
+             * Resets At
+             * Format: date-time
+             */
+            resets_at?: string;
+            /** Retry After Min */
+            retry_after_min?: number;
         };
         /**
          * ErrorEnvelope
@@ -1899,13 +2000,13 @@ export interface components {
         /** FeedbackCreate[FindingFeedbackVerdict] */
         FeedbackCreate_FindingFeedbackVerdict_: {
             /** Note */
-            note?: string | null;
+            note?: string;
             verdict: components["schemas"]["FindingFeedbackVerdict"];
         };
         /** FeedbackCreate[LeadFeedbackVerdict] */
         FeedbackCreate_LeadFeedbackVerdict_: {
             /** Note */
-            note?: string | null;
+            note?: string;
             verdict: components["schemas"]["LeadFeedbackVerdict"];
         };
         /**
@@ -1916,7 +2017,7 @@ export interface components {
         FindingDecidedBy: "CLASSIFIER" | "LLM";
         /**
          * FindingDocument
-         * @description `FindingView.document`, reused by `EvidenceView.document`.
+         * @description `FindingView.document`, reused by `EvidenceView.document` ("as in `FindingView`").
          */
         FindingDocument: {
             /** Id */
@@ -1928,7 +2029,7 @@ export interface components {
             published_at: string | null;
             source_type: components["schemas"]["DocumentSourceType"];
             /** Title */
-            title: string;
+            title: string | null;
             /** Url */
             url: string;
         };
@@ -2081,11 +2182,7 @@ export interface components {
             credit: number;
             /** Key */
             key: string;
-            /**
-             * Kind
-             * @enum {string}
-             */
-            kind: "INDUSTRY" | "GEOGRAPHY" | "EMPLOYEE_RANGE" | "REVENUE_RANGE" | "OPERATIONAL_COMPLEXITY";
+            kind: components["schemas"]["ICPCriterionKind"];
             /**
              * Match
              * @enum {string}
@@ -2093,18 +2190,9 @@ export interface components {
             match: "MATCH" | "MISMATCH" | "UNKNOWN";
             /** Points */
             points: number;
-            /**
-             * Weight
-             * @enum {string}
-             */
-            weight: "HIGH" | "MEDIUM" | "LOW" | "NONE";
+            weight: components["schemas"]["WeightLevel"];
             /** Weight Value */
             weight_value: number;
-        };
-        /** HTTPValidationError */
-        HTTPValidationError: {
-            /** Detail */
-            detail?: components["schemas"]["ValidationError"][];
         };
         /**
          * Health
@@ -2137,39 +2225,30 @@ export interface components {
          */
         HealthStatus: "OK" | "DEGRADED" | "DOWN";
         /**
-         * IcpCriterion
-         * @description One entry of `icp_criteria`.
+         * ICPCriterion
+         * @description One entry of `icp_criteria`. Kind-specific operand validity is [Scoring settings
+         *     validation](#validate_scoring_settings), not a type, because it depends on the service's
+         *     active industries.
          */
-        IcpCriterion: {
+        ICPCriterion: {
             /** Key */
             key: string;
-            /**
-             * Kind
-             * @enum {string}
-             */
-            kind: "INDUSTRY" | "GEOGRAPHY" | "EMPLOYEE_RANGE" | "REVENUE_RANGE" | "OPERATIONAL_COMPLEXITY";
+            kind: components["schemas"]["ICPCriterionKind"];
             /** Max */
             max?: number | null;
             /** Min */
             min?: number | null;
             /** Values */
             values?: string[] | null;
-            /**
-             * Weight
-             * @enum {string}
-             */
-            weight: "HIGH" | "MEDIUM" | "LOW" | "NONE";
+            weight: components["schemas"]["WeightLevel"];
         };
         /**
-         * IdName
-         * @description The anonymous `{id, name}` shape nested by several responses.
+         * ICPCriterionKind
+         * @description The `kind` of an ICP criterion of the [scoring settings document]
+         *     (/architecture/sql-store.md#scoring-settings-document).
+         * @enum {string}
          */
-        IdName: {
-            /** Id */
-            id: string;
-            /** Name */
-            name: string;
-        };
+        ICPCriterionKind: "INDUSTRY" | "GEOGRAPHY" | "EMPLOYEE_RANGE" | "REVENUE_RANGE" | "OPERATIONAL_COMPLEXITY";
         /**
          * Impact
          * @description [`Impact`](/architecture/interfaces.md#impact), the response of `API-77`.
@@ -2198,7 +2277,7 @@ export interface components {
         };
         /**
          * ImportResult
-         * @description [`ImportResult`](/architecture/interfaces.md#importresult).
+         * @description [`ImportResult`](/architecture/interfaces.md#importresult), the response of `API-22`.
          */
         ImportResult: {
             /** Created */
@@ -2210,30 +2289,36 @@ export interface components {
             /** Invalid */
             invalid: number;
             /** Rows */
-            rows: components["schemas"]["ImportRowResult"][];
+            rows: components["schemas"]["ImportRowItem"][];
             /** Updated */
             updated: number;
         };
         /**
-         * ImportRowResult
+         * ImportRowFieldError
+         * @description One entry of an import row's `errors`, in the shape of `details.fields[]`
+         *     ([Conventions](/architecture/interfaces.md#conventions) Envelope).
+         */
+        ImportRowFieldError: {
+            /** Field */
+            field: string;
+            /** Message */
+            message: string;
+        };
+        /**
+         * ImportRowItem
          * @description One entry of `ImportResult.rows`.
          */
-        ImportRowResult: {
+        ImportRowItem: {
             /** Account Id */
             account_id: string | null;
             /** Domain */
-            domain: string;
+            domain: string | null;
             /** Errors */
-            errors: {
-                [key: string]: string;
-            }[];
+            errors: components["schemas"]["ImportRowFieldError"][];
             /** Line */
             line: number;
-            /**
-             * Outcome
-             * @enum {string}
-             */
-            outcome: "CREATED" | "UPDATED" | "POSSIBLE_DUPLICATE" | "INVALID";
+            /** Outcome */
+            outcome: string;
         };
         /**
          * Industry
@@ -2387,7 +2472,10 @@ export interface components {
         LoginRequest: {
             /** Email */
             email: string;
-            /** Password */
+            /**
+             * Password
+             * Format: password
+             */
             password: string;
         };
         /**
@@ -2501,10 +2589,11 @@ export interface components {
          */
         OutreachDraftUpdate: {
             /** Body */
-            body?: string | null;
-            status?: components["schemas"]["OutreachDraftStatus"] | null;
+            body?: string;
+            /** Status */
+            status?: components["schemas"]["OutreachDraftStatus"];
             /** Subject */
-            subject?: string | null;
+            subject?: string;
         };
         /**
          * OutreachRequest
@@ -2513,7 +2602,7 @@ export interface components {
         OutreachRequest: {
             channel: components["schemas"]["OutreachDraftChannel"];
             /** Contact Id */
-            contact_id?: string | null;
+            contact_id?: string;
         };
         /**
          * Override
@@ -2523,9 +2612,9 @@ export interface components {
             /** Account Id */
             account_id: string;
             /** Created At */
-            created_at: string | null;
+            created_at: string;
             /** Created By Name */
-            created_by_name: string | null;
+            created_by_name: string;
             /** Id */
             id: string;
             /** Note */
@@ -2538,6 +2627,8 @@ export interface components {
             rule_key: string;
             /** Rule Label */
             rule_label: string;
+            /** Run Id */
+            run_id: string | null;
             /** Service Id */
             service_id: string;
             status: components["schemas"]["DisqualifierOverrideStatus"];
@@ -2648,7 +2739,7 @@ export interface components {
          */
         ProspectAccount: {
             /** Country Code */
-            country_code: string;
+            country_code: string | null;
             /** Domain */
             domain: string;
             /** Id */
@@ -2678,6 +2769,19 @@ export interface components {
             total: number;
         };
         /**
+         * ProspectReason
+         * @description `ProspectRow.reason`: null when `RANKED`; the other members are null besides the one its
+         *     standing names.
+         */
+        ProspectReason: {
+            /** Customer Marked By Name */
+            customer_marked_by_name: string | null;
+            /** Disqualifier Labels */
+            disqualifier_labels: string[] | null;
+            /** Min Fit */
+            min_fit: number | null;
+        };
+        /**
          * ProspectRow
          * @description [`ProspectRow`](/architecture/interfaces.md#prospectrow).
          */
@@ -2685,7 +2789,7 @@ export interface components {
             account: components["schemas"]["ProspectAccount"];
             /** As Of */
             as_of: string;
-            band: components["schemas"]["AccountScoreBand"];
+            band: components["schemas"]["AccountScoreBand"] | null;
             /** Finding Count */
             finding_count: number;
             /** Fit */
@@ -2698,6 +2802,7 @@ export interface components {
             priority: number;
             /** Rank */
             rank: number | null;
+            reason: components["schemas"]["ProspectReason"] | null;
             standing: components["schemas"]["AccountScoreStanding"];
             /** Top Signals */
             top_signals: components["schemas"]["ProspectTopSignal"][];
@@ -2719,7 +2824,7 @@ export interface components {
         };
         /**
          * QuestionOption
-         * @description One entry of `SignalQuestion.options`.
+         * @description One entry of [`SignalQuestion`](/architecture/interfaces.md#signalquestion) `options`.
          */
         QuestionOption: {
             /** Key */
@@ -2755,22 +2860,23 @@ export interface components {
          */
         QuestionPreviewRequest: {
             /** Account Id */
-            account_id?: string | null;
-            answer_type?: components["schemas"]["SignalQuestionAnswerType"] | null;
+            account_id?: string;
+            /** Answer Type */
+            answer_type?: components["schemas"]["SignalQuestionAnswerType"];
             /** Hint Terms */
-            hint_terms?: string[] | null;
+            hint_terms?: string[];
             /** Options */
-            options?: components["schemas"]["QuestionOption"][] | null;
+            options?: components["schemas"]["QuestionOption"][];
             /** Question Id */
-            question_id?: string | null;
+            question_id?: string;
             /** Sample Text */
-            sample_text?: string | null;
+            sample_text?: string;
             /** Service Id */
             service_id: string;
             /** Source Types */
-            source_types?: components["schemas"]["DocumentSourceType"][] | null;
+            source_types?: components["schemas"]["DocumentSourceType"][];
             /** Text */
-            text?: string | null;
+            text?: string;
         };
         /**
          * QuestionPreviewResult
@@ -2801,39 +2907,39 @@ export interface components {
             half_life_days?: number | null;
             /** Question Key */
             question_key: string;
-            /**
-             * Weight
-             * @enum {string}
-             */
-            weight: "HIGH" | "MEDIUM" | "LOW" | "NONE";
+            weight: components["schemas"]["WeightLevel"];
         };
         /**
          * Run
          * @description [`Run`](/architecture/interfaces.md#run).
          */
         Run: {
-            account: components["schemas"]["IdName"] | null;
+            account: components["schemas"]["RunRef"] | null;
             /** Ai Cost Eur */
             ai_cost_eur: number;
-            /** Created At */
-            created_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
             /** Errors */
-            errors: {
-                [key: string]: unknown;
-            }[];
+            errors: components["schemas"]["RunError"][];
             /** Finished At */
             finished_at: string | null;
-            /** Id */
+            /**
+             * Id
+             * Format: uuid
+             */
             id: string;
             kind: components["schemas"]["PipelineRunKind"];
             /** Progress */
             progress: {
-                [key: string]: unknown;
+                [key: string]: number;
             };
             question: components["schemas"]["RunQuestion"] | null;
             /** Requested By Name */
             requested_by_name: string | null;
-            service: components["schemas"]["IdName"] | null;
+            service: components["schemas"]["RunRef"] | null;
             stage: components["schemas"]["PipelineRunStage"] | null;
             /** Started At */
             started_at: string | null;
@@ -2841,23 +2947,55 @@ export interface components {
             trigger: components["schemas"]["PipelineRunTrigger"];
         };
         /**
+         * RunError
+         * @description One entry of `Run.errors`, as [`pipeline_run`](/architecture/sql-store.md#pipeline_run)
+         *     `errors` states it.
+         */
+        RunError: {
+            /** Code */
+            code: string;
+            /** Message */
+            message: string;
+            plugin_code?: components["schemas"]["SourcePluginCode"] | null;
+            stage: components["schemas"]["PipelineRunStage"];
+        };
+        /**
          * RunQuestion
-         * @description `Run.question`.
+         * @description `Run.question`: `{id, key}`.
          */
         RunQuestion: {
-            /** Id */
+            /**
+             * Id
+             * Format: uuid
+             */
             id: string;
             /** Key */
             key: string;
         };
         /**
+         * RunRef
+         * @description `Run.account` and `Run.service`: `{id, name}`.
+         */
+        RunRef: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /**
          * ScoreChange
-         * @description [`ScoreChange`](/architecture/interfaces.md#scorechange).
+         * @description [`ScoreChange`](/architecture/interfaces.md#scorechange), one item of `API-41`.
          */
         ScoreChange: {
-            /** As Of */
+            /**
+             * As Of
+             * Format: date-time
+             */
             as_of: string;
-            band: components["schemas"]["AccountScoreBand"];
+            band: components["schemas"]["AccountScoreBand"] | null;
             /** Change Note */
             change_note: string | null;
             /** Findings Added */
@@ -2872,9 +3010,15 @@ export interface components {
             overrides_changed: components["schemas"]["ScoreChangeOverride"][];
             /** Priority */
             priority: number;
-            /** Run Id */
+            /**
+             * Run Id
+             * Format: uuid
+             */
             run_id: string;
-            /** Score Id */
+            /**
+             * Score Id
+             * Format: uuid
+             */
             score_id: string;
             /** Scoring Version */
             scoring_version: number;
@@ -2883,10 +3027,13 @@ export interface components {
         };
         /**
          * ScoreChangeFinding
-         * @description One entry of `ScoreChange.findings_added` and `.findings_removed`.
+         * @description One entry of `ScoreChange.findings_added` or `findings_removed`.
          */
         ScoreChangeFinding: {
-            /** Finding Id */
+            /**
+             * Finding Id
+             * Format: uuid
+             */
             finding_id: string;
             /** Question Key */
             question_key: string;
@@ -2910,7 +3057,7 @@ export interface components {
             account_id: string;
             /** As Of */
             as_of: string;
-            band: components["schemas"]["AccountScoreBand"];
+            band: components["schemas"]["AccountScoreBand"] | null;
             breakdown: components["schemas"]["ScoreViewBreakdown"];
             /** Fit */
             fit: number;
@@ -2943,7 +3090,7 @@ export interface components {
              * Format: date-time
              */
             as_of: string;
-            band: components["schemas"]["AccountScoreBand"];
+            band: components["schemas"]["AccountScoreBand"] | null;
             /** Disqualifiers */
             disqualifiers: components["schemas"]["DisqualifierBreakdown"][];
             fit: components["schemas"]["FitBreakdown"];
@@ -2972,17 +3119,16 @@ export interface components {
         };
         /**
          * ScoreViewQuestionBreakdown
-         * @description `ScoreView.breakdown`'s question entries, with `question_text` added on read
-         *     ([`ScoreView`](/architecture/interfaces.md#scoreview)).
+         * @description `ScoreView.breakdown`'s question entries, with `question_text` and the counted finding's
+         *     `observed_at` added on read ([`ScoreView`](/architecture/interfaces.md#scoreview)).
          */
         ScoreViewQuestionBreakdown: {
             /** Decay */
-            decay: number;
-            /**
-             * Finding Id
-             * Format: uuid
-             */
-            finding_id: string;
+            decay: number | null;
+            /** Finding Id */
+            finding_id: string | null;
+            /** Observed At */
+            observed_at: string | null;
             /** Points */
             points: number;
             polarity: components["schemas"]["SignalQuestionPolarity"];
@@ -2990,21 +3136,16 @@ export interface components {
             question_key: string;
             /** Question Text */
             question_text: string;
-            strength: components["schemas"]["FindingStrength"];
+            strength: components["schemas"]["FindingStrength"] | null;
             /** Value */
             value: number;
-            /**
-             * Weight
-             * @enum {string}
-             */
-            weight: "HIGH" | "MEDIUM" | "LOW" | "NONE";
+            weight: components["schemas"]["WeightLevel"];
             /** Weight Value */
             weight_value: number;
         };
         /**
          * ScoringConfig
-         * @description [`ScoringConfig`](/architecture/interfaces.md#scoringconfig): every field of
-         *     [`ScoringConfigSummary`](#scoringconfigsummary) plus `settings`.
+         * @description [`ScoringConfig`](/architecture/interfaces.md#scoringconfig).
          */
         ScoringConfig: {
             /** Activated At */
@@ -3017,7 +3158,39 @@ export interface components {
             id: string;
             /** Service Id */
             service_id: string;
-            settings: components["schemas"]["ScoringSettingsDocument"];
+            /** Settings */
+            settings: {
+                [key: string]: unknown;
+            };
+            status: components["schemas"]["ScoringConfigStatus"];
+            /** Version */
+            version: number;
+        };
+        /**
+         * ScoringConfigModel
+         * @description [`ScoringConfig`](/architecture/interfaces.md#scoringconfig).
+         */
+        ScoringConfigModel: {
+            /** Activated At */
+            activated_at: string | null;
+            /** Activated By Name */
+            activated_by_name: string | null;
+            /** Change Note */
+            change_note: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Service Id
+             * Format: uuid
+             */
+            service_id: string;
+            /** Settings */
+            settings: {
+                [key: string]: unknown;
+            };
             status: components["schemas"]["ScoringConfigStatus"];
             /** Version */
             version: number;
@@ -3029,19 +3202,25 @@ export interface components {
          */
         ScoringConfigStatus: "DRAFT" | "ACTIVE" | "RETIRED";
         /**
-         * ScoringConfigSummary
+         * ScoringConfigSummaryModel
          * @description [`ScoringConfigSummary`](/architecture/interfaces.md#scoringconfigsummary).
          */
-        ScoringConfigSummary: {
+        ScoringConfigSummaryModel: {
             /** Activated At */
             activated_at: string | null;
             /** Activated By Name */
             activated_by_name: string | null;
             /** Change Note */
             change_note: string | null;
-            /** Id */
+            /**
+             * Id
+             * Format: uuid
+             */
             id: string;
-            /** Service Id */
+            /**
+             * Service Id
+             * Format: uuid
+             */
             service_id: string;
             status: components["schemas"]["ScoringConfigStatus"];
             /** Version */
@@ -3094,7 +3273,7 @@ export interface components {
          * @description `ScoringPreview.changes[].current` and `.proposed`.
          */
         ScoringPreviewScore: {
-            band: components["schemas"]["AccountScoreBand"];
+            band: components["schemas"]["AccountScoreBand"] | null;
             /** Priority */
             priority: number;
             /** Rank */
@@ -3103,21 +3282,27 @@ export interface components {
         };
         /**
          * ScoringSettingsDocument
-         * @description The document itself.
+         * @description The `settings` column of [`scoring_config`](/architecture/sql-store.md#scoring_config).
          */
         ScoringSettingsDocument: {
             /** Default Half Life Days */
             default_half_life_days: {
                 [key: string]: number;
             };
-            /** Disqualifiers */
+            /**
+             * Disqualifiers
+             * @default []
+             */
             disqualifiers: components["schemas"]["Disqualifier"][];
             /** Fit Weight */
             fit_weight: number;
             /** Hot Threshold */
             hot_threshold: number;
-            /** Icp Criteria */
-            icp_criteria: components["schemas"]["IcpCriterion"][];
+            /**
+             * Icp Criteria
+             * @default []
+             */
+            icp_criteria: components["schemas"]["ICPCriterion"][];
             /** Intent Saturation */
             intent_saturation: number;
             /** Intent Weight */
@@ -3128,7 +3313,10 @@ export interface components {
             min_fit: number;
             /** Negative Factor */
             negative_factor: number;
-            /** Questions */
+            /**
+             * Questions
+             * @default []
+             */
             questions: components["schemas"]["QuestionSetting"][];
             /** Strength Values */
             strength_values: {
@@ -3156,7 +3344,10 @@ export interface components {
             description: string;
             /** Draft Version */
             draft_version: number | null;
-            /** Id */
+            /**
+             * Id
+             * Format: uuid
+             */
             id: string;
             /** Name */
             name: string;
@@ -3209,7 +3400,10 @@ export interface components {
             finding_count: number;
             /** Hint Terms */
             hint_terms: string[];
-            /** Id */
+            /**
+             * Id
+             * Format: uuid
+             */
             id: string;
             /** Key */
             key: string;
@@ -3218,7 +3412,10 @@ export interface components {
             polarity: components["schemas"]["SignalQuestionPolarity"];
             /** Revision */
             revision: number;
-            /** Service Id */
+            /**
+             * Service Id
+             * Format: uuid
+             */
             service_id: string;
             /** Source Types */
             source_types: components["schemas"]["DocumentSourceType"][];
@@ -3238,8 +3435,11 @@ export interface components {
          */
         SignalQuestionCreate: {
             answer_type: components["schemas"]["SignalQuestionAnswerType"];
-            /** Hint Terms */
-            hint_terms?: string[] | null;
+            /**
+             * Hint Terms
+             * @default []
+             */
+            hint_terms: string[];
             /** Key */
             key: string;
             /** Options */
@@ -3287,7 +3487,7 @@ export interface components {
             available: boolean;
             code: components["schemas"]["SourcePluginCode"];
             /** Daily Quota */
-            daily_quota: number;
+            daily_quota: number | null;
             /** Enabled */
             enabled: boolean;
             /** Key Configured */
@@ -3332,7 +3532,10 @@ export interface components {
             display_name: string;
             /** Email */
             email: string;
-            /** Id */
+            /**
+             * Id
+             * Format: uuid
+             */
             id: string;
             /** Last Login At */
             last_login_at: string | null;
@@ -3341,20 +3544,29 @@ export interface components {
         };
         /**
          * UserCreate
-         * @description [`UserCreate`](/architecture/interfaces.md#usercreate).
+         * @description [`UserCreate`](/architecture/interfaces.md#usercreate). `password`'s `PASSWORD_MIN_LENGTH`
+         *     is enforced once, by `auth.users.create_user` (its one owner), not a static `Field`
+         *     constraint: the minimum is a runtime setting, and a model built inside a router factory
+         *     cannot be resolved by FastAPI's OpenAPI generation (`from __future__ import annotations`
+         *     turns the route's own annotation into a forward reference that must be a module-level
+         *     name).
          */
         UserCreate: {
             /** Display Name */
             display_name: string;
             /** Email */
             email: string;
-            /** Password */
+            /**
+             * Password
+             * Format: password
+             */
             password: string;
             role: components["schemas"]["AppUserRole"];
         };
         /**
          * UserUpdate
-         * @description [`UserUpdate`](/architecture/interfaces.md#userupdate).
+         * @description [`UserUpdate`](/architecture/interfaces.md#userupdate). `password`'s `PASSWORD_MIN_LENGTH`
+         *     is enforced once, by `auth.users.update_user` (`UserCreate`'s note).
          */
         UserUpdate: {
             /** Display Name */
@@ -3364,19 +3576,15 @@ export interface components {
             role?: components["schemas"]["AppUserRole"] | null;
             status?: components["schemas"]["AppUserStatus"] | null;
         };
-        /** ValidationError */
-        ValidationError: {
-            /** Context */
-            ctx?: Record<string, never>;
-            /** Input */
-            input?: unknown;
-            /** Location */
-            loc: (string | number)[];
-            /** Message */
-            msg: string;
-            /** Error Type */
-            type: string;
-        };
+        /**
+         * WeightLevel
+         * @description A weight level of the [scoring settings document]
+         *     (/architecture/sql-store.md#scoring-settings-document): `weight_values`, and the `weight` of
+         *     an ICP criterion or a question setting. `NONE` keeps a question out of Intent while a
+         *     disqualifier still reads it.
+         * @enum {string}
+         */
+        WeightLevel: "HIGH" | "MEDIUM" | "LOW" | "NONE";
     };
     responses: never;
     parameters: never;
@@ -3386,7 +3594,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    list_accounts_api_v1_accounts_get: {
+    get_accounts_api_v1_accounts_get: {
         parameters: {
             query?: {
                 q?: string | null;
@@ -3399,7 +3607,9 @@ export interface operations {
             };
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -3412,17 +3622,8 @@ export interface operations {
                     "application/json": components["schemas"]["Page_AccountRow_"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3432,12 +3633,14 @@ export interface operations {
             };
         };
     };
-    create_account_api_v1_accounts_post: {
+    post_account_api_v1_accounts_post: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -3454,17 +3657,8 @@ export interface operations {
                     "application/json": components["schemas"]["Account"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3474,16 +3668,18 @@ export interface operations {
             };
         };
     };
-    import_accounts_api_v1_accounts_import_post: {
+    post_accounts_import_api_v1_accounts_import_post: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody: {
             content: {
-                "multipart/form-data": components["schemas"]["Body_import_accounts_api_v1_accounts_import_post"];
+                "multipart/form-data": components["schemas"]["Body_post_accounts_import_api_v1_accounts_import_post"];
             };
         };
         responses: {
@@ -3496,17 +3692,8 @@ export interface operations {
                     "application/json": components["schemas"]["ImportResult"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3523,7 +3710,9 @@ export interface operations {
             path: {
                 id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -3536,17 +3725,8 @@ export interface operations {
                     "application/json": components["schemas"]["Account"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3556,14 +3736,16 @@ export interface operations {
             };
         };
     };
-    update_account_api_v1_accounts__id__patch: {
+    patch_account_api_v1_accounts__id__patch: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -3580,17 +3762,8 @@ export interface operations {
                     "application/json": components["schemas"]["Account"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3620,17 +3793,8 @@ export interface operations {
                     "application/json": components["schemas"]["Contact"][];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3664,17 +3828,8 @@ export interface operations {
                     "application/json": components["schemas"]["Contact"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3708,17 +3863,8 @@ export interface operations {
                     "application/json": components["schemas"]["FindingView"][];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3750,17 +3896,8 @@ export interface operations {
                     "application/json": components["schemas"]["OutreachDraft"][];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3770,18 +3907,20 @@ export interface operations {
             };
         };
     };
-    refresh_account_api_v1_accounts__id__refresh_post: {
+    post_account_refresh_api_v1_accounts__id__refresh_post: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description The refresh already queued */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -3799,17 +3938,8 @@ export interface operations {
                     "application/json": components["schemas"]["Run"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3840,17 +3970,8 @@ export interface operations {
                     "application/json": components["schemas"]["ScoreView"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3881,17 +4002,8 @@ export interface operations {
                     "application/json": components["schemas"]["CrmSyncView"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3928,13 +4040,13 @@ export interface operations {
                     "application/json": components["schemas"]["LeadFeedback"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };
@@ -3947,7 +4059,9 @@ export interface operations {
                 id: string;
                 service_id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -3960,17 +4074,8 @@ export interface operations {
                     "application/json": components["schemas"]["ScoreChange"][];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4005,17 +4110,8 @@ export interface operations {
                     "application/json": components["schemas"]["OutreachDraft"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4050,17 +4146,8 @@ export interface operations {
                     "application/json": components["schemas"]["Override"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4070,7 +4157,7 @@ export interface operations {
             };
         };
     };
-    list_alerts_api_v1_alerts_get: {
+    get_alerts_api_v1_alerts_get: {
         parameters: {
             query?: {
                 service_id?: string | null;
@@ -4080,7 +4167,9 @@ export interface operations {
             };
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -4093,17 +4182,8 @@ export interface operations {
                     "application/json": components["schemas"]["Page_AlertView_"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4113,14 +4193,16 @@ export interface operations {
             };
         };
     };
-    acknowledge_alert_api_v1_alerts__id__acknowledge_post: {
+    post_alert_acknowledge_api_v1_alerts__id__acknowledge_post: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -4133,17 +4215,8 @@ export interface operations {
                     "application/json": components["schemas"]["AlertView"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4153,11 +4226,11 @@ export interface operations {
             };
         };
     };
-    list_audit_entries_api_v1_audit_get: {
+    get_audit_api_v1_audit_get: {
         parameters: {
             query?: {
                 kind?: components["schemas"]["AuditEventKind"][] | null;
-                action?: string | null;
+                action?: components["schemas"]["AuditAction"] | null;
                 actor_id?: string | null;
                 entity_id?: string | null;
                 run_id?: string | null;
@@ -4168,7 +4241,9 @@ export interface operations {
             };
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -4181,17 +4256,8 @@ export interface operations {
                     "application/json": components["schemas"]["Page_AuditEntry_"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4223,17 +4289,8 @@ export interface operations {
                     "application/json": components["schemas"]["AuthenticatedUser"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4265,17 +4322,8 @@ export interface operations {
                     "application/json": components["schemas"]["AuthenticatedUser"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4290,7 +4338,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie: {
+                leadradar_session: string;
+            };
         };
         requestBody?: never;
         responses: {
@@ -4301,17 +4351,8 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4321,12 +4362,14 @@ export interface operations {
             };
         };
     };
-    get_current_user_api_v1_auth_me_get: {
+    me_api_v1_auth_me_get: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -4339,17 +4382,8 @@ export interface operations {
                     "application/json": components["schemas"]["AuthenticatedUser"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4377,17 +4411,8 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4421,17 +4446,8 @@ export interface operations {
                     "application/json": components["schemas"]["Contact"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4464,17 +4480,8 @@ export interface operations {
                     "application/json": components["schemas"]["Page_DiscoveryCandidate_"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4508,17 +4515,8 @@ export interface operations {
                     "application/json": components["schemas"]["Account"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4552,17 +4550,8 @@ export interface operations {
                     "application/json": components["schemas"]["DiscoveryCandidate"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4596,17 +4585,8 @@ export interface operations {
                     "application/json": components["schemas"]["Page_EvaluationItem_"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4638,17 +4618,8 @@ export interface operations {
                     "application/json": components["schemas"]["EvaluationItem"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4678,17 +4649,8 @@ export interface operations {
                     "application/json": components["schemas"]["LabelQueue"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4716,17 +4678,8 @@ export interface operations {
                     "application/json": components["schemas"]["EvaluationResultSummary"][];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4756,17 +4709,8 @@ export interface operations {
                     "application/json": components["schemas"]["EvaluationResult"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4794,17 +4738,8 @@ export interface operations {
                     "application/json": components["schemas"]["Run"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4834,17 +4769,8 @@ export interface operations {
                     "application/json": components["schemas"]["EvidenceView"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4880,13 +4806,13 @@ export interface operations {
                     "application/json": components["schemas"]["FindingView"];
                 };
             };
-            /** @description Validation Error */
-            422: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };
@@ -4918,6 +4844,15 @@ export interface operations {
                     "application/json": components["schemas"]["Health"];
                 };
             };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
         };
     };
     get_impact_api_v1_impact_get: {
@@ -4925,7 +4860,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -4938,16 +4875,27 @@ export interface operations {
                     "application/json": components["schemas"]["Impact"];
                 };
             };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
         };
     };
-    list_industries_api_v1_industries_get: {
+    list_industries_route_api_v1_industries_get: {
         parameters: {
             query?: {
                 status?: components["schemas"]["IndustryStatus"] | null;
             };
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -4960,17 +4908,8 @@ export interface operations {
                     "application/json": components["schemas"]["Industry"][];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4980,12 +4919,14 @@ export interface operations {
             };
         };
     };
-    create_industry_api_v1_industries_post: {
+    create_industry_route_api_v1_industries_post: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -5002,17 +4943,8 @@ export interface operations {
                     "application/json": components["schemas"]["Industry"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5022,14 +4954,16 @@ export interface operations {
             };
         };
     };
-    update_industry_api_v1_industries__code__patch: {
+    update_industry_route_api_v1_industries__code__patch: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 code: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -5046,17 +4980,8 @@ export interface operations {
                     "application/json": components["schemas"]["Industry"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5066,14 +4991,16 @@ export interface operations {
             };
         };
     };
-    list_markets_api_v1_markets_get: {
+    list_markets_route_api_v1_markets_get: {
         parameters: {
             query?: {
                 status?: components["schemas"]["MarketStatus"] | null;
             };
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -5086,17 +5013,8 @@ export interface operations {
                     "application/json": components["schemas"]["Market"][];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5106,12 +5024,14 @@ export interface operations {
             };
         };
     };
-    create_market_api_v1_markets_post: {
+    create_market_route_api_v1_markets_post: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -5128,17 +5048,8 @@ export interface operations {
                     "application/json": components["schemas"]["Market"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5148,14 +5059,16 @@ export interface operations {
             };
         };
     };
-    update_market_api_v1_markets__code__patch: {
+    update_market_route_api_v1_markets__code__patch: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 code: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -5172,17 +5085,8 @@ export interface operations {
                     "application/json": components["schemas"]["Market"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5216,17 +5120,8 @@ export interface operations {
                     "application/json": components["schemas"]["OutreachDraft"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5256,17 +5151,8 @@ export interface operations {
                     "application/json": components["schemas"]["Override"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5298,17 +5184,8 @@ export interface operations {
                     "application/json": components["schemas"]["QuestionPreview"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5318,14 +5195,16 @@ export interface operations {
             };
         };
     };
-    update_question_api_v1_questions__id__patch: {
+    update_question_route_api_v1_questions__id__patch: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -5342,17 +5221,8 @@ export interface operations {
                     "application/json": components["schemas"]["SignalQuestion"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5362,7 +5232,7 @@ export interface operations {
             };
         };
     };
-    list_runs_api_v1_runs_get: {
+    get_runs_api_v1_runs_get: {
         parameters: {
             query?: {
                 kind?: components["schemas"]["PipelineRunKind"] | null;
@@ -5374,7 +5244,9 @@ export interface operations {
             };
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -5387,17 +5259,8 @@ export interface operations {
                     "application/json": components["schemas"]["Page_Run_"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5407,14 +5270,16 @@ export interface operations {
             };
         };
     };
-    get_run_api_v1_runs__id__get: {
+    get_run_by_id_api_v1_runs__id__get: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -5427,17 +5292,8 @@ export interface operations {
                     "application/json": components["schemas"]["Run"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5447,14 +5303,16 @@ export interface operations {
             };
         };
     };
-    cancel_run_api_v1_runs__id__cancel_post: {
+    post_run_cancel_api_v1_runs__id__cancel_post: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -5467,17 +5325,8 @@ export interface operations {
                     "application/json": components["schemas"]["Run"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5487,54 +5336,16 @@ export interface operations {
             };
         };
     };
-    get_scoring_config_api_v1_scoring_configs__id__get: {
+    activate_scoring_config_route_api_v1_scoring_configs__config_id__activate_post: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                id: string;
+                config_id: string;
             };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ScoringConfig"];
-                };
+            cookie?: {
+                leadradar_session?: string | null;
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    activate_scoring_config_api_v1_scoring_configs__id__activate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
         };
         requestBody: {
             content: {
@@ -5551,8 +5362,8 @@ export interface operations {
                     "application/json": components["schemas"]["ScoringConfig"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5560,8 +5371,32 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Not Implemented */
-            501: {
+        };
+    };
+    get_scoring_config_route_api_v1_scoring_configs__id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoringConfigModel"];
+                };
+            };
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5591,17 +5426,8 @@ export interface operations {
                     "application/json": components["schemas"]["ScoringPreview"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5616,7 +5442,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -5629,17 +5457,8 @@ export interface operations {
                     "application/json": components["schemas"]["Service"][];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5649,12 +5468,14 @@ export interface operations {
             };
         };
     };
-    create_service_api_v1_services_post: {
+    create_service_route_api_v1_services_post: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -5671,17 +5492,8 @@ export interface operations {
                     "application/json": components["schemas"]["Service"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5691,14 +5503,16 @@ export interface operations {
             };
         };
     };
-    get_service_api_v1_services__id__get: {
+    get_service_route_api_v1_services__id__get: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -5711,17 +5525,8 @@ export interface operations {
                     "application/json": components["schemas"]["Service"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5731,14 +5536,16 @@ export interface operations {
             };
         };
     };
-    update_service_api_v1_services__id__patch: {
+    update_service_route_api_v1_services__id__patch: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -5755,17 +5562,8 @@ export interface operations {
                     "application/json": components["schemas"]["Service"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5795,17 +5593,8 @@ export interface operations {
                     "application/json": components["schemas"]["Run"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5844,17 +5633,8 @@ export interface operations {
                     "application/json": components["schemas"]["ProspectPage"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5864,14 +5644,16 @@ export interface operations {
             };
         };
     };
-    list_questions_api_v1_services__id__questions_get: {
+    list_questions_route_api_v1_services__id__questions_get: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -5884,17 +5666,8 @@ export interface operations {
                     "application/json": components["schemas"]["SignalQuestion"][];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5904,14 +5677,16 @@ export interface operations {
             };
         };
     };
-    create_question_api_v1_services__id__questions_post: {
+    create_question_route_api_v1_services__id__questions_post: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -5928,17 +5703,8 @@ export interface operations {
                     "application/json": components["schemas"]["SignalQuestion"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5948,14 +5714,16 @@ export interface operations {
             };
         };
     };
-    list_scoring_configs_api_v1_services__id__scoring_configs_get: {
+    list_scoring_configs_route_api_v1_services__id__scoring_configs_get: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -5965,20 +5733,11 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ScoringConfigSummary"][];
+                    "application/json": components["schemas"]["ScoringConfigSummaryModel"][];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5988,14 +5747,16 @@ export interface operations {
             };
         };
     };
-    update_scoring_draft_api_v1_services__id__scoring_configs_draft_put: {
+    save_scoring_draft_route_api_v1_services__id__scoring_configs_draft_put: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -6009,20 +5770,11 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ScoringConfig"];
+                    "application/json": components["schemas"]["ScoringConfigModel"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6032,12 +5784,14 @@ export interface operations {
             };
         };
     };
-    list_source_plugins_api_v1_source_plugins_get: {
+    get_source_plugins_api_v1_source_plugins_get: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -6050,17 +5804,8 @@ export interface operations {
                     "application/json": components["schemas"]["SourcePlugin"][];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6070,14 +5815,16 @@ export interface operations {
             };
         };
     };
-    update_source_plugin_api_v1_source_plugins__code__patch: {
+    patch_source_plugin_api_v1_source_plugins__code__patch: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                code: string;
+                code: components["schemas"]["SourcePluginCode"];
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -6094,17 +5841,8 @@ export interface operations {
                     "application/json": components["schemas"]["SourcePlugin"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6114,12 +5852,14 @@ export interface operations {
             };
         };
     };
-    list_users_api_v1_users_get: {
+    get_users_api_v1_users_get: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -6132,17 +5872,8 @@ export interface operations {
                     "application/json": components["schemas"]["User"][];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6152,12 +5883,14 @@ export interface operations {
             };
         };
     };
-    create_user_api_v1_users_post: {
+    create_user_route_api_v1_users_post: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -6174,17 +5907,8 @@ export interface operations {
                     "application/json": components["schemas"]["User"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6194,14 +5918,16 @@ export interface operations {
             };
         };
     };
-    update_user_api_v1_users__id__patch: {
+    update_user_route_api_v1_users__user_id__patch: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                id: string;
+                user_id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -6218,17 +5944,8 @@ export interface operations {
                     "application/json": components["schemas"]["User"];
                 };
             };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
+            /** @description Error */
+            default: {
                 headers: {
                     [name: string]: unknown;
                 };

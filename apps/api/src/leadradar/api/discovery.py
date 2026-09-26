@@ -4,11 +4,12 @@ Every route is a declared stub answering `501 NOT_IMPLEMENTED`."""
 from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict
+from pydantic.json_schema import SkipJsonSchema
 
-from leadradar.api.accounts_and_contacts import Account
+from leadradar.api.accounts import Account
 from leadradar.api.common import Page
 from leadradar.api.router_utils import stub_router
-from leadradar.api.runs_and_plugins import Run
+from leadradar.api.runs_and_source_plugins import Run
 from leadradar.core.enums import DiscoveryCandidateOrigin, DiscoveryCandidateStatus
 
 router = stub_router("discovery")
@@ -51,8 +52,8 @@ class CandidateDecision(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    domain: str | None = None
-    reason: str | None = None
+    domain: str | SkipJsonSchema[None] = None
+    reason: str | SkipJsonSchema[None] = None
 
 
 @router.post("/services/{id}/discovery-runs", response_model=Run, status_code=202)

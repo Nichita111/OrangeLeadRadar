@@ -38,6 +38,7 @@ def test_settings_reject_an_unknown_fixture_mode() -> None:
 def test_repr_of_settings_never_contains_the_password_or_the_openrouter_key() -> None:
     settings = ApiSettings(
         database_url=SecretStr("postgresql://u:s3cret-db-password@localhost/db"),
+        migration_database_url=SecretStr("postgresql://u:s3cret-db-password@localhost/db"),
         openrouter_api_key=SecretStr("s3cret-openrouter-key"),
     )
     assert "s3cret-db-password" not in repr(settings)
@@ -47,7 +48,10 @@ def test_repr_of_settings_never_contains_the_password_or_the_openrouter_key() ->
 
 
 def test_impact_and_clock_keys_take_their_runtime_defaults() -> None:
-    settings = ApiSettings(database_url=SecretStr("postgresql://u:p@localhost/db"))
+    settings = ApiSettings(
+        database_url=SecretStr("postgresql://u:p@localhost/db"),
+        migration_database_url=SecretStr("postgresql://o:p@localhost/db"),
+    )
 
     assert settings.impact_period_days == 30
     assert settings.manual_research_minutes_per_account == 120
@@ -58,6 +62,7 @@ def test_impact_and_clock_keys_are_overridden_from_the_environment(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@localhost/db")
+    monkeypatch.setenv("MIGRATION_DATABASE_URL", "postgresql://o:p@localhost/db")
     monkeypatch.setenv("IMPACT_PERIOD_DAYS", "14")
     monkeypatch.setenv("MANUAL_RESEARCH_MINUTES_PER_ACCOUNT", "90")
     monkeypatch.setenv("CLOCK_FILE", "/tmp/now.txt")
@@ -74,6 +79,7 @@ def test_a_logged_settings_object_never_contains_the_password_or_the_key(
 ) -> None:
     settings = ApiSettings(
         database_url=SecretStr("postgresql://u:s3cret-db-password@localhost/db"),
+        migration_database_url=SecretStr("postgresql://u:s3cret-db-password@localhost/db"),
         openrouter_api_key=SecretStr("s3cret-openrouter-key"),
     )
     record = logging.LogRecord(
@@ -92,17 +98,33 @@ def test_a_logged_settings_object_never_contains_the_password_or_the_key(
 
 @pytest.mark.parametrize("level", ["DEBUG", "INFO", "WARNING", "ERROR"])
 def test_log_level_accepts_the_four_documented_values(level: str) -> None:
-    api = ApiSettings.model_validate({"database_url": "postgresql://u:p@h/db", "log_level": level})
-    worker = WorkerSettings.model_validate({"log_level": level})
+    api = ApiSettings.model_validate(
+        {
+            "database_url": "postgresql://u:p@h/db",
+            "migration_database_url": "postgresql://u:p@h/db",
+            "log_level": level,
+        }
+    )
+    worker = WorkerSettings.model_validate(
+        {"database_url": "postgresql://u:p@h/db", "log_level": level}
+    )
     assert api.log_level == level
     assert worker.log_level == level
 
 
 def test_log_level_refuses_an_unknown_value() -> None:
     with pytest.raises(ValidationError):
-        ApiSettings.model_validate({"database_url": "postgresql://u:p@h/db", "log_level": "TRACE"})
+        ApiSettings.model_validate(
+            {
+                "database_url": "postgresql://u:p@h/db",
+                "migration_database_url": "postgresql://u:p@h/db",
+                "log_level": "TRACE",
+            }
+        )
     with pytest.raises(ValidationError):
-        WorkerSettings.model_validate({"log_level": "TRACE"})
+        WorkerSettings.model_validate(
+            {"database_url": "postgresql://u:p@h/db", "log_level": "TRACE"}
+        )
 
 
 @pytest.mark.parametrize("entry_point", ["leadradar.api.main", "leadradar.worker.main"])

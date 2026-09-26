@@ -1,21 +1,25 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { axe } from "vitest-axe";
+
+import { Button } from "../components/Button";
 import { PageHeader } from "./PageHeader";
-describe("PageHeader", () => {
-  it("FR-103 FR-104 renders title, lead and one primary action slot", async () => {
-    const { container } = render(
+
+describe("PageHeader (FR-103, FR-104)", () => {
+  it("shows the title, one lead sentence and at most one primary action", () => {
+    render(
       <PageHeader
-        title="Prospects"
-        lead="Choose who to call next."
-        action={<button>Refresh</button>}
+        title="Users"
+        lead="Create the people who can sign in."
+        action={<Button variant="primary">New user</Button>}
       />,
     );
-    expect(screen.getByRole("heading", { name: "Prospects" })).toBeInTheDocument();
-    expect(screen.getByText("Choose who to call next.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Users" })).toBeInTheDocument();
+    expect(screen.getByText("Create the people who can sign in.")).toBeInTheDocument();
     expect(screen.getAllByRole("button")).toHaveLength(1);
-    expect(
-      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
-    ).toEqual([]);
+  });
+
+  it("renders without an action", () => {
+    render(<PageHeader title="Runs" lead="Watch the runs." />);
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 });

@@ -1,9 +1,10 @@
 """Router of the [Prospects and evidence](/architecture/interfaces.md#prospects-and-evidence)
-family: `API-39` to `API-45`. [`LeadFeedback`](/architecture/interfaces.md#leadfeedback) and
-[`FindingView`](/architecture/interfaces.md#findingview) are defined by
-[Feedback and alerts](/architecture/interfaces.md#feedback-and-alerts), which `API-46` and
-`API-47` need them for, and imported back here for `ScoreView.lead_feedback` and `API-42`, so
-neither is defined twice. Every route is a declared stub answering `501 NOT_IMPLEMENTED`."""
+family: `API-39`, `API-40`, `API-42` to `API-45`. `API-41` (score history) is built in
+`leadradar.api.feedback_and_alerts`, which shares its `account_id`/`service_id` pair with
+`API-46`. [`LeadFeedback`](/architecture/interfaces.md#leadfeedback) and
+[`FindingView`](/architecture/interfaces.md#findingview) are defined there too, which `API-46`
+and `API-47` need them for, and imported back here for `ScoreView.lead_feedback` and `API-42`, so
+neither is defined twice. Every route here is a declared stub answering `501 NOT_IMPLEMENTED`."""
 
 from __future__ import annotations
 
@@ -24,7 +25,6 @@ from leadradar.core.enums import (
     DocumentSourceType,
     FindingStatus,
     FindingStrength,
-    PipelineRunTrigger,
     SourcePluginCode,
 )
 from leadradar.core.score_breakdown import (
@@ -46,7 +46,7 @@ class ProspectAccount(BaseModel):
     id: str
     name: str
     domain: str
-    country_code: str
+    country_code: str | None
     industry: str | None
 
 
@@ -61,6 +61,17 @@ class ProspectTopSignal(BaseModel):
     observed_at: str
 
 
+class ProspectReason(BaseModel):
+    """`ProspectRow.reason`: null when `RANKED`; the other members are null besides the one its
+    standing names."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    min_fit: int | None
+    disqualifier_labels: list[str] | None
+    customer_marked_by_name: str | None
+
+
 class ProspectRow(BaseModel):
     """[`ProspectRow`](/architecture/interfaces.md#prospectrow)."""
 
@@ -72,7 +83,8 @@ class ProspectRow(BaseModel):
     intent: int
     priority: int
     standing: AccountScoreStanding
-    band: AccountScoreBand
+    band: AccountScoreBand | None
+    reason: ProspectReason | None
     top_signals: list[ProspectTopSignal]
     finding_count: int
     unread_alerts: int
@@ -99,10 +111,11 @@ class Override(BaseModel):
     note: str
     rule_label: str
     status: DisqualifierOverrideStatus
-    created_by_name: str | None
-    created_at: str | None
+    created_by_name: str
+    created_at: str
     revoked_by_name: str | None
     revoked_at: str | None
+    run_id: str | None
 
 
 class OverrideCreate(BaseModel):
@@ -115,10 +128,11 @@ class OverrideCreate(BaseModel):
 
 
 class ScoreViewQuestionBreakdown(QuestionBreakdown):
-    """`ScoreView.breakdown`'s question entries, with `question_text` added on read
-    ([`ScoreView`](/architecture/interfaces.md#scoreview))."""
+    """`ScoreView.breakdown`'s question entries, with `question_text` and the counted finding's
+    `observed_at` added on read ([`ScoreView`](/architecture/interfaces.md#scoreview))."""
 
     question_text: str
+    observed_at: datetime | None
 
 
 class ScoreViewIntentBreakdown(BaseModel):
@@ -146,7 +160,7 @@ class ScoreViewBreakdown(BaseModel):
     disqualifiers: list[DisqualifierBreakdown]
     priority: int
     standing: AccountScoreStanding
-    band: AccountScoreBand
+    band: AccountScoreBand | None
 
 
 class ScoreView(BaseModel):
@@ -163,7 +177,7 @@ class ScoreView(BaseModel):
     intent: int
     priority: int
     standing: AccountScoreStanding
-    band: AccountScoreBand
+    band: AccountScoreBand | None
     rank: int | None
     breakdown: ScoreViewBreakdown
     overrides: list[Override]
@@ -171,52 +185,13 @@ class ScoreView(BaseModel):
     last_crm_sync: CrmSyncView | None
 
 
-class ScoreChangeFinding(BaseModel):
-    """One entry of `ScoreChange.findings_added` and `.findings_removed`."""
-
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    finding_id: str
-    question_key: str
-
-
-class ScoreChangeOverride(BaseModel):
-    """One entry of `ScoreChange.overrides_changed`."""
-
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    rule_key: str
-    overridden: bool
-
-
-class ScoreChange(BaseModel):
-    """[`ScoreChange`](/architecture/interfaces.md#scorechange)."""
-
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    score_id: str
-    as_of: str
-    fit: int
-    intent: int
-    priority: int
-    standing: AccountScoreStanding
-    band: AccountScoreBand
-    scoring_version: int
-    trigger: PipelineRunTrigger
-    run_id: str
-    change_note: str | None
-    findings_added: list[ScoreChangeFinding]
-    findings_removed: list[ScoreChangeFinding]
-    overrides_changed: list[ScoreChangeOverride]
-
-
 class FindingDocument(BaseModel):
-    """`FindingView.document`, reused by `EvidenceView.document`."""
+    """`FindingView.document`, reused by `EvidenceView.document` ("as in `FindingView`")."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     id: str
-    title: str
+    title: str | None
     url: str
     source_type: DocumentSourceType
     plugin_code: SourcePluginCode
@@ -257,12 +232,6 @@ async def list_prospects(
 @router.get("/accounts/{id}/scores/{service_id}", response_model=ScoreView)
 async def get_score(id: str, service_id: str) -> ScoreView:
     """`API-40`."""
-    raise AssertionError("unreachable: contract_not_built already raised")
-
-
-@router.get("/accounts/{id}/scores/{service_id}/history", response_model=list[ScoreChange])
-async def get_score_history(id: str, service_id: str) -> list[ScoreChange]:
-    """`API-41`."""
     raise AssertionError("unreachable: contract_not_built already raised")
 
 

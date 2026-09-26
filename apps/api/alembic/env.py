@@ -12,10 +12,10 @@ from __future__ import annotations
 import importlib
 
 from sqlalchemy import create_engine, pool
+from sqlalchemy.engine import make_url
 
 from alembic import context
 from leadradar.db.base import Base
-from leadradar.db.session import psycopg_url
 from leadradar.settings import ApiSettings
 
 # Imported for its side effect: populates Base.metadata with every model.
@@ -27,19 +27,35 @@ target_metadata = Base.metadata
 
 def _settings() -> ApiSettings:
     settings = config.attributes.get("settings")
-    if settings is None:
+    if not isinstance(settings, ApiSettings):
         raise RuntimeError(
             "alembic/env.py needs an ApiSettings instance in config.attributes['settings']; "
             "it reads no environment variable itself."
         )
-    if not isinstance(settings, ApiSettings):
-        raise RuntimeError("config.attributes['settings'] must be an ApiSettings instance.")
     return settings
+
+
+def run_migrations_offline() -> None:
+    settings = _settings()
+    url = make_url(settings.migration_database_url.get_secret_value()).set(
+        drivername="postgresql+psycopg"
+    )
+    config.attributes["embedding_dim"] = settings.embedding_dim
+    context.configure(
+        url=str(url),
+        target_metadata=target_metadata,
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
+    )
+    with context.begin_transaction():
+        context.run_migrations()
 
 
 def run_migrations_online() -> None:
     settings = _settings()
-    url = psycopg_url(settings.database_url.get_secret_value())
+    url = make_url(settings.migration_database_url.get_secret_value()).set(
+        drivername="postgresql+psycopg"
+    )
     config.attributes["embedding_dim"] = settings.embedding_dim
     connectable = create_engine(url, poolclass=pool.NullPool)
     with connectable.connect() as connection:
@@ -49,4 +65,7 @@ def run_migrations_online() -> None:
     connectable.dispose()
 
 
-run_migrations_online()
+if context.is_offline_mode():
+    run_migrations_offline()
+else:
+    run_migrations_online()

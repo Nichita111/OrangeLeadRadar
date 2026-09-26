@@ -1,35 +1,41 @@
-import type { ReactElement } from "react";
+import { SignOutIcon } from "@phosphor-icons/react";
 import { useNavigate } from "react-router";
 
-import { useSignOut } from "../api/auth";
-import type { components } from "../api/schema.gen";
-import { Button } from "../components/ui/button";
+import { useLogout } from "../api/authenticationAndUsers";
+import { IconButton } from "../components/Button";
+import { Callout } from "../components/Callout";
+import { enumLabel } from "./format";
+import { useCurrentUser } from "./CurrentUser";
 
-type User = components["schemas"]["AuthenticatedUser"];
-
-export function UserCard({ user }: { user: User }): ReactElement {
-  const signOut = useSignOut();
+/** FR-004: the display name and role, and Sign out; a failed sign-out shows its message. */
+export function UserCard() {
+  const user = useCurrentUser();
   const navigate = useNavigate();
+  const logout = useLogout();
   return (
-    <div className="rounded-card border border-border p-3">
-      <p className="font-medium text-text">{user.display_name}</p>
-      <div className="mt-1 flex items-center justify-between gap-2">
-        <span className="text-sm text-text-secondary">
-          {user.role === "ADMIN" ? "Admin" : "Sales"}
-        </span>
-        <Button
-          variant="ghost"
+    <section
+      aria-label="Signed in user"
+      className="flex flex-col gap-2 rounded-card border border-border bg-surface p-3"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 flex-col">
+          <span className="truncate font-semibold">{user.display_name}</span>
+          <span className="text-hint text-text-tertiary">{enumLabel(user.role)}</span>
+        </div>
+        <IconButton
+          label="Sign out"
+          icon={<SignOutIcon size={20} aria-hidden />}
+          disabled={logout.isPending}
           onClick={() => {
-            signOut.mutate(undefined, {
+            logout.mutate(undefined, {
               onSuccess: () => {
-                void navigate("/login");
+                void navigate("/login", { replace: true });
               },
             });
           }}
-        >
-          Sign out
-        </Button>
+        />
       </div>
-    </div>
+      {logout.isError && <Callout kind="error">{logout.error.message}</Callout>}
+    </section>
   );
 }

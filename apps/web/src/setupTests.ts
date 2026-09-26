@@ -1,13 +1,28 @@
 import "@testing-library/jest-dom/vitest";
+import { cleanup } from "@testing-library/react";
+import { afterAll, afterEach, beforeAll, beforeEach } from "vitest";
 
-HTMLElement.prototype.setPointerCapture = () => undefined;
-HTMLElement.prototype.releasePointerCapture = () => undefined;
+import {
+  installCanvasStub,
+  installMatchMedia,
+  installPointerStubs,
+  setReducedMotion,
+} from "./testEnvironment";
+import { server } from "./testServer";
 
-// jsdom implements neither: Radix's popper (Tooltip, Select) and sonner's toasts both measure
-// their content with a `ResizeObserver`.
-class NoopResizeObserver {
-  observe(): void {}
-  unobserve(): void {}
-  disconnect(): void {}
-}
-globalThis.ResizeObserver = NoopResizeObserver;
+beforeAll(() => {
+  server.listen({ onUnhandledRequest: "error" });
+});
+beforeEach(() => {
+  setReducedMotion(false);
+  installMatchMedia();
+  installPointerStubs();
+  installCanvasStub();
+});
+afterEach(() => {
+  cleanup();
+  server.resetHandlers();
+});
+afterAll(() => {
+  server.close();
+});

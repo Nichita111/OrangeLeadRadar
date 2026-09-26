@@ -1,17 +1,24 @@
-import type { components } from "../../api/schema.gen";
-import { decidedByLabel, strengthLabel } from "../../shell/labels";
+import { Chip } from "../Chip";
+import { ConfidenceWord } from "../../shell/ConfidenceWord";
+import { enumLabel, strengthLabel } from "../../shell/format";
+import type { Schemas } from "../../api/contract";
 
+/** `FR-115`: Weak, Clear or Strong, a confidence word ([FR-009](
+ * /architecture/services/frontend.md#screen-labels)), then the deciding check. */
 export function StrengthChip({
   strength,
+  confidence,
   decidedBy,
 }: {
-  strength: components["schemas"]["FindingStrength"];
-  decidedBy: components["schemas"]["FindingDecidedBy"];
+  strength: Schemas["FindingStrength"];
+  confidence: number;
+  decidedBy: Schemas["FindingDecidedBy"];
 }) {
   return (
-    <span className="inline-flex gap-2 rounded-full bg-cool-soft px-2 py-1 text-cool">
+    <Chip tone="neutral">
       <span>{strengthLabel(strength)}</span>
-      <span>{decidedByLabel(decidedBy)}</span>
-    </span>
+      <ConfidenceWord value={confidence} />
+      <span>{enumLabel(decidedBy)}</span>
+    </Chip>
   );
 }

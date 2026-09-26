@@ -1,7 +1,7 @@
 import { MinusCircleIcon, PlusCircleIcon } from "@phosphor-icons/react";
-import type { components } from "../../api/schema.gen";
+import type { Schemas } from "../../api/contract";
 
-type Question = components["schemas"]["ScoreViewQuestionBreakdown"];
+type Question = Schemas["ScoreViewQuestionBreakdown"];
 
 export function SignalRow({ question }: { question: Question }) {
   const positive = question.polarity === "POSITIVE";

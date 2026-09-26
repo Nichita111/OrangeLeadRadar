@@ -39,15 +39,14 @@ apps/web/src/
 ├── features/<slug>/      one folder per feature file, one component folder per screen
 ├── components/           shared primitives on Radix
 ├── components/motion/    animated components copied from React Bits, owned like the primitives
-├── mocks/                MSW handlers and typed fixtures, the only home of placeholder values
-└── styles/               tokens, fonts and motion values
+└── mocks/                MSW handlers of the contracts not yet built, development only
 ```
 
 A screen's folder is named after its heading; its components carry the `FR-` identifiers they implement in their test names.
 
 ## Mock layer
 
-With `MOCK_API` true, the handlers in `src/mocks/` answer the api's contracts, one module per interface family, from fixtures typed with the generated client. An invented value carries the comment `PLACEHOLDER(<origin>): <what replaces it>`, where origin is `wireframe`, `mockup` or `invented`. `npm run placeholders` lists every tag, and the linter refuses a tag outside `src/mocks/`. When a family is built in the api, its handlers are deleted.
+In development (`npm run dev`), Mock Service Worker answers the contracts the api has not built yet, from the handlers in `src/mocks/`, one module per interface family, typed with the generated client through `openapi-msw`, so a path, status or body the contract does not declare fails to compile. The production build carries no mock, which `npm run check:build` verifies. When the api builds a family, its handlers are deleted.
 
 ## Routing
 

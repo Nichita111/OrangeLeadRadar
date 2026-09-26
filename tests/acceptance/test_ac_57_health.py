@@ -45,8 +45,10 @@ def full_stack():
     """The whole Runtime table (docs/architecture/overview.md#runtime): web, api, worker, db
     and embedder, starting from no database (a fresh named volume)."""
     env = _compose_env()
-    compose(PROJECT, "up", "-d", "db", "api", "worker", "web", "embedder", env=env, check=False)
+    # `--build`: see conftest.stack - a project name reused run after run must not silently
+    # keep testing a stale image.
     try:
+        compose(PROJECT, "up", "-d", "--build", "db", "api", "worker", "web", "embedder", env=env, check=False)
         yield {"env": env}
     finally:
         compose(PROJECT, "down", "-v", env=env, check=False)

@@ -12,7 +12,7 @@ tags: [accounts-and-discovery, audit-trail, evaluation-and-feedback, identity-an
 
 **Transport and base path.** REST over HTTPS under `/api/v1`, JSON bodies in UTF-8, except the CSV upload of `API-22`. Identifiers are UUID strings; timestamps are ISO-8601 UTC. This file is the source of every contract; the OpenAPI document the api serves is generated from the same routes, and the frontend's typed client is generated from it, never written by hand.
 
-**Naming.** JSON field names are snake_case and carry the column name of their source of truth. Enum values are UPPER_SNAKE exactly as the [SQL store](/architecture/sql-store.md) defines them; a shape names an enum by linking its owning column and never lists its values.
+**Naming.** JSON field names are snake_case and carry the column name of their source of truth. Enum values are UPPER_SNAKE exactly as the [SQL store](/architecture/sql-store.md) defines them; a shape names an enum by linking its owning column and never lists its values. In a shape table, a field typed `optional` may be absent and is never `null`; a field whose type names `null` is always present.
 
 **Roles.** The roles column of every contracts table uses:
 
@@ -24,15 +24,17 @@ tags: [accounts-and-discovery, audit-trail, evaluation-and-feedback, identity-an
 
 Authorisation is enforced by the api on every route ([S-SEC-02](/requirements/system.md)); a signed-in user without the role gets `403 FORBIDDEN`.
 
-**Authentication.** `API-01` and `API-78` set an HTTP-only, `Secure`, `SameSite=Lax` session cookie whose token is recorded as a hash in [`auth_session`](/architecture/sql-store.md#auth_session) and expires after `SESSION_TTL_HOURS`. Every other route except `API-61` requires it and accepts no other credential. `API-02` revokes it.
+**Authentication.** `API-01` and `API-78` set an HTTP-only, `Secure`, `SameSite=Lax` session cookie, named `leadradar_session`, with `Path=/api/v1` and `Max-Age` of `SESSION_TTL_HOURS`; `API-02` clears it. Its token is recorded as a hash in [`auth_session`](/architecture/sql-store.md#auth_session) and expires after `SESSION_TTL_HOURS`. Every other route except `API-61` requires it and accepts no other credential. `API-02` revokes it.
 
 **CSRF.** A `POST`, `PUT`, `PATCH` or `DELETE` without an `X-Requested-With` header is refused `403 FORBIDDEN`. The browser reaches the api only through the frontend's proxy on the same origin.
 
 **Pagination.** A list marked `Page<T>` takes `page` (from 1) and `page_size` (default `PAGE_SIZE_DEFAULT`, at most `PAGE_SIZE_MAX`) and returns `{items: T[], page, page_size, total}`.
 
+**Array parameters.** An array query parameter is repeated under its name, without brackets, e.g. `band=HOT&band=WARM`.
+
 **Runs.** A request that starts background work answers `202` with the [`Run`](#run). A refresh requested while one is queued or running for the same account answers `200` with the existing run.
 
-**Envelope.** Success returns the resource. An error returns `{"error": {"code", "message", "details"?}}`, named `ErrorEnvelope` in the OpenAPI document, its `error` object `ErrorBody`:
+**Envelope.** Success returns the resource. An error returns `{"error": {"code", "message", "details"?}}`, named `ErrorEnvelope` in the OpenAPI document:
 
 | Code | HTTP | Raised when |
 |---|---|---|
@@ -42,11 +44,22 @@ Authorisation is enforced by the api on every route ([S-SEC-02](/requirements/sy
 | `CONFLICT` | 409 | A uniqueness or state rule refuses the change; `details.entity_id` names the conflicting row when there is one |
 | `NOT_CONFIGURED` | 409 | The contract needs an integration or plug-in key that is not configured |
 | `VALIDATION` | 422 | The input is invalid; `details.fields[]` lists `{field, message}`, where `field` is a body field name, a JSON pointer into it, or the name of a path or query parameter |
-| `LOCKED` | 423 | Too many failed sign-ins; `details.retry_after_min` |
+| `LOCKED` | 423 | Too many failed sign-ins; `details.retry_after_min`, the minutes until `locked_until`, rounded up |
 | `BUDGET_EXHAUSTED` | 429 | The [Budget guard](/architecture/rules.md#budget-guard) stops an LLM call; `details.resets_at` |
-| `UPSTREAM_UNAVAILABLE` | 503 | The classifier, the LLM, the embedder, HubSpot or a source plug-in is unavailable or returned invalid output; `details.dependency` is one value of the `details.dependency` column of [Degradation](/architecture/overview.md#degradation), `details.reason` says what failed in words |
-| `NOT_IMPLEMENTED` | 501 | The contract is declared but its feature is not built yet; answered to every caller, before authentication and before its input is validated |
+| `UPSTREAM_UNAVAILABLE` | 503 | The database, the classifier, the LLM, the embedder or HubSpot is unavailable or returned invalid output; `details.dependency` names which, as Dependencies lists, and `details.reason` says why |
+| `NOT_IMPLEMENTED` | 501 | The contract is declared but its feature is not built yet; answered to every caller after the CSRF check, before authentication and before its input is validated |
 | `INTERNAL` | 500 | Anything else |
+
+**Dependencies.** `details.dependency` takes exactly the values below; each names the row of [Degradation](/architecture/overview.md#degradation) whose behaviour applies. `BUDGET_EXHAUSTED` carries no `details.dependency`: its code alone names the LLM daily budget row. A source plug-in's failure is never the error of a contract; its run reports it.
+
+| Code | `details.dependency` | Raised when | Degradation row |
+|---|---|---|---|
+| `UPSTREAM_UNAVAILABLE` | `DATABASE` | The [SQL store](/architecture/sql-store.md) is unreachable | Database |
+| `UPSTREAM_UNAVAILABLE` | `CLASSIFIER` | A [Classifier](#classifier) call, `API-62`, fails | Classifier |
+| `UPSTREAM_UNAVAILABLE` | `LLM` | An [LLM](#llm) call, `API-63` to `API-66`, fails | OpenRouter |
+| `UPSTREAM_UNAVAILABLE` | `EMBEDDER` | An [Embedder](#embedder) call, `API-67`, fails | Embedder |
+| `UPSTREAM_UNAVAILABLE` | `HUBSPOT` | A [CRM](#crm) call, `API-70`, fails | HubSpot |
+| `BUDGET_EXHAUSTED` | — | The [Budget guard](/architecture/rules.md#budget-guard) stops an LLM call | LLM daily budget reached |
 
 Degraded behaviour is an explicit error, never a placeholder result ([Degradation](/architecture/overview.md#degradation)).
 
@@ -65,7 +78,9 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 | `API-78` | POST | `/auth/demo-login` | `-` | [`DemoLoginRequest`](#demologinrequest) → [`AuthenticatedUser`](#authenticateduser) |
 
 - `API-01` — wrong email or password answers `401` with one message that does not reveal which was wrong. The failure that reaches `LOGIN_MAX_FAILURES` locks the account for `LOGIN_LOCK_MINUTES`; while locked every attempt answers `423 LOCKED`. A disabled account answers `403 FORBIDDEN` only when the password is correct.
-- `API-06` — an Admin cannot change their own role or disable themselves (`409 CONFLICT`). Disabling a user revokes their sessions.
+- `API-04` — ordered by `display_name`.
+- `API-05` — answers `200` with the created user.
+- `API-06` — an Admin cannot change their own role or disable themselves (`409 CONFLICT`). Disabling a user revokes their sessions. A password reset changes only the hash. A request that changes nothing writes no audit row.
 - `API-78` — answers only while the api runs with `FIXTURE_MODE` `replay`, and `404 NOT_FOUND` in any other mode. It signs in as the [demo dataset](/architecture/overview.md#demo-dataset) user of the requested role and answers exactly as `API-01` with that user's correct password would: the same session cookie and `LOGIN_SUCCEEDED` row, `403 FORBIDDEN` for a disabled user and `423 LOCKED` for a locked one. It answers `404 NOT_FOUND` when that user does not exist.
 
 ### Authentication and users shapes
@@ -116,7 +131,7 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 | `display_name` | string, optional | [`app_user`](/architecture/sql-store.md#app_user) |
 | `role` | enum, optional | [`app_user`](/architecture/sql-store.md#app_user) `role` |
 | `status` | enum, optional | [`app_user`](/architecture/sql-store.md#app_user) `status` |
-| `password` | string, optional | a reset; hashed into `password_hash` |
+| `password` | string, optional, at least `PASSWORD_MIN_LENGTH` characters | a reset; hashed into `password_hash` |
 
 ## Services and questions
 
@@ -564,11 +579,11 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `API-44` | POST | `/accounts/{id}/scores/{service_id}/overrides` | `A` | [`OverrideCreate`](#overridecreate) → [`Override`](#override) |
 | `API-45` | POST | `/overrides/{id}/revoke` | `A` | — → [`Override`](#override) |
 
-- `API-39` — the current score rows of the service's active accounts; `sort` is `priority` (the ranking order of [Priority, standing and band](/architecture/rules.md#priority-standing-and-band), the default), `intent`, `fit`, `name` or `last_refreshed`.
+- `API-39` — the current score rows of the service's active accounts; `q` matches as in `API-20`; `sort` is `priority` (the ranking order of [Priority, standing and band](/architecture/rules.md#priority-standing-and-band), the default), `intent`, `fit`, `name` or `last_refreshed`.
 - `API-40` — `404` when the account has no score for the service yet.
 - `API-41` — newest first; each entry compares a score row with the one before it.
 - `API-42` — default `status` is `ACTIVE`; ordered by contribution, then `observed_at` descending.
-- `API-44` — the rule key must name a rule of the service's active settings that currently matches for the account (`422` otherwise); an active override for the same rule answers `409`. Enqueues a `RESCORE` with trigger `OVERRIDE`. `API-45` does the same on revocation.
+- `API-44` — the rule key must name a rule of the service's active settings that currently matches for the account (`422` otherwise); an active override for the same rule answers `409`. Enqueues a `RESCORE` with trigger `OVERRIDE`. `API-45` does the same on revocation. Both answer the [`Override`](#override) with the `run_id` of the `RESCORE` they enqueued, an exception to Runs.
 
 ### Prospects and evidence shapes
 
@@ -587,6 +602,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `account` | `{id, name, domain, country_code, industry}` | [`account`](/architecture/sql-store.md#account) |
 | `fit`, `intent`, `priority` | integer | current [`account_score`](/architecture/sql-store.md#account_score) |
 | `standing`, `band` | enum | current [`account_score`](/architecture/sql-store.md#account_score) |
+| `reason` | `{min_fit, disqualifier_labels, customer_marked_by_name}`, null | null when `RANKED`. When `BELOW_FIT`, `min_fit` is the score's settings `min_fit`; when `DISQUALIFIED`, `disqualifier_labels` are the `label`s of the breakdown's matched disqualifiers that are not overridden; when `CUSTOMER`, `customer_marked_by_name` is the `display_name` of the in-force [`lead_feedback`](/architecture/sql-store.md#lead_feedback)'s user; the other members are null |
 | `top_signals` | array of `{question_key, question_text, strength, observed_at}`, at most `PROSPECT_TOP_SIGNALS` | the positive findings with the most `points` in the breakdown |
 | `finding_count` | integer | in-force [`finding`](/architecture/sql-store.md#finding) rows of the service |
 | `unread_alerts` | integer | unacknowledged [`alert`](/architecture/sql-store.md#alert) rows |
@@ -602,7 +618,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `as_of`, `fit`, `intent`, `priority` | | [`account_score`](/architecture/sql-store.md#account_score) |
 | `standing`, `band` | enum | [`account_score`](/architecture/sql-store.md#account_score) |
 | `rank` | integer, null | as [`ProspectRow`](#prospectrow) |
-| `breakdown` | object | the [Score breakdown](/architecture/rules.md#score-breakdown), with each question entry's `question_text` added |
+| `breakdown` | object | the [Score breakdown](/architecture/rules.md#score-breakdown), with each question entry's `question_text` and its counted finding's `observed_at` added |
 | `overrides` | [`Override`](#override)`[]` | the account's overrides for the service, active and revoked |
 | `lead_feedback` | [`LeadFeedback`](#leadfeedback), null | the in-force [`lead_feedback`](/architecture/sql-store.md#lead_feedback) |
 | `last_crm_sync` | [`CrmSyncView`](#crmsyncview), null | the latest [`crm_sync`](/architecture/sql-store.md#crm_sync) of the account and service |
@@ -651,6 +667,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `rule_label` | string | the rule's `label` in the active settings |
 | `status` | enum | [`disqualifier_override`](/architecture/sql-store.md#disqualifier_override) `status` |
 | `created_by_name`, `created_at`, `revoked_by_name`, `revoked_at` | string, null | [`disqualifier_override`](/architecture/sql-store.md#disqualifier_override) |
+| `run_id` | string, null | the `RESCORE` run the request enqueued; null on reads |
 
 #### OverrideCreate
 

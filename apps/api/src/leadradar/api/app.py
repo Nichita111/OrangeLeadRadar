@@ -12,26 +12,27 @@ import httpx
 from fastapi import FastAPI
 
 from leadradar.api import (
+    accounts,
     accounts_and_contacts,
     audit_and_health,
     auth_and_users,
+    configuration,
     discovery,
     evaluation,
     feedback_and_alerts,
-    industries_and_markets,
     outreach_and_crm,
     prospects_and_evidence,
-    runs_and_plugins,
     scoring,
     services_and_questions,
 )
+from leadradar.api.constants import API_PREFIX
 from leadradar.api.csrf import CsrfMiddleware
-from leadradar.api.errors import register_error_handlers
+from leadradar.api.errors import ErrorEnvelope, register_error_handlers
 from leadradar.api.request_identity import RequestIdentityMiddleware
+from leadradar.api.runs_and_source_plugins import router as runs_and_source_plugins_router
+from leadradar.clock import build_clock
 from leadradar.db.session import build_engine
 from leadradar.settings import ApiSettings
-
-API_PREFIX = "/api/v1"
 
 
 def _build_lifespan(
@@ -42,6 +43,7 @@ def _build_lifespan(
         app.state.settings = settings
         app.state.engine = build_engine(settings.database_url.get_secret_value())
         app.state.http_client = httpx.AsyncClient()
+        app.state.clock = build_clock(settings)
         try:
             yield
         finally:
@@ -59,24 +61,27 @@ def create_app(settings: ApiSettings) -> FastAPI:
         docs_url=None,
         redoc_url=None,
         lifespan=_build_lifespan(settings),
+        responses={"default": {"model": ErrorEnvelope, "description": "Error"}},
     )
-    # `CsrfMiddleware` is added before `RequestIdentityMiddleware` so the latter wraps it
-    # (`Starlette.add_middleware` prepends): the request-identity layer stays outermost, so a
-    # CSRF refusal still carries `X-Request-Id` and its one request log line.
+    # CSRF is added first so it ends up inside `RequestIdentityMiddleware` (the outermost
+    # middleware, added last): its `403` response still carries `X-Request-Id` and is written to
+    # the request log line ([`csrf.py`](csrf.py)).
     app.add_middleware(CsrfMiddleware)
     app.add_middleware(RequestIdentityMiddleware)
     register_error_handlers(app)
     app.include_router(audit_and_health.router, prefix=API_PREFIX)
-    app.include_router(audit_and_health.audit_stub_router, prefix=API_PREFIX)
-    app.include_router(auth_and_users.router, prefix=API_PREFIX)
+    app.include_router(auth_and_users.build_auth_router(settings), prefix=API_PREFIX)
+    app.include_router(auth_and_users.build_users_router(settings), prefix=API_PREFIX)
+    app.include_router(auth_and_users.demo_login_stub_router, prefix=API_PREFIX)
+    app.include_router(configuration.router, prefix=API_PREFIX)
     app.include_router(services_and_questions.router, prefix=API_PREFIX)
     app.include_router(scoring.router, prefix=API_PREFIX)
-    app.include_router(industries_and_markets.router, prefix=API_PREFIX)
+    app.include_router(scoring.scoring_stub_router, prefix=API_PREFIX)
+    app.include_router(accounts.router, prefix=API_PREFIX)
     app.include_router(accounts_and_contacts.router, prefix=API_PREFIX)
-    app.include_router(runs_and_plugins.router, prefix=API_PREFIX)
+    app.include_router(runs_and_source_plugins_router, prefix=API_PREFIX)
     app.include_router(discovery.router, prefix=API_PREFIX)
     app.include_router(feedback_and_alerts.router, prefix=API_PREFIX)
-    app.include_router(feedback_and_alerts.alerts_stub_router, prefix=API_PREFIX)
     app.include_router(outreach_and_crm.router, prefix=API_PREFIX)
     app.include_router(prospects_and_evidence.router, prefix=API_PREFIX)
     app.include_router(evaluation.router, prefix=API_PREFIX)

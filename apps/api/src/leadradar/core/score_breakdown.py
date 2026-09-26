@@ -6,7 +6,6 @@ I/O: the breakdown itself is read by the capability function."""
 
 from __future__ import annotations
 
-import uuid
 from datetime import datetime
 from typing import Literal
 from uuid import UUID
@@ -19,7 +18,7 @@ from leadradar.core.enums import (
     FindingStrength,
     SignalQuestionPolarity,
 )
-from leadradar.core.scoring_settings import IcpCriterionKind, WeightLevel
+from leadradar.core.scoring_settings import DisqualifierKind, ICPCriterionKind, WeightLevel
 
 Match = Literal["MATCH", "MISMATCH", "UNKNOWN"]
 
@@ -30,7 +29,7 @@ class FitCriterionBreakdown(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     key: str
-    kind: IcpCriterionKind
+    kind: ICPCriterionKind
     weight: WeightLevel
     weight_value: float
     attribute: str | None
@@ -49,7 +48,8 @@ class FitBreakdown(BaseModel):
 
 
 class QuestionBreakdown(BaseModel):
-    """One entry of `intent.questions`."""
+    """One entry of `intent.questions`: `finding_id`, `strength` and `decay` are `null` when the
+    question has no counted finding; a question counts exactly when its `finding_id` is set."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -57,9 +57,9 @@ class QuestionBreakdown(BaseModel):
     polarity: SignalQuestionPolarity
     weight: WeightLevel
     weight_value: float
-    finding_id: UUID
-    strength: FindingStrength
-    decay: float
+    finding_id: UUID | None
+    strength: FindingStrength | None
+    decay: float | None
     value: float
     points: float
 
@@ -77,12 +77,16 @@ class IntentBreakdown(BaseModel):
 
 
 class DisqualifierBreakdown(BaseModel):
-    """One entry of `disqualifiers`."""
+    """One entry of `disqualifiers`: names the fact it tests by `kind` and its `criterion_key`
+    or `question_key`, the other null."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     key: str
     label: str
+    kind: DisqualifierKind
+    criterion_key: str | None
+    question_key: str | None
     matched: bool
     overridden: bool
     override_id: UUID | None
@@ -101,10 +105,10 @@ class ScoreBreakdown(BaseModel):
     disqualifiers: list[DisqualifierBreakdown]
     priority: int
     standing: AccountScoreStanding
-    band: AccountScoreBand
+    band: AccountScoreBand | None
 
 
-def counted_points(breakdown: dict[str, object], finding_id: uuid.UUID) -> float | None:
+def counted_points(breakdown: dict[str, object], finding_id: UUID) -> float | None:
     """The `points` of the `intent.questions[]` entry whose `finding_id` is `finding_id`, else
     `None` — the finding is not the counted finding of its question, or was never intent-scored."""
     intent = breakdown.get("intent")
