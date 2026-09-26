@@ -12,8 +12,8 @@ from alembic.config import Config
 
 from alembic import command
 from leadradar.api.app import create_app
-from leadradar.api.settings import ApiSettings
 from leadradar.logs import configure_json_logging
+from leadradar.settings import ApiSettings
 
 logger = logging.getLogger(__name__)
 

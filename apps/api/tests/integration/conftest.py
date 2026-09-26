@@ -15,8 +15,8 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from testcontainers.community.postgres import PostgresContainer
 
 from alembic import command
-from leadradar.api.settings import ApiSettings
 from leadradar.db.session import build_engine
+from leadradar.settings import ApiSettings
 
 _ALEMBIC_ROOT = __import__("pathlib").Path(__file__).resolve().parents[2]
 

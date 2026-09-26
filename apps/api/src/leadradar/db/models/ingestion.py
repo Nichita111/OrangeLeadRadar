@@ -11,7 +11,6 @@ from sqlalchemy import Computed, Index, SmallInteger, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column
 
-from leadradar.api.settings import ApiSettings
 from leadradar.core.enums import (
     DocumentSourceType,
     JobStatus,
@@ -24,11 +23,6 @@ from leadradar.core.enums import (
 )
 from leadradar.db.base import TimestampedBase
 from leadradar.db.types import fk_uuid, pg_enum
-
-# `chunk.embedding` is frozen at the dimension in force when the first migration runs
-# (see The first migration, [design](/.work/stack-foundation/design.md)); the model uses the
-# same configuration default so the two never drift silently.
-EMBEDDING_DIM: int = ApiSettings.model_fields["embedding_dim"].default
 
 
 class SourcePlugin(TimestampedBase):
@@ -161,7 +155,11 @@ class Chunk(TimestampedBase):
     char_end: Mapped[int]
     section: Mapped[str | None]
     text: Mapped[str | None]
-    embedding: Mapped[list[float] | None] = mapped_column(Vector(EMBEDDING_DIM), nullable=True)
+    # `vector(EMBEDDING_DIM)` ([`embedding`](/architecture/sql-store.md#chunk)) is frozen by the
+    # first migration at the dimension in force when it runs (`alembic/env.py`, from the
+    # entry point's `ApiSettings`); the model declares a dimensionless `Vector()` so this module
+    # reads no configuration of its own, and the migration stays the only owner of `vector(N)`.
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(), nullable=True)
     lexemes: Mapped[str | None] = mapped_column(
         TSVECTOR, Computed("to_tsvector('simple', text)", persisted=True), nullable=True
     )

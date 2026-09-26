@@ -22,7 +22,7 @@ def envelope(code: str, message: str) -> dict[str, object]:
 
 def register_error_handlers(app: FastAPI) -> None:
     """Registers the `NOT_FOUND` handler for an unknown path. Every other `HTTPException`
-    goes to Starlette's own default handler: "No other codes are mapped yet" (design)."""
+    goes to Starlette's own default handler: no other code of the envelope is mapped yet."""
 
     @app.exception_handler(StarletteHTTPException)
     async def handle_http_exception(request: Request, exc: StarletteHTTPException) -> Response:

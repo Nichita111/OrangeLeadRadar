@@ -12,7 +12,7 @@ from fastapi import FastAPI
 from pydantic import SecretStr
 
 from leadradar.api.app import create_app
-from leadradar.api.settings import ApiSettings
+from leadradar.settings import ApiSettings
 
 
 @pytest.fixture

@@ -9,8 +9,8 @@ import logging
 import pytest
 from pydantic import SecretStr, ValidationError
 
-from leadradar.api.settings import ApiSettings
 from leadradar.logs import JsonFormatter
+from leadradar.settings import ApiSettings
 
 pytestmark = pytest.mark.unit
 

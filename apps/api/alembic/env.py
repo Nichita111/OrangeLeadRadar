@@ -14,8 +14,8 @@ from sqlalchemy import create_engine, pool
 from sqlalchemy.engine import make_url
 
 from alembic import context
-from leadradar.api.settings import ApiSettings
 from leadradar.db.base import Base
+from leadradar.settings import ApiSettings
 
 # Imported for its side effect: populates Base.metadata with every model.
 importlib.import_module("leadradar.db.models")

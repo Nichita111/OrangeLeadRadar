@@ -18,7 +18,7 @@ import httpx
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from leadradar.api.settings import ApiSettings
+from leadradar.settings import ApiSettings
 
 
 class HealthCheckStatus(StrEnum):

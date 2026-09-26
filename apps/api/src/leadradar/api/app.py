@@ -14,8 +14,8 @@ from fastapi import FastAPI
 from leadradar.api import audit_and_health
 from leadradar.api.errors import register_error_handlers
 from leadradar.api.request_identity import RequestIdentityMiddleware
-from leadradar.api.settings import ApiSettings
 from leadradar.db.session import build_engine
+from leadradar.settings import ApiSettings
 
 API_PREFIX = "/api/v1"
 
