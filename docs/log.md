@@ -2,6 +2,7 @@
 
 ## 2026-09-26
 
+* **Update**: The [FL-06](/features/accounts-and-discovery.md#fl-06-discover-and-accept-suggested-accounts) diagram shows the api queueing the discovery run and the worker storing the candidates in the database; the worker never answers the api.
 * **Update**: Fixes before merging: the Prospects drawer shows the demo scores of the list (Lufthansa Group 58, Kuehne+Nagel 53), the seeded [industries](/architecture/overview.md#demo-dataset) carry short labels, and a draft that names a retired industry says so and must drop it before saving (`FR-030`, `FL-22`).
 
 ## 2026-09-25

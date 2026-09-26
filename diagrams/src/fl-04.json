@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "FL-04 Import accounts from a CSV file",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      870,
+      598
+    ]
+  },
+  "participants": [
+    {
+      "id": "sales",
+      "type": "external",
+      "label": "Sales",
+      "sublabel": "user"
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "web",
+      "sublabel": "Account import"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "api",
+      "sublabel": "FastAPI"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "store + job queue"
+    },
+    {
+      "id": "sched",
+      "type": "backend",
+      "label": "scheduler",
+      "sublabel": "in the worker"
+    }
+  ],
+  "segments": [
+    {
+      "from": 156,
+      "to": 284,
+      "label": "Dry run"
+    },
+    {
+      "from": 308,
+      "to": 436,
+      "label": "Import"
+    },
+    {
+      "from": 460,
+      "to": 504,
+      "label": "Schedule"
+    }
+  ],
+  "messages": [
+    {
+      "from": "sales",
+      "to": "web",
+      "y": 186,
+      "label": "choose CSV file"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 228,
+      "label": "import, dry run (API-22)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "api",
+      "to": "web",
+      "y": 270,
+      "label": "created, updated, duplicate, invalid",
+      "variant": "return"
+    },
+    {
+      "from": "sales",
+      "to": "web",
+      "y": 338,
+      "label": "Import",
+      "variant": "emphasis"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 380,
+      "label": "import (API-22)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 422,
+      "label": "accounts, aliases, sources, audit"
+    },
+    {
+      "from": "sched",
+      "to": "db",
+      "y": 490,
+      "label": "enqueue refresh of new accounts",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Spec",
+      "items": [
+        "FL-04 in Accounts and discovery",
+        "S-ACC-02"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Safe import",
+      "items": [
+        "Nothing is written on a dry run",
+        "Changed attributes rescore their account"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,152 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "FL-06 Discover and accept suggested accounts",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1080,
+      698
+    ]
+  },
+  "participants": [
+    {
+      "id": "sales",
+      "type": "external",
+      "label": "Sales",
+      "sublabel": "user"
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "web",
+      "sublabel": "Suggested accounts"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "api",
+      "sublabel": "FastAPI"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "store + job queue"
+    },
+    {
+      "id": "worker",
+      "type": "backend",
+      "label": "worker",
+      "sublabel": "job loop"
+    },
+    {
+      "id": "src",
+      "type": "external",
+      "label": "Sources",
+      "sublabel": "news, sites, careers"
+    },
+    {
+      "id": "llm",
+      "type": "cloud",
+      "label": "OpenRouter",
+      "sublabel": "LLM + Jev"
+    }
+  ],
+  "segments": [
+    {
+      "from": 156,
+      "to": 410,
+      "label": "Find"
+    },
+    {
+      "from": 434,
+      "to": 604,
+      "label": "Decide"
+    }
+  ],
+  "messages": [
+    {
+      "from": "sales",
+      "to": "web",
+      "y": 186,
+      "label": "Find new accounts"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 228,
+      "label": "discovery run (API-29)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 270,
+      "label": "DISCOVERY run queued"
+    },
+    {
+      "from": "worker",
+      "to": "src",
+      "y": 312,
+      "label": "ICP search, news by hint terms"
+    },
+    {
+      "from": "worker",
+      "to": "llm",
+      "y": 354,
+      "label": "triage, name the companies"
+    },
+    {
+      "from": "worker",
+      "to": "db",
+      "y": 396,
+      "label": "candidates PENDING, fit estimate"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 464,
+      "label": "list candidates (API-30)"
+    },
+    {
+      "from": "sales",
+      "to": "web",
+      "y": 506,
+      "label": "Accept or Reject",
+      "variant": "emphasis"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 548,
+      "label": "accept (API-31), reject (API-32)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 590,
+      "label": "account DISCOVERED, refresh queued"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Spec",
+      "items": [
+        "FL-06 in Accounts and discovery",
+        "S-DSC-01, S-DSC-02 (P1)"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "A person decides",
+      "items": [
+        "No candidate is fetched or scored before acceptance",
+        "A rejected company is never proposed again"
+      ]
+    }
+  ]
+}

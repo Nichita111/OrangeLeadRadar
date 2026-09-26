@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "FL-03 Try a question",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1020,
+      640
+    ]
+  },
+  "participants": [
+    {
+      "id": "admin",
+      "type": "external",
+      "label": "Admin",
+      "sublabel": "user"
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "web",
+      "sublabel": "Service editor: Try it"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "api",
+      "sublabel": "FastAPI"
+    },
+    {
+      "id": "emb",
+      "type": "backend",
+      "label": "embedder",
+      "sublabel": "bge-m3"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "store + job queue"
+    },
+    {
+      "id": "llm",
+      "type": "cloud",
+      "label": "OpenRouter",
+      "sublabel": "LLM + Jev"
+    }
+  ],
+  "segments": [
+    {
+      "from": 156,
+      "to": 242,
+      "label": "Ask"
+    },
+    {
+      "from": 266,
+      "to": 352,
+      "label": "Retrieve"
+    },
+    {
+      "from": 376,
+      "to": 546,
+      "label": "Answer"
+    }
+  ],
+  "messages": [
+    {
+      "from": "admin",
+      "to": "web",
+      "y": 186,
+      "label": "pasted text or an account"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 228,
+      "label": "preview (API-14)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "api",
+      "to": "emb",
+      "y": 296,
+      "label": "embed the question"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 338,
+      "label": "rank the account's passages"
+    },
+    {
+      "from": "api",
+      "to": "llm",
+      "y": 406,
+      "label": "classify, escalate, quote",
+      "variant": "emphasis"
+    },
+    {
+      "from": "llm",
+      "to": "api",
+      "y": 448,
+      "label": "strength, confidence, quote",
+      "variant": "return"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 490,
+      "label": "AI_CALL audit rows only",
+      "variant": "dashed"
+    },
+    {
+      "from": "api",
+      "to": "web",
+      "y": 532,
+      "label": "top PREVIEW_MAX_PASSAGES",
+      "variant": "return"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Spec",
+      "items": [
+        "FL-03 in Service configuration",
+        "S-CFG-05"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Stores nothing",
+      "items": [
+        "The same rules as the pipeline",
+        "Only the audit of its AI calls is written"
+      ]
+    }
+  ]
+}

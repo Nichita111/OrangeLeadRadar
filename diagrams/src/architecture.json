@@ -1,0 +1,297 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "LeadRadar Architecture",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "request-path",
+        "label": "Interactive requests",
+        "focus": [
+          "users",
+          "web",
+          "api",
+          "db"
+        ],
+        "note": "A screen reads and writes through the api, which owns every transaction."
+      },
+      {
+        "id": "background",
+        "label": "Background pipeline",
+        "focus": [
+          "db",
+          "worker",
+          "sources",
+          "embedder",
+          "openrouter"
+        ],
+        "note": "The worker claims jobs from PostgreSQL, fetches, embeds, classifies and scores."
+      },
+      {
+        "id": "optional",
+        "label": "Optional integrations",
+        "focus": [
+          "paid",
+          "hubspot",
+          "api",
+          "worker"
+        ],
+        "note": "Keyed plug-ins and the CRM push work only when their key is configured."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "users",
+      "type": "external",
+      "label": "Sales & Admin",
+      "sublabel": "browser",
+      "pos": [
+        40,
+        300
+      ],
+      "size": [
+        130,
+        60
+      ]
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "web",
+      "sublabel": "React app + proxy",
+      "pos": [
+        230,
+        300
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "api",
+      "sublabel": "FastAPI",
+      "pos": [
+        430,
+        300
+      ],
+      "size": [
+        130,
+        60
+      ]
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "pgvector + job queue",
+      "pos": [
+        640,
+        300
+      ],
+      "size": [
+        150,
+        60
+      ]
+    },
+    {
+      "id": "worker",
+      "type": "backend",
+      "label": "worker",
+      "sublabel": "jobs + signal graph",
+      "pos": [
+        870,
+        300
+      ],
+      "size": [
+        150,
+        60
+      ]
+    },
+    {
+      "id": "embedder",
+      "type": "backend",
+      "label": "embedder",
+      "sublabel": "TEI bge-m3",
+      "pos": [
+        870,
+        470
+      ],
+      "size": [
+        150,
+        60
+      ]
+    },
+    {
+      "id": "openrouter",
+      "type": "cloud",
+      "label": "OpenRouter",
+      "sublabel": "LLM + Jev",
+      "pos": [
+        640,
+        110
+      ],
+      "size": [
+        150,
+        60
+      ]
+    },
+    {
+      "id": "sources",
+      "type": "external",
+      "label": "Free sources",
+      "sublabel": "GDELT, sites, careers, RSS",
+      "pos": [
+        1100,
+        300
+      ],
+      "size": [
+        170,
+        60
+      ]
+    },
+    {
+      "id": "paid",
+      "type": "external",
+      "label": "Keyed sources",
+      "sublabel": "NewsAPI, SerpAPI",
+      "pos": [
+        1100,
+        470
+      ],
+      "size": [
+        170,
+        60
+      ]
+    },
+    {
+      "id": "hubspot",
+      "type": "external",
+      "label": "HubSpot",
+      "sublabel": "optional CRM",
+      "pos": [
+        230,
+        110
+      ],
+      "size": [
+        130,
+        60
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Docker Compose on one EU machine",
+      "wraps": [
+        "web",
+        "api",
+        "db",
+        "worker",
+        "embedder"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "users-web",
+      "from": "users",
+      "to": "web",
+      "label": "HTTPS",
+      "variant": "emphasis"
+    },
+    {
+      "id": "web-api",
+      "from": "web",
+      "to": "api",
+      "label": "/api/v1"
+    },
+    {
+      "id": "api-db",
+      "from": "api",
+      "to": "db",
+      "label": "SQL + enqueue",
+      "variant": "emphasis"
+    },
+    {
+      "id": "worker-db",
+      "from": "worker",
+      "to": "db",
+      "label": "claim jobs"
+    },
+    {
+      "id": "worker-sources",
+      "from": "worker",
+      "to": "sources",
+      "label": "fetch"
+    },
+    {
+      "id": "worker-paid",
+      "from": "worker",
+      "to": "paid",
+      "label": "with key"
+    },
+    {
+      "id": "worker-embedder",
+      "from": "worker",
+      "to": "embedder",
+      "label": "embed",
+      "labelDy": 24
+    },
+    {
+      "id": "worker-openrouter",
+      "from": "worker",
+      "to": "openrouter",
+      "label": "classify + quote",
+      "fromSide": "top",
+      "toSide": "right"
+    },
+    {
+      "id": "api-openrouter",
+      "from": "api",
+      "to": "openrouter",
+      "label": "preview + outreach",
+      "fromSide": "top",
+      "toSide": "left"
+    },
+    {
+      "id": "api-hubspot",
+      "from": "api",
+      "to": "hubspot",
+      "label": "push",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "right"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Two processes, one store",
+      "items": [
+        "api and worker never call each other",
+        "the api enqueues jobs; the worker claims them"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Models answer, rules score",
+      "items": [
+        "OpenRouter serves the LLM and Jev",
+        "every score comes from deterministic rules"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Free core first",
+      "items": [
+        "every P0 capability runs without paid keys",
+        "LinkedIn is never read"
+      ]
+    }
+  ]
+}

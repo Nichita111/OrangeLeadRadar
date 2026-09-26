@@ -1,0 +1,176 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "FL-01 Define a service and its signal questions",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1020,
+      892
+    ]
+  },
+  "participants": [
+    {
+      "id": "admin",
+      "type": "external",
+      "label": "Admin",
+      "sublabel": "user"
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "web",
+      "sublabel": "Services, Service editor"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "api",
+      "sublabel": "FastAPI"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "store + job queue"
+    },
+    {
+      "id": "worker",
+      "type": "backend",
+      "label": "worker",
+      "sublabel": "job loop"
+    },
+    {
+      "id": "llm",
+      "type": "cloud",
+      "label": "OpenRouter",
+      "sublabel": "LLM + Jev"
+    }
+  ],
+  "segments": [
+    {
+      "from": 156,
+      "to": 326,
+      "label": "Create the service"
+    },
+    {
+      "from": 350,
+      "to": 646,
+      "label": "Add a question"
+    },
+    {
+      "from": 670,
+      "to": 798,
+      "label": "Revise or retire"
+    }
+  ],
+  "messages": [
+    {
+      "from": "admin",
+      "to": "web",
+      "y": 186,
+      "label": "create service"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 228,
+      "label": "POST service (API-08)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 270,
+      "label": "service + default scoring draft"
+    },
+    {
+      "from": "api",
+      "to": "web",
+      "y": 312,
+      "label": "service",
+      "variant": "return"
+    },
+    {
+      "from": "admin",
+      "to": "web",
+      "y": 380,
+      "label": "add signal question"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 422,
+      "label": "create question (API-12)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 464,
+      "label": "revision 1, draft weight MEDIUM"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 506,
+      "label": "RECLASSIFY run queued",
+      "variant": "dashed"
+    },
+    {
+      "from": "worker",
+      "to": "db",
+      "y": 548,
+      "label": "claim the run"
+    },
+    {
+      "from": "worker",
+      "to": "llm",
+      "y": 590,
+      "label": "ask it of stored passages"
+    },
+    {
+      "from": "worker",
+      "to": "db",
+      "y": 632,
+      "label": "findings, then rescore"
+    },
+    {
+      "from": "admin",
+      "to": "web",
+      "y": 700,
+      "label": "edit text, options, sources"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 742,
+      "label": "update question (API-13)"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 784,
+      "label": "revision + 1, RECLASSIFY run"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Spec",
+      "items": [
+        "FL-01 in Service configuration",
+        "S-CFG-01, S-CFG-02, S-SIG-07"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Counting",
+      "items": [
+        "Hint-term edits keep the revision",
+        "Signals count once a scoring version with the question is active"
+      ]
+    }
+  ]
+}
