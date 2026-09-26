@@ -101,7 +101,9 @@ def _cell(raw: Mapping[str, str | None], column: str) -> str | None:
     return stripped or None
 
 
-def _optional_int(raw: Mapping[str, str | None], column: str, errors: list[FieldError]) -> int | None:
+def _optional_int(
+    raw: Mapping[str, str | None], column: str, errors: list[FieldError]
+) -> int | None:
     text_value = _cell(raw, column)
     if text_value is None:
         return None

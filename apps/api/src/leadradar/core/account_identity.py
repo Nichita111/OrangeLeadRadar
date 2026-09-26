@@ -70,7 +70,7 @@ def normalise_domain(value: str) -> str:
     registrable = publicsuffix2.get_sld(idna_host, strict=False)
     if not registrable or "." not in registrable:
         raise InvalidDomain(f"'{value}' has no registrable domain.")
-    return registrable
+    return str(registrable)
 
 
 def normalise_name(value: str) -> str:

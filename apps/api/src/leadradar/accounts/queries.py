@@ -127,7 +127,7 @@ async def _active_run_ids(
             )
         )
     ).all()
-    return {account_id: run_id for account_id, run_id in rows}
+    return {account_id: run_id for account_id, run_id in rows if account_id is not None}
 
 
 def _row_data(account: Account, active_run_id: uuid.UUID | None) -> AccountRowData:
@@ -182,9 +182,7 @@ async def list_accounts(
     for condition in filters:
         base = base.where(condition)
 
-    total = (
-        await session.execute(select(func.count()).select_from(base.subquery()))
-    ).scalar_one()
+    total = (await session.execute(select(func.count()).select_from(base.subquery()))).scalar_one()
 
     rows = (
         (
@@ -207,16 +205,20 @@ async def account_data(session: AsyncSession, account: Account) -> AccountData:
     active_runs = await _active_run_ids(session, [account.id])
 
     aliases = (
-        await session.execute(
-            select(AccountAlias.alias).where(AccountAlias.account_id == account.id)
+        (
+            await session.execute(
+                select(AccountAlias.alias).where(AccountAlias.account_id == account.id)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
 
     sources = (
-        await session.execute(
-            select(AccountSource).where(AccountSource.account_id == account.id)
-        )
-    ).scalars().all()
+        (await session.execute(select(AccountSource).where(AccountSource.account_id == account.id)))
+        .scalars()
+        .all()
+    )
 
     parent: ParentSummary | None = None
     if account.parent_account_id is not None:
@@ -233,7 +235,7 @@ async def account_data(session: AsyncSession, account: Account) -> AccountData:
         employee_count=account.employee_count,
         revenue_eur=account.revenue_eur,
         operational_complexity=account.operational_complexity,
-        attribute_origin=dict(account.attribute_origin),
+        attribute_origin={k: str(v) for k, v in account.attribute_origin.items()},
         parent=parent,
         crunchbase_id=account.crunchbase_id,
         linkedin_url=account.linkedin_url,

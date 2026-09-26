@@ -44,3 +44,6 @@ class ApiSettings(BaseSettings):
     login_max_failures: int = 5
     login_lock_minutes: int = 15
     password_min_length: int = 12
+    page_size_default: int = 50
+    page_size_max: int = 200
+    import_max_rows: int = 2000

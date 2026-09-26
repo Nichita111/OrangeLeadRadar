@@ -15,6 +15,7 @@ dependencies = [
   "httpx>=0.27",
   "argon2-cffi>=23.1",
   "publicsuffix2>=2.20191221",
+  "python-multipart>=0.0.12",
 ]
 
 [dependency-groups]
@@ -62,6 +63,10 @@ extend-immutable-calls = [
 [tool.mypy]
 strict = true
 plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = "publicsuffix2"
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 markers = [
