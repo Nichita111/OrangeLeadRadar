@@ -12,7 +12,9 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "generate-client": "openapi-typescript ../api/openapi.json -o src/api/schema.gen.ts",
-    "validate": "npm run typecheck && npm run lint && npm run format:check && npm run test"
+    "generate-client:pending": "openapi-typescript src/api/pending/openapi.json -o src/api/pending/schema.gen.ts",
+    "check:build": "vite build && ! grep -rq pending-dev-mock dist",
+    "validate": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run check:build"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

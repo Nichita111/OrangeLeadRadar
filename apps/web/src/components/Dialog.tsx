@@ -49,6 +49,8 @@ export interface ConfirmDialogProps {
   confirmLabel: string;
   onConfirm: () => void;
   confirmPending?: boolean;
+  /** The failure of the confirmed action, shown in the dialog (`FR-005`). */
+  error?: ReactNode;
 }
 
 export function ConfirmDialog({
@@ -59,10 +61,16 @@ export function ConfirmDialog({
   confirmLabel,
   onConfirm,
   confirmPending = false,
+  error,
 }: ConfirmDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange} title={title}>
       <p className="mb-6 text-sm text-text-secondary">{description}</p>
+      {error !== undefined && error !== null && (
+        <p role="alert" className="mb-4 text-sm text-negative">
+          {error}
+        </p>
+      )}
       <div className="flex justify-end gap-2">
         <Button
           type="button"

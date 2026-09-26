@@ -59,3 +59,24 @@ export function useSaveScoringDraft(serviceId: string) {
     },
   });
 }
+
+/** The active version's settings, or `null` when the service has none. */
+export function useActiveScoringSettings(
+  serviceId: string | undefined,
+): UseQueryResult<ScoringSettingsDocument | null> {
+  return useQuery({
+    queryKey: ["scoring", "active", serviceId],
+    queryFn: async () => {
+      const summaries = await apiRequest<ScoringConfigSummary[]>(
+        `/services/${serviceId ?? ""}/scoring-configs`,
+      );
+      const active = summaries.find((summary) => summary.status === "ACTIVE");
+      if (active === undefined) {
+        return null;
+      }
+      const config = await apiRequest<ScoringConfig>(`/scoring-configs/${active.id}`);
+      return config.settings as ScoringSettingsDocument;
+    },
+    enabled: serviceId !== undefined,
+  });
+}

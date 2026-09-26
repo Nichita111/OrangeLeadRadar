@@ -4,12 +4,11 @@
 import { ArrowCounterClockwiseIcon, PencilSimpleIcon, ProhibitIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 
-import { ApiError } from "../../../api/client";
 import { useUpdateUser, useUsers, type User } from "../../../api/users";
 import { Button } from "../../../components/Button";
 import { Chip } from "../../../components/Chip";
 import { ConfirmDialog } from "../../../components/Dialog";
-import { EmptyState, ErrorState, SkeletonRows, UnavailableState } from "../../../components/States";
+import { EmptyState, QueryErrorState, SkeletonRows } from "../../../components/States";
 import {
   Table,
   TableBody,
@@ -99,21 +98,7 @@ export function UsersScreen() {
           {!isLoading && isError && (
             <TableRow>
               <TableCell colSpan={COLUMN_COUNT}>
-                {error instanceof ApiError && (error.status === 503 || error.status === 429) ? (
-                  <UnavailableState
-                    dependency={
-                      typeof error.details?.dependency === "string"
-                        ? error.details.dependency
-                        : "The database"
-                    }
-                    stillWorks={[]}
-                  />
-                ) : (
-                  <ErrorState
-                    message={error instanceof ApiError ? error.message : "Something went wrong."}
-                    onRetry={() => void refetch()}
-                  />
-                )}
+                <QueryErrorState error={error} onRetry={() => void refetch()} />
               </TableCell>
             </TableRow>
           )}

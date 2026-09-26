@@ -10,6 +10,7 @@ import {
   ArrowsClockwiseIcon,
   BuildingsIcon,
   GearIcon,
+  RankingIcon,
   UsersIcon,
   type Icon,
 } from "@phosphor-icons/react";
@@ -31,6 +32,7 @@ export const NAV_GROUP_LABELS: Record<NavGroup, string> = {
 };
 
 export const navRegistry: NavEntry[] = [
+  { to: "/prospects", label: "Prospects", icon: RankingIcon, group: "work", roles: "any" },
   { to: "/users", label: "Users", icon: UsersIcon, group: "admin", roles: "admin" },
   { to: "/accounts", label: "Accounts", icon: BuildingsIcon, group: "work", roles: "any" },
   { to: "/runs", label: "Runs", icon: ArrowsClockwiseIcon, group: "work", roles: "any" },
