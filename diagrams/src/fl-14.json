@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "FL-14 Act on an alert",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      870,
+      640
+    ]
+  },
+  "participants": [
+    {
+      "id": "worker",
+      "type": "backend",
+      "label": "worker",
+      "sublabel": "job loop"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "store + job queue"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "api",
+      "sublabel": "FastAPI"
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "web",
+      "sublabel": "Alerts"
+    },
+    {
+      "id": "sales",
+      "type": "external",
+      "label": "Sales",
+      "sublabel": "user"
+    }
+  ],
+  "segments": [
+    {
+      "from": 156,
+      "to": 200,
+      "label": "Raise"
+    },
+    {
+      "from": 224,
+      "to": 394,
+      "label": "Read"
+    },
+    {
+      "from": 418,
+      "to": 546,
+      "label": "Acknowledge"
+    }
+  ],
+  "messages": [
+    {
+      "from": "worker",
+      "to": "db",
+      "y": 186,
+      "label": "strong signal or band rise",
+      "variant": "emphasis"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 254,
+      "label": "unread count, poll",
+      "variant": "dashed"
+    },
+    {
+      "from": "sales",
+      "to": "web",
+      "y": 296,
+      "label": "open Alerts"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 338,
+      "label": "alerts (API-48)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "api",
+      "to": "web",
+      "y": 380,
+      "label": "what happened, with quote",
+      "variant": "return"
+    },
+    {
+      "from": "sales",
+      "to": "web",
+      "y": 448,
+      "label": "Mark read"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 490,
+      "label": "acknowledge (API-49)"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 532,
+      "label": "read for the whole team"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Spec",
+      "items": [
+        "FL-14 in Prospect dashboard",
+        "S-PRO-06 (P1)"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "In the product only",
+      "items": [
+        "No email or chat delivery",
+        "One alert per finding or score row"
+      ]
+    }
+  ]
+}

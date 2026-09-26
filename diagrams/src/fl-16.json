@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "FL-16 Label passages and run a quality check",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1080,
+      740
+    ]
+  },
+  "participants": [
+    {
+      "id": "team",
+      "type": "external",
+      "label": "Team member",
+      "sublabel": "Sales or Admin"
+    },
+    {
+      "id": "admin",
+      "type": "external",
+      "label": "Admin",
+      "sublabel": "user"
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "web",
+      "sublabel": "Labelling, Quality report"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "api",
+      "sublabel": "FastAPI"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "store + job queue"
+    },
+    {
+      "id": "worker",
+      "type": "backend",
+      "label": "worker",
+      "sublabel": "job loop"
+    },
+    {
+      "id": "llm",
+      "type": "cloud",
+      "label": "OpenRouter",
+      "sublabel": "LLM + Jev"
+    }
+  ],
+  "segments": [
+    {
+      "from": 156,
+      "to": 410,
+      "label": "Label"
+    },
+    {
+      "from": 434,
+      "to": 646,
+      "label": "Check"
+    }
+  ],
+  "messages": [
+    {
+      "from": "team",
+      "to": "web",
+      "y": 186,
+      "label": "open Labelling"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 228,
+      "label": "label queue (API-50)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 270,
+      "label": "pairs from four strata"
+    },
+    {
+      "from": "team",
+      "to": "web",
+      "y": 312,
+      "label": "No, Weak, Clear, Strong"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 354,
+      "label": "label (API-51)"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 396,
+      "label": "MANUAL label"
+    },
+    {
+      "from": "admin",
+      "to": "web",
+      "y": 464,
+      "label": "Run quality check",
+      "variant": "emphasis"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 506,
+      "label": "evaluation run (API-53)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "worker",
+      "to": "llm",
+      "y": 548,
+      "label": "replay classification"
+    },
+    {
+      "from": "worker",
+      "to": "db",
+      "y": 590,
+      "label": "metrics, passed or not"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 632,
+      "label": "results (API-54, API-55)"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Spec",
+      "items": [
+        "FL-16 in Evaluation and feedback",
+        "S-EVL-03, S-EVL-04"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Measured, not assumed",
+      "items": [
+        "Labels are made blind",
+        "The gate needs EVAL_MIN_PRECISION on EVAL_MIN_ITEMS labels"
+      ]
+    }
+  ]
+}

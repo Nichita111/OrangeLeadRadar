@@ -1,0 +1,153 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "FL-02 Edit and activate scoring settings",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      870,
+      766
+    ]
+  },
+  "participants": [
+    {
+      "id": "admin",
+      "type": "external",
+      "label": "Admin",
+      "sublabel": "user"
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "web",
+      "sublabel": "Scoring settings"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "api",
+      "sublabel": "FastAPI"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "store + job queue"
+    },
+    {
+      "id": "worker",
+      "type": "backend",
+      "label": "worker",
+      "sublabel": "job loop"
+    }
+  ],
+  "segments": [
+    {
+      "from": 156,
+      "to": 284,
+      "label": "Edit the draft"
+    },
+    {
+      "from": 308,
+      "to": 436,
+      "label": "Preview"
+    },
+    {
+      "from": 460,
+      "to": 672,
+      "label": "Activate"
+    }
+  ],
+  "messages": [
+    {
+      "from": "admin",
+      "to": "web",
+      "y": 186,
+      "label": "edit ICP, weights, disqualifiers"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 228,
+      "label": "PUT draft (API-17)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 270,
+      "label": "validate, save, audit"
+    },
+    {
+      "from": "admin",
+      "to": "web",
+      "y": 338,
+      "label": "Preview impact"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 380,
+      "label": "preview (API-19)"
+    },
+    {
+      "from": "api",
+      "to": "web",
+      "y": 422,
+      "label": "rank, band, standing changes",
+      "variant": "return"
+    },
+    {
+      "from": "admin",
+      "to": "web",
+      "y": 490,
+      "label": "Activate with a change note",
+      "variant": "emphasis"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 532,
+      "label": "activate (API-18)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 574,
+      "label": "ACTIVE, previous RETIRED, RESCORE"
+    },
+    {
+      "from": "worker",
+      "to": "db",
+      "y": 616,
+      "label": "rescore from stored findings"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 658,
+      "label": "poll run (API-35)",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Spec",
+      "items": [
+        "FL-02 in Service configuration",
+        "S-CFG-03, S-CFG-04, S-CFG-06"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "No refetch",
+      "items": [
+        "Activation rescores without fetching or classifying",
+        "Every score names the version that computed it"
+      ]
+    }
+  ]
+}

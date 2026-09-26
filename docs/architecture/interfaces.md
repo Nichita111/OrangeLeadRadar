@@ -272,6 +272,68 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 | `changes[].current`, `changes[].proposed` | `{priority, standing, band, rank}` | [`account_score`](/architecture/sql-store.md#account_score) fields; `rank` from [Priority, standing and band](/architecture/rules.md#priority-standing-and-band) |
 | `unchanged_count` | integer | accounts with no change |
 
+## Industries and markets
+
+### Industries and markets contracts
+
+| ID | Method | Path | Roles | Request → response |
+|---|---|---|---|---|
+| `API-71` | GET | `/industries` | `*` | query `status` → [`Industry`](#industry)`[]` |
+| `API-72` | POST | `/industries` | `A` | [`IndustryCreate`](#industrycreate) → [`Industry`](#industry) |
+| `API-73` | PATCH | `/industries/{code}` | `A` | [`IndustryUpdate`](#industryupdate) → [`Industry`](#industry) |
+| `API-74` | GET | `/markets` | `*` | query `status` → [`Market`](#market)`[]` |
+| `API-75` | POST | `/markets` | `A` | [`MarketCreate`](#marketcreate) → [`Market`](#market) |
+| `API-76` | PATCH | `/markets/{code}` | `A` | [`MarketUpdate`](#marketupdate) → [`Market`](#market) |
+
+- `API-72`, `API-75` — a code or label already used answers `409 CONFLICT`; a code that is not UPPER_SNAKE, or a market without a valid ISO 3166-1 alpha-2 country, answers `422`.
+- `API-73`, `API-76` — `code` is not accepted. Setting `status` to `INACTIVE` retires the entry: it leaves pickers and validation, and every stored value that names it is kept ([`industry`](/architecture/sql-store.md#industry), [`market`](/architecture/sql-store.md#market)).
+
+### Industries and markets shapes
+
+#### Industry
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `code`, `label` | string | [`industry`](/architecture/sql-store.md#industry) |
+| `status` | enum | [`industry`](/architecture/sql-store.md#industry) `status` |
+| `account_count` | integer | accounts whose `industry` is this code |
+
+#### IndustryCreate
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `code`, `label` | string | [`industry`](/architecture/sql-store.md#industry) |
+
+#### IndustryUpdate
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `label` | string, optional | [`industry`](/architecture/sql-store.md#industry) |
+| `status` | enum, optional | [`industry`](/architecture/sql-store.md#industry) `status` |
+
+#### Market
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `code`, `name` | string | [`market`](/architecture/sql-store.md#market) |
+| `country_codes` | string[] | [`market`](/architecture/sql-store.md#market) |
+| `status` | enum | [`market`](/architecture/sql-store.md#market) `status` |
+
+#### MarketCreate
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `code`, `name` | string | [`market`](/architecture/sql-store.md#market) |
+| `country_codes` | string[], at least one | [`market`](/architecture/sql-store.md#market) |
+
+#### MarketUpdate
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `name` | string, optional | [`market`](/architecture/sql-store.md#market) |
+| `country_codes` | string[], optional | [`market`](/architecture/sql-store.md#market) |
+| `status` | enum, optional | [`market`](/architecture/sql-store.md#market) `status` |
+
 ## Accounts and contacts
 
 ### Accounts and contacts contracts
@@ -289,7 +351,7 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 | `API-28` | DELETE | `/contacts/{id}` | `*` | — → `204` |
 
 - `API-20` — `q` matches the name, any alias or the domain.
-- `API-21` — the domain is normalised by [Account identity](/architecture/rules.md#account-identity); an existing domain answers `409 CONFLICT` with `details.entity_id`. Creates the name alias, the `WEBSITE` source and any sources given, with `next_refresh_at` = now.
+- `API-21` — the domain is normalised by [Account identity](/architecture/rules.md#account-identity); an existing domain answers `409 CONFLICT` with `details.entity_id`. Creates the name alias, the `WEBSITE` source and any sources given; `next_refresh_at` stays null, so the scheduler treats the account as due ([Refresh scheduling](/architecture/rules.md#refresh-scheduling)).
 - `API-22` — at most `IMPORT_MAX_ROWS` rows, else `422`. Each row is matched by [Account identity](/architecture/rules.md#account-identity): a new domain is created; an existing domain is updated with the columns the row fills, as `MANUAL` values, and an update that changes an attribute enqueues a `RESCORE` with trigger `ACCOUNT_CHANGE` for that account, as `API-24` does; a new domain whose name matches another account is reported `POSSIBLE_DUPLICATE` and skipped; an invalid row is reported with its errors. With `dry_run` true nothing is written.
 - `API-24` — `aliases` replaces the aliases (the name alias is kept); `sources` replaces the `MANUAL` sources and may set a `DETECTED` source's status. Any attribute change enqueues a `RESCORE` with trigger `ACCOUNT_CHANGE`.
 - `API-26`, `API-27` — a contact without `source_url` answers `422`; a body field not in the shape, such as an email address, answers `422`. The persona is mapped by [Persona mapping](/architecture/rules.md#persona-mapping) unless one is given.
@@ -302,7 +364,7 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 | Field | Type | Source of truth |
 |---|---|---|
 | `id`, `name`, `domain`, `country_code` | string | [`account`](/architecture/sql-store.md#account) |
-| `industry` | enum, null | [`account`](/architecture/sql-store.md#account) `industry` |
+| `industry` | string, null | an [`industry`](/architecture/sql-store.md#industry) code |
 | `status` | enum | [`account`](/architecture/sql-store.md#account) `status` |
 | `origin` | enum | [`account`](/architecture/sql-store.md#account) `origin` |
 | `last_refreshed_at` | string, null | [`account`](/architecture/sql-store.md#account) |
@@ -350,7 +412,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `domain` | required | [`account`](/architecture/sql-store.md#account) `domain` |
 | `name` | required | [`account`](/architecture/sql-store.md#account) `name` |
 | `country_code` | optional | [`account`](/architecture/sql-store.md#account) |
-| `industry` | optional | [`account`](/architecture/sql-store.md#account) `industry` |
+| `industry` | optional | an `ACTIVE` [`industry`](/architecture/sql-store.md#industry) code |
 | `employee_count` | optional | [`account`](/architecture/sql-store.md#account) |
 | `revenue_eur` | optional | [`account`](/architecture/sql-store.md#account) |
 | `aliases` | optional, separated by `;` | [`account_alias`](/architecture/sql-store.md#account_alias) |
@@ -415,7 +477,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 |---|---|---|
 | `id`, `service_id`, `name` | string | [`discovery_candidate`](/architecture/sql-store.md#discovery_candidate) |
 | `domain`, `country_code` | string, null | [`discovery_candidate`](/architecture/sql-store.md#discovery_candidate) |
-| `industry` | enum, null | [`account`](/architecture/sql-store.md#account) `industry` |
+| `industry` | string, null | an [`industry`](/architecture/sql-store.md#industry) code |
 | `employee_count` | integer, null | [`discovery_candidate`](/architecture/sql-store.md#discovery_candidate) |
 | `origin`, `status` | enum | [`discovery_candidate`](/architecture/sql-store.md#discovery_candidate) |
 | `fit_estimate` | integer | [`discovery_candidate`](/architecture/sql-store.md#discovery_candidate) |
@@ -509,7 +571,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `account` | `{id, name, domain, country_code, industry}` | [`account`](/architecture/sql-store.md#account) |
 | `fit`, `intent`, `priority` | integer | current [`account_score`](/architecture/sql-store.md#account_score) |
 | `standing`, `band` | enum | current [`account_score`](/architecture/sql-store.md#account_score) |
-| `top_signals` | array of `{question_key, question_text, strength, observed_at}`, at most 2 | the positive findings with the most `points` in the breakdown |
+| `top_signals` | array of `{question_key, question_text, strength, observed_at}`, at most `PROSPECT_TOP_SIGNALS` | the positive findings with the most `points` in the breakdown |
 | `finding_count` | integer | in-force [`finding`](/architecture/sql-store.md#finding) rows of the service |
 | `unread_alerts` | integer | unacknowledged [`alert`](/architecture/sql-store.md#alert) rows |
 | `as_of` | string | current [`account_score`](/architecture/sql-store.md#account_score) |
@@ -635,10 +697,12 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `API-53` | POST | `/evaluation/runs` | `A` | — → [`Run`](#run) |
 | `API-54` | GET | `/evaluation/results` | `A` | — → [`EvaluationResultSummary`](#evaluationresultsummary)`[]` |
 | `API-55` | GET | `/evaluation/results/{run_id}` | `A` | — → [`EvaluationResult`](#evaluationresult) |
+| `API-77` | GET | `/impact` | `A` | — → [`Impact`](#impact) |
 
 - `API-50` — the label queue of [Evaluation metrics](/architecture/rules.md#evaluation-metrics). A task never shows the classifier's answer, so that labels are not biased by it.
 - `API-51` — writes or replaces the `MANUAL` item for the passage, question and revision; a revision that is not current answers `409`.
 - `API-53` — one queued or running evaluation at a time.
+- `API-77` — computed on read by [Impact](/architecture/rules.md#impact); writes nothing.
 
 ### Evaluation shapes
 
@@ -685,6 +749,18 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | every field of [`EvaluationResultSummary`](#evaluationresultsummary) | | |
 | `escalation_lower`, `escalation_upper` | number | [`evaluation_result`](/architecture/sql-store.md#evaluation_result) |
 | `metrics` | object | [Evaluation metrics](/architecture/rules.md#evaluation-metrics) |
+
+#### Impact
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `period_days` | integer | `IMPACT_PERIOD_DAYS` |
+| `accounts_refreshed`, `refreshes`, `findings_created` | integer | [Impact](/architecture/rules.md#impact) |
+| `cost_per_refresh_eur`, `minutes_per_refresh` | number, null | [Impact](/architecture/rules.md#impact) |
+| `precision` | number, null | [Impact](/architecture/rules.md#impact) |
+| `labelled_items` | integer, null | [Impact](/architecture/rules.md#impact) |
+| `manual_minutes_per_account` | integer | `MANUAL_RESEARCH_MINUTES_PER_ACCOUNT`, the team's assumption |
+| `manual_hours_replaced` | number | [Impact](/architecture/rules.md#impact) |
 
 ## Outreach and CRM
 
@@ -947,5 +1023,5 @@ The in-process port each [source plug-in](/architecture/services/worker.md#sourc
 | `domain`, `name` | string | [`account`](/architecture/sql-store.md#account) |
 | `leadradar_service` | string | [`service`](/architecture/sql-store.md#service) `name` |
 | `leadradar_priority`, `leadradar_band`, `leadradar_standing` | | the current [`account_score`](/architecture/sql-store.md#account_score) |
-| `leadradar_top_signals` | string | the question texts and quotes of up to three top findings, one per line |
+| `leadradar_top_signals` | string | the question texts and quotes of up to `HUBSPOT_TOP_SIGNALS` top findings, one per line |
 | `leadradar_url` | string | `APP_BASE_URL` + the account detail route |

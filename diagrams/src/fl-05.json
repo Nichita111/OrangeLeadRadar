@@ -1,0 +1,159 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "FL-05 Maintain an account and its contacts",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1020,
+      766
+    ]
+  },
+  "participants": [
+    {
+      "id": "sales",
+      "type": "external",
+      "label": "Sales",
+      "sublabel": "user"
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "web",
+      "sublabel": "Accounts, Account profile"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "api",
+      "sublabel": "FastAPI"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "store + job queue"
+    },
+    {
+      "id": "llm",
+      "type": "cloud",
+      "label": "OpenRouter",
+      "sublabel": "LLM + Jev"
+    },
+    {
+      "id": "worker",
+      "type": "backend",
+      "label": "worker",
+      "sublabel": "job loop"
+    }
+  ],
+  "segments": [
+    {
+      "from": 156,
+      "to": 326,
+      "label": "Account"
+    },
+    {
+      "from": 350,
+      "to": 520,
+      "label": "Contacts"
+    },
+    {
+      "from": 544,
+      "to": 672,
+      "label": "Erasure"
+    }
+  ],
+  "messages": [
+    {
+      "from": "sales",
+      "to": "web",
+      "y": 186,
+      "label": "add or edit account"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 228,
+      "label": "create (API-21) or update (API-24)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 270,
+      "label": "MANUAL values, RESCORE run"
+    },
+    {
+      "from": "worker",
+      "to": "db",
+      "y": 312,
+      "label": "rescore the account",
+      "variant": "dashed"
+    },
+    {
+      "from": "sales",
+      "to": "web",
+      "y": 380,
+      "label": "add contact with source page"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 422,
+      "label": "create contact (API-26)"
+    },
+    {
+      "from": "api",
+      "to": "llm",
+      "y": 464,
+      "label": "map persona from job title"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 506,
+      "label": "contact, no email or phone"
+    },
+    {
+      "from": "sales",
+      "to": "web",
+      "y": 574,
+      "label": "erase contact",
+      "variant": "security"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 616,
+      "label": "delete contact (API-28)",
+      "variant": "security"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 658,
+      "label": "deleted, audit without personal data",
+      "variant": "security"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Spec",
+      "items": [
+        "FL-05 in Accounts and discovery",
+        "S-ACC-01, S-ACC-03, S-ACC-04"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Minimal contact data",
+      "items": [
+        "A manual value is never overwritten",
+        "Contacts are erased on request or at retention"
+      ]
+    }
+  ]
+}

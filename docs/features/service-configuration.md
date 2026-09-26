@@ -49,17 +49,23 @@ sequenceDiagram
 2. The Admin pastes a text or picks an account and runs the preview (`API-14`).
 3. The panel shows, for up to `PREVIEW_MAX_PASSAGES` passages, the answer strength, the confidence word, whether a detailed check was needed, and the quote with its translation. Nothing is stored.
 
+### FL-22 Maintain industries and markets
+
+1. The Admin opens [Industries and markets](#industries-and-markets) and adds an industry with its code and label (`API-72`), or a market with its code, name and countries (`API-75`).
+2. The new industry is offered wherever an account's industry is set and in the ICP editor; the new market is offered as a shortcut in the ICP editor, where choosing it adds its countries to a `GEOGRAPHY` criterion.
+3. Renaming changes only the label. Retiring an industry or market removes it from pickers and validation; accounts that have a retired industry keep it, and saved scoring versions are unchanged (`API-73`, `API-76`); the next draft drops a retired industry before it is saved.
+
 ## Reading order
 
-1. Terms in the [glossary](/requirements/glossary.md): Service, Signal question, Question revision, Answer type, Polarity, Source type, Scoring settings, Scoring version, ICP criterion, Weight level, Half-life, Disqualifier, Fit score, Intent score, Priority score, Band.
-2. Requirement rows: `S-CFG-01` to `S-CFG-06`, `S-SIG-07`, `S-SCO-07`, `S-RUN-03` in [system requirements](/requirements/system.md); `B-01` to `B-06`, `RULE-04`, `RULE-05` in [business requirements](/requirements/business.md).
-3. Stores: [`service`](/architecture/sql-store.md#service), [`signal_question`](/architecture/sql-store.md#signal_question), [`scoring_config`](/architecture/sql-store.md#scoring_config) and the [scoring settings document](/architecture/sql-store.md#scoring-settings-document).
+1. Terms in the [glossary](/requirements/glossary.md): Service, Signal question, Question revision, Answer type, Polarity, Source type, Scoring settings, Scoring version, ICP criterion, Industry, Market, Weight level, Half-life, Disqualifier, Fit score, Intent score, Priority score, Band.
+2. Requirement rows: `S-CFG-01` to `S-CFG-07`, `S-SIG-07`, `S-SCO-07`, `S-RUN-03` in [system requirements](/requirements/system.md); `B-01` to `B-06`, `B-39`, `RULE-04`, `RULE-05` in [business requirements](/requirements/business.md).
+3. Stores: [`service`](/architecture/sql-store.md#service), [`signal_question`](/architecture/sql-store.md#signal_question), [`scoring_config`](/architecture/sql-store.md#scoring_config), [`industry`](/architecture/sql-store.md#industry), [`market`](/architecture/sql-store.md#market) and the [scoring settings document](/architecture/sql-store.md#scoring-settings-document).
 4. Rules: [Scoring settings validation](/architecture/rules.md#scoring-settings-validation), [Reclassification](/architecture/rules.md#reclassification), [Rescoring](/architecture/rules.md#rescoring), and for preview [Signal classification](/architecture/rules.md#signal-classification), [Escalation](/architecture/rules.md#escalation), [Evidence extraction](/architecture/rules.md#evidence-extraction), [Fit score](/architecture/rules.md#fit-score), [Intent score](/architecture/rules.md#intent-score), [Priority, standing and band](/architecture/rules.md#priority-standing-and-band).
-5. Interfaces: [Services and questions](/architecture/interfaces.md#services-and-questions) (`API-07` to `API-14`) and [Scoring](/architecture/interfaces.md#scoring) (`API-15` to `API-19`).
+5. Interfaces: [Services and questions](/architecture/interfaces.md#services-and-questions) (`API-07` to `API-14`), [Scoring](/architecture/interfaces.md#scoring) (`API-15` to `API-19`) and [Industries and markets](/architecture/interfaces.md#industries-and-markets) (`API-71` to `API-76`).
 6. Services: the [api](/architecture/services/api.md) and its [runtime](/architecture/services/api.md#runtime) (`PREVIEW_MAX_PASSAGES`); the [worker](/architecture/services/worker.md) for the runs; the [frontend](/architecture/services/frontend.md) shell; the seeded services of the [demo dataset](/architecture/overview.md#demo-dataset).
-7. Decisions: [ADR-06](/architecture/adrs/adr-06-rule-based-scoring-with-versioned-settings.md), [ADR-09](/architecture/adrs/adr-09-findings-per-passage-and-question-revision.md), [ADR-03](/architecture/adrs/adr-03-models-answer-rules-score.md).
-8. Screens: [Services](#services), [Service editor](#service-editor), [Scoring settings](#scoring-settings).
-9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-01` to `AC-08`, `AC-26`, `AC-27`, `AC-39`, `AC-70`, `AC-59`, `AC-62`, `AC-66`.
+7. Decisions: [ADR-06](/architecture/adrs/adr-06-rule-based-scoring-with-versioned-settings.md), [ADR-09](/architecture/adrs/adr-09-findings-per-passage-and-question-revision.md), [ADR-03](/architecture/adrs/adr-03-models-answer-rules-score.md), [ADR-18](/architecture/adrs/adr-18-industries-and-markets-as-configuration.md).
+8. Screens: [Services](#services), [Service editor](#service-editor), [Scoring settings](#scoring-settings), [Industries and markets](#industries-and-markets).
+9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-01` to `AC-08`, `AC-26`, `AC-27`, `AC-39`, `AC-70`, `AC-59`, `AC-62`, `AC-66`, `AC-74`.
 
 ## Services
 
@@ -181,7 +187,7 @@ WF-05 — Scoring settings
 |---|---|
 | `FR-028` | The screen shall edit the service's draft, creating it from the active version on the first change, and show which version is active and whether the draft has unsaved changes. |
 | `FR-029` | Balance shall set `fit_weight` with `intent_weight` shown as its complement; Lines shall set `min_fit`, `warm_threshold` and `hot_threshold`. |
-| `FR-030` | ICP shall list the criteria and add or edit one with key, kind, the operand the kind takes (industries, countries with region shortcuts DACH, Benelux, Nordics and EU that expand to country codes, ranges, complexity levels) and weight level. |
+| `FR-030` | ICP shall list the criteria and add or edit one with key, kind, the operand the kind takes (active industries from [Industries and markets](#industries-and-markets); countries, with the active markets as shortcuts that expand to their country codes; ranges; complexity levels) and weight level. A criterion that names an industry retired since the active version was saved shall show it marked Retired and say that the draft cannot be saved until it is removed ([Scoring settings validation](/architecture/rules.md#scoring-settings-validation)). |
 | `FR-031` | Signals shall list every active question with its polarity, a weight level select and an optional half-life in days whose placeholder shows the source-type defaults. |
 | `FR-032` | Exclusions shall list the disqualifiers and add or edit one with key, label, kind and its operand (a criterion, or a question and minimum strength). |
 | `FR-033` | Advanced, collapsed by default, shall edit `weight_values`, `strength_values`, `default_half_life_days`, `min_decay`, `negative_factor`, `intent_saturation` and `unknown_match`, each with a one-line explanation. |
@@ -195,3 +201,39 @@ Obligations: `S-CFG-03`, `S-CFG-04`, `S-CFG-06`, `S-SCO-07`.
 
 **Data**: `API-11`, `API-15`, `API-16`, `API-17`, `API-18`, `API-19`, `API-35`. **States**: [States](/architecture/services/frontend.md#states).
 
+## Industries and markets
+
+Route `/settings/industries-markets`. Admin only.
+
+**Layout**
+
+```text
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ Industries and markets                                                       │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ Industries                                                 [ New industry ]  │
+│ Code                   Label                              Status   Accounts │
+│ LOGISTICS_TRANSPORT    Logistics and transport            Active         4  │
+│ SHIPPING               Shipping and ports                 Active         0  │
+│ TELECOM_MEDIA          Telecom and media                  Retired        1  │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ Markets                                                      [ New market ]  │
+│ Code      Name        Countries                                    Status   │
+│ DACH      DACH        DE, AT, CH                                   Active   │
+│ NORDICS   Nordics     DK, SE, NO, FI                               Active   │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+WF-26 — Industries and markets
+
+**Behaviour**
+
+| ID | Requirement |
+|---|---|
+| `FR-154` | The screen shall list the industries with code, label, status and the number of accounts that have each, and the markets with code, name, countries and status, active first. |
+| `FR-155` | New industry and New market shall open a dialog with a code that accepts UPPER_SNAKE only and says it cannot be changed later, a label or name, and for a market a multi-select of countries by English name. |
+| `FR-156` | A row menu shall offer Rename, and Retire or Restore with confirmation; retiring shall say that the entry leaves every picker while accounts and saved scoring versions that use it keep it. |
+
+Obligations: `S-CFG-07`.
+
+**Data**: `API-71` to `API-76`. **States**: [States](/architecture/services/frontend.md#states).

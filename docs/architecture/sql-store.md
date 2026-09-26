@@ -124,6 +124,27 @@ One version of a service's scoring settings. A service has at most one `DRAFT` a
 | `activated_at` | timestamptz, null | Set on activation. |
 | `activated_by` | uuid FK → [`app_user`](#app_user), null | The Admin who activated it. |
 
+### industry
+
+A sector an account belongs to and an ICP criterion names. The list is configuration an Admin maintains ([ADR-18](/architecture/adrs/adr-18-industries-and-markets-as-configuration.md)); its first rows are seeded from the [demo dataset](/architecture/overview.md#demo-dataset).
+
+| Column | Type | Notes |
+|---|---|---|
+| `code` | text, unique | UPPER_SNAKE, immutable after creation, e.g. `LOGISTICS_TRANSPORT`. |
+| `label` | text, unique | Name shown in the interface. |
+| `status` | enum: `ACTIVE`, `INACTIVE` | A retired (`INACTIVE`) industry cannot be set on an account or named by a saved draft; accounts that have it keep it, and active scoring versions that name it keep matching it. |
+
+### market
+
+A named group of countries, such as DACH. An Admin maintains the list ([ADR-18](/architecture/adrs/adr-18-industries-and-markets-as-configuration.md)). A market is a shortcut: choosing it in an ICP `GEOGRAPHY` criterion stores its countries, so a later change to the market never changes a saved scoring version.
+
+| Column | Type | Notes |
+|---|---|---|
+| `code` | text, unique | UPPER_SNAKE, immutable after creation, e.g. `DACH`. |
+| `name` | text, unique | Name shown in the interface. |
+| `country_codes` | text[] | ISO 3166-1 alpha-2 codes of its countries; at least one. |
+| `status` | enum: `ACTIVE`, `INACTIVE` | A retired market is not offered in the editor. |
+
 ## Scoring settings document
 
 The `settings` column of [`scoring_config`](#scoring_config) is one JSON object with the keys below. The **Default** column is what a new service's first draft starts with; it is the only place these defaults are stated. The computations that read each key are in [rules](/architecture/rules.md); the checks a draft must pass are [Scoring settings validation](/architecture/rules.md#scoring-settings-validation).
@@ -150,8 +171,8 @@ The `settings` column of [`scoring_config`](#scoring_config) is one JSON object 
 
 | Kind | Operand | Matches when |
 |---|---|---|
-| `INDUSTRY` | `values`: [`account`](#account) `industry` values | the account's industry is in `values` |
-| `GEOGRAPHY` | `values`: ISO 3166-1 alpha-2 country codes | the account's `country_code` is in `values` |
+| `INDUSTRY` | `values`: [`industry`](#industry) codes | the account's industry is in `values` |
+| `GEOGRAPHY` | `values`: ISO 3166-1 alpha-2 country codes; a [`market`](#market) chosen in the editor is stored as its countries | the account's `country_code` is in `values` |
 | `EMPLOYEE_RANGE` | `min` (integer), `max` (integer, optional) | `min ≤ employee_count` and, when `max` is set, `employee_count ≤ max` |
 | `REVENUE_RANGE` | `min`, `max` in EUR (integers, `max` optional) | the same over `revenue_eur` |
 | `OPERATIONAL_COMPLEXITY` | `values`: [`account`](#account) `operational_complexity` values | the account's complexity is in `values` |
@@ -177,7 +198,7 @@ erDiagram
   discovery_candidate |o--o| account : "becomes"
   account {
     text domain UK
-    enum industry
+    text industry FK
     int employee_count
     enum status
   }
@@ -202,7 +223,7 @@ A company that may buy. Accounts are shared by the whole team.
 | `domain` | text, unique | Registrable domain in lower case, e.g. `lufthansagroup.com`; the identity key ([Account identity](/architecture/rules.md#account-identity)). Immutable after creation. |
 | `name` | text | Display name. |
 | `country_code` | text, null | ISO 3166-1 alpha-2 of the headquarters. |
-| `industry` | enum, null | One of the industry values below. |
+| `industry` | text FK → [`industry`](#industry) `code`, null | The account's industry; only an `ACTIVE` industry can be set, and a retired one stays on the accounts that have it. |
 | `employee_count` | integer, null | Number of employees. |
 | `revenue_eur` | bigint, null | Annual revenue in EUR. |
 | `operational_complexity` | enum: `LOW`, `MEDIUM`, `HIGH`, null | How complex the company's operations are, by the countries it operates in and its business units; headcount is `employee_count`. `LOW`: at most 2 countries and one business unit. `MEDIUM`: 3 to 10 countries, or 2 to 4 business units. `HIGH`: more than 10 countries, or 5 or more business units. When the two measures point to different levels, the higher applies. Entered, or classified by [Account attributes](/architecture/rules.md#account-attributes). |
@@ -215,25 +236,6 @@ A company that may buy. Accounts are shared by the whole team.
 | `notes` | text, null | Free notes. |
 | `last_refreshed_at` | timestamptz, null | Finish time of the last `ACCOUNT_REFRESH` run that fetched for it. |
 | `next_refresh_at` | timestamptz, null | When [Refresh scheduling](/architecture/rules.md#refresh-scheduling) next enqueues it. |
-
-Industry values:
-
-| Value | Meaning |
-|---|---|
-| `AEROSPACE_AVIATION` | Airlines, airports, aircraft and aviation services |
-| `AUTOMOTIVE` | Vehicle makers and automotive suppliers |
-| `BANKING` | Banks and payment institutions |
-| `INSURANCE` | Insurers and reinsurers |
-| `LOGISTICS_TRANSPORT` | Logistics, freight, postal and transport operators |
-| `MANUFACTURING` | Industrial manufacturing other than automotive |
-| `ENERGY_UTILITIES` | Energy producers, utilities and grid operators |
-| `TELECOM_MEDIA` | Telecommunications and media |
-| `RETAIL_CONSUMER` | Retail and consumer goods |
-| `HEALTHCARE_PHARMA` | Healthcare providers, pharmaceuticals and life sciences |
-| `PUBLIC_SECTOR` | Government and public administration |
-| `TECHNOLOGY` | Software and IT companies |
-| `PROFESSIONAL_SERVICES` | Consulting, legal, accounting and business services |
-| `OTHER` | Any other industry |
 
 ### account_alias
 
@@ -253,7 +255,7 @@ An address where an account publishes: the pages the website, careers and RSS pl
 |---|---|---|
 | `account_id` | uuid FK → [`account`](#account) | The account. |
 | `kind` | enum: `WEBSITE`, `NEWSROOM`, `INVESTOR_RELATIONS`, `CAREERS`, `RSS_FEED` | `WEBSITE`: home page. `NEWSROOM`: press releases. `INVESTOR_RELATIONS`: annual reports and strategy publications. `CAREERS`: job listings, including a public applicant-tracking board. `RSS_FEED`: a feed of the company's own news. |
-| `url` | text | Absolute URL; unique per account. |
+| `url` | text | Absolute URL; unique per account. A feed on `news.google.com` is refused: its terms allow personal use only ([ADR-19](/architecture/adrs/adr-19-source-provider-terms-and-limits.md)). |
 | `origin` | enum: `MANUAL`, `DETECTED` | Entered by a user, or found by [Source detection](/architecture/rules.md#source-detection). |
 | `status` | enum: `ACTIVE`, `INACTIVE` | An inactive source is not fetched. |
 
@@ -298,7 +300,7 @@ A company proposed by [Discovery](/architecture/rules.md#discovery) that is not 
 | `normalised_name` | text | Name after name normalisation; used to recognise a company proposed before. |
 | `domain` | text, null | Registrable domain, when the source states the website. |
 | `country_code` | text, null | ISO 3166-1 alpha-2, when known. |
-| `industry` | enum, null | An [`account`](#account) `industry` value, when known. |
+| `industry` | text FK → [`industry`](#industry) `code`, null | The industry, when known. |
 | `employee_count` | integer, null | When known. |
 | `origin` | enum: `CRUNCHBASE_SEARCH`, `NEWS_MENTION` | Found by a Crunchbase organisation search, or named as the subject of a relevant news document. |
 | `document_id` | uuid FK → [`document`](#document), null | The news document that named it; `NEWS_MENTION` only. |
@@ -451,7 +453,7 @@ A passage of a document: the unit the classifier reads and a finding quotes.
 | `char_start` | integer | Start offset in the document's text. |
 | `char_end` | integer | End offset, exclusive. |
 | `section` | text, null | Section path, headings joined with ` › `, or `page N` for a PDF without an outline; null when the document has no sections or is one passage ([Chunking and passage selection](/architecture/rules.md#chunking-and-passage-selection)). |
-| `text` | text, null | The passage; null once purged unless an [`evaluation_item`](#evaluation_item) references it. |
+| `text` | text, null | The passage; null once purged unless an `ACTIVE` [`evaluation_item`](#evaluation_item) references it. |
 | `embedding` | vector(`EMBEDDING_DIM`), null | Dense bge-m3 embedding of `text` ([ADR-08](/architecture/adrs/adr-08-multilingual-embeddings.md)); null once purged. |
 | `lexemes` | tsvector, generated, null | `to_tsvector('simple', text)`, for the keyword ranking of question-scoped retrieval; null once `text` is purged. |
 
@@ -756,6 +758,10 @@ The closed vocabulary of `audit_event.action`. **AI call payload**: `ai_role` (a
 | `USER_UPDATED` | `USER` | `app_user` | changed fields, never the password |
 | `SERVICE_CREATED` | `CONFIG` | `service` | `code` |
 | `SERVICE_UPDATED` | `CONFIG` | `service` | changed fields |
+| `INDUSTRY_CREATED` | `CONFIG` | `industry` | `code` |
+| `INDUSTRY_UPDATED` | `CONFIG` | `industry` | changed fields |
+| `MARKET_CREATED` | `CONFIG` | `market` | `code`, `country_codes` |
+| `MARKET_UPDATED` | `CONFIG` | `market` | changed fields |
 | `QUESTION_CREATED` | `CONFIG` | `signal_question` | `key`, `revision` |
 | `QUESTION_UPDATED` | `CONFIG` | `signal_question` | changed fields, `revision` |
 | `SCORING_DRAFT_SAVED` | `CONFIG` | `scoring_config` | `version` |
@@ -792,7 +798,7 @@ Only these tables have rows deleted:
 
 ## Constraints and indexes
 
-- `app_user.email`, `service.code`, `service.name`, `account.domain`, `source_plugin.code` are unique.
+- `app_user.email`, `service.code`, `service.name`, `industry.code`, `industry.label`, `market.code`, `market.name`, `account.domain`, `source_plugin.code` are unique.
 - `signal_question (service_id, key)`, `scoring_config (service_id, version)`, `account_alias (account_id, normalised)`, `account_source (account_id, url)`, `plugin_usage (plugin_code, day)`, `chunk (document_id, ordinal)` and `classification (chunk_id, question_id, question_revision)` are unique.
 - `document (account_id, content_hash)` is unique with `NULLS NOT DISTINCT`, so discovery documents without an account are deduplicated too; the same canonical URL with new content is a new document ([Document normalisation](/architecture/rules.md#document-normalisation)).
 - Partial unique indexes: one `scoring_config` with `status = 'DRAFT'` and one with `status = 'ACTIVE'` per service; one `account_score` with `is_current` per account and service; one `pipeline_run` of kind `ACCOUNT_REFRESH` with status `QUEUED` or `RUNNING` per account; one `ACTIVE` `disqualifier_override` per account, service and rule key; one `ACTIVE` `evaluation_item` per passage, question and revision.

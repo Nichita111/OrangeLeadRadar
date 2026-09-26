@@ -49,12 +49,15 @@ A term is the one name of its concept in prose. **Identifier** is the name code,
 | Half-life | The age at which a finding counts half as much. | `half_life_days` | [Recency decay](/architecture/rules.md#recency-decay) |
 | ICP | Ideal customer profile: the companies a service is for. | `icp_criteria` | [scoring settings document](/architecture/sql-store.md#scoring-settings-document) |
 | ICP criterion | One weighted condition of the ICP: industry, geography, size, revenue or complexity. | `icp_criteria[]` | [scoring settings document](/architecture/sql-store.md#scoring-settings-document) |
+| Impact report | What the product saved over a recent period: accounts researched, manual hours replaced, cost and time per refresh, proven precision. | `impact` | [Impact](/architecture/rules.md#impact) |
 | In force | Counting now: an `ACTIVE` finding, the latest feedback row, an `ACTIVE` exception. | — | [`finding`](/architecture/sql-store.md#finding) |
+| Industry | An Admin-maintained sector an account belongs to and an ICP criterion names. | `industry` | [`industry`](/architecture/sql-store.md#industry) |
 | Intent score | 0–100: how strongly an account's recent findings show a need for a service. | `intent` | [Intent score](/architecture/rules.md#intent-score) |
 | Jev | TypeSafe AI's classification model, served through OpenRouter; one of the two classifier adapters. | `JEV` | [AI gateway](/architecture/services/worker.md#ai-gateway) |
 | Label queue | The stratified list of pairs offered for labelling. | — | [Evaluation metrics](/architecture/rules.md#evaluation-metrics) |
 | Lead feedback | A user's verdict on a lead: relevant, not relevant or already a customer. | `lead_feedback` | [`lead_feedback`](/architecture/sql-store.md#lead_feedback) |
 | LeadRadar | This product. | — | [Architecture overview](/architecture/overview.md#purpose) |
+| Market | An Admin-maintained, named group of countries, chosen in ICP geography criteria as a shortcut for its countries. | `market` | [`market`](/architecture/sql-store.md#market) |
 | Missed evidence | The share of labelled passages the selection leaves unread that hold a signal. | `missed_evidence` | [Evaluation metrics](/architecture/rules.md#evaluation-metrics) |
 | Negative signal | A finding of a negative question, which lowers Intent. | `NEGATIVE` | [Intent score](/architecture/rules.md#intent-score) |
 | Outreach draft | A message a person may send, drafted from findings; never sent by the product. | `outreach_draft` | [`outreach_draft`](/architecture/sql-store.md#outreach_draft) |

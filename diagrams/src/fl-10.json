@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "FL-10 Rescore after a scoring or data change",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      870,
+      530
+    ]
+  },
+  "participants": [
+    {
+      "id": "user",
+      "type": "external",
+      "label": "User",
+      "sublabel": "Sales or Admin"
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "web",
+      "sublabel": "any change screen"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "api",
+      "sublabel": "FastAPI"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "store + job queue"
+    },
+    {
+      "id": "worker",
+      "type": "backend",
+      "label": "worker",
+      "sublabel": "job loop"
+    }
+  ],
+  "segments": [
+    {
+      "from": 156,
+      "to": 284,
+      "label": "Trigger"
+    },
+    {
+      "from": 308,
+      "to": 436,
+      "label": "Rescore"
+    }
+  ],
+  "messages": [
+    {
+      "from": "user",
+      "to": "web",
+      "y": 186,
+      "label": "activate, edit, feedback, exception"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 228,
+      "label": "API-18, 24, 44 to 47",
+      "variant": "emphasis"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 270,
+      "label": "RESCORE run queued"
+    },
+    {
+      "from": "worker",
+      "to": "db",
+      "y": 338,
+      "label": "read findings, settings, feedback"
+    },
+    {
+      "from": "worker",
+      "to": "db",
+      "y": 380,
+      "label": "new current score if changed",
+      "variant": "emphasis"
+    },
+    {
+      "from": "worker",
+      "to": "db",
+      "y": 422,
+      "label": "alerts on a band rise",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Spec",
+      "items": [
+        "FL-10 in Signal pipeline",
+        "S-SCO-07"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Reproducible",
+      "items": [
+        "Same inputs and as-of time give the same row",
+        "Earlier scores stay as history"
+      ]
+    }
+  ]
+}

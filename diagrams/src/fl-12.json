@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "FL-12 Explain a lead",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      820,
+      766
+    ]
+  },
+  "participants": [
+    {
+      "id": "sales",
+      "type": "external",
+      "label": "Sales",
+      "sublabel": "user"
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "web",
+      "sublabel": "Account detail"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "api",
+      "sublabel": "FastAPI"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "store + job queue"
+    }
+  ],
+  "segments": [
+    {
+      "from": 156,
+      "to": 368,
+      "label": "Why"
+    },
+    {
+      "from": 392,
+      "to": 520,
+      "label": "Evidence"
+    },
+    {
+      "from": 544,
+      "to": 672,
+      "label": "History"
+    }
+  ],
+  "messages": [
+    {
+      "from": "sales",
+      "to": "web",
+      "y": 186,
+      "label": "open account for a service"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 228,
+      "label": "score view (API-40)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 270,
+      "label": "findings (API-42)"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 312,
+      "label": "breakdown, findings"
+    },
+    {
+      "from": "api",
+      "to": "web",
+      "y": 354,
+      "label": "criteria, quoted signals",
+      "variant": "return"
+    },
+    {
+      "from": "sales",
+      "to": "web",
+      "y": 422,
+      "label": "Evidence on a signal"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 464,
+      "label": "evidence (API-43)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "api",
+      "to": "web",
+      "y": 506,
+      "label": "excerpt, quote, original link",
+      "variant": "return"
+    },
+    {
+      "from": "sales",
+      "to": "web",
+      "y": 574,
+      "label": "History tab"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 616,
+      "label": "score history (API-41)"
+    },
+    {
+      "from": "api",
+      "to": "web",
+      "y": 658,
+      "label": "each change with its cause",
+      "variant": "return"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Spec",
+      "items": [
+        "FL-12 in Prospect dashboard",
+        "S-PRO-02 to S-PRO-04"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Every point traced",
+      "items": [
+        "The summary is composed from the breakdown",
+        "Every signal opens its source"
+      ]
+    }
+  ]
+}

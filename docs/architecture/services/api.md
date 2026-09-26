@@ -60,6 +60,10 @@ It never fetches from a source, never classifies in batch, never writes a score,
 | `EVIDENCE_CONTEXT_CHARS` | `600` | Document text shown on each side of an evidence passage |
 | `LABEL_QUEUE_SIZE` | `20` | Tasks per label-queue request |
 | `OUTREACH_MAX_FINDINGS` | `5` | Findings given to an outreach draft |
+| `PROSPECT_TOP_SIGNALS` | `2` | Top signals shown on a Prospects row |
+| `HUBSPOT_TOP_SIGNALS` | `3` | Top signals written to HubSpot |
+| `IMPACT_PERIOD_DAYS` | `30` | Period the impact report covers |
+| `MANUAL_RESEARCH_MINUTES_PER_ACCOUNT` | `120` | Minutes a sales manager spends researching one account by hand; an assumption until the sales team states it |
 | `OUTREACH_EMAIL_MAX_CHARS` | `1200` | Maximum email body length |
 | `OUTREACH_INMAIL_MAX_CHARS` | `1900` | Maximum InMail body length |
 | `CONTACT_RETENTION_DAYS` | `730` | Sets a contact's `retain_until` at creation |
@@ -74,4 +78,4 @@ The api also reads the AI gateway, embedder, fixture and `CLOCK_FILE` keys of th
 
 ## Examples
 
-A Sales user edits Lufthansa Group's employee count: `API-24` writes the value with origin `MANUAL`, an `ACCOUNT_UPDATED` audit row, and a `RESCORE` run with trigger `ACCOUNT_CHANGE` and one `SCORE` job per active service, all in one transaction, and answers the updated [`Account`](/architecture/interfaces.md#account). The Fit change appears once the worker finishes the run.
+A Sales user edits Lufthansa Group's employee count: `API-24` writes the value with origin `MANUAL`, an `ACCOUNT_UPDATED` audit row, and a `RESCORE` run with trigger `ACCOUNT_CHANGE` and its one `SCORE` job, which scores every active service, all in one transaction, and answers the updated [`Account`](/architecture/interfaces.md#account). The Fit change appears once the worker finishes the run.

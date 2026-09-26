@@ -78,7 +78,7 @@ Route `/prospects`. Any signed-in user; shows the selected service.
 ├───┼───────────────────┼───────┼──────────┼─────┼────────┼────────────────────┤
 │ 1 │ DHL Group  ● 1    │ ▲ Hot │ 78       │ 88  │ 72     │ AI projects · Strong · 3 wk │
 │   │ Germany · Logistics│      │          │     │        │ Cost programme · Clear · 2 mo │
-│ 2 │ Lufthansa Group   │ ■ Warm│ 60       │ 94  │ 38     │ Cost programme · Strong · 6 wk │
+│ 2 │ Lufthansa Group   │ ■ Warm│ 58       │ 88  │ 38     │ Cost programme · Strong · 6 wk │
 └───┴───────────────────┴───────┴──────────┴─────┴────────┴────────────────────┘
 ```
 
@@ -89,8 +89,8 @@ WF-12 — Prospects
 │ # Account         Band  Priority Fit Intent    │ DHL Group             [Hot]  │
 │ 1 DHL Group       Hot   78       88  72        │ Priority 78                  │
 │   selected row, top two signals shown          │ Fit 88, how well it matches  │
-│ 2 Lufthansa Group Warm  60       94  38        │ Intent 72, recent signals    │
-│ 3 Kuehne+Nagel    Warm  55       80  35        │ Strongest signals            │
+│ 2 Lufthansa Group Warm  58       88  38        │ Intent 72, recent signals    │
+│ 3 Kuehne+Nagel    Warm  53       81  35        │ Strongest signals            │
 │                                                │ + AI projects, Strong, 3 wk  │
 │ Hot: Priority 70 or more. Warm: 40 to 69.      │ + Cost programme, Clear      │
 │ Cold: below 40.                                │ [ Open full explanation ] [x]│
@@ -180,7 +180,7 @@ WF-15 — Account detail, History tab
 | `FR-071` | The Exclusions section shall list every matched disqualifier with its label and the fact or signal that matched; an Admin shall be able to add an exception with a required note, or revoke one, with confirmation. |
 | `FR-072` | The Signals tab shall list the account's signals for the service, filtered by question and by status (Counting, Marked wrong, Outdated question), each with question, strength label, the matched option for a choice question, confidence word, Quick check or Detailed check, quote, translation, source and age. |
 | `FR-073` | Correct and Wrong on a signal shall record the verdict with an optional note, show it on the signal, and say that the score will be updated. |
-| `FR-074` | Evidence shall open the passage with its section path, surrounding text and the quote highlighted, and a link to the original page; for a purged document it shall show the quote, the link and a sentence that the full text is no longer stored. |
+| `FR-074` | Evidence shall open the passage with its section path, surrounding text and the quote highlighted, and a link to the original page, credited to the GDELT Project with a link to it when GDELT found the document ([ADR-19](/architecture/adrs/adr-19-source-provider-terms-and-limits.md)); for a purged document it shall show the quote, the link and a sentence that the full text is no longer stored. |
 | `FR-075` | The History tab shall list score changes newest first, each with when, the cause in words (refresh, scoring version with its change note, feedback, exception, account change, question change), the Priority and band before and after, the signals added and removed, and the exceptions changed. |
 | `FR-131` | Each counted signal on the Why tab shall offer Read the evidence, which opens the Signals tab on that signal with its evidence open. |
 | `FR-132` | The running state of [FR-067](#account-detail) shall be a callout below the header that lists the run's stages with done, current and pending marks and the current stage's counter, while the Refresh now button reads Refreshing. |

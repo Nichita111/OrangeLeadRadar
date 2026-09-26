@@ -30,11 +30,11 @@ Rounding is half up, to an integer, wherever a rule says "rounded".
 
 **Precedence.** `MANUAL` > `CRUNCHBASE` > `CLASSIFIER`. A value is written only when the attribute is null or its [`attribute_origin`](/architecture/sql-store.md#account) is of lower precedence, and the origin is recorded with it. A user's edit always writes `MANUAL`.
 
-**Crunchbase mapping.** Headquarters country → `country_code`; category → `industry` through the category table of the [Crunchbase adapter](/architecture/services/worker.md#source-plug-ins); the lower bound of the employee range → `employee_count`; the lower bound of the revenue range, converted at `USD_EUR_RATE` → `revenue_eur`.
+**Crunchbase mapping.** Headquarters country → `country_code`; category → `industry` through the category table of the [Crunchbase adapter](/architecture/services/worker.md#source-plug-ins), only when the industry it maps to is `ACTIVE`; the lower bound of the employee range → `employee_count`; the lower bound of the revenue range, converted at `USD_EUR_RATE` → `revenue_eur`.
 
 **Operational complexity.** When the attribute has no `MANUAL` or `CRUNCHBASE` value, the classifier answers the scale question "How complex are this company's operations, judged by the countries it operates in and its business units?" with levels `LOW`, `MEDIUM`, `HIGH`, each labelled with its meaning under [`account`](/architecture/sql-store.md#account) `operational_complexity`, over the profile or home page text. The most probable level is stored with origin `CLASSIFIER` when its probability is at least `ATTRIBUTE_MIN_P`; otherwise the attribute stays unknown.
 
-**After.** Any attribute change enqueues a `RESCORE` run with trigger `ACCOUNT_CHANGE` for every active service ([Rescoring](#rescoring)).
+**After.** An attribute a user changes enqueues, from the api, a `RESCORE` run with trigger `ACCOUNT_CHANGE` for every active service ([Rescoring](#rescoring)). An attribute written by a plug-in or the classifier during a refresh is scored by that refresh's own `SCORE` stage, so the worker enqueues no run for it.
 
 ## Persona mapping
 
@@ -81,7 +81,7 @@ When `SERPAPI` is available and a kind is still missing, one web search `"{name}
 6. `RSS` reads each `RSS_FEED` source.
 7. Across plug-ins at most `MAX_DOCUMENTS_PER_REFRESH` documents are kept per refresh, split evenly across the available plug-ins, newest first.
 
-**Invariants.** Nothing older than the window is fetched. No request goes to `linkedin.com`. The crawler honours `robots.txt`, identifies itself with `CRAWLER_USER_AGENT` and waits `CRAWL_HOST_DELAY_MS` between requests to one host ([N-09](/requirements/system.md)).
+**Invariants.** Nothing older than the window is fetched. No request goes to `linkedin.com`, and no Google News feed is read ([ADR-19](/architecture/adrs/adr-19-source-provider-terms-and-limits.md)). The crawler honours `robots.txt`, identifies itself with `CRAWLER_USER_AGENT` and waits `CRAWL_HOST_DELAY_MS` between requests to one host ([N-09](/requirements/system.md)).
 
 ## Document normalisation
 
@@ -182,9 +182,9 @@ The same band applies whichever classifier adapter is configured ([ADR-02](/arch
 
 **Algorithm.** The [LLM extract evidence](/architecture/interfaces.md#llm) call returns `quote`, `quote_en` and `rationale`. The output is valid when:
 
-- `quote`, after collapsing whitespace and mapping typographic quotation marks, apostrophes, dashes and the ellipsis character to their ASCII forms, is a substring of the passage text normalised the same way, and is between 20 and `EVIDENCE_MAX_QUOTE_CHARS` characters;
+- `quote`, after collapsing whitespace and mapping typographic quotation marks, apostrophes, dashes and the ellipsis character to their ASCII forms, is a substring of the passage text normalised the same way, and is between `EVIDENCE_MIN_QUOTE_CHARS` and `EVIDENCE_MAX_QUOTE_CHARS` characters;
 - `quote_en` is present when the document language is not `en`, and absent otherwise;
-- `rationale` is one sentence of at most 300 characters.
+- `rationale` is one sentence of at most `EVIDENCE_MAX_RATIONALE_CHARS` characters.
 
 An invalid output is requested again, up to `EVIDENCE_MAX_ATTEMPTS` attempts in total; after that the classification is `EVIDENCE_FAILED` and no finding is created. A later refresh retries `EVIDENCE_FAILED` pairs once more.
 
@@ -302,7 +302,7 @@ The cost of a call is the `usage.cost` OpenRouter returns with it, in US dollars
 - `0 ≤ warm_threshold < hot_threshold ≤ 100` and `min_fit` is in 0–100;
 - `weight_values` has all four weight levels with non-negative values; `strength_values` has `WEAK ≤ MEDIUM ≤ STRONG`, each in (0, 1];
 - `default_half_life_days` has all four source types, each > 0; `min_decay` in 0–1; `negative_factor ≥ 0`; `intent_saturation` in (0, 1]; `unknown_match` in 0–1;
-- criterion, question and exclusion-rule keys are unique; every operand is valid for its kind (non-empty known enum values or ISO country codes, `min ≤ max`);
+- criterion, question and disqualifier keys are unique; every operand is valid for its kind (a non-empty list of `ACTIVE` [`industry`](/architecture/sql-store.md#industry) codes, ISO country codes or enum values; `min ≤ max`);
 - `questions` names every `ACTIVE` question of the service exactly once and no other;
 - every disqualifier names an existing `criterion_key` or `question_key`.
 
@@ -357,17 +357,38 @@ The cost of a call is the `usage.cost` OpenRouter returns with it, in US dollars
 | `recall` | `tp / (tp + fn)`; null when nothing is expected positive |
 | `strength_agreement` | Share of true positives whose predicted strength equals the expected strength |
 | `escalation_rate` | Share of items that were escalated |
-| `classifier_only` | `precision` and `recall` of the classifier alone, positive when `p_positive ≥ 0.5`, no escalation |
+| `classifier_only` | `precision` and `recall` of the classifier alone, positive when `p_positive ≥ EVAL_CLASSIFIER_ONLY_P`, no escalation |
 | `per_question` | Per question key: `items`, `precision`, `recall` |
 | `per_source_type` | Per document source type: `items`, `precision`, `recall` |
 | `missed_evidence` | Among items whose passage the current selection does not pick for the item's question: `items` and the share whose `expected_strength` is not `NONE`, null without such items — the evidence [Passage selection](#chunking-and-passage-selection) leaves unread |
-| `calibration` | Ten bins of `p_positive` (0–0.1, …, 0.9–1): `count`, `mean_p`, `positive_rate` |
-| `errors` | Up to 50 misclassified items: `item_id`, `expected`, `predicted`, `p_positive`, `escalated` |
+| `calibration` | `EVAL_CALIBRATION_BINS` equal-width bins of `p_positive` from 0 to 1: `count`, `mean_p`, `positive_rate` |
+| `errors` | Up to `EVAL_MAX_ERRORS` misclassified items: `item_id`, `expected`, `predicted`, `p_positive`, `escalated` |
 | `lead_verdicts` | Counts of in-force `RELEVANT` and `NOT_RELEVANT` lead feedback per current band |
 
 `passed` = `precision ≥ EVAL_MIN_PRECISION` and `items ≥ EVAL_MIN_ITEMS` ([ADR-14](/architecture/adrs/adr-14-labelled-set-and-precision-gate.md)). An evaluation whose classifier or LLM calls fail, or that the [Budget guard](#budget-guard) stops, ends `FAILED` with the reason and reports no metrics: a partial result is never reported as a quality check.
 
 **Label queue.** Pairs of a passage of a kept document of an active account and an applicable active question, without an active item, are split into four strata: for a selected passage, by its classification's `p_positive` — below `ESCALATION_LOWER`, inside the band, at or above `ESCALATION_UPPER`; and **not selected**, a passage of a long document that selection did not pick for the question. The queue returns `LABEL_QUEUE_SIZE` pairs, as equal a share from each stratum as there are pairs, ordered within a stratum by the SHA-256 of the passage id and question id, so the order is stable.
+
+## Impact
+
+**Inputs.** The `ACCOUNT_REFRESH` runs that finished `SUCCEEDED` or `PARTIAL` within the last `IMPACT_PERIOD_DAYS` before now; the `cost_eur` of their `AI_CALL` rows in [`audit_event`](/architecture/sql-store.md#audit_event); the findings whose classification those runs created; the latest [`evaluation_result`](/architecture/sql-store.md#evaluation_result) with `passed` true; `MANUAL_RESEARCH_MINUTES_PER_ACCOUNT`.
+
+**Algorithm.**
+
+| Value | Computation |
+|---|---|
+| `accounts_refreshed` | Distinct accounts of those runs |
+| `refreshes` | Number of those runs |
+| `cost_per_refresh_eur` | Sum of their `AI_CALL` `cost_eur` divided by `refreshes`; null without runs |
+| `minutes_per_refresh` | Mean of `finished_at − started_at`, in minutes; null without runs |
+| `findings_created` | Number of those findings |
+| `precision`, `labelled_items` | `precision` and `items` of the latest passing evaluation; null without one |
+| `manual_minutes_per_account` | `MANUAL_RESEARCH_MINUTES_PER_ACCOUNT` |
+| `manual_hours_replaced` | `accounts_refreshed × MANUAL_RESEARCH_MINUTES_PER_ACCOUNT / 60` |
+
+Numbers are rounded to two decimals.
+
+**Invariants.** Every value is computed from stored runs, audit rows, findings and evaluation results; the only assumed value is `MANUAL_RESEARCH_MINUTES_PER_ACCOUNT`, and the report names it as the team's assumption.
 
 ## Outreach grounding
 
@@ -387,7 +408,7 @@ An invalid output is requested once more; a second invalid output answers `503 U
 
 **Inputs.** Active accounts' `next_refresh_at`; active refresh runs; `SCHEDULER_TICK_S`, `SCHEDULER_MAX_ENQUEUE`, `REFRESH_INTERVAL_HOURS`; the clock.
 
-**Algorithm.** Every `SCHEDULER_TICK_S` the scheduler enqueues an `ACCOUNT_REFRESH` with trigger `SCHEDULE` for up to `SCHEDULER_MAX_ENQUEUE` active accounts whose `next_refresh_at` is due and that have no `QUEUED` or `RUNNING` refresh, oldest due first. A new account is due at creation. When a refresh finishes in any status but `CANCELLED`, `next_refresh_at` = `finished_at` + `REFRESH_INTERVAL_HOURS`, and `last_refreshed_at` = `finished_at` unless it `FAILED`. A user's refresh request while one is queued or running returns that run.
+**Algorithm.** Every `SCHEDULER_TICK_S` the scheduler enqueues an `ACCOUNT_REFRESH` with trigger `SCHEDULE` for up to `SCHEDULER_MAX_ENQUEUE` active accounts whose `next_refresh_at` is due and that have no `QUEUED` or `RUNNING` refresh, oldest due first. An account whose `next_refresh_at` is null — a new one — is due. When a refresh finishes in any status but `CANCELLED`, `next_refresh_at` = `finished_at` + `REFRESH_INTERVAL_HOURS`, and `last_refreshed_at` = `finished_at` unless it `FAILED`. A user's refresh request while one is queued or running returns that run.
 
 **Invariants.** At most one queued or running refresh per account. Because every refresh ends with the `SCORE` stage, every active account is rescored at least once per interval, so decay is applied even when no new document arrives.
 

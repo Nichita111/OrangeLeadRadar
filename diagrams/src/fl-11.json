@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "FL-11 Work the prospect list",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      820,
+      640
+    ]
+  },
+  "participants": [
+    {
+      "id": "sales",
+      "type": "external",
+      "label": "Sales",
+      "sublabel": "user"
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "web",
+      "sublabel": "Prospects"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "api",
+      "sublabel": "FastAPI"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "store + job queue"
+    }
+  ],
+  "segments": [
+    {
+      "from": 156,
+      "to": 326,
+      "label": "Rank"
+    },
+    {
+      "from": 350,
+      "to": 436,
+      "label": "Narrow"
+    },
+    {
+      "from": 460,
+      "to": 546,
+      "label": "Read"
+    }
+  ],
+  "messages": [
+    {
+      "from": "sales",
+      "to": "web",
+      "y": 186,
+      "label": "open Prospects for a service"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 228,
+      "label": "prospects (API-39)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 270,
+      "label": "current scores"
+    },
+    {
+      "from": "api",
+      "to": "web",
+      "y": 312,
+      "label": "band, Priority, Fit, Intent",
+      "variant": "return"
+    },
+    {
+      "from": "sales",
+      "to": "web",
+      "y": 380,
+      "label": "filter band, country, industry"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 422,
+      "label": "prospects with filters"
+    },
+    {
+      "from": "sales",
+      "to": "web",
+      "y": 490,
+      "label": "select a row: signals drawer"
+    },
+    {
+      "from": "sales",
+      "to": "web",
+      "y": 532,
+      "label": "open Account detail",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Spec",
+      "items": [
+        "FL-11 in Prospect dashboard",
+        "S-PRO-01"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Ranked only",
+      "items": [
+        "Excluded and customer accounts show their reason",
+        "Two top signals per row"
+      ]
+    }
+  ]
+}

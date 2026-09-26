@@ -1,0 +1,183 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "FL-07 Refresh one account",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1080,
+      834
+    ]
+  },
+  "participants": [
+    {
+      "id": "sales",
+      "type": "external",
+      "label": "Sales",
+      "sublabel": "user"
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "web",
+      "sublabel": "Account detail"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "api",
+      "sublabel": "FastAPI"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "store + job queue"
+    },
+    {
+      "id": "worker",
+      "type": "backend",
+      "label": "worker",
+      "sublabel": "job loop"
+    },
+    {
+      "id": "src",
+      "type": "external",
+      "label": "Sources",
+      "sublabel": "news, sites, careers"
+    },
+    {
+      "id": "emb",
+      "type": "backend",
+      "label": "embedder",
+      "sublabel": "bge-m3"
+    },
+    {
+      "id": "llm",
+      "type": "cloud",
+      "label": "OpenRouter",
+      "sublabel": "LLM + Jev"
+    }
+  ],
+  "segments": [
+    {
+      "from": 156,
+      "to": 284,
+      "label": "Request"
+    },
+    {
+      "from": 308,
+      "to": 478,
+      "label": "Fetch + process"
+    },
+    {
+      "from": 502,
+      "to": 630,
+      "label": "Signal"
+    },
+    {
+      "from": 654,
+      "to": 740,
+      "label": "Score"
+    }
+  ],
+  "messages": [
+    {
+      "from": "sales",
+      "to": "web",
+      "y": 186,
+      "label": "Refresh now",
+      "variant": "emphasis"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 228,
+      "label": "refresh (API-33)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 270,
+      "label": "run QUEUED, FETCH jobs"
+    },
+    {
+      "from": "worker",
+      "to": "src",
+      "y": 338,
+      "label": "fetch within the window"
+    },
+    {
+      "from": "src",
+      "to": "worker",
+      "y": 380,
+      "label": "items",
+      "variant": "return"
+    },
+    {
+      "from": "worker",
+      "to": "emb",
+      "y": 422,
+      "label": "embed passages"
+    },
+    {
+      "from": "worker",
+      "to": "db",
+      "y": 464,
+      "label": "documents, passages"
+    },
+    {
+      "from": "worker",
+      "to": "llm",
+      "y": 532,
+      "label": "triage, classify (Jev or LLM)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "worker",
+      "to": "llm",
+      "y": 574,
+      "label": "escalate, extract quote"
+    },
+    {
+      "from": "worker",
+      "to": "db",
+      "y": 616,
+      "label": "findings with verbatim quotes"
+    },
+    {
+      "from": "worker",
+      "to": "db",
+      "y": 684,
+      "label": "scores for every service, alerts",
+      "variant": "emphasis"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 726,
+      "label": "poll run (API-35)",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Spec",
+      "items": [
+        "FL-07 in Signal pipeline",
+        "S-ING-01 to S-ING-04, S-SIG-01 to S-SIG-09"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Evidence first",
+      "items": [
+        "No quote, no finding",
+        "A failing source ends the run PARTIAL, never faked"
+      ]
+    }
+  ]
+}

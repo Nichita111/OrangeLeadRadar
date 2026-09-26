@@ -120,15 +120,15 @@ Each plug-in is one adapter implementing `API-68` and, where it searches, `API-6
 
 | Plug-in | Adapter |
 |---|---|
-| `GDELT` | GDELT DOC 2.0 API, `mode=ArtList`, JSON, query and date range from [Fetch window](/architecture/rules.md#fetch-window); each listed article is then fetched as HTML, because GDELT returns metadata only. Discovery adds `sourcecountry` filters |
-| `RSS` | Parses the feed; each item's link is fetched as HTML when the item carries no full text |
+| `GDELT` | GDELT DOC 2.0 API, `mode=ArtList`, JSON, query and date range from [Fetch window](/architecture/rules.md#fetch-window), at most `GDELT_MAX_RECORDS` results per request; the API searches a rolling three months only. Requests are spaced at least `GDELT_MIN_INTERVAL_S` apart, and a `429` pauses the plug-in for `GDELT_BACKOFF_S`. Each listed article is then fetched as HTML, because GDELT returns metadata only. Documents it finds are credited to the GDELT Project, whose terms require it ([ADR-19](/architecture/adrs/adr-19-source-provider-terms-and-limits.md)). Discovery adds `sourcecountry` filters |
+| `RSS` | Parses the feed; each item's link is fetched as HTML when the item carries no full text. Never reads a feed on `news.google.com`, whose terms allow personal use only |
 | `WEBSITE` | HTML over HTTP; when `WEBSITE_RENDER_JS` is true and the extracted text is shorter than `MIN_DOCUMENT_CHARS`, the page is rendered with headless Chromium through Playwright; linked PDFs are downloaded; runs [Source detection](/architecture/rules.md#source-detection) |
 | `CAREERS` | Public applicant-tracking APIs where the careers source is on their host (Greenhouse boards API, Lever postings API, SmartRecruiters postings API); otherwise the career page's listing is crawled like `WEBSITE` and each posting page fetched |
 | `CRUNCHBASE` | Crunchbase API v4: the organisation matched by domain, its fields, key people and events as one `COMPANY_PROFILE` document; organisation search for discovery. Category mapping below |
 | `NEWSAPI` | `/v2/everything` with the query and date range; article URLs fetched as HTML for the full text |
-| `SERPAPI` | Engine `google_news` for news; engine `google` for source detection; result URLs fetched as HTML |
+| `SERPAPI` | Engine `google_news` for news — the only way Google News is read; engine `google` for source detection; result URLs fetched as HTML |
 
-Crunchbase category mapping: the first of the organisation's categories that appears in this table sets `industry`; none sets `OTHER`.
+Crunchbase category mapping: the first of the organisation's categories that this table maps to an `ACTIVE` [`industry`](/architecture/sql-store.md#industry) sets it; otherwise `industry` stays unknown. The table maps to the seeded industry codes.
 
 | Crunchbase categories | `industry` |
 |---|---|
@@ -180,6 +180,9 @@ One worker at a time runs the scheduler: each loop takes a PostgreSQL advisory l
 | `CRAWLER_USER_AGENT` | `LeadRadar/0.1 (+{APP_BASE_URL}/crawler)` | User agent of every request |
 | `WEBSITE_RENDER_JS` | `false` | Render pages with Playwright when static text is too short |
 | `HTTP_TIMEOUT_S` | `20` | Timeout of one HTTP request to a source |
+| `GDELT_MAX_RECORDS` | `250` | Articles asked of one GDELT request, the API's maximum |
+| `GDELT_MIN_INTERVAL_S` | `6` | Least time between two GDELT requests |
+| `GDELT_BACKOFF_S` | `60` | Pause of the GDELT plug-in after a `429` |
 | `MIN_DOCUMENT_CHARS` | `200` | Shortest text kept as a document |
 | `WHOLE_DOCUMENT_MAX_CHARS` | `8000` | Longest document read whole, as one passage |
 | `CHUNK_TARGET_CHARS` | `1600` | Longest passage of a longer document |
@@ -203,12 +206,17 @@ One worker at a time runs the scheduler: each loop takes a PostgreSQL advisory l
 | `ESCALATION_LOWER` | `0.35` | At or below: negative without escalation |
 | `ESCALATION_UPPER` | `0.65` | At or above: positive without escalation |
 | `EVIDENCE_MAX_ATTEMPTS` | `2` | Attempts to obtain a valid quote |
+| `EVIDENCE_MIN_QUOTE_CHARS` | `20` | Shortest quote |
 | `EVIDENCE_MAX_QUOTE_CHARS` | `400` | Longest quote |
+| `EVIDENCE_MAX_RATIONALE_CHARS` | `300` | Longest rationale |
 | `ATTRIBUTE_MIN_P` | `0.6` | Minimum probability to store a classified attribute or persona |
 | `ALERT_MAX_AGE_DAYS` | `14` | Oldest finding that raises a strong-signal alert |
 | `DISCOVERY_MAX_CANDIDATES` | `50` | Candidates per discovery run |
 | `DISCOVERY_LOOKBACK_DAYS` | `30` | News window of discovery |
 | `DISCOVERY_MAX_DOCUMENTS` | `100` | News documents read per discovery run |
+| `EVAL_CLASSIFIER_ONLY_P` | `0.5` | `p_positive` at which the classifier alone counts as positive in `classifier_only` |
+| `EVAL_CALIBRATION_BINS` | `10` | Bins of the calibration metric |
+| `EVAL_MAX_ERRORS` | `50` | Misclassified items a quality check lists |
 | `EVAL_MIN_PRECISION` | `0.80` | Release-gate precision ([ADR-14](/architecture/adrs/adr-14-labelled-set-and-precision-gate.md)) |
 | `EVAL_MIN_ITEMS` | `200` | Minimum labelled items for a passing quality check |
 | `ESCALATION_RATE_TARGET` | `0.15` | Target share of escalated items ([N-03](/requirements/system.md)) |

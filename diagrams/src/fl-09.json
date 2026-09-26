@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "FL-09 Reclassify after a question change",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1020,
+      640
+    ]
+  },
+  "participants": [
+    {
+      "id": "admin",
+      "type": "external",
+      "label": "Admin",
+      "sublabel": "user"
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "web",
+      "sublabel": "Service editor"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "api",
+      "sublabel": "FastAPI"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "store + job queue"
+    },
+    {
+      "id": "worker",
+      "type": "backend",
+      "label": "worker",
+      "sublabel": "job loop"
+    },
+    {
+      "id": "llm",
+      "type": "cloud",
+      "label": "OpenRouter",
+      "sublabel": "LLM + Jev"
+    }
+  ],
+  "segments": [
+    {
+      "from": 156,
+      "to": 284,
+      "label": "Change"
+    },
+    {
+      "from": 308,
+      "to": 478,
+      "label": "Reclassify"
+    },
+    {
+      "from": 502,
+      "to": 546,
+      "label": "Rescore"
+    }
+  ],
+  "messages": [
+    {
+      "from": "admin",
+      "to": "web",
+      "y": 186,
+      "label": "revise the question"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "y": 228,
+      "label": "update question (API-13)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 270,
+      "label": "revision + 1, RECLASSIFY run"
+    },
+    {
+      "from": "worker",
+      "to": "db",
+      "y": 338,
+      "label": "old findings SUPERSEDED"
+    },
+    {
+      "from": "worker",
+      "to": "db",
+      "y": 380,
+      "label": "retrieve passages for it",
+      "variant": "emphasis"
+    },
+    {
+      "from": "worker",
+      "to": "llm",
+      "y": 422,
+      "label": "classify, escalate, quote"
+    },
+    {
+      "from": "worker",
+      "to": "db",
+      "y": 464,
+      "label": "new findings"
+    },
+    {
+      "from": "worker",
+      "to": "db",
+      "y": 532,
+      "label": "rescore the service",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Spec",
+      "items": [
+        "FL-09 in Signal pipeline",
+        "S-SIG-07"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Only this question",
+      "items": [
+        "Nothing is fetched",
+        "Stored passages are retrieved by keyword and meaning"
+      ]
+    }
+  ]
+}
