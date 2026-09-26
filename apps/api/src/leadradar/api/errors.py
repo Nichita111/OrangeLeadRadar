@@ -61,11 +61,13 @@ def _field_name(location: tuple[int | str, ...]) -> str:
     """The `field` of a `VALIDATION` error ([Conventions](/architecture/interfaces.md#conventions)
     Envelope): a bare body field name, a JSON pointer into it, or the name of a path or query
     parameter. FastAPI's `loc` is `("body", "field", ...)`, `("path", "name")` or
-    `("query", "name")`; a single remaining part is a bare name, several are a JSON pointer."""
-    parts = [str(part) for part in location[1:]]
-    if len(parts) <= 1:
-        return parts[0] if parts else str(location[-1])
-    return "/" + "/".join(parts)
+    `("query", "name")`; a single string part is a bare name, anything else — several parts, none
+    (a malformed body), or a single non-string part such as a malformed body's index — is a JSON
+    pointer."""
+    parts = location[1:]
+    if len(parts) == 1 and isinstance(parts[0], str):
+        return parts[0]
+    return "/" + "/".join(str(part) for part in parts)
 
 
 def register_error_handlers(app: FastAPI) -> None:

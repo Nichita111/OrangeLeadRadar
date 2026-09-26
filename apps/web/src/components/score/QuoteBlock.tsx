@@ -1,5 +1,6 @@
 import type { components } from "../../api/schema.gen";
 import { absoluteTooltip, relativeAge } from "../../shell/formatting";
+import { titleCaseFallback } from "../../shell/labels";
 import { Tooltip } from "../ui/tooltip";
 import { Confidence } from "./Confidence";
 
@@ -15,7 +16,7 @@ export function QuoteBlock({ finding, now }: { finding: Finding; now: Date }) {
         <p>English: {finding.quote_en}</p>
       ) : null}
       <footer className="text-text-tertiary">
-        {domain}, {finding.document.source_type.toLowerCase().replaceAll("_", " ")},{" "}
+        {domain}, {titleCaseFallback(finding.document.source_type)},{" "}
         <Tooltip label={absoluteTooltip(observedAt, timeZone)}>
           <time dateTime={finding.observed_at}>{relativeAge(observedAt, now)}</time>
         </Tooltip>

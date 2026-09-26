@@ -16,6 +16,8 @@ pytestmark = pytest.mark.unit
     [
         (("body", "name"), "name"),
         (("body", "a", 0, "b"), "/a/0/b"),
+        (("body", 0), "/0"),
+        (("body",), "/"),
         (("path", "id"), "id"),
         (("query", "page_size"), "page_size"),
     ],

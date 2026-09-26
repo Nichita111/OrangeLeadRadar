@@ -133,6 +133,7 @@ it("FR-111 through FR-117 render the contract's score anatomy", async () => {
     expect(screen.getByText(label)).toBeVisible();
   expect(screen.getByText("Fit", { exact: false })).toBeVisible();
   expect(screen.getByText("Intent", { exact: false })).toBeVisible();
+  expect(screen.getByText("Company publication", { exact: false })).toBeVisible();
   expect(screen.getByText("English: Automation", { exact: false })).toBeVisible();
   expect(screen.getByText("Warm from 50", { exact: false })).toHaveTextContent("Hot from 70");
   expect(
