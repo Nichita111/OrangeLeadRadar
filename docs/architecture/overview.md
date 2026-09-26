@@ -123,17 +123,19 @@ No role produces a score, a band, a standing or an exclusion, and no role's text
 
 ## Degradation
 
-A failure is degrading when a deterministic path remains, blocking when it does not. Nothing is replaced by a placeholder: an unavailable dependency is an error that names it.
+A failure is degrading when a deterministic path remains, blocking when it does not. Nothing is replaced by a placeholder: an unavailable dependency is an error that names it. The screen wording is each row as a user reads it: its first sentence names what is unavailable without a product, provider or model name, and what still works follows as a list.
 
-| Dependency down | What happens | What still works |
-|---|---|---|
-| One source plug-in | Its fetch step fails; the run ends `PARTIAL` naming it | The other plug-ins, the rest of the pipeline, every screen |
-| Classifier | `SIGNAL` jobs fail and are retried; the run ends `PARTIAL`; question preview, and a contact added without a persona, answer `503` | Fetching and processing; scoring from existing findings; every screen |
-| OpenRouter | Every classifier and LLM call fails, Jev's included: `SIGNAL` jobs fail and are retried and the run ends `PARTIAL`; preview, outreach and a contact added without a persona answer `503` | Fetching and processing; scoring from existing findings; every screen |
-| LLM daily budget reached | Escalation and evidence pairs wait as `PENDING_LLM`, and with the LLM classifier adapter classification waits too; preview and outreach answer `429`, and so does a contact added without a persona under the LLM classifier adapter | Classification by Jev; confident negatives; scoring from existing findings; every screen |
-| Embedder | `PROCESS` jobs fail and are retried; the run ends `PARTIAL`; question preview on an account, or on pasted text longer than `WHOLE_DOCUMENT_MAX_CHARS`, answers `503` | Scoring, every screen, preview on shorter pasted text |
-| HubSpot | The push answers `503`; the attempt is recorded | Everything else |
-| Database | Blocking: the api answers `503` and `/health` reports `DOWN`; the worker stops claiming jobs | Nothing |
+| Dependency down | What happens | What still works | Screen wording |
+|---|---|---|---|
+| One source plug-in | Its fetch step fails; the run ends `PARTIAL` naming it | The other plug-ins, the rest of the pipeline, every screen | **A source plug-in is unavailable.** Still works: The other source plug-ins · The rest of the refresh · Every screen |
+| Classifier | `SIGNAL` jobs fail and are retried; the run ends `PARTIAL`; question preview, and a contact added without a persona, answer `503` | Fetching and processing; scoring from existing findings; every screen | **Quick checks are unavailable.** Still works: Collecting and preparing new documents · Scores from the signals already found · Every screen |
+| OpenRouter | Every classifier and LLM call fails, Jev's included: `SIGNAL` jobs fail and are retried and the run ends `PARTIAL`; preview, outreach and a contact added without a persona answer `503` | Fetching and processing; scoring from existing findings; every screen | **The AI service is unavailable.** Still works: Collecting and preparing new documents · Scores from the signals already found · Every screen |
+| LLM daily budget reached | Escalation and evidence pairs wait as `PENDING_LLM`, and with the LLM classifier adapter classification waits too; preview and outreach answer `429`, and so does a contact added without a persona under the LLM classifier adapter | Classification by Jev; confident negatives; scoring from existing findings; every screen | **Today's budget for detailed checks is used up.** Still works: Scores from the signals already found · Every screen |
+| Embedder | `PROCESS` jobs fail and are retried; the run ends `PARTIAL`; question preview on an account, or on pasted text longer than `WHOLE_DOCUMENT_MAX_CHARS`, answers `503` | Scoring, every screen, preview on shorter pasted text | **Text analysis is unavailable.** Still works: Scores from the signals already found · Every screen · Try it on short pasted text |
+| HubSpot | The push answers `503`; the attempt is recorded | Everything else | **HubSpot is unavailable.** Still works: Everything else |
+| Database | Blocking: every contract except `API-61` answers `503 UPSTREAM_UNAVAILABLE`, `API-61` answers `503` with the database `DOWN`, and the worker stops claiming jobs | Nothing | **The database is unavailable.** Nothing works until it is back. |
+
+The Screen wording cells are literal cells ([Literal cells](/guidelines/documents/common.md#literal-cells-and-illustrative-ones)): the client shows them exactly as written. The cell's shape is fixed: the bold headline sentence, then either "Still works: " with the items separated by " · ", or one closing sentence.
 
 ## Production path
 
