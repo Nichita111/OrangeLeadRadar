@@ -7,6 +7,8 @@ import { Navigate, Route, Routes } from "react-router-dom";
 
 import { SignInScreen } from "./features/identity-and-access/sign-in/SignInScreen";
 import { UsersScreen } from "./features/identity-and-access/users/UsersScreen";
+import { ServiceEditorScreen } from "./features/service-configuration/service-editor/ServiceEditorScreen";
+import { ServicesScreen } from "./features/service-configuration/services/ServicesScreen";
 import { RequireAdmin } from "./shell/RequireAdmin";
 import { RequireAuth } from "./shell/RequireAuth";
 
@@ -18,6 +20,8 @@ export function App() {
         <Route index element={<Navigate to="/prospects" replace />} />
         <Route element={<RequireAdmin />}>
           <Route path="/users" element={<UsersScreen />} />
+          <Route path="/services" element={<ServicesScreen />} />
+          <Route path="/services/:id" element={<ServiceEditorScreen />} />
         </Route>
       </Route>
     </Routes>

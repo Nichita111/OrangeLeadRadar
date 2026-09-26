@@ -57,3 +57,16 @@ export function titleCaseEnum(value: string): string {
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 }
+
+/** [Screen labels](/architecture/services/frontend.md#screen-labels): a `FindingStrength` value,
+ * including `NONE` for a signal question's Choice options. */
+const STRENGTH_LABELS: Record<string, string> = {
+  NONE: "None",
+  WEAK: "Weak",
+  MEDIUM: "Clear",
+  STRONG: "Strong",
+};
+
+export function strengthLabel(value: string): string {
+  return STRENGTH_LABELS[value] ?? titleCaseEnum(value);
+}
