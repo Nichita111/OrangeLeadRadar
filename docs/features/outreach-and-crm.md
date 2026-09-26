@@ -116,7 +116,3 @@ WF-20 — HubSpot push dialog
 Obligations: `S-OUT-02`.
 
 **Data**: `API-40`, `API-59`. **States**: [States](/architecture/services/frontend.md#states).
-
-## Open questions
-
-- The HubSpot custom properties `leadradar_*` must exist in the target portal; whether the setup creates them or an Admin does. Missing: access to the portal. Decides: the HubSpot administrator.

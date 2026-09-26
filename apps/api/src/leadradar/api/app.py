@@ -11,7 +11,7 @@ from contextlib import AbstractAsyncContextManager, asynccontextmanager
 import httpx
 from fastapi import FastAPI
 
-from leadradar.api import audit_and_health, evaluation, feedback_and_alerts
+from leadradar.api import audit_and_health, evaluation, feedback_and_alerts, outreach_and_crm
 from leadradar.api.csrf import CsrfMiddleware
 from leadradar.api.errors import register_error_handlers
 from leadradar.api.request_identity import RequestIdentityMiddleware
@@ -56,4 +56,5 @@ def create_app(settings: ApiSettings) -> FastAPI:
     app.include_router(audit_and_health.router, prefix=API_PREFIX)
     app.include_router(evaluation.router, prefix=API_PREFIX)
     app.include_router(feedback_and_alerts.router, prefix=API_PREFIX)
+    app.include_router(outreach_and_crm.router, prefix=API_PREFIX)
     return app

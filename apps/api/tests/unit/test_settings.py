@@ -66,6 +66,24 @@ def test_impact_and_clock_keys_are_overridden_from_the_environment(
     assert str(settings.clock_file) == "/tmp/now.txt"
 
 
+def test_hubspot_keys_take_their_runtime_defaults() -> None:
+    settings = ApiSettings(database_url=SecretStr("postgresql://u:p@localhost/db"))
+
+    assert settings.hubspot_access_token is None
+    assert settings.hubspot_top_signals == 3
+    assert settings.hubspot_timeout_s == 10
+    assert settings.app_base_url == "http://localhost:8080"
+
+
+def test_repr_of_settings_never_contains_the_hubspot_token() -> None:
+    settings = ApiSettings(
+        database_url=SecretStr("postgresql://u:p@localhost/db"),
+        hubspot_access_token=SecretStr("s3cret-hubspot-token"),
+    )
+    assert "s3cret-hubspot-token" not in repr(settings)
+    assert "s3cret-hubspot-token" not in str(settings)
+
+
 def test_a_logged_settings_object_never_contains_the_password_or_the_key(
     capsys: pytest.CaptureFixture[str],
 ) -> None:

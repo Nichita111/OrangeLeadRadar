@@ -39,3 +39,8 @@ class ApiSettings(BaseSettings):
 
     impact_period_days: int = 30
     manual_research_minutes_per_account: int = 120
+
+    app_base_url: str = "http://localhost:8080"
+    hubspot_access_token: SecretStr | None = None
+    hubspot_top_signals: int = 3
+    hubspot_timeout_s: float = 10

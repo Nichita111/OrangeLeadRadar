@@ -16,6 +16,7 @@ from starlette.responses import Response
 
 from leadradar.auth.sessions import Forbidden, Unauthenticated
 from leadradar.feedback.errors import FeedbackError
+from leadradar.outreach.errors import CrmUnavailable, HubspotNotConfigured, ScoreNotFound
 
 
 def envelope(
@@ -41,8 +42,8 @@ def _field_name(location: tuple[int | str, ...]) -> str:
 
 def register_error_handlers(app: FastAPI) -> None:
     """Registers every handler this task's routes need: the `NOT_FOUND` fallback for an unknown
-    path, `VALIDATION` for a malformed request, and the typed errors `auth.sessions` and
-    `feedback.errors` raise."""
+    path, `VALIDATION` for a malformed request, and the typed errors `auth.sessions`,
+    `feedback.errors` and `outreach.errors` raise."""
 
     @app.exception_handler(StarletteHTTPException)
     async def handle_http_exception(request: Request, exc: StarletteHTTPException) -> Response:
@@ -74,3 +75,24 @@ def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(FeedbackError)
     async def handle_feedback_error(request: Request, exc: FeedbackError) -> Response:
         return JSONResponse(status_code=404, content=envelope("NOT_FOUND", str(exc)))
+
+    @app.exception_handler(HubspotNotConfigured)
+    async def handle_hubspot_not_configured(
+        request: Request, exc: HubspotNotConfigured
+    ) -> Response:
+        return JSONResponse(status_code=409, content=envelope("NOT_CONFIGURED", str(exc)))
+
+    @app.exception_handler(ScoreNotFound)
+    async def handle_outreach_score_not_found(request: Request, exc: ScoreNotFound) -> Response:
+        return JSONResponse(status_code=404, content=envelope("NOT_FOUND", str(exc)))
+
+    @app.exception_handler(CrmUnavailable)
+    async def handle_crm_unavailable(request: Request, exc: CrmUnavailable) -> Response:
+        return JSONResponse(
+            status_code=503,
+            content=envelope(
+                "UPSTREAM_UNAVAILABLE",
+                "HubSpot is unavailable.",
+                {"dependency": "HUBSPOT", "reason": str(exc)},
+            ),
+        )
