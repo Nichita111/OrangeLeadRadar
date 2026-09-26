@@ -158,7 +158,7 @@
       "id": "paid",
       "type": "external",
       "label": "Keyed sources",
-      "sublabel": "NewsAPI, SerpAPI",
+      "sublabel": "Crunchbase, NewsAPI, SerpAPI",
       "pos": [
         1100,
         470
@@ -233,7 +233,16 @@
       "id": "worker-paid",
       "from": "worker",
       "to": "paid",
-      "label": "with key"
+      "label": "with key",
+      "variant": "dashed"
+    },
+    {
+      "id": "api-embedder",
+      "from": "api",
+      "to": "embedder",
+      "label": "embed question",
+      "fromSide": "bottom",
+      "toSide": "left"
     },
     {
       "id": "worker-embedder",
