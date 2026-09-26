@@ -16,6 +16,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.responses import Response
 
 from leadradar.accounts.errors import AccountNotFound, AccountValidationError, DomainConflict
+from leadradar.alerts.errors import AlertNotFound
 from leadradar.auth.errors import (
     AccountDisabled,
     AccountLocked,
@@ -250,4 +251,8 @@ def register_error_handlers(app: FastAPI) -> None:
     async def handle_source_plugin_not_found(
         request: Request, exc: SourcePluginNotFound
     ) -> Response:
+        return JSONResponse(status_code=404, content=envelope("NOT_FOUND", str(exc)))
+
+    @app.exception_handler(AlertNotFound)
+    async def handle_alert_not_found(request: Request, exc: AlertNotFound) -> Response:
         return JSONResponse(status_code=404, content=envelope("NOT_FOUND", str(exc)))

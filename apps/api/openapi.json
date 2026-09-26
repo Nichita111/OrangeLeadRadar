@@ -472,6 +472,27 @@
         "title": "AccountRow",
         "type": "object"
       },
+      "AccountScoreBand": {
+        "description": "`account_score.band`.",
+        "enum": [
+          "HOT",
+          "WARM",
+          "COLD"
+        ],
+        "title": "AccountScoreBand",
+        "type": "string"
+      },
+      "AccountScoreStanding": {
+        "description": "`account_score.standing`.",
+        "enum": [
+          "RANKED",
+          "BELOW_FIT",
+          "DISQUALIFIED",
+          "CUSTOMER"
+        ],
+        "title": "AccountScoreStanding",
+        "type": "string"
+      },
       "AccountSourceItem": {
         "additionalProperties": false,
         "description": "One entry of `Account.sources`.",
@@ -693,6 +714,179 @@
           "url"
         ],
         "title": "AccountUpdateSource",
+        "type": "object"
+      },
+      "AlertBandChange": {
+        "additionalProperties": false,
+        "description": "`AlertView.band_change`; `BAND_UP` only.",
+        "properties": {
+          "from": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountScoreBand"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "to": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountScoreBand"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "from",
+          "to"
+        ],
+        "title": "AlertBandChange",
+        "type": "object"
+      },
+      "AlertFinding": {
+        "additionalProperties": false,
+        "description": "`AlertView.finding`; `STRONG_SIGNAL` only.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "question_text": {
+            "title": "Question Text",
+            "type": "string"
+          },
+          "quote": {
+            "title": "Quote",
+            "type": "string"
+          },
+          "strength": {
+            "$ref": "#/components/schemas/FindingStrength"
+          }
+        },
+        "required": [
+          "id",
+          "question_text",
+          "strength",
+          "quote"
+        ],
+        "title": "AlertFinding",
+        "type": "object"
+      },
+      "AlertKind": {
+        "description": "`alert.kind`.",
+        "enum": [
+          "STRONG_SIGNAL",
+          "BAND_UP"
+        ],
+        "title": "AlertKind",
+        "type": "string"
+      },
+      "AlertRef": {
+        "additionalProperties": false,
+        "description": "`AlertView.account` and `AlertView.service`: `{id, name}`.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "AlertRef",
+        "type": "object"
+      },
+      "AlertView": {
+        "additionalProperties": false,
+        "description": "[`AlertView`](/architecture/interfaces.md#alertview), the response of `API-48` and\n`API-49`.",
+        "properties": {
+          "account": {
+            "$ref": "#/components/schemas/AlertRef"
+          },
+          "acknowledged_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acknowledged At"
+          },
+          "acknowledged_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acknowledged By Name"
+          },
+          "band_change": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AlertBandChange"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "finding": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AlertFinding"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/AlertKind"
+          },
+          "service": {
+            "$ref": "#/components/schemas/AlertRef"
+          }
+        },
+        "required": [
+          "id",
+          "created_at",
+          "acknowledged_at",
+          "kind",
+          "account",
+          "service",
+          "finding",
+          "band_change",
+          "acknowledged_by_name"
+        ],
+        "title": "AlertView",
         "type": "object"
       },
       "AppUserRole": {
@@ -1841,6 +2035,38 @@
         "title": "Page[AccountRow]",
         "type": "object"
       },
+      "Page_AlertView_": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AlertView"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "title": "Page Size",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "page",
+          "page_size",
+          "total"
+        ],
+        "title": "Page[AlertView]",
+        "type": "object"
+      },
       "Page_Run_": {
         "additionalProperties": false,
         "properties": {
@@ -2191,6 +2417,150 @@
           "name"
         ],
         "title": "RunRef",
+        "type": "object"
+      },
+      "ScoreChange": {
+        "additionalProperties": false,
+        "description": "[`ScoreChange`](/architecture/interfaces.md#scorechange), one item of `API-41`.",
+        "properties": {
+          "as_of": {
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "band": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountScoreBand"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "change_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Note"
+          },
+          "findings_added": {
+            "items": {
+              "$ref": "#/components/schemas/ScoreChangeFinding"
+            },
+            "title": "Findings Added",
+            "type": "array"
+          },
+          "findings_removed": {
+            "items": {
+              "$ref": "#/components/schemas/ScoreChangeFinding"
+            },
+            "title": "Findings Removed",
+            "type": "array"
+          },
+          "fit": {
+            "title": "Fit",
+            "type": "integer"
+          },
+          "intent": {
+            "title": "Intent",
+            "type": "integer"
+          },
+          "overrides_changed": {
+            "items": {
+              "$ref": "#/components/schemas/ScoreChangeOverride"
+            },
+            "title": "Overrides Changed",
+            "type": "array"
+          },
+          "priority": {
+            "title": "Priority",
+            "type": "integer"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "score_id": {
+            "format": "uuid",
+            "title": "Score Id",
+            "type": "string"
+          },
+          "scoring_version": {
+            "title": "Scoring Version",
+            "type": "integer"
+          },
+          "standing": {
+            "$ref": "#/components/schemas/AccountScoreStanding"
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/PipelineRunTrigger"
+          }
+        },
+        "required": [
+          "score_id",
+          "as_of",
+          "fit",
+          "intent",
+          "priority",
+          "standing",
+          "band",
+          "scoring_version",
+          "trigger",
+          "run_id",
+          "change_note",
+          "findings_added",
+          "findings_removed",
+          "overrides_changed"
+        ],
+        "title": "ScoreChange",
+        "type": "object"
+      },
+      "ScoreChangeFinding": {
+        "additionalProperties": false,
+        "description": "One entry of `ScoreChange.findings_added` or `findings_removed`.",
+        "properties": {
+          "finding_id": {
+            "format": "uuid",
+            "title": "Finding Id",
+            "type": "string"
+          },
+          "question_key": {
+            "title": "Question Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "finding_id",
+          "question_key"
+        ],
+        "title": "ScoreChangeFinding",
+        "type": "object"
+      },
+      "ScoreChangeOverride": {
+        "additionalProperties": false,
+        "description": "One entry of `ScoreChange.overrides_changed`.",
+        "properties": {
+          "overridden": {
+            "title": "Overridden",
+            "type": "boolean"
+          },
+          "rule_key": {
+            "title": "Rule Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rule_key",
+          "overridden"
+        ],
+        "title": "ScoreChangeOverride",
         "type": "object"
       },
       "ScoringConfigModel": {
@@ -3774,6 +4144,251 @@
           }
         },
         "summary": "Post Lead Feedback",
+        "tags": [
+          "feedback-and-alerts"
+        ]
+      }
+    },
+    "/api/v1/accounts/{id}/scores/{service_id}/history": {
+      "get": {
+        "description": "`API-41`: the account and service's score history, newest first, each entry compared with\nthe row before it. An account with no score for the service yet answers an empty list.",
+        "operationId": "get_score_history_api_v1_accounts__id__scores__service_id__history_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Service Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ScoreChange"
+                  },
+                  "title": "Response Get Score History Api V1 Accounts  Id  Scores  Service Id  History Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Score History",
+        "tags": [
+          "feedback-and-alerts"
+        ]
+      }
+    },
+    "/api/v1/alerts": {
+      "get": {
+        "description": "`API-48`: newest first; `unread` true lists unacknowledged alerts only.",
+        "operationId": "get_alerts_api_v1_alerts_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "service_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Service Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "unread",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Unread"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Page Size"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_AlertView_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Alerts",
+        "tags": [
+          "feedback-and-alerts"
+        ]
+      }
+    },
+    "/api/v1/alerts/{id}/acknowledge": {
+      "post": {
+        "description": "`API-49`: acknowledging an already acknowledged alert returns it unchanged.",
+        "operationId": "post_alert_acknowledge_api_v1_alerts__id__acknowledge_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Post Alert Acknowledge",
         "tags": [
           "feedback-and-alerts"
         ]
