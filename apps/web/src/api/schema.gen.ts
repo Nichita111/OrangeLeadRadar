@@ -175,6 +175,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Audit
+         * @description `API-60`: newest first, filtered by kind, action, user, entity, run and date range;
+         *     without `from` the range is the last `AUDIT_DEFAULT_RANGE_DAYS` days.
+         */
+        get: operations["get_audit_api_v1_audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -977,6 +998,54 @@ export interface components {
          */
         AppUserStatus: "ACTIVE" | "DISABLED";
         /**
+         * AuditAction
+         * @description `audit_event.action`, the closed vocabulary of
+         *     [Audit actions](/architecture/sql-store.md#audit-actions) in full: the store closes it and
+         *     every capability that appends an audit row (this task's sign-in and user changes, and every
+         *     later task) writes from this one set.
+         * @enum {string}
+         */
+        AuditAction: "LOGIN_SUCCEEDED" | "LOGIN_FAILED" | "LOGOUT" | "USER_CREATED" | "USER_UPDATED" | "SERVICE_CREATED" | "SERVICE_UPDATED" | "INDUSTRY_CREATED" | "INDUSTRY_UPDATED" | "MARKET_CREATED" | "MARKET_UPDATED" | "QUESTION_CREATED" | "QUESTION_UPDATED" | "SCORING_DRAFT_SAVED" | "SCORING_ACTIVATED" | "PLUGIN_UPDATED" | "ACCOUNT_CREATED" | "ACCOUNT_UPDATED" | "ACCOUNTS_IMPORTED" | "CANDIDATE_ACCEPTED" | "CANDIDATE_REJECTED" | "CONTACT_CREATED" | "CONTACT_UPDATED" | "CONTACT_ERASED" | "RUN_REQUESTED" | "RUN_FINISHED" | "RUN_CANCELLED" | "OVERRIDE_CREATED" | "OVERRIDE_REVOKED" | "LEAD_FEEDBACK_GIVEN" | "FINDING_FEEDBACK_GIVEN" | "ITEM_LABELLED" | "DRAFT_CREATED" | "DRAFT_UPDATED" | "DRAFT_EXPORTED" | "CRM_PUSHED" | "AI_CALL";
+        /**
+         * AuditEntry
+         * @description [`AuditEntry`](/architecture/interfaces.md#auditentry), one item of `API-60`'s page.
+         */
+        AuditEntry: {
+            /** Action */
+            action: string;
+            /** Actor Name */
+            actor_name: string | null;
+            /** Entity Id */
+            entity_id: string | null;
+            /** Entity Type */
+            entity_type: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            kind: components["schemas"]["AuditEventKind"];
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Request Id */
+            request_id: string | null;
+            /** Run Id */
+            run_id: string | null;
+        };
+        /**
+         * AuditEventKind
+         * @description `audit_event.kind`.
+         * @enum {string}
+         */
+        AuditEventKind: "AUTH" | "USER" | "CONFIG" | "ACCOUNT" | "CONTACT" | "RUN" | "OVERRIDE" | "FEEDBACK" | "OUTREACH" | "CRM" | "AI_CALL";
+        /**
          * AuthenticatedUser
          * @description [`AuthenticatedUser`](/architecture/interfaces.md#authenticateduser).
          */
@@ -1440,6 +1509,17 @@ export interface components {
         Page_AlertView_: {
             /** Items */
             items: components["schemas"]["AlertView"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+        };
+        /** Page[AuditEntry] */
+        Page_AuditEntry_: {
+            /** Items */
+            items: components["schemas"]["AuditEntry"][];
             /** Page */
             page: number;
             /** Page Size */
@@ -2388,6 +2468,47 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AlertView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_audit_api_v1_audit_get: {
+        parameters: {
+            query?: {
+                kind?: components["schemas"]["AuditEventKind"][] | null;
+                action?: components["schemas"]["AuditAction"] | null;
+                actor_id?: string | null;
+                entity_id?: string | null;
+                run_id?: string | null;
+                from?: string | null;
+                to?: string | null;
+                page?: number;
+                page_size?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_AuditEntry_"];
                 };
             };
             /** @description Validation Error */

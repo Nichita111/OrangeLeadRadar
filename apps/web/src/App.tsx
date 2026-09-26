@@ -10,6 +10,7 @@ import { AccountProfileScreen } from "./features/accounts-and-discovery/account-
 import { AccountsScreen } from "./features/accounts-and-discovery/accounts/AccountsScreen";
 import { AccountDetailScreen } from "./features/prospect-dashboard/account-detail/AccountDetailScreen";
 import { ProspectsScreen } from "./features/prospect-dashboard/prospects/ProspectsScreen";
+import { AuditLogScreen } from "./features/audit-trail/AuditLogScreen";
 import { SignInScreen } from "./features/identity-and-access/sign-in/SignInScreen";
 import { UsersScreen } from "./features/identity-and-access/users/UsersScreen";
 import { ServiceEditorScreen } from "./features/service-configuration/service-editor/ServiceEditorScreen";
@@ -34,6 +35,7 @@ export function App() {
           <Route path="/users" element={<UsersScreen />} />
           <Route path="/services" element={<ServicesScreen />} />
           <Route path="/services/:id" element={<ServiceEditorScreen />} />
+          <Route path="/audit" element={<AuditLogScreen />} />
         </Route>
       </Route>
     </Routes>
