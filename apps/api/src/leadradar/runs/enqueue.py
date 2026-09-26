@@ -147,3 +147,56 @@ async def enqueue_account_refresh(
         add_job(session, run_id=run_id, step=step, payload=payload, priority=priority, now=now)
     await session.flush()
     return run_id, True
+
+
+async def enqueue_service_discovery(
+    session: AsyncSession, *, service_id: uuid.UUID, requested_by: uuid.UUID, now: datetime
+) -> tuple[uuid.UUID, bool]:
+    """Inserts a `QUEUED` `DISCOVERY` run with its one `DISCOVER` job and returns
+    `(run_id, True)`; when the service already has a queued or running discovery, inserts nothing
+    and returns `(that run's id, False)` (`API-29`, `S-DSC-01`: "one queued or running discovery
+    per service; a second request returns it"). The partial unique index of one active discovery
+    per service decides, so two concurrent requests converge on one run."""
+    inserted = await session.execute(
+        insert(PipelineRun)
+        .values(
+            kind=PipelineRunKind.DISCOVERY,
+            trigger=PipelineRunTrigger.USER,
+            account_id=None,
+            service_id=service_id,
+            question_id=None,
+            status=PipelineRunStatus.QUEUED,
+            stage=None,
+            progress={},
+            errors=[],
+            requested_by=requested_by,
+            started_at=None,
+            finished_at=None,
+        )
+        .on_conflict_do_nothing(
+            index_elements=["service_id"],
+            index_where=text("kind = 'DISCOVERY' AND status IN ('QUEUED', 'RUNNING')"),
+        )
+        .returning(PipelineRun.id)
+    )
+    run_id = inserted.scalar_one_or_none()
+    if run_id is None:
+        existing = await session.execute(
+            select(PipelineRun.id).where(
+                PipelineRun.service_id == service_id,
+                PipelineRun.kind == PipelineRunKind.DISCOVERY,
+                PipelineRun.status.in_(_ACTIVE_STATUSES),
+            )
+        )
+        return existing.scalar_one(), False
+
+    add_job(
+        session,
+        run_id=run_id,
+        step=JobStep.DISCOVER,
+        payload={},
+        priority=job_priority(PipelineRunKind.DISCOVERY, PipelineRunTrigger.USER),
+        now=now,
+    )
+    await session.flush()
+    return run_id, True
