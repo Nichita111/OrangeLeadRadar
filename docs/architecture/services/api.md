@@ -22,7 +22,7 @@ It never fetches from a source, never classifies in batch, never writes a score,
 
 ## Provides and consumes
 
-- Provides every REST family of [interfaces](/architecture/interfaces.md), `API-01` to `API-61` and `API-71` to `API-77`.
+- Provides every REST family of [interfaces](/architecture/interfaces.md), `API-01` to `API-61` and `API-71` to `API-78`.
 - Consumes the [Classifier](/architecture/interfaces.md#classifier) and [LLM](/architecture/interfaces.md#llm) ports through the worker's [AI gateway](/architecture/services/worker.md#ai-gateway) module, the [Embedder](/architecture/interfaces.md#embedder) and the [CRM](/architecture/interfaces.md#crm) port.
 
 ## Design
@@ -33,11 +33,15 @@ It never fetches from a source, never classifies in batch, never writes a score,
 
 **Enqueueing.** The api creates a run in status `QUEUED` with the jobs of its first stage, at the priority the [job queue](/architecture/services/worker.md#job-queue) assigns to its trigger. It never waits for a job.
 
+**Declared contracts.** Every REST contract of [interfaces](/architecture/interfaces.md) is a route with its request and response models from the start, so the OpenAPI document and the client generated from it are complete. A route whose feature is not built yet answers `501 NOT_IMPLEMENTED` ([ADR-20](/architecture/adrs/adr-20-landing-scene-mock-layer-and-demo-sign-in.md)).
+
+**Demo sign-in.** `API-78` signs in only while `FIXTURE_MODE` is `replay`, and answers `404 NOT_FOUND` otherwise. It stays in the OpenAPI document in every mode, so the client has its type.
+
 **Interactive AI calls.** Question preview (`API-14`), outreach drafting (`API-56`) and persona mapping (`API-26`, `API-27`, when no persona is given) call the AI gateway in the request, bounded by `CLASSIFIER_TIMEOUT_S` or `AI_CALL_TIMEOUT_S`. Their LLM calls pass the [Budget guard](/architecture/rules.md#budget-guard), and every call writes its `AI_CALL` audit row. Preview writes nothing else.
 
 **Sessions and passwords.** Passwords are hashed with argon2id. The session token is 32 random bytes, sent only in the cookie; the database holds its SHA-256.
 
-**Request identity.** Every request gets a request id, returned in the `X-Request-Id` header, written to every log line and audit row of the request.
+**Request identity.** Every request gets a request id, returned in the `X-Request-Id` header, written to every log line and audit row of the request. The api writes one log line for each request it serves, with `method`, `path` without the query string, `status` and `duration_ms`.
 
 **Import.** `API-22` streams the CSV, validates every row with the [`AccountImportRow`](/architecture/interfaces.md#accountimportrow) rules, and in a non-dry run writes all valid rows in one transaction with one `ACCOUNTS_IMPORTED` audit row plus one `ACCOUNT_CREATED` or `ACCOUNT_UPDATED` row per account.
 
@@ -73,9 +77,9 @@ It never fetches from a source, never classifies in batch, never writes a score,
 | `INTERACTIVE_P95_TARGET_MS` | `800` | Target p95 latency of interactive reads ([N-01](/requirements/system.md)) |
 | `HUBSPOT_ACCESS_TOKEN` | unset | HubSpot private-app token; unset disables the push |
 | `SEED_ADMIN_PASSWORD`, `SEED_SALES_PASSWORD` | — (required by `make seed-demo`) | Passwords of the demo users |
-| `LOG_LEVEL` | `INFO` | Log level; logs are JSON lines |
+| `LOG_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARNING` or `ERROR`; logs are JSON lines |
 
-The api also reads the AI gateway, embedder, fixture and `CLOCK_FILE` keys and `EVAL_MIN_ITEMS` of the [worker runtime](/architecture/services/worker.md#runtime).
+The api also reads the AI gateway and embedder keys, the fixture keys `FIXTURE_MODE` and `FIXTURE_DIR`, `CLOCK_FILE` and `EVAL_MIN_ITEMS` of the [worker runtime](/architecture/services/worker.md#runtime).
 
 ## Examples
 

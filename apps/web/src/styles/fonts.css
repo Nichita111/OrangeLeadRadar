@@ -1,0 +1,21 @@
+/* Self-hosted Geist and Geist Mono ([FR-109](/architecture/services/frontend.md#visual-language)):
+   the `web` container serves the files itself, from `public/fonts/`, copied from the `geist` npm
+   package (never a CDN, never loaded by a script). Both are variable-weight, so one `@font-face`
+   per family covers every weight [Visual language](/architecture/services/frontend.md#visual-language)
+   uses. */
+
+@font-face {
+  font-family: "Geist";
+  src: url("/fonts/Geist-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: url("/fonts/GeistMono-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}

@@ -356,7 +356,7 @@ FLOWS = [
          ("user", "web", "Sign out"),
          ("web", "api", "sign out (API-02)"),
          ("api", "db", "session revoked")])],
-     [("cyan", "Spec", ["FL-19 in Identity and access", "S-SEC-01, S-SEC-02"]),
+     [("cyan", "Spec", ["FL-19 in Identity and access", "S-SEC-01, S-SEC-02, S-SEC-04"]),
       ("rose", "Security", ["Only token hashes are stored", "Locked after LOGIN_MAX_FAILURES failures"])]),
 
     ("fl-20", "Manage users", "identity-and-access", "Users",
@@ -426,7 +426,7 @@ REVIEWED = {
     "FL-16": "dbd06d6f2c00",
     "FL-17": "c01c69a93d92",
     "FL-18": "73c8a881a844",
-    "FL-19": "03cb2ac514f8",
+    "FL-19": "a56ef6c33502",
     "FL-20": "623a8ba73703",
     "FL-21": "11d8217fdecb",
     "FL-22": "cef19bb5e843",

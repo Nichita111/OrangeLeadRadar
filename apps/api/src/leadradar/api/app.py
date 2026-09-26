@@ -11,7 +11,20 @@ from contextlib import AbstractAsyncContextManager, asynccontextmanager
 import httpx
 from fastapi import FastAPI
 
-from leadradar.api import audit_and_health, evaluation, feedback_and_alerts
+from leadradar.api import (
+    accounts_and_contacts,
+    audit_and_health,
+    auth_and_users,
+    discovery,
+    evaluation,
+    feedback_and_alerts,
+    industries_and_markets,
+    outreach_and_crm,
+    prospects_and_evidence,
+    runs_and_plugins,
+    scoring,
+    services_and_questions,
+)
 from leadradar.api.csrf import CsrfMiddleware
 from leadradar.api.errors import register_error_handlers
 from leadradar.api.request_identity import RequestIdentityMiddleware
@@ -54,6 +67,18 @@ def create_app(settings: ApiSettings) -> FastAPI:
     app.add_middleware(RequestIdentityMiddleware)
     register_error_handlers(app)
     app.include_router(audit_and_health.router, prefix=API_PREFIX)
-    app.include_router(evaluation.router, prefix=API_PREFIX)
+    app.include_router(audit_and_health.audit_stub_router, prefix=API_PREFIX)
+    app.include_router(auth_and_users.router, prefix=API_PREFIX)
+    app.include_router(services_and_questions.router, prefix=API_PREFIX)
+    app.include_router(scoring.router, prefix=API_PREFIX)
+    app.include_router(industries_and_markets.router, prefix=API_PREFIX)
+    app.include_router(accounts_and_contacts.router, prefix=API_PREFIX)
+    app.include_router(runs_and_plugins.router, prefix=API_PREFIX)
+    app.include_router(discovery.router, prefix=API_PREFIX)
     app.include_router(feedback_and_alerts.router, prefix=API_PREFIX)
+    app.include_router(feedback_and_alerts.alerts_stub_router, prefix=API_PREFIX)
+    app.include_router(outreach_and_crm.router, prefix=API_PREFIX)
+    app.include_router(prospects_and_evidence.router, prefix=API_PREFIX)
+    app.include_router(evaluation.router, prefix=API_PREFIX)
+    app.include_router(evaluation.evaluation_stub_router, prefix=API_PREFIX)
     return app

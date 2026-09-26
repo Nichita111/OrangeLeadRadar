@@ -1,5 +1,6 @@
-"""Router of the [Feedback and alerts](/architecture/interfaces.md#feedback-and-alerts) family.
-Only `API-46` and `API-47` are in scope of this task; `API-48` and `API-49` are plan task 19's."""
+"""Router of the [Feedback and alerts](/architecture/interfaces.md#feedback-and-alerts) family:
+`API-46` to `API-49`. `API-46` and `API-47` are built; `API-48` and `API-49` are declared stubs
+answering `501 NOT_IMPLEMENTED`."""
 
 from __future__ import annotations
 
@@ -8,12 +9,16 @@ from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from leadradar.api.authentication import CurrentUser
+from leadradar.api.common import IdName, Page
+from leadradar.api.router_utils import stub_router
 from leadradar.clock import now
 from leadradar.core.enums import (
+    AccountScoreBand,
+    AlertKind,
     DocumentSourceType,
     FindingDecidedBy,
     FindingFeedbackVerdict,
@@ -28,6 +33,7 @@ from leadradar.feedback.commands import give_finding_feedback, give_lead_feedbac
 from leadradar.logs import request_id_var
 
 router = APIRouter(tags=["feedback-and-alerts"])
+alerts_stub_router = stub_router("feedback-and-alerts")
 
 
 class FeedbackCreate[VerdictT: (LeadFeedbackVerdict, FindingFeedbackVerdict)](BaseModel):
@@ -122,6 +128,42 @@ class FindingView(BaseModel):
     document: FindingViewDocument
     points: float | None
     feedback: FindingViewFeedback | None
+
+
+class AlertFinding(BaseModel):
+    """`AlertView.finding`."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    id: str
+    question_text: str
+    strength: FindingStrength
+    quote: str | None
+
+
+class AlertBandChange(BaseModel):
+    """`AlertView.band_change`."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    from_: AccountScoreBand = Field(alias="from")
+    to: AccountScoreBand
+
+
+class AlertView(BaseModel):
+    """[`AlertView`](/architecture/interfaces.md#alertview)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    id: str
+    created_at: str
+    acknowledged_at: str | None
+    kind: AlertKind
+    account: IdName
+    service: IdName
+    finding: AlertFinding | None
+    band_change: AlertBandChange | None
+    acknowledged_by_name: str | None
 
 
 @router.post("/accounts/{id}/scores/{service_id}/feedback")
@@ -221,3 +263,20 @@ async def post_finding_feedback(
             else None
         ),
     )
+
+
+@alerts_stub_router.get("/alerts", response_model=Page[AlertView])
+async def list_alerts(
+    service_id: str | None = None,
+    unread: bool | None = None,
+    page: int = 1,
+    page_size: int | None = None,
+) -> Page[AlertView]:
+    """`API-48`."""
+    raise AssertionError("unreachable: contract_not_built already raised")
+
+
+@alerts_stub_router.post("/alerts/{id}/acknowledge", response_model=AlertView)
+async def acknowledge_alert(id: str) -> AlertView:
+    """`API-49`."""
+    raise AssertionError("unreachable: contract_not_built already raised")

@@ -18,7 +18,7 @@ services:
 
   embedder:
     image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.6
-    # linux/amd64 only: the CPU image has no arm64 build, so it runs under emulation on Apple Silicon.
+    # linux/amd64 only (the TEI image has no other build); runs under emulation on Apple Silicon.
     platform: linux/amd64
     command: ["--model-id", "BAAI/bge-m3", "--json-output"]
     volumes:
@@ -68,6 +68,9 @@ services:
       dockerfile: apps/web/Dockerfile
     ports:
       - "8080:80"
+    env_file:
+      - path: .env
+        required: false
     depends_on:
       - api
 

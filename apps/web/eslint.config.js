@@ -8,7 +8,7 @@ export default tseslint.config(
   { ignores: ["dist", "coverage", "src/api/schema.gen.ts"] },
   js.configs.recommended,
   {
-    files: ["src/**/*.{ts,tsx}"],
+    files: ["src/**/*.{ts,tsx}", "vite.config.ts"],
     extends: [...tseslint.configs.strictTypeChecked, jsxA11y.flatConfigs.recommended],
     languageOptions: {
       ecmaVersion: 2022,
@@ -24,7 +24,12 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+      "no-warning-comments": ["error", { terms: ["PLACEHOLDER"], location: "start" }],
     },
+  },
+  {
+    files: ["src/mocks/**/*.{ts,tsx}"],
+    rules: { "no-warning-comments": "off" },
   },
   {
     files: ["src/**/*.test.{ts,tsx}", "src/setupTests.ts"],

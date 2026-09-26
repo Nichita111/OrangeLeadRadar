@@ -18,6 +18,9 @@ FROM nginx:1.27-alpine AS runtime
 
 COPY apps/web/templates/default.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=builder /app/dist /usr/share/nginx/html
+COPY apps/web/docker/config-json.sh /docker/config-json.sh
+COPY apps/web/docker/docker-entrypoint.d/40-config-json.sh /docker-entrypoint.d/40-config-json.sh
+RUN chmod +x /docker/config-json.sh /docker-entrypoint.d/40-config-json.sh
 
 ENV API_UPSTREAM=http://api:8000
 EXPOSE 80

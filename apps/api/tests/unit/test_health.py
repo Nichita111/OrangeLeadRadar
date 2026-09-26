@@ -34,6 +34,13 @@ def _fake_engine() -> AsyncEngine:
     return cast(AsyncEngine, _FakeEngine())
 
 
+@pytest.fixture(autouse=True)
+def _clean_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Settings come from explicit arguments only, never from the developer's shell."""
+    for name in ("OPENROUTER_API_KEY", "FIXTURE_MODE", "FIXTURE_DIR", "OPENROUTER_BASE_URL"):
+        monkeypatch.delenv(name, raising=False)
+
+
 def make_settings(**overrides: Any) -> ApiSettings:
     defaults: dict[str, Any] = {"database_url": SecretStr("postgresql://u:p@localhost/db")}
     defaults.update(overrides)
@@ -133,15 +140,16 @@ async def test_a_raising_check_reports_down_and_does_not_raise_out_of_read_healt
 # --- replay fixture mode ---------------------------------------------------------------------
 
 
+@pytest.mark.parametrize("key", [None, SecretStr("replay-test-key")])
 async def test_replay_reports_ok_for_a_readable_fixture_dir_with_no_network_call(
-    tmp_path: Any,
+    tmp_path: Any, key: SecretStr | None
 ) -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         if "openrouter" in str(request.url):
             raise AssertionError("no call to OpenRouter is expected in replay")
         return httpx.Response(200)
 
-    settings = make_settings(fixture_mode="replay", fixture_dir=tmp_path)
+    settings = make_settings(fixture_mode="replay", fixture_dir=tmp_path, openrouter_api_key=key)
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
         result = await read_health(settings, _fake_engine(), http)
 
@@ -149,9 +157,20 @@ async def test_replay_reports_ok_for_a_readable_fixture_dir_with_no_network_call
     assert result.checks["llm"] == HealthCheckStatus.OK
 
 
-async def test_replay_reports_down_for_a_missing_fixture_dir(tmp_path: Any) -> None:
-    settings = make_settings(fixture_mode="replay", fixture_dir=tmp_path / "missing")
-    transport = httpx.MockTransport(lambda request: httpx.Response(200))
+@pytest.mark.parametrize("key", [None, SecretStr("replay-test-key")])
+async def test_replay_reports_down_for_a_missing_fixture_dir(
+    tmp_path: Any, key: SecretStr | None
+) -> None:
+    settings = make_settings(
+        fixture_mode="replay", fixture_dir=tmp_path / "missing", openrouter_api_key=key
+    )
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if "openrouter" in str(request.url):
+            raise AssertionError("no call to OpenRouter is expected in replay")
+        return httpx.Response(200)
+
+    transport = httpx.MockTransport(handler)
 
     async with httpx.AsyncClient(transport=transport) as http:
         result = await read_health(settings, _fake_engine(), http)
