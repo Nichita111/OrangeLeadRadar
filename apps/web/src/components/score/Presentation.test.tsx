@@ -38,7 +38,7 @@ const finding: components["schemas"]["FindingView"] = {
   question_revision: 1,
   quote: "Automatisierung",
   quote_en: "Automation",
-  rationale: null,
+  rationale: "Mentions an automation project underway.",
   service_id: "service-1",
   status: "ACTIVE",
   strength: "STRONG",

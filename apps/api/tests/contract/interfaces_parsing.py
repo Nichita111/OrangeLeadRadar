@@ -8,6 +8,7 @@ as [the design](/.work/frontend-foundation/design.md) requires."""
 from __future__ import annotations
 
 import re
+from collections.abc import Container
 from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
@@ -22,6 +23,7 @@ _CONTRACT_ROW_RE = re.compile(
 _SHAPE_HEADING_RE = re.compile(r"^#### (\w+)$")
 _EVERY_FIELD_RE = re.compile(r"every field of \[`(\w+)`\]\(#[\w-]+\)(?: except `([a-z_]+)`)?")
 _FIELD_TOKEN_RE = re.compile(r"`([a-z][a-z0-9_]*)`")
+_GENERIC_TITLE_RE = re.compile(r"^(\w+)\[\w+\]$")
 
 
 @dataclass(frozen=True)
@@ -137,3 +139,20 @@ def top_level_fields(
             raise AssertionError(f"cannot read the Field cell {cell!r} of shape {name!r}")
         fields |= set(tokens)
     return fields
+
+
+def generic_base_name(title: object, shape_names: Container[str]) -> str | None:
+    """The base shape name of a parametrised generic OpenAPI component's `title`, e.g.
+    `FeedbackCreate[LeadFeedbackVerdict]` for `FeedbackCreate` — only when `shape_names` (a
+    named shape of interfaces.md) contains that base; `None` for a plain title, an
+    unrecognised base, a missing title, or anything not `Name[...]`-shaped. FastAPI/Pydantic
+    serve a `class Shape[T]` as one component per instantiation of `T`; this lets the contract
+    tests read every instantiation as the one `Shape` interfaces.md names, never as a shape of
+    its own."""
+    if not isinstance(title, str):
+        return None
+    match = _GENERIC_TITLE_RE.match(title)
+    if not match:
+        return None
+    base = match.group(1)
+    return base if base in shape_names else None

@@ -1,5 +1,6 @@
 """[Score breakdown](/architecture/rules.md#score-breakdown): its example JSON parses into
-`ScoreBreakdown` and round-trips byte-identically."""
+`ScoreBreakdown` and round-trips byte-identically; and unit tests of
+`core.score_breakdown.counted_points`, `FindingView.points`'s source."""
 
 from __future__ import annotations
 
@@ -8,7 +9,7 @@ import uuid
 
 import pytest
 
-from leadradar.core.score_breakdown import ScoreBreakdown
+from leadradar.core.score_breakdown import ScoreBreakdown, counted_points
 
 pytestmark = pytest.mark.unit
 
@@ -77,3 +78,29 @@ def test_the_score_breakdown_example_of_rules_parses_and_round_trips() -> None:
     assert round_tripped["standing"] == "RANKED"
     assert round_tripped["band"] == "WARM"
     assert ScoreBreakdown.model_validate(round_tripped) == breakdown
+
+
+def test_returns_the_entrys_points_for_the_counted_finding() -> None:
+    finding_id = uuid.uuid4()
+    breakdown: dict[str, object] = {
+        "intent": {
+            "questions": [
+                {"finding_id": str(finding_id), "points": 53.033},
+                {"finding_id": str(uuid.uuid4()), "points": 1.0},
+            ]
+        }
+    }
+    assert counted_points(breakdown, finding_id) == 53.033
+
+
+def test_none_for_a_finding_absent_from_intent_questions() -> None:
+    breakdown: dict[str, object] = {
+        "intent": {"questions": [{"finding_id": str(uuid.uuid4()), "points": 1.0}]}
+    }
+    assert counted_points(breakdown, uuid.uuid4()) is None
+
+
+def test_none_for_an_entry_with_finding_id_null() -> None:
+    finding_id = uuid.uuid4()
+    breakdown: dict[str, object] = {"intent": {"questions": [{"finding_id": None, "points": 1.0}]}}
+    assert counted_points(breakdown, finding_id) is None

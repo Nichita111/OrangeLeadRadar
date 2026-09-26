@@ -1,10 +1,9 @@
 """Router of the [Prospects and evidence](/architecture/interfaces.md#prospects-and-evidence)
-family: `API-39` to `API-45`. Also defines [`LeadFeedback`](#leadfeedback), which
-[Feedback and alerts](/architecture/interfaces.md#feedback-and-alerts) imports back for `API-46`,
-alongside [`FindingView`](#findingview) for `API-47`: `ScoreView.lead_feedback` needs
-`LeadFeedback` and `API-47` needs `FindingView`, so one family must own both to avoid a Python
-import cycle between the two router modules; this one does. Every route is a declared stub
-answering `501 NOT_IMPLEMENTED`."""
+family: `API-39` to `API-45`. [`LeadFeedback`](/architecture/interfaces.md#leadfeedback) and
+[`FindingView`](/architecture/interfaces.md#findingview) are defined by
+[Feedback and alerts](/architecture/interfaces.md#feedback-and-alerts), which `API-46` and
+`API-47` need them for, and imported back here for `ScoreView.lead_feedback` and `API-42`, so
+neither is defined twice. Every route is a declared stub answering `501 NOT_IMPLEMENTED`."""
 
 from __future__ import annotations
 
@@ -15,6 +14,7 @@ from fastapi import Query
 from pydantic import BaseModel, ConfigDict
 
 from leadradar.api.common import Page
+from leadradar.api.feedback_and_alerts import FindingView, LeadFeedback
 from leadradar.api.outreach_and_crm import CrmSyncView
 from leadradar.api.router_utils import stub_router
 from leadradar.core.enums import (
@@ -22,13 +22,9 @@ from leadradar.core.enums import (
     AccountScoreStanding,
     DisqualifierOverrideStatus,
     DocumentSourceType,
-    FindingDecidedBy,
-    FindingFeedbackVerdict,
     FindingStatus,
     FindingStrength,
-    LeadFeedbackVerdict,
     PipelineRunTrigger,
-    SignalQuestionPolarity,
     SourcePluginCode,
 )
 from leadradar.core.score_breakdown import (
@@ -40,18 +36,6 @@ from leadradar.core.score_breakdown import (
 ProspectSort = Literal["priority", "intent", "fit", "name", "last_refreshed"]
 
 router = stub_router("prospects-and-evidence")
-
-
-class LeadFeedback(BaseModel):
-    """[`LeadFeedback`](/architecture/interfaces.md#leadfeedback)."""
-
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    id: str
-    note: str | None
-    created_at: str
-    verdict: LeadFeedbackVerdict
-    user_name: str
 
 
 class ProspectAccount(BaseModel):
@@ -226,26 +210,6 @@ class ScoreChange(BaseModel):
     overrides_changed: list[ScoreChangeOverride]
 
 
-class FindingQuestion(BaseModel):
-    """`FindingView.question`."""
-
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    id: str
-    key: str
-    text: str
-    polarity: SignalQuestionPolarity
-
-
-class FindingOption(BaseModel):
-    """`FindingView.option`."""
-
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    key: str
-    label: str
-
-
 class FindingDocument(BaseModel):
     """`FindingView.document`, reused by `EvidenceView.document`."""
 
@@ -258,40 +222,6 @@ class FindingDocument(BaseModel):
     plugin_code: SourcePluginCode
     language: str
     published_at: str | None
-
-
-class FindingFeedback(BaseModel):
-    """`FindingView.feedback`."""
-
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    verdict: FindingFeedbackVerdict
-    user_name: str
-    created_at: str
-
-
-class FindingView(BaseModel):
-    """[`FindingView`](/architecture/interfaces.md#findingview)."""
-
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    id: str
-    account_id: str
-    service_id: str
-    question: FindingQuestion
-    question_revision: int
-    confidence: float
-    quote: str | None
-    quote_en: str | None
-    rationale: str | None
-    observed_at: str
-    strength: FindingStrength
-    decided_by: FindingDecidedBy
-    status: FindingStatus
-    option: FindingOption | None
-    document: FindingDocument
-    points: float | None
-    feedback: FindingFeedback | None
 
 
 class EvidenceView(BaseModel):

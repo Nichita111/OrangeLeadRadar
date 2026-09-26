@@ -25,6 +25,7 @@ from leadradar.api import (
     scoring,
     services_and_questions,
 )
+from leadradar.api.csrf import CsrfMiddleware
 from leadradar.api.errors import register_error_handlers
 from leadradar.api.request_identity import RequestIdentityMiddleware
 from leadradar.db.session import build_engine
@@ -59,6 +60,10 @@ def create_app(settings: ApiSettings) -> FastAPI:
         redoc_url=None,
         lifespan=_build_lifespan(settings),
     )
+    # `CsrfMiddleware` is added before `RequestIdentityMiddleware` so the latter wraps it
+    # (`Starlette.add_middleware` prepends): the request-identity layer stays outermost, so a
+    # CSRF refusal still carries `X-Request-Id` and its one request log line.
+    app.add_middleware(CsrfMiddleware)
     app.add_middleware(RequestIdentityMiddleware)
     register_error_handlers(app)
     app.include_router(audit_and_health.router, prefix=API_PREFIX)
@@ -71,7 +76,9 @@ def create_app(settings: ApiSettings) -> FastAPI:
     app.include_router(runs_and_plugins.router, prefix=API_PREFIX)
     app.include_router(discovery.router, prefix=API_PREFIX)
     app.include_router(feedback_and_alerts.router, prefix=API_PREFIX)
+    app.include_router(feedback_and_alerts.alerts_stub_router, prefix=API_PREFIX)
     app.include_router(outreach_and_crm.router, prefix=API_PREFIX)
     app.include_router(prospects_and_evidence.router, prefix=API_PREFIX)
     app.include_router(evaluation.router, prefix=API_PREFIX)
+    app.include_router(evaluation.evaluation_stub_router, prefix=API_PREFIX)
     return app

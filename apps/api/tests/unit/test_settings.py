@@ -46,6 +46,29 @@ def test_repr_of_settings_never_contains_the_password_or_the_openrouter_key() ->
     assert "s3cret-openrouter-key" not in str(settings)
 
 
+def test_impact_and_clock_keys_take_their_runtime_defaults() -> None:
+    settings = ApiSettings(database_url=SecretStr("postgresql://u:p@localhost/db"))
+
+    assert settings.impact_period_days == 30
+    assert settings.manual_research_minutes_per_account == 120
+    assert settings.clock_file is None
+
+
+def test_impact_and_clock_keys_are_overridden_from_the_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@localhost/db")
+    monkeypatch.setenv("IMPACT_PERIOD_DAYS", "14")
+    monkeypatch.setenv("MANUAL_RESEARCH_MINUTES_PER_ACCOUNT", "90")
+    monkeypatch.setenv("CLOCK_FILE", "/tmp/now.txt")
+
+    settings = ApiSettings()
+
+    assert settings.impact_period_days == 14
+    assert settings.manual_research_minutes_per_account == 90
+    assert str(settings.clock_file) == "/tmp/now.txt"
+
+
 def test_a_logged_settings_object_never_contains_the_password_or_the_key(
     capsys: pytest.CaptureFixture[str],
 ) -> None:

@@ -206,10 +206,11 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Create Lead Feedback
-         * @description `API-46`.
+         * Post Lead Feedback
+         * @description `API-46`: applies the api's half of [Feedback effects]
+         *     (/architecture/rules.md#feedback-effects) to the account's lead.
          */
-        post: operations["create_lead_feedback_api_v1_accounts__id__scores__service_id__feedback_post"];
+        post: operations["post_lead_feedback_api_v1_accounts__id__scores__service_id__feedback_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -634,10 +635,11 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Create Finding Feedback
-         * @description `API-47`.
+         * Post Finding Feedback
+         * @description `API-47`: applies the api's half of [Feedback effects]
+         *     (/architecture/rules.md#feedback-effects) to one finding.
          */
-        post: operations["create_finding_feedback_api_v1_findings__id__feedback_post"];
+        post: operations["post_finding_feedback_api_v1_findings__id__feedback_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -673,7 +675,7 @@ export interface paths {
         };
         /**
          * Get Impact
-         * @description `API-77`.
+         * @description `API-77`: computed on read by [Impact](/architecture/rules.md#impact); writes nothing.
          */
         get: operations["get_impact_api_v1_impact_get"];
         put?: never;
@@ -1894,11 +1896,14 @@ export interface components {
             /** Section */
             section: string | null;
         };
-        /**
-         * FeedbackCreate
-         * @description [`FeedbackCreate`](/architecture/interfaces.md#feedbackcreate).
-         */
-        FeedbackCreate: {
+        /** FeedbackCreate[FindingFeedbackVerdict] */
+        FeedbackCreate_FindingFeedbackVerdict_: {
+            /** Note */
+            note?: string | null;
+            verdict: components["schemas"]["FindingFeedbackVerdict"];
+        };
+        /** FeedbackCreate[LeadFeedbackVerdict] */
+        FeedbackCreate_LeadFeedbackVerdict_: {
             /** Note */
             note?: string | null;
             verdict: components["schemas"]["LeadFeedbackVerdict"];
@@ -1928,54 +1933,11 @@ export interface components {
             url: string;
         };
         /**
-         * FindingFeedback
-         * @description `FindingView.feedback`.
-         */
-        FindingFeedback: {
-            /** Created At */
-            created_at: string;
-            /** User Name */
-            user_name: string;
-            verdict: components["schemas"]["FindingFeedbackVerdict"];
-        };
-        /**
-         * FeedbackCreate
-         * @description `FeedbackCreate` specialized for `API-47`'s finding verdicts.
-         */
-        FindingFeedbackCreate: {
-            /** Note */
-            note?: string | null;
-            verdict: components["schemas"]["FindingFeedbackVerdict"];
-        };
-        /**
          * FindingFeedbackVerdict
          * @description `finding_feedback.verdict`.
          * @enum {string}
          */
         FindingFeedbackVerdict: "CORRECT" | "WRONG";
-        /**
-         * FindingOption
-         * @description `FindingView.option`.
-         */
-        FindingOption: {
-            /** Key */
-            key: string;
-            /** Label */
-            label: string;
-        };
-        /**
-         * FindingQuestion
-         * @description `FindingView.question`.
-         */
-        FindingQuestion: {
-            /** Id */
-            id: string;
-            /** Key */
-            key: string;
-            polarity: components["schemas"]["SignalQuestionPolarity"];
-            /** Text */
-            text: string;
-        };
         /**
          * FindingStatus
          * @description `finding.status`.
@@ -1991,36 +1953,112 @@ export interface components {
         FindingStrength: "NONE" | "WEAK" | "MEDIUM" | "STRONG";
         /**
          * FindingView
-         * @description [`FindingView`](/architecture/interfaces.md#findingview).
+         * @description [`FindingView`](/architecture/interfaces.md#findingview), the response of `API-47`. Also
+         *     plan task 13's `API-42` response shape; that task imports this model and must not define a
+         *     second one.
          */
         FindingView: {
-            /** Account Id */
+            /**
+             * Account Id
+             * Format: uuid
+             */
             account_id: string;
             /** Confidence */
             confidence: number;
             decided_by: components["schemas"]["FindingDecidedBy"];
-            document: components["schemas"]["FindingDocument"];
-            feedback: components["schemas"]["FindingFeedback"] | null;
-            /** Id */
+            document: components["schemas"]["FindingViewDocument"];
+            feedback: components["schemas"]["FindingViewFeedback"] | null;
+            /**
+             * Id
+             * Format: uuid
+             */
             id: string;
-            /** Observed At */
+            /**
+             * Observed At
+             * Format: date-time
+             */
             observed_at: string;
-            option: components["schemas"]["FindingOption"] | null;
+            option: components["schemas"]["FindingViewOption"] | null;
             /** Points */
             points: number | null;
-            question: components["schemas"]["FindingQuestion"];
+            question: components["schemas"]["FindingViewQuestion"];
             /** Question Revision */
             question_revision: number;
             /** Quote */
-            quote: string | null;
+            quote: string;
             /** Quote En */
             quote_en: string | null;
             /** Rationale */
-            rationale: string | null;
-            /** Service Id */
+            rationale: string;
+            /**
+             * Service Id
+             * Format: uuid
+             */
             service_id: string;
             status: components["schemas"]["FindingStatus"];
             strength: components["schemas"]["FindingStrength"];
+        };
+        /**
+         * FindingViewDocument
+         * @description `FindingView.document`.
+         */
+        FindingViewDocument: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Language */
+            language: string;
+            plugin_code: components["schemas"]["SourcePluginCode"];
+            /** Published At */
+            published_at: string | null;
+            source_type: components["schemas"]["DocumentSourceType"];
+            /** Title */
+            title: string | null;
+            /** Url */
+            url: string;
+        };
+        /**
+         * FindingViewFeedback
+         * @description `FindingView.feedback`: the in-force [`finding_feedback`]
+         *     (/architecture/sql-store.md#finding_feedback).
+         */
+        FindingViewFeedback: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** User Name */
+            user_name: string;
+            verdict: components["schemas"]["FindingFeedbackVerdict"];
+        };
+        /**
+         * FindingViewOption
+         * @description `FindingView.option`; `CHOICE` questions only.
+         */
+        FindingViewOption: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+        };
+        /**
+         * FindingViewQuestion
+         * @description `FindingView.question`.
+         */
+        FindingViewQuestion: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Key */
+            key: string;
+            polarity: components["schemas"]["SignalQuestionPolarity"];
+            /** Text */
+            text: string;
         };
         /**
          * FitBreakdown
@@ -2062,6 +2100,11 @@ export interface components {
             weight: "HIGH" | "MEDIUM" | "LOW" | "NONE";
             /** Weight Value */
             weight_value: number;
+        };
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
         };
         /**
          * Health
@@ -2129,7 +2172,7 @@ export interface components {
         };
         /**
          * Impact
-         * @description [`Impact`](/architecture/interfaces.md#impact).
+         * @description [`Impact`](/architecture/interfaces.md#impact), the response of `API-77`.
          */
         Impact: {
             /** Accounts Refreshed */
@@ -2312,12 +2355,18 @@ export interface components {
         };
         /**
          * LeadFeedback
-         * @description [`LeadFeedback`](/architecture/interfaces.md#leadfeedback).
+         * @description [`LeadFeedback`](/architecture/interfaces.md#leadfeedback), the response of `API-46`.
          */
         LeadFeedback: {
-            /** Created At */
+            /**
+             * Created At
+             * Format: date-time
+             */
             created_at: string;
-            /** Id */
+            /**
+             * Id
+             * Format: uuid
+             */
             id: string;
             /** Note */
             note: string | null;
@@ -3315,6 +3364,19 @@ export interface components {
             role?: components["schemas"]["AppUserRole"] | null;
             status?: components["schemas"]["AppUserStatus"] | null;
         };
+        /** ValidationError */
+        ValidationError: {
+            /** Context */
+            ctx?: Record<string, never>;
+            /** Input */
+            input?: unknown;
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -3839,7 +3901,7 @@ export interface operations {
             };
         };
     };
-    create_lead_feedback_api_v1_accounts__id__scores__service_id__feedback_post: {
+    post_lead_feedback_api_v1_accounts__id__scores__service_id__feedback_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -3847,11 +3909,13 @@ export interface operations {
                 id: string;
                 service_id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["FeedbackCreate"];
+                "application/json": components["schemas"]["FeedbackCreate_LeadFeedbackVerdict_"];
             };
         };
         responses: {
@@ -3864,22 +3928,13 @@ export interface operations {
                     "application/json": components["schemas"]["LeadFeedback"];
                 };
             };
-            /** @description Unprocessable Entity */
+            /** @description Validation Error */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -4799,18 +4854,20 @@ export interface operations {
             };
         };
     };
-    create_finding_feedback_api_v1_findings__id__feedback_post: {
+    post_finding_feedback_api_v1_findings__id__feedback_post: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["FindingFeedbackCreate"];
+                "application/json": components["schemas"]["FeedbackCreate_FindingFeedbackVerdict_"];
             };
         };
         responses: {
@@ -4823,22 +4880,13 @@ export interface operations {
                     "application/json": components["schemas"]["FindingView"];
                 };
             };
-            /** @description Unprocessable Entity */
+            /** @description Validation Error */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -4888,24 +4936,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Impact"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

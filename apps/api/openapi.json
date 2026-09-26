@@ -2021,9 +2021,32 @@
         "title": "EvidenceView",
         "type": "object"
       },
-      "FeedbackCreate": {
+      "FeedbackCreate_FindingFeedbackVerdict_": {
         "additionalProperties": false,
-        "description": "[`FeedbackCreate`](/architecture/interfaces.md#feedbackcreate).",
+        "properties": {
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "verdict": {
+            "$ref": "#/components/schemas/FindingFeedbackVerdict"
+          }
+        },
+        "required": [
+          "verdict"
+        ],
+        "title": "FeedbackCreate[FindingFeedbackVerdict]",
+        "type": "object"
+      },
+      "FeedbackCreate_LeadFeedbackVerdict_": {
+        "additionalProperties": false,
         "properties": {
           "note": {
             "anyOf": [
@@ -2043,7 +2066,7 @@
         "required": [
           "verdict"
         ],
-        "title": "FeedbackCreate",
+        "title": "FeedbackCreate[LeadFeedbackVerdict]",
         "type": "object"
       },
       "FindingDecidedBy": {
@@ -2105,55 +2128,6 @@
         "title": "FindingDocument",
         "type": "object"
       },
-      "FindingFeedback": {
-        "additionalProperties": false,
-        "description": "`FindingView.feedback`.",
-        "properties": {
-          "created_at": {
-            "title": "Created At",
-            "type": "string"
-          },
-          "user_name": {
-            "title": "User Name",
-            "type": "string"
-          },
-          "verdict": {
-            "$ref": "#/components/schemas/FindingFeedbackVerdict"
-          }
-        },
-        "required": [
-          "verdict",
-          "user_name",
-          "created_at"
-        ],
-        "title": "FindingFeedback",
-        "type": "object"
-      },
-      "FindingFeedbackCreate": {
-        "additionalProperties": false,
-        "description": "`FeedbackCreate` specialized for `API-47`'s finding verdicts.",
-        "properties": {
-          "note": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Note"
-          },
-          "verdict": {
-            "$ref": "#/components/schemas/FindingFeedbackVerdict"
-          }
-        },
-        "required": [
-          "verdict"
-        ],
-        "title": "FeedbackCreate",
-        "type": "object"
-      },
       "FindingFeedbackVerdict": {
         "description": "`finding_feedback.verdict`.",
         "enum": [
@@ -2162,55 +2136,6 @@
         ],
         "title": "FindingFeedbackVerdict",
         "type": "string"
-      },
-      "FindingOption": {
-        "additionalProperties": false,
-        "description": "`FindingView.option`.",
-        "properties": {
-          "key": {
-            "title": "Key",
-            "type": "string"
-          },
-          "label": {
-            "title": "Label",
-            "type": "string"
-          }
-        },
-        "required": [
-          "key",
-          "label"
-        ],
-        "title": "FindingOption",
-        "type": "object"
-      },
-      "FindingQuestion": {
-        "additionalProperties": false,
-        "description": "`FindingView.question`.",
-        "properties": {
-          "id": {
-            "title": "Id",
-            "type": "string"
-          },
-          "key": {
-            "title": "Key",
-            "type": "string"
-          },
-          "polarity": {
-            "$ref": "#/components/schemas/SignalQuestionPolarity"
-          },
-          "text": {
-            "title": "Text",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "key",
-          "text",
-          "polarity"
-        ],
-        "title": "FindingQuestion",
-        "type": "object"
       },
       "FindingStatus": {
         "description": "`finding.status`.",
@@ -2235,9 +2160,10 @@
       },
       "FindingView": {
         "additionalProperties": false,
-        "description": "[`FindingView`](/architecture/interfaces.md#findingview).",
+        "description": "[`FindingView`](/architecture/interfaces.md#findingview), the response of `API-47`. Also\nplan task 13's `API-42` response shape; that task imports this model and must not define a\nsecond one.",
         "properties": {
           "account_id": {
+            "format": "uuid",
             "title": "Account Id",
             "type": "string"
           },
@@ -2249,12 +2175,12 @@
             "$ref": "#/components/schemas/FindingDecidedBy"
           },
           "document": {
-            "$ref": "#/components/schemas/FindingDocument"
+            "$ref": "#/components/schemas/FindingViewDocument"
           },
           "feedback": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/FindingFeedback"
+                "$ref": "#/components/schemas/FindingViewFeedback"
               },
               {
                 "type": "null"
@@ -2262,17 +2188,19 @@
             ]
           },
           "id": {
+            "format": "uuid",
             "title": "Id",
             "type": "string"
           },
           "observed_at": {
+            "format": "date-time",
             "title": "Observed At",
             "type": "string"
           },
           "option": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/FindingOption"
+                "$ref": "#/components/schemas/FindingViewOption"
               },
               {
                 "type": "null"
@@ -2291,22 +2219,15 @@
             "title": "Points"
           },
           "question": {
-            "$ref": "#/components/schemas/FindingQuestion"
+            "$ref": "#/components/schemas/FindingViewQuestion"
           },
           "question_revision": {
             "title": "Question Revision",
             "type": "integer"
           },
           "quote": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Quote"
+            "title": "Quote",
+            "type": "string"
           },
           "quote_en": {
             "anyOf": [
@@ -2320,17 +2241,11 @@
             "title": "Quote En"
           },
           "rationale": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Rationale"
+            "title": "Rationale",
+            "type": "string"
           },
           "service_id": {
+            "format": "uuid",
             "title": "Service Id",
             "type": "string"
           },
@@ -2361,6 +2276,140 @@
           "feedback"
         ],
         "title": "FindingView",
+        "type": "object"
+      },
+      "FindingViewDocument": {
+        "additionalProperties": false,
+        "description": "`FindingView.document`.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "plugin_code": {
+            "$ref": "#/components/schemas/SourcePluginCode"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "source_type": {
+            "$ref": "#/components/schemas/DocumentSourceType"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "url",
+          "source_type",
+          "plugin_code",
+          "language",
+          "published_at"
+        ],
+        "title": "FindingViewDocument",
+        "type": "object"
+      },
+      "FindingViewFeedback": {
+        "additionalProperties": false,
+        "description": "`FindingView.feedback`: the in-force [`finding_feedback`]\n(/architecture/sql-store.md#finding_feedback).",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "user_name": {
+            "title": "User Name",
+            "type": "string"
+          },
+          "verdict": {
+            "$ref": "#/components/schemas/FindingFeedbackVerdict"
+          }
+        },
+        "required": [
+          "verdict",
+          "user_name",
+          "created_at"
+        ],
+        "title": "FindingViewFeedback",
+        "type": "object"
+      },
+      "FindingViewOption": {
+        "additionalProperties": false,
+        "description": "`FindingView.option`; `CHOICE` questions only.",
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label"
+        ],
+        "title": "FindingViewOption",
+        "type": "object"
+      },
+      "FindingViewQuestion": {
+        "additionalProperties": false,
+        "description": "`FindingView.question`.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "polarity": {
+            "$ref": "#/components/schemas/SignalQuestionPolarity"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "text",
+          "polarity"
+        ],
+        "title": "FindingViewQuestion",
         "type": "object"
       },
       "FitBreakdown": {
@@ -2459,6 +2508,19 @@
           "points"
         ],
         "title": "FitCriterionBreakdown",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
         "type": "object"
       },
       "Health": {
@@ -2621,7 +2683,7 @@
       },
       "Impact": {
         "additionalProperties": false,
-        "description": "[`Impact`](/architecture/interfaces.md#impact).",
+        "description": "[`Impact`](/architecture/interfaces.md#impact), the response of `API-77`.",
         "properties": {
           "accounts_refreshed": {
             "title": "Accounts Refreshed",
@@ -2696,9 +2758,9 @@
           "period_days",
           "accounts_refreshed",
           "refreshes",
-          "findings_created",
           "cost_per_refresh_eur",
           "minutes_per_refresh",
+          "findings_created",
           "precision",
           "labelled_items",
           "manual_minutes_per_account",
@@ -3092,13 +3154,15 @@
       },
       "LeadFeedback": {
         "additionalProperties": false,
-        "description": "[`LeadFeedback`](/architecture/interfaces.md#leadfeedback).",
+        "description": "[`LeadFeedback`](/architecture/interfaces.md#leadfeedback), the response of `API-46`.",
         "properties": {
           "created_at": {
+            "format": "date-time",
             "title": "Created At",
             "type": "string"
           },
           "id": {
+            "format": "uuid",
             "title": "Id",
             "type": "string"
           },
@@ -3123,9 +3187,9 @@
         },
         "required": [
           "id",
+          "verdict",
           "note",
           "created_at",
-          "verdict",
           "user_name"
         ],
         "title": "LeadFeedback",
@@ -5973,6 +6037,46 @@
         },
         "title": "UserUpdate",
         "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
       }
     }
   },
@@ -6826,14 +6930,15 @@
     },
     "/api/v1/accounts/{id}/scores/{service_id}/feedback": {
       "post": {
-        "description": "`API-46`.",
-        "operationId": "create_lead_feedback_api_v1_accounts__id__scores__service_id__feedback_post",
+        "description": "`API-46`: applies the api's half of [Feedback effects]\n(/architecture/rules.md#feedback-effects) to the account's lead.",
+        "operationId": "post_lead_feedback_api_v1_accounts__id__scores__service_id__feedback_post",
         "parameters": [
           {
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Id",
               "type": "string"
             }
@@ -6843,8 +6948,25 @@
             "name": "service_id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Service Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -6852,7 +6974,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/FeedbackCreate"
+                "$ref": "#/components/schemas/FeedbackCreate_LeadFeedbackVerdict_"
               }
             }
           },
@@ -6873,24 +6995,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Validation Error"
           }
         },
-        "summary": "Create Lead Feedback",
+        "summary": "Post Lead Feedback",
         "tags": [
           "feedback-and-alerts"
         ]
@@ -8372,16 +8484,33 @@
     },
     "/api/v1/findings/{id}/feedback": {
       "post": {
-        "description": "`API-47`.",
-        "operationId": "create_finding_feedback_api_v1_findings__id__feedback_post",
+        "description": "`API-47`: applies the api's half of [Feedback effects]\n(/architecture/rules.md#feedback-effects) to one finding.",
+        "operationId": "post_finding_feedback_api_v1_findings__id__feedback_post",
         "parameters": [
           {
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -8389,7 +8518,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/FindingFeedbackCreate"
+                "$ref": "#/components/schemas/FeedbackCreate_FindingFeedbackVerdict_"
               }
             }
           },
@@ -8410,24 +8539,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
+            "description": "Validation Error"
           }
         },
-        "summary": "Create Finding Feedback",
+        "summary": "Post Finding Feedback",
         "tags": [
           "feedback-and-alerts"
         ]
@@ -8467,7 +8586,7 @@
     },
     "/api/v1/impact": {
       "get": {
-        "description": "`API-77`.",
+        "description": "`API-77`: computed on read by [Impact](/architecture/rules.md#impact); writes nothing.",
         "operationId": "get_impact_api_v1_impact_get",
         "responses": {
           "200": {
@@ -8479,26 +8598,6 @@
               }
             },
             "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          },
-          "501": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Not Implemented"
           }
         },
         "summary": "Get Impact",

@@ -36,19 +36,23 @@ const criterion: components["schemas"]["FitCriterionBreakdown"] = {
   weight: "MEDIUM",
   weight_value: 0.5,
 };
+// Typed once, without an explicit schema annotation, so the literal `title` (never null here)
+// satisfies both `FindingView.document` (`FindingViewDocument`, `title: string | null`) and
+// `EvidenceView.document` (`FindingDocument`, `title: string`).
+const document = {
+  id: "d",
+  language: "de",
+  plugin_code: "WEBSITE" as const,
+  published_at: null,
+  source_type: "COMPANY_PUBLICATION" as const,
+  title: "News",
+  url: "https://group.example/news",
+};
 const finding: components["schemas"]["FindingView"] = {
   account_id: "a",
   confidence: 0.9,
   decided_by: "LLM",
-  document: {
-    id: "d",
-    language: "de",
-    plugin_code: "WEBSITE",
-    published_at: null,
-    source_type: "COMPANY_PUBLICATION",
-    title: "News",
-    url: "https://group.example/news",
-  },
+  document,
   feedback: null,
   id: "f",
   observed_at: "2026-09-05T00:00:00Z",
@@ -58,7 +62,7 @@ const finding: components["schemas"]["FindingView"] = {
   question_revision: 1,
   quote: "Automatisierung",
   quote_en: "Automation",
-  rationale: null,
+  rationale: "Mentions an automation project underway.",
   service_id: "s",
   status: "ACTIVE",
   strength: "STRONG",
@@ -102,7 +106,7 @@ it("FR-111 through FR-117 render the contract's score anatomy", async () => {
       <QuoteBlock finding={finding} now={new Date("2026-09-26T00:00:00Z")} />
       <EvidenceExcerpt
         evidence={{
-          document: finding.document,
+          document,
           excerpt: "Before quoted after",
           finding_id: "f",
           purged: false,

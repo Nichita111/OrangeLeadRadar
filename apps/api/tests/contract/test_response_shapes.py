@@ -9,11 +9,15 @@ import re
 import pytest
 from fastapi import FastAPI
 
+from leadradar.core.enums import FindingFeedbackVerdict, LeadFeedbackVerdict
+
 from .interfaces_parsing import (
     ContractRow,
     as_list,
     as_object,
+    generic_base_name,
     object_at,
+    parse_interfaces,
     rest_contracts,
     value_at,
 )
@@ -21,6 +25,8 @@ from .interfaces_parsing import (
 pytestmark = pytest.mark.contract
 
 _REF_RE = re.compile(r"\[`(\w+)`\]\(#[\w-]+\)(`\[\]`)?")
+
+_, _SHAPE_NAMES = parse_interfaces()
 
 
 def _expected_response(row: ContractRow) -> tuple[str, str | None]:
@@ -58,13 +64,21 @@ def _actual_response(schema: dict[str, object], row: ContractRow) -> tuple[str, 
         ref = response_schema["$ref"]
         if not isinstance(ref, str):
             raise AssertionError(f"{row.id} response ref must be a string")
-        return ("scalar", ref.rsplit("/", 1)[-1])
+        return ("scalar", _component_name(schema, ref))
     if response_schema.get("type") == "array":
         ref = value_at(response_schema, "items", "$ref")
         if not isinstance(ref, str):
             raise AssertionError(f"{row.id} array item ref must be a string")
-        return ("array", ref.rsplit("/", 1)[-1])
+        return ("array", _component_name(schema, ref))
     raise AssertionError(f"cannot read the served response shape of {row.id}: {response_schema!r}")
+
+
+def _component_name(schema: dict[str, object], ref: str) -> str:
+    """A `$ref`'s component name, read back as the one shape interfaces.md names when the
+    component is a parametrised generic instantiation of that shape."""
+    component_name = ref.rsplit("/", 1)[-1]
+    title = object_at(schema, "components", "schemas", component_name).get("title")
+    return generic_base_name(title, _SHAPE_NAMES) or component_name
 
 
 def _actual_request(schema: dict[str, object], row: ContractRow) -> str | None:
@@ -82,6 +96,9 @@ def _actual_request(schema: dict[str, object], row: ContractRow) -> str | None:
     component_name = ref.rsplit("/", 1)[-1]
     component = object_at(schema, "components", "schemas", component_name)
     title = component.get("title")
+    generic_base = generic_base_name(title, _SHAPE_NAMES)
+    if generic_base:
+        return generic_base
     return title if isinstance(title, str) else component_name
 
 
@@ -120,18 +137,23 @@ def test_alert_band_change_uses_the_contracts_from_field(app: FastAPI) -> None:
 
 
 @pytest.mark.parametrize(
-    ("path", "verdict_schema"),
+    ("path", "verdict_enum"),
     [
-        (
-            "/api/v1/accounts/{id}/scores/{service_id}/feedback",
-            "LeadFeedbackVerdict",
-        ),
-        ("/api/v1/findings/{id}/feedback", "FindingFeedbackVerdict"),
+        ("/api/v1/accounts/{id}/scores/{service_id}/feedback", LeadFeedbackVerdict),
+        ("/api/v1/findings/{id}/feedback", FindingFeedbackVerdict),
     ],
+    ids=["API-46", "API-47"],
 )
 def test_each_feedback_contract_accepts_only_its_verdicts(
-    path: str, verdict_schema: str, app: FastAPI
+    path: str,
+    verdict_enum: type[LeadFeedbackVerdict] | type[FindingFeedbackVerdict],
+    app: FastAPI,
 ) -> None:
+    """`API-46`'s request accepts exactly the `lead_feedback` verdict values and `API-47`'s
+    exactly the `finding_feedback` ones
+    ([Feedback and alerts](/architecture/interfaces.md#feedback-and-alerts)), never the other
+    family's, even though both routes serve `FeedbackCreate` as a parametrised generic
+    component."""
     schema = app.openapi()
     operation = object_at(schema, "paths", path, "post")
     request_ref = value_at(
@@ -142,7 +164,9 @@ def test_each_feedback_contract_accepts_only_its_verdicts(
     request_name = request_ref.rsplit("/", 1)[-1]
     verdict = object_at(schema, "components", "schemas", request_name, "properties", "verdict")
 
-    assert verdict == {"$ref": f"#/components/schemas/{verdict_schema}"}
+    assert verdict == {"$ref": f"#/components/schemas/{verdict_enum.__name__}"}
+    enum_values = value_at(schema, "components", "schemas", verdict_enum.__name__, "enum")
+    assert enum_values == [member.value for member in verdict_enum]
 
 
 def test_documented_closed_response_sets_are_enums(app: FastAPI) -> None:
