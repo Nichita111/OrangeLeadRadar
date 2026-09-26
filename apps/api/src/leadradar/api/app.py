@@ -18,6 +18,7 @@ from leadradar.api import (
     configuration,
     evaluation,
     feedback_and_alerts,
+    scoring,
 )
 from leadradar.api.constants import API_PREFIX
 from leadradar.api.csrf import CsrfMiddleware
@@ -63,6 +64,7 @@ def create_app(settings: ApiSettings) -> FastAPI:
     app.add_middleware(RequestIdentityMiddleware)
     register_error_handlers(app)
     app.include_router(audit_and_health.router, prefix=API_PREFIX)
+    app.include_router(scoring.router, prefix=API_PREFIX)
     app.include_router(evaluation.router, prefix=API_PREFIX)
     app.include_router(feedback_and_alerts.router, prefix=API_PREFIX)
     app.include_router(auth_and_users.build_auth_router(settings), prefix=API_PREFIX)

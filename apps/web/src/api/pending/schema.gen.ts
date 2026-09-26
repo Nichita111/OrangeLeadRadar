@@ -111,9 +111,238 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /** @enum {unknown} */
-        Standing: "RANKED" | "BELOW_FIT" | "DISQUALIFIED" | "CUSTOMER";
-        /** @enum {unknown} */
         Band: "HOT" | "WARM" | "COLD";
+        CrmSyncView: {
+            id: string;
+            external_id: string | null;
+            error: string | null;
+            created_at: string;
+            /** @enum {unknown} */
+            target: "HUBSPOT";
+            /** @enum {unknown} */
+            status: "SUCCEEDED" | "FAILED";
+        };
+        /**
+         * DocumentSourceType
+         * @description `document.source_type`.
+         * @enum {string}
+         */
+        DocumentSourceType: "NEWS" | "COMPANY_PUBLICATION" | "JOB_POSTING" | "COMPANY_PROFILE";
+        ErrorEnvelope: {
+            error: {
+                code: string;
+                message: string;
+                details?: {
+                    fields?: {
+                        field: string;
+                        message: string;
+                    }[];
+                    /** Format: uuid */
+                    entity_id?: string;
+                    retry_after_min?: number;
+                    /** Format: date-time */
+                    resets_at?: string;
+                    /** @enum {string} */
+                    dependency?: "DATABASE" | "CLASSIFIER" | "LLM" | "EMBEDDER" | "HUBSPOT";
+                    reason?: string;
+                };
+            };
+        };
+        EvidenceView: {
+            finding_id: string;
+            document: components["schemas"]["FindingViewDocument"];
+            section: string | null;
+            purged: boolean;
+            excerpt: string | null;
+            quote_start: number | null;
+            quote_end: number | null;
+        };
+        /**
+         * FindingDecidedBy
+         * @description `finding.decided_by`.
+         * @enum {string}
+         */
+        FindingDecidedBy: "CLASSIFIER" | "LLM";
+        /**
+         * FindingFeedbackVerdict
+         * @description `finding_feedback.verdict`.
+         * @enum {string}
+         */
+        FindingFeedbackVerdict: "CORRECT" | "WRONG";
+        /**
+         * FindingStatus
+         * @description `finding.status`.
+         * @enum {string}
+         */
+        FindingStatus: "ACTIVE" | "SUPERSEDED" | "REJECTED";
+        /**
+         * FindingStrength
+         * @description `finding.strength`; reused by `classification.strength` and
+         *     `evaluation_item.expected_strength`.
+         * @enum {string}
+         */
+        FindingStrength: "NONE" | "WEAK" | "MEDIUM" | "STRONG";
+        /**
+         * FindingView
+         * @description [`FindingView`](/architecture/interfaces.md#findingview), the response of `API-47`. Also
+         *     plan task 13's `API-42` response shape; that task imports this model and must not define a
+         *     second one.
+         */
+        FindingView: {
+            /**
+             * Account Id
+             * Format: uuid
+             */
+            account_id: string;
+            /** Confidence */
+            confidence: number;
+            decided_by: components["schemas"]["FindingDecidedBy"];
+            document: components["schemas"]["FindingViewDocument"];
+            feedback: components["schemas"]["FindingViewFeedback"] | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+            option: components["schemas"]["FindingViewOption"] | null;
+            /** Points */
+            points: number | null;
+            question: components["schemas"]["FindingViewQuestion"];
+            /** Question Revision */
+            question_revision: number;
+            /** Quote */
+            quote: string;
+            /** Quote En */
+            quote_en: string | null;
+            /** Rationale */
+            rationale: string;
+            /**
+             * Service Id
+             * Format: uuid
+             */
+            service_id: string;
+            status: components["schemas"]["FindingStatus"];
+            strength: components["schemas"]["FindingStrength"];
+        };
+        /**
+         * FindingViewDocument
+         * @description `FindingView.document`.
+         */
+        FindingViewDocument: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Language */
+            language: string;
+            plugin_code: components["schemas"]["SourcePluginCode"];
+            /** Published At */
+            published_at: string | null;
+            source_type: components["schemas"]["DocumentSourceType"];
+            /** Title */
+            title: string | null;
+            /** Url */
+            url: string;
+        };
+        /**
+         * FindingViewFeedback
+         * @description `FindingView.feedback`: the in-force [`finding_feedback`]
+         *     (/architecture/sql-store.md#finding_feedback).
+         */
+        FindingViewFeedback: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** User Name */
+            user_name: string;
+            verdict: components["schemas"]["FindingFeedbackVerdict"];
+        };
+        /**
+         * FindingViewOption
+         * @description `FindingView.option`; `CHOICE` questions only.
+         */
+        FindingViewOption: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+        };
+        /**
+         * FindingViewQuestion
+         * @description `FindingView.question`.
+         */
+        FindingViewQuestion: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Key */
+            key: string;
+            polarity: components["schemas"]["SignalQuestionPolarity"];
+            /** Text */
+            text: string;
+        };
+        /**
+         * ICPCriterionKind
+         * @description The `kind` of an ICP criterion of the [scoring settings document]
+         *     (/architecture/sql-store.md#scoring-settings-document).
+         * @enum {string}
+         */
+        ICPCriterionKind: "INDUSTRY" | "GEOGRAPHY" | "EMPLOYEE_RANGE" | "REVENUE_RANGE" | "OPERATIONAL_COMPLEXITY";
+        /**
+         * LeadFeedback
+         * @description [`LeadFeedback`](/architecture/interfaces.md#leadfeedback), the response of `API-46`.
+         */
+        LeadFeedback: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Note */
+            note: string | null;
+            /** User Name */
+            user_name: string;
+            verdict: components["schemas"]["LeadFeedbackVerdict"];
+        };
+        /**
+         * LeadFeedbackVerdict
+         * @description `lead_feedback.verdict`.
+         * @enum {string}
+         */
+        LeadFeedbackVerdict: "RELEVANT" | "NOT_RELEVANT" | "ALREADY_CUSTOMER";
+        Override: {
+            id: string;
+            account_id: string;
+            service_id: string;
+            rule_key: string;
+            note: string;
+            rule_label: string;
+            status: components["schemas"]["OverrideStatus"];
+            created_by_name: string;
+            created_at: string;
+            revoked_by_name: string | null;
+            revoked_at: string | null;
+            run_id: string | null;
+        };
+        OverrideCreate: {
+            rule_key: string;
+            note: string;
+        };
         /** @enum {unknown} */
         OverrideStatus: "ACTIVE" | "REVOKED";
         ProspectPage: {
@@ -154,16 +383,6 @@ export interface components {
             unread_alerts: number;
             as_of: string;
             last_refreshed_at: string | null;
-        };
-        CrmSyncView: {
-            id: string;
-            external_id: string | null;
-            error: string | null;
-            created_at: string;
-            /** @enum {unknown} */
-            target: "HUBSPOT";
-            /** @enum {unknown} */
-            status: "SUCCEEDED" | "FAILED";
         };
         ScoreBreakdown: {
             settings_version: number;
@@ -234,47 +453,20 @@ export interface components {
             lead_feedback: components["schemas"]["LeadFeedback"] | null;
             last_crm_sync: components["schemas"]["CrmSyncView"] | null;
         };
-        EvidenceView: {
-            finding_id: string;
-            document: components["schemas"]["FindingViewDocument"];
-            section: string | null;
-            purged: boolean;
-            excerpt: string | null;
-            quote_start: number | null;
-            quote_end: number | null;
-        };
-        Override: {
-            id: string;
-            account_id: string;
-            service_id: string;
-            rule_key: string;
-            note: string;
-            rule_label: string;
-            status: components["schemas"]["OverrideStatus"];
-            created_by_name: string;
-            created_at: string;
-            revoked_by_name: string | null;
-            revoked_at: string | null;
-            run_id: string | null;
-        };
-        OverrideCreate: {
-            rule_key: string;
-            note: string;
-        };
         /**
-         * FindingStrength
-         * @description `finding.strength`; reused by `classification.strength` and
-         *     `evaluation_item.expected_strength`.
+         * SignalQuestionPolarity
+         * @description `signal_question.polarity`.
          * @enum {string}
          */
-        FindingStrength: "NONE" | "WEAK" | "MEDIUM" | "STRONG";
+        SignalQuestionPolarity: "POSITIVE" | "NEGATIVE";
         /**
-         * ICPCriterionKind
-         * @description The `kind` of an ICP criterion of the [scoring settings document]
-         *     (/architecture/sql-store.md#scoring-settings-document).
+         * SourcePluginCode
+         * @description `source_plugin.code`; reused by `plugin_usage.plugin_code` and `document.plugin_code`.
          * @enum {string}
          */
-        ICPCriterionKind: "INDUSTRY" | "GEOGRAPHY" | "EMPLOYEE_RANGE" | "REVENUE_RANGE" | "OPERATIONAL_COMPLEXITY";
+        SourcePluginCode: "GDELT" | "RSS" | "WEBSITE" | "CAREERS" | "CRUNCHBASE" | "NEWSAPI" | "SERPAPI";
+        /** @enum {unknown} */
+        Standing: "RANKED" | "BELOW_FIT" | "DISQUALIFIED" | "CUSTOMER";
         /**
          * WeightLevel
          * @description A weight level of the [scoring settings document]
@@ -284,178 +476,6 @@ export interface components {
          * @enum {string}
          */
         WeightLevel: "HIGH" | "MEDIUM" | "LOW" | "NONE";
-        /**
-         * SignalQuestionPolarity
-         * @description `signal_question.polarity`.
-         * @enum {string}
-         */
-        SignalQuestionPolarity: "POSITIVE" | "NEGATIVE";
-        /**
-         * LeadFeedbackVerdict
-         * @description `lead_feedback.verdict`.
-         * @enum {string}
-         */
-        LeadFeedbackVerdict: "RELEVANT" | "NOT_RELEVANT" | "ALREADY_CUSTOMER";
-        /**
-         * LeadFeedback
-         * @description [`LeadFeedback`](/architecture/interfaces.md#leadfeedback), the response of `API-46`.
-         */
-        LeadFeedback: {
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Note */
-            note: string | null;
-            /** User Name */
-            user_name: string;
-            verdict: components["schemas"]["LeadFeedbackVerdict"];
-        };
-        /**
-         * FindingStatus
-         * @description `finding.status`.
-         * @enum {string}
-         */
-        FindingStatus: "ACTIVE" | "SUPERSEDED" | "REJECTED";
-        /**
-         * FindingDecidedBy
-         * @description `finding.decided_by`.
-         * @enum {string}
-         */
-        FindingDecidedBy: "CLASSIFIER" | "LLM";
-        /**
-         * SourcePluginCode
-         * @description `source_plugin.code`; reused by `plugin_usage.plugin_code` and `document.plugin_code`.
-         * @enum {string}
-         */
-        SourcePluginCode: "GDELT" | "RSS" | "WEBSITE" | "CAREERS" | "CRUNCHBASE" | "NEWSAPI" | "SERPAPI";
-        /**
-         * DocumentSourceType
-         * @description `document.source_type`.
-         * @enum {string}
-         */
-        DocumentSourceType: "NEWS" | "COMPANY_PUBLICATION" | "JOB_POSTING" | "COMPANY_PROFILE";
-        /**
-         * FindingViewDocument
-         * @description `FindingView.document`.
-         */
-        FindingViewDocument: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Language */
-            language: string;
-            plugin_code: components["schemas"]["SourcePluginCode"];
-            /** Published At */
-            published_at: string | null;
-            source_type: components["schemas"]["DocumentSourceType"];
-            /** Title */
-            title: string | null;
-            /** Url */
-            url: string;
-        };
-        /**
-         * FindingFeedbackVerdict
-         * @description `finding_feedback.verdict`.
-         * @enum {string}
-         */
-        FindingFeedbackVerdict: "CORRECT" | "WRONG";
-        /**
-         * FindingViewFeedback
-         * @description `FindingView.feedback`: the in-force [`finding_feedback`]
-         *     (/architecture/sql-store.md#finding_feedback).
-         */
-        FindingViewFeedback: {
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** User Name */
-            user_name: string;
-            verdict: components["schemas"]["FindingFeedbackVerdict"];
-        };
-        /**
-         * FindingViewOption
-         * @description `FindingView.option`; `CHOICE` questions only.
-         */
-        FindingViewOption: {
-            /** Key */
-            key: string;
-            /** Label */
-            label: string;
-        };
-        /**
-         * FindingViewQuestion
-         * @description `FindingView.question`.
-         */
-        FindingViewQuestion: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Key */
-            key: string;
-            polarity: components["schemas"]["SignalQuestionPolarity"];
-            /** Text */
-            text: string;
-        };
-        /**
-         * FindingView
-         * @description [`FindingView`](/architecture/interfaces.md#findingview), the response of `API-47`. Also
-         *     plan task 13's `API-42` response shape; that task imports this model and must not define a
-         *     second one.
-         */
-        FindingView: {
-            /**
-             * Account Id
-             * Format: uuid
-             */
-            account_id: string;
-            /** Confidence */
-            confidence: number;
-            decided_by: components["schemas"]["FindingDecidedBy"];
-            document: components["schemas"]["FindingViewDocument"];
-            feedback: components["schemas"]["FindingViewFeedback"] | null;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /**
-             * Observed At
-             * Format: date-time
-             */
-            observed_at: string;
-            option: components["schemas"]["FindingViewOption"] | null;
-            /** Points */
-            points: number | null;
-            question: components["schemas"]["FindingViewQuestion"];
-            /** Question Revision */
-            question_revision: number;
-            /** Quote */
-            quote: string;
-            /** Quote En */
-            quote_en: string | null;
-            /** Rationale */
-            rationale: string;
-            /**
-             * Service Id
-             * Format: uuid
-             */
-            service_id: string;
-            status: components["schemas"]["FindingStatus"];
-            strength: components["schemas"]["FindingStrength"];
-        };
     };
     responses: never;
     parameters: never;
@@ -493,6 +513,15 @@ export interface operations {
                     "application/json": components["schemas"]["ProspectPage"];
                 };
             };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
         };
     };
     get_score: {
@@ -514,6 +543,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ScoreView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };
@@ -542,6 +580,15 @@ export interface operations {
                     "application/json": components["schemas"]["FindingView"][];
                 };
             };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
         };
     };
     get_evidence: {
@@ -562,6 +609,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EvidenceView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };
@@ -591,6 +647,15 @@ export interface operations {
                     "application/json": components["schemas"]["Override"];
                 };
             };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
         };
     };
     revoke_override: {
@@ -611,6 +676,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Override"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

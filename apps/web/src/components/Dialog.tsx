@@ -1,90 +1,37 @@
-/**
- * The dialog shell of [Confirmation](/architecture/services/frontend.md#confirmation) (`FR-123`):
- * titled with the action, Escape closes it and returns focus to the control that opened it (both
- * native to Radix Dialog). `Dialog` holds a form or other content; [`ConfirmDialog`](#confirmdialog)
- * is the one-sentence confirmation shape of `FR-015`.
- */
-import { XIcon } from "@phosphor-icons/react";
-import * as RadixDialog from "@radix-ui/react-dialog";
-import type { ReactNode } from "react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import type { ReactElement, ReactNode } from "react";
 
-import { Button } from "./Button";
-
-export interface DialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+interface DialogProps {
+  trigger: ReactElement;
   title: string;
+  /** One sentence: what changes and what is kept (FR-123). */
+  description: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   children: ReactNode;
 }
 
-export function Dialog({ open, onOpenChange, title, children }: DialogProps) {
+/** A modal dialog; its trigger gets focus back when it closes (FR-123). */
+export function Dialog({ trigger, title, description, open, onOpenChange, children }: DialogProps) {
+  const controlled = {
+    ...(open === undefined ? {} : { open }),
+    ...(onOpenChange === undefined ? {} : { onOpenChange }),
+  };
   return (
-    <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
-      <RadixDialog.Portal>
-        <RadixDialog.Overlay className="fixed inset-0 z-40 bg-black/40" />
-        <RadixDialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-card border border-border bg-surface p-6 shadow-lg">
-          <div className="mb-4 flex items-center justify-between">
-            <RadixDialog.Title className="text-[15px] font-semibold text-text">
-              {title}
-            </RadixDialog.Title>
-            <RadixDialog.Close aria-label="Close" className="text-text-tertiary">
-              <XIcon size={20} />
-            </RadixDialog.Close>
-          </div>
+    <DialogPrimitive.Root {...controlled}>
+      <DialogPrimitive.Trigger asChild>{trigger}</DialogPrimitive.Trigger>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-text/40" />
+        <DialogPrimitive.Content className="fixed top-1/2 left-1/2 z-50 flex max-h-[90vh] w-[520px] max-w-[95vw] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 overflow-auto rounded-card border border-border bg-surface p-6 shadow-overlay">
+          <DialogPrimitive.Title className="m-0 text-section font-semibold">
+            {title}
+          </DialogPrimitive.Title>
+          <DialogPrimitive.Description className="m-0 text-text-secondary">
+            {description}
+          </DialogPrimitive.Description>
           {children}
-        </RadixDialog.Content>
-      </RadixDialog.Portal>
-    </RadixDialog.Root>
-  );
-}
-
-export interface ConfirmDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  /** The action, e.g. "Disable user" (`FR-123`). */
-  title: string;
-  /** What changes and what is kept, in one sentence. */
-  description: ReactNode;
-  /** Named after its verb, e.g. "Disable user", never "OK" (`FR-123`). */
-  confirmLabel: string;
-  onConfirm: () => void;
-  confirmPending?: boolean;
-  /** The failure of the confirmed action, shown in the dialog (`FR-005`). */
-  error?: ReactNode;
-}
-
-export function ConfirmDialog({
-  open,
-  onOpenChange,
-  title,
-  description,
-  confirmLabel,
-  onConfirm,
-  confirmPending = false,
-  error,
-}: ConfirmDialogProps) {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange} title={title}>
-      <p className="mb-6 text-sm text-text-secondary">{description}</p>
-      {error !== undefined && error !== null && (
-        <p role="alert" className="mb-4 text-sm text-negative">
-          {error}
-        </p>
-      )}
-      <div className="flex justify-end gap-2">
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={() => {
-            onOpenChange(false);
-          }}
-        >
-          Cancel
-        </Button>
-        <Button type="button" variant="primary" onClick={onConfirm} disabled={confirmPending}>
-          {confirmLabel}
-        </Button>
-      </div>
-    </Dialog>
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 }

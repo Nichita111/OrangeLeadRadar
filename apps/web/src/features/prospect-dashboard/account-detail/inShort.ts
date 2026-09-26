@@ -1,22 +1,22 @@
-/**
- * The "In short" paragraph of the Why tab (`FR-069`): a pure function of the score view, so it
- * is unit-tested and the screen composes no score of its own. `now` is injected for the ages.
- */
-import type { ScoreView } from "../../../api/prospects";
-import { formatRelativeDate, sentenceCaseKey, strengthLabel } from "../../../shell/formatting";
+import type { ScoreView } from "../../../api/prospectsAndEvidence";
+import { enumLabel, formatRelative, strengthLabel } from "../../../shell/format";
 
 type QuestionEntry = ScoreView["breakdown"]["intent"]["questions"][number];
 
 function names(keys: string[]): string {
-  return keys.map(sentenceCaseKey).join(", ");
+  return keys.map(enumLabel).join(", ");
 }
 
 function signal(entry: QuestionEntry, now: Date): string {
   const strength = entry.strength === null ? "" : strengthLabel(entry.strength);
-  const age = entry.observed_at === null ? "" : formatRelativeDate(entry.observed_at, now);
+  const age = entry.observed_at === null ? "" : formatRelative(entry.observed_at, now);
   return `${entry.question_text} (${strength}, ${age})`;
 }
 
+/**
+ * The "In short" paragraph of the Why tab (FR-069): a pure function of the score view, so the
+ * screen composes no score of its own. `now` is injected for the ages.
+ */
 export function inShort(score: Pick<ScoreView, "breakdown">, now: Date): string {
   const { breakdown } = score;
   const parts: string[] = [];

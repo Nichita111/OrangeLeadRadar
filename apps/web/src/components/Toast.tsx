@@ -1,71 +1,64 @@
-/**
- * `FR-120`: a toast for a completed action, announced as a status, dismissible, leaving by
- * itself after the confirmation time of [Motion](/architecture/services/frontend.md#motion)
- * (`TOAST_VISIBLE_MS`, a design value, not a runtime configuration key). An error is never a
- * toast ([FR-120](/architecture/services/frontend.md#messages-and-feedback)); use
- * [`Callout`](./Callout.tsx) instead.
- */
+import * as ToastPrimitive from "@radix-ui/react-toast";
 import { XIcon } from "@phosphor-icons/react";
-import * as RadixToast from "@radix-ui/react-toast";
-import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 
-/** The Motion section's "Toast visible" design value. */
-const TOAST_VISIBLE_MS = 6000;
+import { TOAST_VISIBLE_MS } from "./motion/values";
 
-interface ToastMessage {
-  id: string;
+interface ToastItem {
+  id: number;
   message: string;
 }
 
-interface ToastContextValue {
-  showToast: (message: string) => void;
+interface ToastApi {
+  /** Confirms a completed action. An error is never a toast (FR-120). */
+  notify: (message: string) => void;
 }
 
-const ToastContext = createContext<ToastContextValue | null>(null);
+const ToastContext = createContext<ToastApi | null>(null);
 
-export function useToast(): ToastContextValue {
-  const context = useContext(ToastContext);
-  if (context === null) {
-    throw new Error("useToast must be used within a ToastProvider");
+export function useToast(): ToastApi {
+  const api = useContext(ToastContext);
+  if (api === null) {
+    throw new Error("useToast needs a ToastProvider.");
   }
-  return context;
+  return api;
 }
+
+let nextId = 0;
 
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const [toasts, setToasts] = useState<ToastMessage[]>([]);
-
-  const showToast = useCallback((message: string) => {
-    const id = crypto.randomUUID();
-    setToasts((current) => [...current, { id, message }]);
+  const [items, setItems] = useState<ToastItem[]>([]);
+  const notify = useCallback((message: string) => {
+    nextId += 1;
+    const id = nextId;
+    setItems((current) => [...current, { id, message }]);
   }, []);
-
-  const dismiss = useCallback((id: string) => {
-    setToasts((current) => current.filter((toast) => toast.id !== id));
-  }, []);
-
+  const api = useMemo(() => ({ notify }), [notify]);
   return (
-    <ToastContext.Provider value={{ showToast }}>
-      <RadixToast.Provider duration={TOAST_VISIBLE_MS}>
+    <ToastContext.Provider value={api}>
+      <ToastPrimitive.Provider duration={TOAST_VISIBLE_MS} label="Notification">
         {children}
-        {toasts.map((toast) => (
-          <RadixToast.Root
-            key={toast.id}
-            duration={TOAST_VISIBLE_MS}
+        {items.map((item) => (
+          <ToastPrimitive.Root
+            key={item.id}
             onOpenChange={(open) => {
               if (!open) {
-                dismiss(toast.id);
+                setItems((current) => current.filter((other) => other.id !== item.id));
               }
             }}
-            className="flex items-center justify-between gap-3 rounded-card border border-border bg-surface px-4 py-3 text-sm text-text shadow-lg data-[state=open]:animate-none"
+            className="flex items-center gap-3 rounded-card border border-border bg-surface px-4 py-3 shadow-overlay"
           >
-            <RadixToast.Description>{toast.message}</RadixToast.Description>
-            <RadixToast.Close aria-label="Dismiss" className="shrink-0 text-text-tertiary">
-              <XIcon size={16} />
-            </RadixToast.Close>
-          </RadixToast.Root>
+            <ToastPrimitive.Title className="font-medium">{item.message}</ToastPrimitive.Title>
+            <ToastPrimitive.Close
+              aria-label="Dismiss"
+              className="ml-auto inline-flex size-control-small items-center justify-center rounded-control hover:bg-page"
+            >
+              <XIcon size={16} aria-hidden />
+            </ToastPrimitive.Close>
+          </ToastPrimitive.Root>
         ))}
-        <RadixToast.Viewport className="fixed bottom-4 right-4 z-50 flex w-96 flex-col gap-2 outline-none" />
-      </RadixToast.Provider>
+        <ToastPrimitive.Viewport className="fixed right-4 bottom-4 z-50 flex w-96 max-w-full flex-col gap-2" />
+      </ToastPrimitive.Provider>
     </ToastContext.Provider>
   );
 }

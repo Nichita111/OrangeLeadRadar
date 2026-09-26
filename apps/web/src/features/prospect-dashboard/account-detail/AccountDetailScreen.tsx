@@ -1,78 +1,98 @@
-/**
- * [Account detail](/features/prospect-dashboard.md#account-detail). Route `/accounts/:id`, with
- * the service from the selector. WF-13, WF-14. This task builds the header, the Why tab and the
- * Signals tab; the other tabs belong to their own features.
- */
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router";
 
-import { useAccount } from "../../../api/accounts";
-import { useIndustries } from "../../../api/industriesAndMarkets";
-import { useScore } from "../../../api/prospects";
-import { Callout } from "../../../components/Callout";
-import { BandChip } from "../../../components/score/BandChip";
-import { ScoreFigures } from "../../../components/score/ScoreFigures";
-import { QueryErrorState } from "../../../components/States";
-import { countryName } from "../../../shell/countries";
-import { formatAbsoluteDateTime, formatRelativeDate } from "../../../shell/formatting";
-import { useServiceSelection } from "../../../shell/selected-service";
+import type { Schemas } from "../../../api/contract";
+import { useScore } from "../../../api/prospectsAndEvidence";
+import { useAccount, useIndustries } from "../../../api/referenceData";
+import { Skeleton } from "../../../components/Skeleton";
+import { cn } from "../../../components/cn";
+import { countryName } from "../../../shell/format";
+import { RelativeTime } from "../../../shell/RelativeTime";
+import { DataView } from "../../../shell/states/DataView";
+import { WithService } from "../../../shell/WithService";
+import { BandChip } from "../BandChip";
+import { ScoreFigures } from "../ScoreFigures";
 import { SignalsTab } from "./SignalsTab";
 import { WhyTab } from "./WhyTab";
 
-const TAB_CLASS = "border-b-2 px-3 py-2 text-sm font-medium";
+const TABS = [
+  { value: "why", label: "Why" },
+  { value: "signals", label: "Signals" },
+] as const;
 
+/**
+ * Account detail, `/accounts/:id`, with the service from the selector. WF-13, WF-14. This screen
+ * builds the header, the Why tab and the Signals tab; the other tabs belong to their own features.
+ */
 export function AccountDetailScreen() {
   const { id = "" } = useParams();
-  const [params] = useSearchParams();
-  const selection = useServiceSelection();
-  const { isLoading: servicesLoading, service } = selection;
-  const account = useAccount(id);
-  const score = useScore(id, service?.id);
-  const industries = useIndustries();
+  return <WithService>{(service) => <AccountDetail id={id} service={service} />}</WithService>;
+}
 
-  if (selection.error !== null) {
-    return <QueryErrorState error={selection.error} onRetry={selection.refetch} />;
-  }
-  if (!servicesLoading && service === null) {
-    return <p className="text-sm text-text-secondary">There is no active service yet.</p>;
-  }
-  if (account.isError) {
-    return <QueryErrorState error={account.error} onRetry={() => void account.refetch()} />;
-  }
-  if (account.data === undefined || service === null) {
-    return <div className="h-24 rounded-card bg-page" aria-hidden="true" />;
-  }
-  const { data: acc } = account;
-  const tab = params.get("tab") === "signals" ? "signals" : "why";
-  const industryLabel = industries.data?.find((item) => item.code === acc.industry)?.label;
+function AccountDetail({ id, service }: { id: string; service: Schemas["Service"] }) {
+  const [params] = useSearchParams();
+  const account = useAccount(id);
+  return (
+    <DataView
+      query={account}
+      isEmpty={() => false}
+      skeleton={<Skeleton className="h-24 w-full" />}
+      empty={{ message: "This account does not exist.", action: null }}
+    >
+      {(acc) => (
+        <AccountBody
+          account={acc}
+          service={service}
+          tab={params.get("tab") === "signals" ? "signals" : "why"}
+          findingId={params.get("finding")}
+        />
+      )}
+    </DataView>
+  );
+}
+
+function AccountBody({
+  account,
+  service,
+  tab,
+  findingId,
+}: {
+  account: Schemas["Account"];
+  service: Schemas["Service"];
+  tab: "why" | "signals";
+  findingId: string | null;
+}) {
+  const score = useScore(account.id, service.id);
+  const industries = useIndustries();
+  const industryLabel = industries.data?.find((item) => item.code === account.industry)?.label;
 
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-3">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-[24px] font-semibold text-text">{acc.name}</h1>
-            <p className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-text-secondary">
+            <h1 className="m-0 text-title font-semibold">{account.name}</h1>
+            <p className="m-0 mt-1 flex flex-wrap items-center gap-x-2 text-text-secondary">
               <a
-                href={`https://${acc.domain}`}
+                href={`https://${account.domain}`}
                 target="_blank"
                 rel="noreferrer"
                 className="text-accent-ink underline"
               >
-                {acc.domain}
+                {account.domain}
               </a>
               <span>
                 {[
-                  acc.country_code === null ? null : countryName(acc.country_code),
-                  acc.industry === null ? null : (industryLabel ?? acc.industry),
+                  account.country_code === null ? null : countryName(account.country_code),
+                  account.industry === null ? null : (industryLabel ?? account.industry),
                 ]
                   .filter((part) => part !== null)
                   .join(", ")}
               </span>
-              {acc.parent !== null && (
+              {account.parent !== null && (
                 <span>
                   Parent:{" "}
-                  <Link to={`/accounts/${acc.parent.id}`} className="text-accent-ink underline">
-                    {acc.parent.name}
+                  <Link to={`/accounts/${account.parent.id}`} className="text-accent-ink underline">
+                    {account.parent.name}
                   </Link>
                 </span>
               )}
@@ -87,61 +107,52 @@ export function AccountDetailScreen() {
               fit={score.data.fit}
               intent={score.data.intent}
             />
-            <p className="text-[12.5px] text-text-tertiary">
-              Scored{" "}
-              <span title={formatAbsoluteDateTime(score.data.as_of)}>
-                {formatRelativeDate(score.data.as_of)}
-              </span>{" "}
-              with scoring version {score.data.scoring_version}
+            <p className="m-0 text-hint text-text-tertiary">
+              Scored <RelativeTime at={score.data.as_of} /> with scoring version{" "}
+              {score.data.scoring_version}
             </p>
           </>
         )}
       </header>
 
-      {score.isError && (
-        <QueryErrorState error={score.error} onRetry={() => void score.refetch()} />
-      )}
-      {score.data === null && (
-        <Callout>
-          <strong>Not scored yet.</strong> This account has no score for {service.name}; it gets one
-          at its next refresh.
-        </Callout>
-      )}
-
-      {score.data != null && (
-        <>
-          <nav aria-label="Account detail tabs" className="flex gap-1 border-b border-border">
-            {(
-              [
-                ["why", "Why"],
-                ["signals", "Signals"],
-              ] as const
-            ).map(([value, label]) => (
-              <Link
-                key={value}
-                to={`?tab=${value}`}
-                aria-current={tab === value ? "page" : undefined}
-                className={`${TAB_CLASS} ${
-                  tab === value
-                    ? "border-accent text-accent-ink"
-                    : "border-transparent text-text-secondary hover:text-text"
-                }`}
-              >
-                {label}
-              </Link>
-            ))}
-          </nav>
-          {tab === "why" ? (
-            <WhyTab account={acc} score={score.data} serviceId={service.id} />
-          ) : (
-            <SignalsTab
-              accountId={acc.id}
-              serviceId={service.id}
-              findingId={params.get("finding")}
-            />
-          )}
-        </>
-      )}
+      <DataView
+        query={score}
+        isEmpty={(current) => current === null}
+        skeleton={<Skeleton className="h-24 w-full" />}
+        empty={{
+          message: `Not scored yet. This account has no score for ${service.name}; it gets one at its next refresh.`,
+          action: null,
+        }}
+      >
+        {(current) =>
+          current === null ? null : (
+            <>
+              <nav aria-label="Account detail tabs" className="flex gap-1 border-b border-border">
+                {TABS.map(({ value, label }) => (
+                  <Link
+                    key={value}
+                    to={`?tab=${value}`}
+                    aria-current={tab === value ? "page" : undefined}
+                    className={cn(
+                      "border-b-2 px-3 py-2 font-medium",
+                      tab === value
+                        ? "border-accent text-accent-ink"
+                        : "border-transparent text-text-secondary hover:text-text",
+                    )}
+                  >
+                    {label}
+                  </Link>
+                ))}
+              </nav>
+              {tab === "why" ? (
+                <WhyTab account={account} score={current} serviceId={service.id} />
+              ) : (
+                <SignalsTab accountId={account.id} serviceId={service.id} findingId={findingId} />
+              )}
+            </>
+          )
+        }
+      </DataView>
     </div>
   );
 }

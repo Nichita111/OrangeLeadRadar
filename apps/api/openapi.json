@@ -695,6 +695,21 @@
         "title": "AccountUpdateSource",
         "type": "object"
       },
+      "ActivationRequest": {
+        "additionalProperties": false,
+        "description": "`ActivationRequest`: `change_note` required.",
+        "properties": {
+          "change_note": {
+            "title": "Change Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "change_note"
+        ],
+        "title": "ActivationRequest",
+        "type": "object"
+      },
       "AppUserRole": {
         "description": "`app_user.role`.",
         "enum": [
@@ -4781,6 +4796,74 @@
         "summary": "Post Run Cancel",
         "tags": [
           "runs-and-source-plugins"
+        ]
+      }
+    },
+    "/api/v1/scoring-configs/{config_id}/activate": {
+      "post": {
+        "description": "[`API-18`](/architecture/interfaces.md#scoring): Admin only.\n\nActivates the target DRAFT scoring config, retires the previous ACTIVE version, and\nenqueues a RESCORE run. Returns the activated `ScoringConfig`.\n`409 CONFLICT` when the config is not DRAFT. `422` when `change_note` is missing.\n`403 FORBIDDEN` for non-Admin.",
+        "operationId": "activate_scoring_config_route_api_v1_scoring_configs__config_id__activate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "config_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Config Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "API-18: Activate a DRAFT scoring config",
+        "tags": [
+          "scoring"
         ]
       }
     },

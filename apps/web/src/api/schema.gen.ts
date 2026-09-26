@@ -395,6 +395,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/scoring-configs/{config_id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * API-18: Activate a DRAFT scoring config
+         * @description [`API-18`](/architecture/interfaces.md#scoring): Admin only.
+         *
+         *     Activates the target DRAFT scoring config, retires the previous ACTIVE version, and
+         *     enqueues a RESCORE run. Returns the activated `ScoringConfig`.
+         *     `409 CONFLICT` when the config is not DRAFT. `422` when `change_note` is missing.
+         *     `403 FORBIDDEN` for non-Admin.
+         */
+        post: operations["activate_scoring_config_route_api_v1_scoring_configs__config_id__activate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/scoring-configs/{id}": {
         parameters: {
             query?: never;
@@ -821,6 +846,14 @@ export interface components {
             status: components["schemas"]["AccountSourceStatus"];
             /** Url */
             url: string;
+        };
+        /**
+         * ActivationRequest
+         * @description `ActivationRequest`: `change_note` required.
+         */
+        ActivationRequest: {
+            /** Change Note */
+            change_note: string;
         };
         /**
          * AppUserRole
@@ -2610,6 +2643,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Run"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    activate_scoring_config_route_api_v1_scoring_configs__config_id__activate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                config_id: string;
+            };
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActivationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

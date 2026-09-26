@@ -46,8 +46,19 @@ Authorisation is enforced by the api on every route ([S-SEC-02](/requirements/sy
 | `VALIDATION` | 422 | The input is invalid; `details.fields[]` lists `{field, message}`, where `field` is a body field name, a JSON pointer into it, or the name of a path or query parameter |
 | `LOCKED` | 423 | Too many failed sign-ins; `details.retry_after_min`, the minutes until `locked_until`, rounded up |
 | `BUDGET_EXHAUSTED` | 429 | The [Budget guard](/architecture/rules.md#budget-guard) stops an LLM call; `details.resets_at` |
-| `UPSTREAM_UNAVAILABLE` | 503 | The classifier, the LLM, the embedder or a provider is unavailable or returned invalid output; `details.dependency`, `details.reason` |
+| `UPSTREAM_UNAVAILABLE` | 503 | The database, the classifier, the LLM, the embedder or HubSpot is unavailable or returned invalid output; `details.dependency` names which, as Dependencies lists, and `details.reason` says why |
 | `INTERNAL` | 500 | Anything else |
+
+**Dependencies.** `details.dependency` takes exactly the values below; each names the row of [Degradation](/architecture/overview.md#degradation) whose behaviour applies. `BUDGET_EXHAUSTED` carries no `details.dependency`: its code alone names the LLM daily budget row. A source plug-in's failure is never the error of a contract; its run reports it.
+
+| Code | `details.dependency` | Raised when | Degradation row |
+|---|---|---|---|
+| `UPSTREAM_UNAVAILABLE` | `DATABASE` | The [SQL store](/architecture/sql-store.md) is unreachable | Database |
+| `UPSTREAM_UNAVAILABLE` | `CLASSIFIER` | A [Classifier](#classifier) call, `API-62`, fails | Classifier |
+| `UPSTREAM_UNAVAILABLE` | `LLM` | An [LLM](#llm) call, `API-63` to `API-66`, fails | OpenRouter |
+| `UPSTREAM_UNAVAILABLE` | `EMBEDDER` | An [Embedder](#embedder) call, `API-67`, fails | Embedder |
+| `UPSTREAM_UNAVAILABLE` | `HUBSPOT` | A [CRM](#crm) call, `API-70`, fails | HubSpot |
+| `BUDGET_EXHAUSTED` | — | The [Budget guard](/architecture/rules.md#budget-guard) stops an LLM call | LLM daily budget reached |
 
 Degraded behaviour is an explicit error, never a placeholder result ([Degradation](/architecture/overview.md#degradation)).
 

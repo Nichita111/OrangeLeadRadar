@@ -1,14 +1,10 @@
-/** Guards the Admin routes of the router ([TypeScript guidelines]
- * (/guidelines/typescript.md#routing)); the api enforces the role regardless. */
-import { Outlet } from "react-router-dom";
+import type { ReactNode } from "react";
 
-import { useCurrentUser } from "./current-user-context";
-import { NotAllowed } from "./NotAllowed";
+import { useCurrentUser } from "./CurrentUser";
+import { NotAllowed } from "./states/NotAllowed";
 
-export function RequireAdmin() {
+/** Admin routes are guarded in the router; the api enforces the role regardless. */
+export function RequireAdmin({ children }: { children: ReactNode }) {
   const user = useCurrentUser();
-  if (user.role !== "ADMIN") {
-    return <NotAllowed requiredRole="Admin" />;
-  }
-  return <Outlet />;
+  return user.role === "ADMIN" ? <>{children}</> : <NotAllowed />;
 }

@@ -1,45 +1,41 @@
-/**
- * `FR-004`: the user card at the foot of the navigation shows the user's display name and role
- * and offers Sign out.
- */
 import { SignOutIcon } from "@phosphor-icons/react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 
-import { useLogout } from "../api/auth";
-import { Button } from "../components/Button";
-import { titleCaseEnum } from "./formatting";
-import { useCurrentUser } from "./current-user-context";
+import { useLogout } from "../api/authenticationAndUsers";
+import { IconButton } from "../components/Button";
+import { Callout } from "../components/Callout";
+import { enumLabel } from "./format";
+import { useCurrentUser } from "./CurrentUser";
 
+/** FR-004: the display name and role, and Sign out; a failed sign-out shows its message. */
 export function UserCard() {
   const user = useCurrentUser();
-  const logout = useLogout();
   const navigate = useNavigate();
-
-  const handleSignOut = () => {
-    logout.mutate(undefined, {
-      onSuccess: () => {
-        void navigate("/login", { replace: true });
-      },
-    });
-  };
-
+  const logout = useLogout();
   return (
-    <div className="flex items-center justify-between gap-2 border-t border-border px-3 py-3">
-      <div className="min-w-0">
-        <p className="truncate text-sm font-medium text-text">{user.display_name}</p>
-        <p className="text-[12.5px] text-text-tertiary">{titleCaseEnum(user.role)}</p>
+    <section
+      aria-label="Signed in user"
+      className="flex flex-col gap-2 rounded-card border border-border bg-surface p-3"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 flex-col">
+          <span className="truncate font-semibold">{user.display_name}</span>
+          <span className="text-hint text-text-tertiary">{enumLabel(user.role)}</span>
+        </div>
+        <IconButton
+          label="Sign out"
+          icon={<SignOutIcon size={20} aria-hidden />}
+          disabled={logout.isPending}
+          onClick={() => {
+            logout.mutate(undefined, {
+              onSuccess: () => {
+                void navigate("/login", { replace: true });
+              },
+            });
+          }}
+        />
       </div>
-      <Button
-        type="button"
-        variant="ghost"
-        size="small"
-        aria-label="Sign out"
-        title="Sign out"
-        onClick={handleSignOut}
-        disabled={logout.isPending}
-      >
-        <SignOutIcon size={18} aria-hidden="true" />
-      </Button>
-    </div>
+      {logout.isError && <Callout kind="error">{logout.error.message}</Callout>}
+    </section>
   );
 }

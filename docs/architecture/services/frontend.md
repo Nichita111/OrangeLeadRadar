@@ -24,7 +24,7 @@ Consumes every REST family of [interfaces](/architecture/interfaces.md) through 
 
 ## Design
 
-React with TypeScript in strict mode, built by Vite; React Router for routes; TanStack Query for server state, caching and polling; a typed client generated with `openapi-typescript`; Tailwind CSS with Radix-based components for accessible primitives. Icons come from one family, Phosphor (`@phosphor-icons/react`), at one stroke weight. Type is Geist and Geist Mono, self-hosted by the `web` container. Animation uses `motion`, and the animated components of [Motion](#motion) are copied from React Bits ([ADR-17](/architecture/adrs/adr-17-animated-components-from-react-bits.md)). The build is static files served by the `web` container, which proxies `/api/v1` to `API_UPSTREAM`. The other keys of [Runtime](#runtime) reach the client at run time: the `web` container writes them to `/config.json` when it starts, and the client reads that file before its first render, so changing one needs a restart, not a rebuild.
+React with TypeScript in strict mode, built by Vite; React Router for routes; TanStack Query for server state, caching and polling; a typed client generated with `openapi-typescript`; Tailwind CSS with Radix-based components for accessible primitives. Icons come from one family, Phosphor (`@phosphor-icons/react`), at the weights [Visual language](#visual-language) names. Type is Geist and Geist Mono, self-hosted by the `web` container. Animation uses `motion`, and the animated components of [Motion](#motion) are copied from React Bits ([ADR-17](/architecture/adrs/adr-17-animated-components-from-react-bits.md)). The build is static files served by the `web` container, which proxies `/api/v1` to `API_UPSTREAM`. The other keys of [Runtime](#runtime) reach the client at run time: the `web` container writes them to `/config.json` when it starts, and the client reads that file before its first render, so changing one needs a restart, not a rebuild.
 
 ## Routes
 
@@ -55,28 +55,28 @@ React with TypeScript in strict mode, built by Vite; React Router for routes; Ta
 ## Navigation
 
 ```text
-┌───────────────┬──────────────────────────────────────────────────────────────┐
-│ LeadRadar     │  Prospects                Service: [ Intelligent Automation ▾ ] │
-│               ├──────────────────────────────────────────────────────────────┤
-│ Work          │                                                              │
-│ Prospects     │                                                              │
-│ Alerts    (3) │                     screen content                           │
-│ Accounts      │                                                              │
-│ Suggested     │                                                              │
-│ Runs          │                                                              │
-│ Labelling     │                                                              │
-│ Admin only    │                                                              │
-│ Services      │                                                              │
-│ Industries    │                                                              │
-│ Quality       │                                                              │
-│ Source plug-ins│                                                             │
-│ Users         │                                                              │
-│ Audit log     │                                                              │
-│ ┌───────────┐ │                                                              │
-│ │ Ana Sales │ │                                                              │
-│ │ Sales   ⎋ │ │                                                              │
-│ └───────────┘ │                                                              │
-└───────────────┴──────────────────────────────────────────────────────────────┘
+┌──────────────────────────┬──────────────────────────────────────────────────────────────┐
+│ LeadRadar                │  Prospects             Service: [ Intelligent Automation ▾ ] │
+│                          ├──────────────────────────────────────────────────────────────┤
+│ Work                     │                                                              │
+│ Prospects                │                                                              │
+│ Alerts               (3) │                     screen content                           │
+│ Accounts                 │                                                              │
+│ Suggested accounts       │                                                              │
+│ Runs                     │                                                              │
+│ Labelling                │                                                              │
+│ Admin only               │                                                              │
+│ Services                 │                                                              │
+│ Industries and markets   │                                                              │
+│ Quality                  │                                                              │
+│ Source plug-ins          │                                                              │
+│ Users                    │                                                              │
+│ Audit log                │                                                              │
+│ ┌──────────────────────┐ │                                                              │
+│ │ Ana Sales            │ │                                                              │
+│ │ Sales              ⎋ │ │                                                              │
+│ └──────────────────────┘ │                                                              │
+└──────────────────────────┴──────────────────────────────────────────────────────────────┘
 ```
 
 WF-01 — application shell
@@ -89,6 +89,23 @@ WF-01 — application shell
 | `FR-004` | The user card at the foot of the navigation shall show the user's display name and role and offer Sign out. |
 | `FR-101` | The navigation shall group its entries under the headings Work and Admin only, every entry carrying an icon and its label; the entry of the current screen shall be marked with a tint and the accessible current-page state, never by colour alone. |
 | `FR-102` | The header shall show the current screen as a breadcrumb, with the parent screen as a link on a nested screen such as Account detail, and every Admin screen shall carry an Admin only chip. |
+
+| Entry | Route | Icon |
+|---|---|---|
+| Prospects | `/prospects` | `Target` |
+| Alerts | `/alerts` | `Bell` |
+| Accounts | `/accounts` | `Buildings` |
+| Suggested accounts | `/suggested-accounts` | `Sparkle` |
+| Runs | `/runs` | `ArrowsClockwise` |
+| Labelling | `/labelling` | `Tag` |
+| Services | `/services` | `SlidersHorizontal` |
+| Industries and markets | `/settings/industries-markets` | `Factory` |
+| Quality | `/quality` | `SealCheck` |
+| Source plug-ins | `/settings/source-plugins` | `PuzzlePiece` |
+| Users | `/users` | `Users` |
+| Audit log | `/audit` | `Receipt` |
+
+The Sign out button of the user card carries `SignOut`.
 
 ## Page anatomy
 
@@ -106,9 +123,10 @@ The values below are literal design values. The client defines each as a token, 
 
 | Token | Light | Dark | Use |
 |---|---|---|---|
-| Page | `#F4F4F5` | `#0E0E10` | Screen background |
+| Page | `#F4F4F5` | `#0E0E10` | Screen background, and the hover tint of rows and ghost buttons |
 | Surface | `#FFFFFF` | `#17171A` | Cards, dialogs, navigation |
 | Border | `#E4E4E7` | `#2A2A30` | Card edges and dividers |
+| Control border | `#8A8A93` | `#6B6B74` | Edges of inputs, selects and secondary buttons; 3.4:1 on Surface and 3.1:1 on Page in light, 3.4:1 on Surface and 3.7:1 on Page in dark |
 | Text | `#18181B` | `#ECECEE` | Body and headings |
 | Text secondary | `#52525B` | `#A1A1AA` | Lead sentences and descriptions |
 | Text tertiary | `#6B6B74` | `#8A8A93` | Hints, ages and column headings |
@@ -130,7 +148,7 @@ The values below are literal design values. The client defines each as a token, 
 | Numbers and identifiers | Geist Mono with tabular figures: scores, points, counts, keys and codes |
 | Corner radius | One scale: 14 px for cards and dialogs, 10 px for buttons and inputs, full for chips, avatars and switches |
 | Elevation | Borders, not shadows; only dialogs and toasts cast a shadow, tinted to the page |
-| Icons | Phosphor, regular weight, 16, 20 or 24 px |
+| Icons | Phosphor, regular weight, 16, 20 or 24 px; the fill weight only for the polarity and match marks and the band icons |
 | Control height | 36 px for buttons, 38 px for inputs, 30 px for small buttons and segmented items |
 
 | ID | Requirement |
@@ -175,11 +193,12 @@ WF-24 — score anatomy
 
 | ID | Requirement |
 |---|---|
-| `FR-005` | Every data view shall render four states: loading (skeleton rows, no spinner longer than the content), empty (a sentence saying what would appear and the action that creates it), error (the error's message and a Retry button), and unavailable (for `503` and `429`: which dependency is unavailable and what still works, per [Degradation](/architecture/overview.md#degradation)). |
-| `FR-006` | A `401` from any call shall send the user to Sign in with the current route as return path; a `403` shall show a "Not allowed" page naming the role required. |
-| `FR-007` | A form shall keep the user's input when a save fails and show each `VALIDATION` field error next to its field. |
+| `FR-005` | Every data view shall render four states: loading (skeleton rows, no spinner longer than the content), empty (a sentence saying what would appear and the action that creates it), error (the error's message and a Retry button), and unavailable (for `503` and `429`: the screen wording of the [Degradation](/architecture/overview.md#degradation) row that the error names under [Dependencies](/architecture/interfaces.md#conventions), saying which dependency is unavailable and what still works). |
+| `FR-006` | A `401` from any call other than `API-01` shall send the user to Sign in with the current route as return path; a `403` from any call other than `API-01` shall show a "Not allowed" page naming the role required. |
+| `FR-007` | A form shall keep the user's input when a save fails and show each `VALIDATION` field error next to its field; any other error of a save shall show as an error callout in the form, the input kept. |
 | `FR-118` | A loading state shall draw skeleton shapes the size of the rows or cards it stands in for, so the layout does not move when the data arrives; an empty state shall name the action that fills it and offer that action as a button; an unavailable state shall list what still works with a check for each item. |
 | `FR-119` | A form field shall place its label above the input, its hint below the label or the input, and its error below the input in words; a placeholder is never the label. |
+| `FR-159` | A route that matches no screen shall show a Not found page inside the shell, saying the page does not exist, with a link to Prospects. |
 
 ## Messages and feedback
 
@@ -225,8 +244,8 @@ The words the screens show for glossary terms. A label is a presentation of the 
 
 | ID | Requirement |
 |---|---|
-| `FR-010` | Dates shall be shown relative ("3 days ago") with the absolute date and time in the user's time zone in a tooltip; exports use ISO-8601. |
-| `FR-011` | Country codes shall be shown with the country's English name; enum values with their label or a title-cased form of the value. |
+| `FR-010` | Dates shall be shown relative: a difference under one hour reads "just now", any other in the largest whole unit ("3 days ago"), a difference of one day reading "yesterday"; the absolute date and time in the user's time zone is in a tooltip; exports use ISO-8601. |
+| `FR-011` | Country codes shall be shown with the country's English name; enum values with their label or the value in sentence case (`JOB_POSTING` → Job posting). |
 
 ## Motion
 

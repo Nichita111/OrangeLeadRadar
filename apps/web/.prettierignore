@@ -2,3 +2,4 @@ dist
 coverage
 src/api/schema.gen.ts
 src/api/pending/schema.gen.ts
+dev-public

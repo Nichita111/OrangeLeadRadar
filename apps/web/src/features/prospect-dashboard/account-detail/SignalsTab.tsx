@@ -1,27 +1,37 @@
-/**
- * The Signals tab (`FR-072`, `FR-074`, `FR-131`): the account's signals for the service, filtered
- * by status (the api's) and by question (over the loaded list), each with its evidence.
- */
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router";
 
-import { useFindings, type FindingStatus, type FindingView } from "../../../api/prospects";
+import {
+  useFindings,
+  type FindingStatus,
+  type FindingView,
+} from "../../../api/prospectsAndEvidence";
 import { Button } from "../../../components/Button";
 import { Chip } from "../../../components/Chip";
-import { Quote } from "../../../components/score/Quote";
-import { QueryErrorState } from "../../../components/States";
-import { useRuntimeConfig } from "../../../shell/config-context";
-import { confidenceWord, strengthLabel } from "../../../shell/formatting";
-import { DECIDED_BY_LABELS, FINDING_STATUS_LABELS } from "../../../shell/labels";
+import { Select } from "../../../components/controls";
+import { Skeleton } from "../../../components/Skeleton";
+import { ConfidenceWord } from "../../../shell/ConfidenceWord";
+import { strengthLabel, enumLabel } from "../../../shell/format";
+import { DataView } from "../../../shell/states/DataView";
+import { FindingQuote } from "../FindingQuote";
 import { EvidencePanel } from "./EvidencePanel";
 
-const STATUSES: FindingStatus[] = ["ACTIVE", "REJECTED", "SUPERSEDED"];
-const CONTROL = "rounded-control border border-border bg-surface px-3 text-sm text-text";
+const STATUSES: { value: FindingStatus; label: string }[] = [
+  { value: "ACTIVE", label: "Counting" },
+  { value: "REJECTED", label: "Marked wrong" },
+  { value: "SUPERSEDED", label: "Outdated question" },
+];
+
+const LABEL = "flex flex-col gap-1 text-hint text-text-tertiary";
 
 function isStatus(value: string): value is FindingStatus {
-  return STATUSES.some((status) => status === value);
+  return STATUSES.some((status) => status.value === value);
 }
 
+/**
+ * The Signals tab (FR-072, FR-074, FR-131): the account's signals for the service, filtered by
+ * status (the api's) and by question (over the loaded list), each with its evidence.
+ */
 export function SignalsTab({
   accountId,
   serviceId,
@@ -31,7 +41,6 @@ export function SignalsTab({
   serviceId: string;
   findingId: string | null;
 }) {
-  const config = useRuntimeConfig();
   const [, setParams] = useSearchParams();
   const [status, setStatus] = useState<FindingStatus>("ACTIVE");
   const [question, setQuestion] = useState("");
@@ -47,7 +56,6 @@ export function SignalsTab({
   const questions = [
     ...new Map((loaded ?? []).map((item) => [item.question.key, item.question.text])),
   ];
-  const shown = (loaded ?? []).filter((item) => question === "" || item.question.key === question);
 
   const toggleEvidence = (item: FindingView) => {
     setParams(findingId === item.id ? { tab: "signals" } : { tab: "signals", finding: item.id });
@@ -56,11 +64,9 @@ export function SignalsTab({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1 text-[12.5px] text-text-tertiary">
+        <label className={LABEL}>
           Question
-          <select
-            className={CONTROL}
-            style={{ height: "var(--ctl-input)" }}
+          <Select
             value={question}
             onChange={(event) => {
               setQuestion(event.target.value);
@@ -72,13 +78,11 @@ export function SignalsTab({
                 {text}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
-        <label className="flex flex-col gap-1 text-[12.5px] text-text-tertiary">
+        <label className={LABEL}>
           Status
-          <select
-            className={CONTROL}
-            style={{ height: "var(--ctl-input)" }}
+          <Select
             value={status}
             onChange={(event) => {
               if (isStatus(event.target.value)) {
@@ -86,62 +90,64 @@ export function SignalsTab({
               }
             }}
           >
-            {STATUSES.map((value) => (
-              <option key={value} value={value}>
-                {FINDING_STATUS_LABELS[value]}
+            {STATUSES.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
       </div>
 
-      {findings.isError && (
-        <QueryErrorState error={findings.error} onRetry={() => void findings.refetch()} />
-      )}
-      {loaded !== undefined && shown.length === 0 && (
-        <p className="text-sm text-text-secondary">No signals for this filter.</p>
-      )}
-      <ul className="flex flex-col gap-4">
-        {shown.map((item) => (
-          <li
-            key={item.id}
-            id={`signal-${item.id}`}
-            className="flex flex-col gap-2 rounded-card border border-border bg-surface p-5"
-          >
-            <div className="flex flex-wrap items-center gap-3 text-sm">
-              <span className="font-medium text-text">{item.question.text}</span>
-              <Chip>{strengthLabel(item.strength)}</Chip>
-              {item.option !== null && (
-                <span className="text-text-secondary">{item.option.label}</span>
-              )}
-              <span
-                className="text-text-secondary"
-                title={item.confidence.toFixed(2)}
-              >{`${confidenceWord(item.confidence, config)} confidence`}</span>
-              <span className="text-text-tertiary">{DECIDED_BY_LABELS[item.decided_by]}</span>
-            </div>
-            <Quote
-              quote={item.quote}
-              quoteEn={item.quote_en}
-              url={item.document.url}
-              sourceType={item.document.source_type}
-              observedAt={item.observed_at}
-            />
-            <div>
-              <Button
-                size="small"
-                aria-expanded={findingId === item.id}
-                onClick={() => {
-                  toggleEvidence(item);
-                }}
-              >
-                Evidence
-              </Button>
-            </div>
-            {findingId === item.id && <EvidencePanel finding={item} />}
-          </li>
-        ))}
-      </ul>
+      <DataView
+        query={findings}
+        isEmpty={(items) => items.length === 0}
+        skeleton={<Skeleton className="h-32 w-full" />}
+        empty={{ message: "No signals for this filter.", action: null }}
+      >
+        {(items) => {
+          const shown = items.filter((item) => question === "" || item.question.key === question);
+          if (shown.length === 0) {
+            return <p className="m-0 text-text-secondary">No signals for this filter.</p>;
+          }
+          return (
+            <ul className="m-0 flex list-none flex-col gap-4 p-0">
+              {shown.map((item) => (
+                <li
+                  key={item.id}
+                  id={`signal-${item.id}`}
+                  className="flex flex-col gap-2 rounded-card border border-border bg-surface p-5"
+                >
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="font-medium">{item.question.text}</span>
+                    <Chip>{strengthLabel(item.strength)}</Chip>
+                    {item.option !== null && (
+                      <span className="text-text-secondary">{item.option.label}</span>
+                    )}
+                    <span className="text-text-secondary">
+                      <ConfidenceWord value={item.confidence} /> confidence
+                    </span>
+                    <span className="text-text-tertiary">{enumLabel(item.decided_by)}</span>
+                  </div>
+                  <FindingQuote finding={item} />
+                  <div>
+                    <Button
+                      size="small"
+                      aria-expanded={findingId === item.id}
+                      onClick={() => {
+                        toggleEvidence(item);
+                      }}
+                    >
+                      Evidence
+                    </Button>
+                  </div>
+                  {findingId === item.id && <EvidencePanel finding={item} />}
+                </li>
+              ))}
+            </ul>
+          );
+        }}
+      </DataView>
     </div>
   );
 }

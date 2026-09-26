@@ -1,8 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "LeadRadar pending contracts",
-    "description": "API-39 to API-45 of interfaces.md, Prospects and evidence, not yet in the api's OpenAPI document. Removed when the api declares them.",
+    "title": "LeadRadar API (pending contracts, from interfaces.md)",
     "version": "0.0.0"
   },
   "paths": {
@@ -11,40 +10,92 @@
         "operationId": "list_prospects",
         "description": "API-39.",
         "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
-          { "name": "page", "in": "query", "schema": { "type": "integer" } },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
           {
             "name": "standing",
             "in": "query",
-            "schema": { "$ref": "#/components/schemas/Standing" }
+            "schema": {
+              "$ref": "#/components/schemas/Standing"
+            }
           },
           {
             "name": "band",
             "in": "query",
-            "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Band" } }
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/Band"
+              }
+            }
           },
           {
             "name": "country_code",
             "in": "query",
-            "schema": { "type": "array", "items": { "type": "string" } }
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
           },
           {
             "name": "industry",
             "in": "query",
-            "schema": { "type": "array", "items": { "type": "string" } }
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
           },
-          { "name": "q", "in": "query", "schema": { "type": "string" } },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "sort",
             "in": "query",
-            "schema": { "enum": ["priority", "intent", "fit", "name", "last_refreshed"] }
+            "schema": {
+              "enum": ["priority", "intent", "fit", "name", "last_refreshed"]
+            }
           }
         ],
         "responses": {
           "200": {
             "description": "OK",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/ProspectPage" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProspectPage"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
             }
           }
         }
@@ -55,14 +106,42 @@
         "operationId": "get_score",
         "description": "API-40. 404 when the account has no score for the service yet.",
         "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
-          { "name": "service_id", "in": "path", "required": true, "schema": { "type": "string" } }
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "service_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
           "200": {
             "description": "OK",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/ScoreView" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoreView"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
             }
           }
         }
@@ -73,13 +152,34 @@
         "operationId": "list_findings",
         "description": "API-42.",
         "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
-          { "name": "service_id", "in": "query", "schema": { "type": "string" } },
-          { "name": "question_id", "in": "query", "schema": { "type": "string" } },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "service_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "question_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "status",
             "in": "query",
-            "schema": { "$ref": "../../../../api/openapi.json#/components/schemas/FindingStatus" }
+            "schema": {
+              "$ref": "#/components/schemas/FindingStatus"
+            }
           }
         ],
         "responses": {
@@ -90,8 +190,18 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "../../../../api/openapi.json#/components/schemas/FindingView"
+                    "$ref": "#/components/schemas/FindingView"
                   }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -104,13 +214,34 @@
         "operationId": "get_evidence",
         "description": "API-43.",
         "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
           "200": {
             "description": "OK",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/EvidenceView" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceView"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
             }
           }
         }
@@ -121,20 +252,52 @@
         "operationId": "add_override",
         "description": "API-44. Admin only.",
         "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
-          { "name": "service_id", "in": "path", "required": true, "schema": { "type": "string" } }
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "service_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/OverrideCreate" } }
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OverrideCreate"
+              }
+            }
           }
         },
         "responses": {
           "200": {
             "description": "OK",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Override" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Override"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
             }
           }
         }
@@ -145,13 +308,34 @@
         "operationId": "revoke_override",
         "description": "API-45. Admin only.",
         "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
           "200": {
             "description": "OK",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Override" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Override"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
             }
           }
         }
@@ -160,20 +344,549 @@
   },
   "components": {
     "schemas": {
-      "Standing": { "enum": ["RANKED", "BELOW_FIT", "DISQUALIFIED", "CUSTOMER"] },
-      "Band": { "enum": ["HOT", "WARM", "COLD"] },
-      "OverrideStatus": { "enum": ["ACTIVE", "REVOKED"] },
+      "Band": {
+        "enum": ["HOT", "WARM", "COLD"]
+      },
+      "CrmSyncView": {
+        "type": "object",
+        "required": ["id", "external_id", "error", "created_at", "target", "status"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "external_id": {
+            "type": ["string", "null"]
+          },
+          "error": {
+            "type": ["string", "null"]
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "target": {
+            "enum": ["HUBSPOT"]
+          },
+          "status": {
+            "enum": ["SUCCEEDED", "FAILED"]
+          }
+        }
+      },
+      "DocumentSourceType": {
+        "description": "`document.source_type`.",
+        "enum": ["NEWS", "COMPANY_PUBLICATION", "JOB_POSTING", "COMPANY_PROFILE"],
+        "title": "DocumentSourceType",
+        "type": "string"
+      },
+      "ErrorEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["error"],
+        "properties": {
+          "error": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["code", "message"],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "fields": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": ["field", "message"],
+                      "properties": {
+                        "field": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "entity_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "retry_after_min": {
+                    "type": "integer"
+                  },
+                  "resets_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "dependency": {
+                    "type": "string",
+                    "enum": ["DATABASE", "CLASSIFIER", "LLM", "EMBEDDER", "HUBSPOT"]
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "EvidenceView": {
+        "type": "object",
+        "required": [
+          "finding_id",
+          "document",
+          "section",
+          "purged",
+          "excerpt",
+          "quote_start",
+          "quote_end"
+        ],
+        "properties": {
+          "finding_id": {
+            "type": "string"
+          },
+          "document": {
+            "$ref": "#/components/schemas/FindingViewDocument"
+          },
+          "section": {
+            "type": ["string", "null"]
+          },
+          "purged": {
+            "type": "boolean"
+          },
+          "excerpt": {
+            "type": ["string", "null"]
+          },
+          "quote_start": {
+            "type": ["integer", "null"]
+          },
+          "quote_end": {
+            "type": ["integer", "null"]
+          }
+        }
+      },
+      "FindingDecidedBy": {
+        "description": "`finding.decided_by`.",
+        "enum": ["CLASSIFIER", "LLM"],
+        "title": "FindingDecidedBy",
+        "type": "string"
+      },
+      "FindingFeedbackVerdict": {
+        "description": "`finding_feedback.verdict`.",
+        "enum": ["CORRECT", "WRONG"],
+        "title": "FindingFeedbackVerdict",
+        "type": "string"
+      },
+      "FindingStatus": {
+        "description": "`finding.status`.",
+        "enum": ["ACTIVE", "SUPERSEDED", "REJECTED"],
+        "title": "FindingStatus",
+        "type": "string"
+      },
+      "FindingStrength": {
+        "description": "`finding.strength`; reused by `classification.strength` and\n`evaluation_item.expected_strength`.",
+        "enum": ["NONE", "WEAK", "MEDIUM", "STRONG"],
+        "title": "FindingStrength",
+        "type": "string"
+      },
+      "FindingView": {
+        "additionalProperties": false,
+        "description": "[`FindingView`](/architecture/interfaces.md#findingview), the response of `API-47`. Also\nplan task 13's `API-42` response shape; that task imports this model and must not define a\nsecond one.",
+        "properties": {
+          "account_id": {
+            "format": "uuid",
+            "title": "Account Id",
+            "type": "string"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "decided_by": {
+            "$ref": "#/components/schemas/FindingDecidedBy"
+          },
+          "document": {
+            "$ref": "#/components/schemas/FindingViewDocument"
+          },
+          "feedback": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FindingViewFeedback"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "option": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FindingViewOption"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "points": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Points"
+          },
+          "question": {
+            "$ref": "#/components/schemas/FindingViewQuestion"
+          },
+          "question_revision": {
+            "title": "Question Revision",
+            "type": "integer"
+          },
+          "quote": {
+            "title": "Quote",
+            "type": "string"
+          },
+          "quote_en": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quote En"
+          },
+          "rationale": {
+            "title": "Rationale",
+            "type": "string"
+          },
+          "service_id": {
+            "format": "uuid",
+            "title": "Service Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/FindingStatus"
+          },
+          "strength": {
+            "$ref": "#/components/schemas/FindingStrength"
+          }
+        },
+        "required": [
+          "id",
+          "account_id",
+          "service_id",
+          "question",
+          "question_revision",
+          "confidence",
+          "quote",
+          "quote_en",
+          "rationale",
+          "observed_at",
+          "strength",
+          "decided_by",
+          "status",
+          "option",
+          "document",
+          "points",
+          "feedback"
+        ],
+        "title": "FindingView",
+        "type": "object"
+      },
+      "FindingViewDocument": {
+        "additionalProperties": false,
+        "description": "`FindingView.document`.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "plugin_code": {
+            "$ref": "#/components/schemas/SourcePluginCode"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "source_type": {
+            "$ref": "#/components/schemas/DocumentSourceType"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "url",
+          "source_type",
+          "plugin_code",
+          "language",
+          "published_at"
+        ],
+        "title": "FindingViewDocument",
+        "type": "object"
+      },
+      "FindingViewFeedback": {
+        "additionalProperties": false,
+        "description": "`FindingView.feedback`: the in-force [`finding_feedback`]\n(/architecture/sql-store.md#finding_feedback).",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "user_name": {
+            "title": "User Name",
+            "type": "string"
+          },
+          "verdict": {
+            "$ref": "#/components/schemas/FindingFeedbackVerdict"
+          }
+        },
+        "required": ["verdict", "user_name", "created_at"],
+        "title": "FindingViewFeedback",
+        "type": "object"
+      },
+      "FindingViewOption": {
+        "additionalProperties": false,
+        "description": "`FindingView.option`; `CHOICE` questions only.",
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": ["key", "label"],
+        "title": "FindingViewOption",
+        "type": "object"
+      },
+      "FindingViewQuestion": {
+        "additionalProperties": false,
+        "description": "`FindingView.question`.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "polarity": {
+            "$ref": "#/components/schemas/SignalQuestionPolarity"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": ["id", "key", "text", "polarity"],
+        "title": "FindingViewQuestion",
+        "type": "object"
+      },
+      "ICPCriterionKind": {
+        "description": "The `kind` of an ICP criterion of the [scoring settings document]\n(/architecture/sql-store.md#scoring-settings-document).",
+        "enum": [
+          "INDUSTRY",
+          "GEOGRAPHY",
+          "EMPLOYEE_RANGE",
+          "REVENUE_RANGE",
+          "OPERATIONAL_COMPLEXITY"
+        ],
+        "title": "ICPCriterionKind",
+        "type": "string"
+      },
+      "LeadFeedback": {
+        "additionalProperties": false,
+        "description": "[`LeadFeedback`](/architecture/interfaces.md#leadfeedback), the response of `API-46`.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "user_name": {
+            "title": "User Name",
+            "type": "string"
+          },
+          "verdict": {
+            "$ref": "#/components/schemas/LeadFeedbackVerdict"
+          }
+        },
+        "required": ["id", "verdict", "note", "created_at", "user_name"],
+        "title": "LeadFeedback",
+        "type": "object"
+      },
+      "LeadFeedbackVerdict": {
+        "description": "`lead_feedback.verdict`.",
+        "enum": ["RELEVANT", "NOT_RELEVANT", "ALREADY_CUSTOMER"],
+        "title": "LeadFeedbackVerdict",
+        "type": "string"
+      },
+      "Override": {
+        "type": "object",
+        "required": [
+          "id",
+          "account_id",
+          "service_id",
+          "rule_key",
+          "note",
+          "rule_label",
+          "status",
+          "created_by_name",
+          "created_at",
+          "revoked_by_name",
+          "revoked_at",
+          "run_id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "account_id": {
+            "type": "string"
+          },
+          "service_id": {
+            "type": "string"
+          },
+          "rule_key": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "rule_label": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OverrideStatus"
+          },
+          "created_by_name": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "revoked_by_name": {
+            "type": ["string", "null"]
+          },
+          "revoked_at": {
+            "type": ["string", "null"]
+          },
+          "run_id": {
+            "type": ["string", "null"]
+          }
+        }
+      },
+      "OverrideCreate": {
+        "type": "object",
+        "required": ["rule_key", "note"],
+        "properties": {
+          "rule_key": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      },
+      "OverrideStatus": {
+        "enum": ["ACTIVE", "REVOKED"]
+      },
       "ProspectPage": {
         "type": "object",
         "required": ["items", "page", "page_size", "total", "band_counts"],
         "properties": {
-          "items": { "type": "array", "items": { "$ref": "#/components/schemas/ProspectRow" } },
-          "page": { "type": "integer" },
-          "page_size": { "type": "integer" },
-          "total": { "type": "integer" },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProspectRow"
+            }
+          },
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          },
           "band_counts": {
             "type": "object",
-            "additionalProperties": { "type": "integer" }
+            "additionalProperties": {
+              "type": "integer"
+            }
           }
         }
       },
@@ -195,38 +908,75 @@
           "last_refreshed_at"
         ],
         "properties": {
-          "rank": { "type": ["integer", "null"] },
+          "rank": {
+            "type": ["integer", "null"]
+          },
           "account": {
             "type": "object",
             "required": ["id", "name", "domain", "country_code", "industry"],
             "properties": {
-              "id": { "type": "string" },
-              "name": { "type": "string" },
-              "domain": { "type": "string" },
-              "country_code": { "type": ["string", "null"] },
-              "industry": { "type": ["string", "null"] }
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "domain": {
+                "type": "string"
+              },
+              "country_code": {
+                "type": ["string", "null"]
+              },
+              "industry": {
+                "type": ["string", "null"]
+              }
             }
           },
-          "fit": { "type": "integer" },
-          "intent": { "type": "integer" },
-          "priority": { "type": "integer" },
-          "standing": { "$ref": "#/components/schemas/Standing" },
-          "band": { "oneOf": [{ "$ref": "#/components/schemas/Band" }, { "type": "null" }] },
+          "fit": {
+            "type": "integer"
+          },
+          "intent": {
+            "type": "integer"
+          },
+          "priority": {
+            "type": "integer"
+          },
+          "standing": {
+            "$ref": "#/components/schemas/Standing"
+          },
+          "band": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Band"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "reason": {
             "oneOf": [
               {
                 "type": "object",
                 "required": ["min_fit", "disqualifier_labels", "customer_marked_by_name"],
                 "properties": {
-                  "min_fit": { "type": ["integer", "null"] },
+                  "min_fit": {
+                    "type": ["integer", "null"]
+                  },
                   "disqualifier_labels": {
                     "type": ["array", "null"],
-                    "items": { "type": "string" }
+                    "items": {
+                      "type": "string"
+                    }
                   },
-                  "customer_marked_by_name": { "type": ["string", "null"] }
+                  "customer_marked_by_name": {
+                    "type": ["string", "null"]
+                  }
                 }
               },
-              { "type": "null" }
+              {
+                "type": "null"
+              }
             ]
           },
           "top_signals": {
@@ -235,31 +985,33 @@
               "type": "object",
               "required": ["question_key", "question_text", "strength", "observed_at"],
               "properties": {
-                "question_key": { "type": "string" },
-                "question_text": { "type": "string" },
-                "strength": {
-                  "$ref": "../../../../api/openapi.json#/components/schemas/FindingStrength"
+                "question_key": {
+                  "type": "string"
                 },
-                "observed_at": { "type": "string" }
+                "question_text": {
+                  "type": "string"
+                },
+                "strength": {
+                  "$ref": "#/components/schemas/FindingStrength"
+                },
+                "observed_at": {
+                  "type": "string"
+                }
               }
             }
           },
-          "finding_count": { "type": "integer" },
-          "unread_alerts": { "type": "integer" },
-          "as_of": { "type": "string" },
-          "last_refreshed_at": { "type": ["string", "null"] }
-        }
-      },
-      "CrmSyncView": {
-        "type": "object",
-        "required": ["id", "external_id", "error", "created_at", "target", "status"],
-        "properties": {
-          "id": { "type": "string" },
-          "external_id": { "type": ["string", "null"] },
-          "error": { "type": ["string", "null"] },
-          "created_at": { "type": "string" },
-          "target": { "enum": ["HUBSPOT"] },
-          "status": { "enum": ["SUCCEEDED", "FAILED"] }
+          "finding_count": {
+            "type": "integer"
+          },
+          "unread_alerts": {
+            "type": "integer"
+          },
+          "as_of": {
+            "type": "string"
+          },
+          "last_refreshed_at": {
+            "type": ["string", "null"]
+          }
         }
       },
       "ScoreBreakdown": {
@@ -275,13 +1027,19 @@
           "band"
         ],
         "properties": {
-          "settings_version": { "type": "integer" },
-          "as_of": { "type": "string" },
+          "settings_version": {
+            "type": "integer"
+          },
+          "as_of": {
+            "type": "string"
+          },
           "fit": {
             "type": "object",
             "required": ["value", "criteria"],
             "properties": {
-              "value": { "type": "integer" },
+              "value": {
+                "type": "integer"
+              },
               "criteria": {
                 "type": "array",
                 "items": {
@@ -297,18 +1055,30 @@
                     "points"
                   ],
                   "properties": {
-                    "key": { "type": "string" },
+                    "key": {
+                      "type": "string"
+                    },
                     "kind": {
-                      "$ref": "../../../../api/openapi.json#/components/schemas/ICPCriterionKind"
+                      "$ref": "#/components/schemas/ICPCriterionKind"
                     },
                     "weight": {
-                      "$ref": "../../../../api/openapi.json#/components/schemas/WeightLevel"
+                      "$ref": "#/components/schemas/WeightLevel"
                     },
-                    "weight_value": { "type": "number" },
-                    "attribute": { "type": ["string", "number", "null"] },
-                    "match": { "enum": ["MATCH", "MISMATCH", "UNKNOWN"] },
-                    "credit": { "type": "number" },
-                    "points": { "type": "number" }
+                    "weight_value": {
+                      "type": "number"
+                    },
+                    "attribute": {
+                      "type": ["string", "number", "null"]
+                    },
+                    "match": {
+                      "enum": ["MATCH", "MISMATCH", "UNKNOWN"]
+                    },
+                    "credit": {
+                      "type": "number"
+                    },
+                    "points": {
+                      "type": "number"
+                    }
                   }
                 }
               }
@@ -318,10 +1088,18 @@
             "type": "object",
             "required": ["value", "positive_sum", "negative_sum", "max_positive", "questions"],
             "properties": {
-              "value": { "type": "integer" },
-              "positive_sum": { "type": "number" },
-              "negative_sum": { "type": "number" },
-              "max_positive": { "type": "number" },
+              "value": {
+                "type": "integer"
+              },
+              "positive_sum": {
+                "type": "number"
+              },
+              "negative_sum": {
+                "type": "number"
+              },
+              "max_positive": {
+                "type": "number"
+              },
               "questions": {
                 "type": "array",
                 "items": {
@@ -340,28 +1118,46 @@
                     "points"
                   ],
                   "properties": {
-                    "question_key": { "type": "string" },
-                    "question_text": { "type": "string" },
+                    "question_key": {
+                      "type": "string"
+                    },
+                    "question_text": {
+                      "type": "string"
+                    },
                     "polarity": {
-                      "$ref": "../../../../api/openapi.json#/components/schemas/SignalQuestionPolarity"
+                      "$ref": "#/components/schemas/SignalQuestionPolarity"
                     },
                     "weight": {
-                      "$ref": "../../../../api/openapi.json#/components/schemas/WeightLevel"
+                      "$ref": "#/components/schemas/WeightLevel"
                     },
-                    "weight_value": { "type": "number" },
-                    "finding_id": { "type": ["string", "null"] },
+                    "weight_value": {
+                      "type": "number"
+                    },
+                    "finding_id": {
+                      "type": ["string", "null"]
+                    },
                     "strength": {
                       "oneOf": [
                         {
-                          "$ref": "../../../../api/openapi.json#/components/schemas/FindingStrength"
+                          "$ref": "#/components/schemas/FindingStrength"
                         },
-                        { "type": "null" }
+                        {
+                          "type": "null"
+                        }
                       ]
                     },
-                    "decay": { "type": ["number", "null"] },
-                    "observed_at": { "type": ["string", "null"] },
-                    "value": { "type": "number" },
-                    "points": { "type": "number" }
+                    "decay": {
+                      "type": ["number", "null"]
+                    },
+                    "observed_at": {
+                      "type": ["string", "null"]
+                    },
+                    "value": {
+                      "type": "number"
+                    },
+                    "points": {
+                      "type": "number"
+                    }
                   }
                 }
               }
@@ -383,21 +1179,52 @@
                 "finding_id"
               ],
               "properties": {
-                "key": { "type": "string" },
-                "label": { "type": "string" },
-                "kind": { "enum": ["ICP_MISMATCH", "SIGNAL"] },
-                "criterion_key": { "type": ["string", "null"] },
-                "question_key": { "type": ["string", "null"] },
-                "matched": { "type": "boolean" },
-                "overridden": { "type": "boolean" },
-                "override_id": { "type": ["string", "null"] },
-                "finding_id": { "type": ["string", "null"] }
+                "key": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "kind": {
+                  "enum": ["ICP_MISMATCH", "SIGNAL"]
+                },
+                "criterion_key": {
+                  "type": ["string", "null"]
+                },
+                "question_key": {
+                  "type": ["string", "null"]
+                },
+                "matched": {
+                  "type": "boolean"
+                },
+                "overridden": {
+                  "type": "boolean"
+                },
+                "override_id": {
+                  "type": ["string", "null"]
+                },
+                "finding_id": {
+                  "type": ["string", "null"]
+                }
               }
             }
           },
-          "priority": { "type": "integer" },
-          "standing": { "$ref": "#/components/schemas/Standing" },
-          "band": { "oneOf": [{ "$ref": "#/components/schemas/Band" }, { "type": "null" }] }
+          "priority": {
+            "type": "integer"
+          },
+          "standing": {
+            "$ref": "#/components/schemas/Standing"
+          },
+          "band": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Band"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
         }
       },
       "ScoreView": {
@@ -420,91 +1247,97 @@
           "last_crm_sync"
         ],
         "properties": {
-          "score_id": { "type": "string" },
-          "account_id": { "type": "string" },
-          "service_id": { "type": "string" },
-          "scoring_version": { "type": "integer" },
-          "as_of": { "type": "string" },
-          "fit": { "type": "integer" },
-          "intent": { "type": "integer" },
-          "priority": { "type": "integer" },
-          "standing": { "$ref": "#/components/schemas/Standing" },
-          "band": { "oneOf": [{ "$ref": "#/components/schemas/Band" }, { "type": "null" }] },
-          "rank": { "type": ["integer", "null"] },
-          "breakdown": { "$ref": "#/components/schemas/ScoreBreakdown" },
-          "overrides": { "type": "array", "items": { "$ref": "#/components/schemas/Override" } },
+          "score_id": {
+            "type": "string"
+          },
+          "account_id": {
+            "type": "string"
+          },
+          "service_id": {
+            "type": "string"
+          },
+          "scoring_version": {
+            "type": "integer"
+          },
+          "as_of": {
+            "type": "string"
+          },
+          "fit": {
+            "type": "integer"
+          },
+          "intent": {
+            "type": "integer"
+          },
+          "priority": {
+            "type": "integer"
+          },
+          "standing": {
+            "$ref": "#/components/schemas/Standing"
+          },
+          "band": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Band"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rank": {
+            "type": ["integer", "null"]
+          },
+          "breakdown": {
+            "$ref": "#/components/schemas/ScoreBreakdown"
+          },
+          "overrides": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Override"
+            }
+          },
           "lead_feedback": {
             "oneOf": [
-              { "$ref": "../../../../api/openapi.json#/components/schemas/LeadFeedback" },
-              { "type": "null" }
+              {
+                "$ref": "#/components/schemas/LeadFeedback"
+              },
+              {
+                "type": "null"
+              }
             ]
           },
           "last_crm_sync": {
-            "oneOf": [{ "$ref": "#/components/schemas/CrmSyncView" }, { "type": "null" }]
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CrmSyncView"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       },
-      "EvidenceView": {
-        "type": "object",
-        "required": [
-          "finding_id",
-          "document",
-          "section",
-          "purged",
-          "excerpt",
-          "quote_start",
-          "quote_end"
-        ],
-        "properties": {
-          "finding_id": { "type": "string" },
-          "document": {
-            "$ref": "../../../../api/openapi.json#/components/schemas/FindingViewDocument"
-          },
-          "section": { "type": ["string", "null"] },
-          "purged": { "type": "boolean" },
-          "excerpt": { "type": ["string", "null"] },
-          "quote_start": { "type": ["integer", "null"] },
-          "quote_end": { "type": ["integer", "null"] }
-        }
+      "SignalQuestionPolarity": {
+        "description": "`signal_question.polarity`.",
+        "enum": ["POSITIVE", "NEGATIVE"],
+        "title": "SignalQuestionPolarity",
+        "type": "string"
       },
-      "Override": {
-        "type": "object",
-        "required": [
-          "id",
-          "account_id",
-          "service_id",
-          "rule_key",
-          "note",
-          "rule_label",
-          "status",
-          "created_by_name",
-          "created_at",
-          "revoked_by_name",
-          "revoked_at",
-          "run_id"
-        ],
-        "properties": {
-          "id": { "type": "string" },
-          "account_id": { "type": "string" },
-          "service_id": { "type": "string" },
-          "rule_key": { "type": "string" },
-          "note": { "type": "string" },
-          "rule_label": { "type": "string" },
-          "status": { "$ref": "#/components/schemas/OverrideStatus" },
-          "created_by_name": { "type": "string" },
-          "created_at": { "type": "string" },
-          "revoked_by_name": { "type": ["string", "null"] },
-          "revoked_at": { "type": ["string", "null"] },
-          "run_id": { "type": ["string", "null"] }
-        }
+      "SourcePluginCode": {
+        "description": "`source_plugin.code`; reused by `plugin_usage.plugin_code` and `document.plugin_code`.",
+        "enum": ["GDELT", "RSS", "WEBSITE", "CAREERS", "CRUNCHBASE", "NEWSAPI", "SERPAPI"],
+        "title": "SourcePluginCode",
+        "type": "string"
       },
-      "OverrideCreate": {
-        "type": "object",
-        "required": ["rule_key", "note"],
-        "properties": {
-          "rule_key": { "type": "string" },
-          "note": { "type": "string" }
-        }
+      "Standing": {
+        "enum": ["RANKED", "BELOW_FIT", "DISQUALIFIED", "CUSTOMER"]
+      },
+      "WeightLevel": {
+        "description": "A weight level of the [scoring settings document]\n(/architecture/sql-store.md#scoring-settings-document): `weight_values`, and the `weight` of\nan ICP criterion or a question setting. `NONE` keeps a question out of Intent while a\ndisqualifier still reads it.",
+        "enum": ["HIGH", "MEDIUM", "LOW", "NONE"],
+        "title": "WeightLevel",
+        "type": "string"
       }
     }
   }

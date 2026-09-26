@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { excludedScore, rankedScore } from "../fixtures";
+import { excludedScore, rankedScore } from "../../../api/pending/prospectsAndEvidence.fixtures";
 import { inShort } from "./inShort";
 
 const NOW = new Date("2026-09-25T06:00:00Z");

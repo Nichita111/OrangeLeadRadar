@@ -1,6 +1,7 @@
 """Configuration of the worker process: [worker Runtime](/architecture/services/worker.md#runtime).
 Only the keys the worker's code reads today are here, with `DATABASE_URL` of the
-[api Runtime](/architecture/services/api.md#runtime) that the job loop reads."""
+[api Runtime](/architecture/services/api.md#runtime) that the job loop reads, and the keys the
+SCORE and SIGNAL steps read."""
 
 from __future__ import annotations
 
@@ -34,3 +35,17 @@ class WorkerSettings(AiGatewaySettings):
     crunchbase_api_key: SecretStr | None = None
     newsapi_key: SecretStr | None = None
     serpapi_key: SecretStr | None = None
+
+    #: Alert window ([Alerts](/architecture/rules.md#alerts))
+    alert_max_age_days: int = 14
+
+    # SIGNAL step ([worker Configuration](/architecture/services/worker.md#runtime))
+    triage_chars: int = 2000
+    triage_about_min_p: float = 0.5
+    triage_relevance_min_p: float = 0.3
+    escalation_lower: float = 0.35
+    escalation_upper: float = 0.65
+    evidence_max_attempts: int = 2
+    evidence_min_quote_chars: int = 20
+    evidence_max_quote_chars: int = 400
+    evidence_max_rationale_chars: int = 300

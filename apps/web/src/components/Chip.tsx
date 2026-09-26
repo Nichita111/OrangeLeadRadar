@@ -1,27 +1,31 @@
-/**
- * A neutral labelled chip, full radius per [Visual language]
- * (/architecture/services/frontend.md#visual-language). Band and standing chips belong to
- * [prospect-dashboard](/features/prospect-dashboard.md); this is the plain chip other screens
- * need for role, status and run outcomes, always carrying a text label so no state is
- * colour-only (`FR-016`).
- */
 import type { ReactNode } from "react";
 
-export type ChipTone = "neutral" | "positive" | "caution" | "negative" | "cool" | "accent";
+import { cn } from "./cn";
 
-const TONE_CLASSES: Record<ChipTone, string> = {
-  neutral: "bg-page text-text-secondary",
-  positive: "bg-positive-soft text-positive",
-  caution: "bg-caution-soft text-caution",
-  negative: "bg-negative-soft text-negative",
-  cool: "bg-cool-soft text-cool",
+export type ChipTone = "neutral" | "accent" | "positive" | "negative" | "caution" | "cool";
+
+const tones: Record<ChipTone, string> = {
+  neutral: "bg-page text-text-secondary border border-border",
   accent: "bg-accent-soft text-accent-ink",
+  positive: "bg-positive-soft text-positive",
+  negative: "bg-negative-soft text-negative",
+  caution: "bg-caution-soft text-caution",
+  cool: "bg-cool-soft text-cool",
 };
 
-export function Chip({ tone = "neutral", children }: { tone?: ChipTone; children: ReactNode }) {
+interface ChipProps {
+  tone?: ChipTone;
+  children: ReactNode;
+}
+
+/** State is always carried by the text as well as the tone (FR-107). */
+export function Chip({ tone = "neutral", children }: ChipProps) {
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-1 text-[12.5px] font-medium ${TONE_CLASSES[tone]}`}
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-hint font-medium",
+        tones[tone],
+      )}
     >
       {children}
     </span>

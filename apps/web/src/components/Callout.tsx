@@ -1,47 +1,40 @@
-/**
- * `FR-121`: a callout for a state that stays true while the screen is open, carrying an icon and
- * one to two sentences, its kind neutral, accent, caution or error, each with its own icon.
- */
-import {
-  CheckCircleIcon,
-  InfoIcon,
-  WarningIcon,
-  WarningCircleIcon,
-  type Icon,
-} from "@phosphor-icons/react";
+import { InfoIcon, SparkleIcon, WarningIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
+
+import { cn } from "./cn";
 
 export type CalloutKind = "neutral" | "accent" | "caution" | "error";
 
-const KIND_ICON: Record<CalloutKind, Icon> = {
-  neutral: InfoIcon,
-  accent: CheckCircleIcon,
-  caution: WarningIcon,
-  error: WarningCircleIcon,
+const kinds: Record<CalloutKind, { icon: ReactNode; tone: string }> = {
+  neutral: { icon: <InfoIcon size={20} aria-hidden />, tone: "bg-cool-soft text-cool" },
+  accent: { icon: <SparkleIcon size={20} aria-hidden />, tone: "bg-accent-soft text-accent-ink" },
+  caution: { icon: <WarningIcon size={20} aria-hidden />, tone: "bg-caution-soft text-caution" },
+  error: {
+    icon: <WarningCircleIcon size={20} aria-hidden />,
+    tone: "bg-negative-soft text-negative",
+  },
 };
 
-const KIND_CLASSES: Record<CalloutKind, string> = {
-  neutral: "bg-page text-text border-border",
-  accent: "bg-accent-soft text-accent-ink border-accent-soft",
-  caution: "bg-caution-soft text-caution border-caution-soft",
-  error: "bg-negative-soft text-negative border-negative-soft",
-};
+interface CalloutProps {
+  kind: CalloutKind;
+  /** The first sentence, in bold, when it names the state (FR-121). */
+  lead?: string;
+  children?: ReactNode;
+}
 
-export function Callout({
-  kind = "neutral",
-  children,
-}: {
-  kind?: CalloutKind;
-  children: ReactNode;
-}) {
-  const CalloutIcon = KIND_ICON[kind];
+/** A state that stays true while the screen is open (FR-120, FR-121). */
+export function Callout({ kind, lead, children }: CalloutProps) {
+  const { icon, tone } = kinds[kind];
   return (
     <div
       role={kind === "error" ? "alert" : "status"}
-      className={`flex items-start gap-2 rounded-control border px-3 py-2.5 text-sm ${KIND_CLASSES[kind]}`}
+      className={cn("flex items-start gap-3 rounded-control px-3.5 py-3", tone)}
     >
-      <CalloutIcon size={20} className="mt-0.5 shrink-0" aria-hidden="true" />
-      <div>{children}</div>
+      <span className="mt-0.5 shrink-0">{icon}</span>
+      <p className="m-0">
+        {lead !== undefined && <strong className="font-semibold">{lead} </strong>}
+        {children}
+      </p>
     </div>
   );
 }

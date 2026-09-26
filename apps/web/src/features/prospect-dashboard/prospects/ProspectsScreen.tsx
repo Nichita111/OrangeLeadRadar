@@ -1,41 +1,38 @@
-/**
- * [Prospects](/features/prospect-dashboard.md#prospects). Route `/prospects`, any signed-in
- * user. WF-12, WF-25. Renders `API-39` as it comes: the api ranks, filters and counts.
- */
 import { useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router";
 
-import { useIndustries, useMarkets } from "../../../api/industriesAndMarkets";
+import type { Schemas } from "../../../api/contract";
 import {
   useProspects,
   type Band,
   type ProspectRow,
   type ProspectSort,
   type Standing,
-} from "../../../api/prospects";
-import { useActiveScoringSettings } from "../../../api/scoring";
-import { Button } from "../../../components/Button";
-import { BandChip } from "../../../components/score/BandChip";
-import { EmptyState, QueryErrorState, SkeletonRows } from "../../../components/States";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeaderCell,
-  TableRow,
-} from "../../../components/Table";
-import { countryName } from "../../../shell/countries";
-import {
-  formatAbsoluteDateTime,
-  formatRelativeDate,
-  strengthLabel,
-} from "../../../shell/formatting";
-import { BAND_LABELS, STANDING_LABELS } from "../../../shell/labels";
-import { useServiceSelection } from "../../../shell/selected-service";
+} from "../../../api/prospectsAndEvidence";
+import { useBandThresholds, useIndustries, useMarkets } from "../../../api/referenceData";
+import { Button, ButtonLink } from "../../../components/Button";
+import { Select, Input } from "../../../components/controls";
+import { Skeleton } from "../../../components/Skeleton";
+import { countryName, enumLabel } from "../../../shell/format";
+import { PageHeader } from "../../../shell/PageHeader";
+import { RelativeTime } from "../../../shell/RelativeTime";
+import { DataView } from "../../../shell/states/DataView";
+import { WithService } from "../../../shell/WithService";
+import { BandChip } from "../BandChip";
+import { TopSignals } from "../TopSignals";
 import { ProspectDrawer } from "./ProspectDrawer";
 
-const COLUMN_COUNT = 9;
+const COLUMNS = [
+  "#",
+  "Account",
+  "Band",
+  "Priority",
+  "Fit",
+  "Intent",
+  "Top signals",
+  "Signals",
+  "Last refresh",
+];
 const BANDS: Band[] = ["HOT", "WARM", "COLD"];
 const STANDINGS: Standing[] = ["RANKED", "BELOW_FIT", "DISQUALIFIED", "CUSTOMER"];
 const SORTS: { value: ProspectSort; label: string }[] = [
@@ -45,8 +42,9 @@ const SORTS: { value: ProspectSort; label: string }[] = [
   { value: "name", label: "Name" },
   { value: "last_refreshed", label: "Last refresh" },
 ];
+const SKELETON_ROWS = [0, 1, 2, 3, 4];
 
-const CONTROL = "rounded-control border border-border bg-surface px-3 text-sm text-text";
+const LABEL = "flex flex-col gap-1 text-hint text-text-tertiary";
 
 function isStanding(value: string | null): value is Standing {
   return STANDINGS.some((standing) => standing === value);
@@ -60,7 +58,7 @@ function isBand(value: string | null): value is Band {
   return BANDS.some((band) => band === value);
 }
 
-/** `FR-064`: the one-line reason of a row that is not ranked. */
+/** FR-064: the one-line reason of a row that is not ranked. */
 function reasonOf(row: ProspectRow): string | null {
   if (row.reason === null) {
     return null;
@@ -77,14 +75,24 @@ function reasonOf(row: ProspectRow): string | null {
   }
 }
 
+/** S-PRO: Prospects, `/prospects`, any signed-in user. WF-12, WF-25. Renders `API-39` as it comes. */
 export function ProspectsScreen() {
-  const navigate = useNavigate();
+  return (
+    <>
+      <PageHeader
+        title="Prospects"
+        lead="Accounts ranked by Priority for the selected service. Select a row to see why it is on the list."
+      />
+      <WithService>{(service) => <ProspectsList service={service} />}</WithService>
+    </>
+  );
+}
+
+function ProspectsList({ service }: { service: Schemas["Service"] }) {
   const [params, setParams] = useSearchParams();
-  const selection = useServiceSelection();
-  const { isLoading: servicesLoading, service } = selection;
   const industries = useIndustries();
   const markets = useMarkets();
-  const settings = useActiveScoringSettings(service?.id);
+  const thresholds = useBandThresholds(service.id);
   const [openRow, setOpenRow] = useState<ProspectRow | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
 
@@ -100,7 +108,7 @@ export function ProspectsScreen() {
   const pageNumber = Number(params.get("page"));
   const page = Number.isInteger(pageNumber) && pageNumber >= 1 ? pageNumber : 1;
 
-  const prospects = useProspects(service?.id, {
+  const prospects = useProspects(service.id, {
     page,
     standing,
     band,
@@ -110,8 +118,7 @@ export function ProspectsScreen() {
     sort,
   });
 
-  /** `FR-014`: every filter, the sort and the page live in the URL; a change of filter returns
-   * to the first page. */
+  /** FR-014: every filter, the sort and the page live in the URL; a change of filter returns to the first page. */
   const update = (patch: Record<string, string>) => {
     const next = new URLSearchParams(params);
     for (const [name, value] of Object.entries(patch)) {
@@ -137,48 +144,17 @@ export function ProspectsScreen() {
   const industryLabels = new Map((industries.data ?? []).map((item) => [item.code, item.label]));
   const activeIndustries = (industries.data ?? []).filter((item) => item.status === "ACTIVE");
 
-  const header = (
-    <div>
-      <h1 className="text-[24px] font-semibold text-text">Prospects</h1>
-      <p className="mt-1 text-sm text-text-secondary">
-        Accounts ranked by Priority for the selected service. Select a row to see why it is on the
-        list.
-      </p>
-    </div>
-  );
-
-  if (selection.error !== null) {
-    return (
-      <div className="flex flex-col gap-6">
-        {header}
-        <QueryErrorState error={selection.error} onRetry={selection.refetch} />
-      </div>
-    );
-  }
-  if (!servicesLoading && service === null) {
-    return (
-      <div className="flex flex-col gap-6">
-        {header}
-        <p className="text-sm text-text-secondary">There is no active service yet.</p>
-      </div>
-    );
-  }
-
-  const page_ = prospects.data;
-  const pageCount = page_ === undefined ? 1 : Math.max(1, Math.ceil(page_.total / page_.page_size));
-  const counts = page_?.band_counts ?? {};
+  const data = prospects.data;
+  const pageCount = data === undefined ? 1 : Math.max(1, Math.ceil(data.total / data.page_size));
+  const counts = data?.band_counts ?? {};
   const allCount = BANDS.reduce((sum, name) => sum + (counts[name] ?? 0), 0);
 
   return (
-    <div className="flex flex-col gap-6">
-      {header}
-
+    <>
       <div className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1 text-[12.5px] text-text-tertiary">
+        <label className={LABEL}>
           Status
-          <select
-            className={CONTROL}
-            style={{ height: "var(--ctl-input)" }}
+          <Select
             value={standing}
             onChange={(event) => {
               update({
@@ -189,10 +165,10 @@ export function ProspectsScreen() {
           >
             {STANDINGS.map((value) => (
               <option key={value} value={value}>
-                {STANDING_LABELS[value]}
+                {enumLabel(value)}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         {standing === "RANKED" && (
           <div role="group" aria-label="Band" className="flex gap-1">
@@ -200,7 +176,7 @@ export function ProspectsScreen() {
               { value: undefined, label: "All", count: allCount },
               ...BANDS.map((name) => ({
                 value: name,
-                label: BAND_LABELS[name],
+                label: enumLabel(name),
                 count: counts[name] ?? 0,
               })),
             ].map((option) => (
@@ -218,11 +194,9 @@ export function ProspectsScreen() {
             ))}
           </div>
         )}
-        <label className="flex flex-col gap-1 text-[12.5px] text-text-tertiary">
+        <label className={LABEL}>
           Country
-          <select
-            className={CONTROL}
-            style={{ height: "var(--ctl-input)" }}
+          <Select
             value={country}
             onChange={(event) => {
               update({ country_code: event.target.value });
@@ -234,13 +208,11 @@ export function ProspectsScreen() {
                 {countryName(code)}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
-        <label className="flex flex-col gap-1 text-[12.5px] text-text-tertiary">
+        <label className={LABEL}>
           Industry
-          <select
-            className={CONTROL}
-            style={{ height: "var(--ctl-input)" }}
+          <Select
             value={industry}
             onChange={(event) => {
               update({ industry: event.target.value });
@@ -252,25 +224,22 @@ export function ProspectsScreen() {
                 {item.label}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
-        <label className="flex flex-col gap-1 text-[12.5px] text-text-tertiary">
-          Search
-          <input
+        <div className={LABEL}>
+          <label htmlFor="prospects-search">Search</label>
+          <Input
+            id="prospects-search"
             type="search"
-            className={CONTROL}
-            style={{ height: "var(--ctl-input)" }}
             value={search}
             onChange={(event) => {
               update({ q: event.target.value });
             }}
           />
-        </label>
-        <label className="flex flex-col gap-1 text-[12.5px] text-text-tertiary">
+        </div>
+        <label className={LABEL}>
           Sort by
-          <select
-            className={CONTROL}
-            style={{ height: "var(--ctl-input)" }}
+          <Select
             value={sort}
             onChange={(event) => {
               update({ sort: event.target.value === "priority" ? "" : event.target.value });
@@ -281,138 +250,116 @@ export function ProspectsScreen() {
                 {option.label}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
       </div>
 
-      <Table caption="Prospects">
-        <TableHead>
-          <TableRow>
-            <TableHeaderCell>#</TableHeaderCell>
-            <TableHeaderCell>Account</TableHeaderCell>
-            <TableHeaderCell>Band</TableHeaderCell>
-            <TableHeaderCell>Priority</TableHeaderCell>
-            <TableHeaderCell>Fit</TableHeaderCell>
-            <TableHeaderCell>Intent</TableHeaderCell>
-            <TableHeaderCell>Top signals</TableHeaderCell>
-            <TableHeaderCell>Signals</TableHeaderCell>
-            <TableHeaderCell>Last refresh</TableHeaderCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {(servicesLoading || prospects.isLoading) && (
-            <SkeletonRows rows={5} columns={COLUMN_COUNT} />
-          )}
-          {prospects.isError && (
-            <TableRow>
-              <TableCell colSpan={COLUMN_COUNT}>
-                <QueryErrorState error={prospects.error} onRetry={() => void prospects.refetch()} />
-              </TableCell>
-            </TableRow>
-          )}
-          {page_ !== undefined && page_.items.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={COLUMN_COUNT}>
-                {service?.active_version === null ? (
-                  <EmptyState
-                    message="Accounts appear after their first refresh."
-                    actionLabel="Go to Accounts"
-                    onAction={() => {
-                      void navigate("/accounts");
-                    }}
-                  />
-                ) : (
-                  <EmptyState
-                    message="No accounts match these filters."
-                    actionLabel="Clear filters"
-                    onAction={() => {
+      <DataView
+        query={prospects}
+        isEmpty={(result) => result.items.length === 0}
+        skeleton={
+          <div className="flex flex-col gap-2" aria-busy="true">
+            {SKELETON_ROWS.map((row) => (
+              <Skeleton key={row} className="h-12 w-full" />
+            ))}
+          </div>
+        }
+        empty={
+          service.active_version === null
+            ? {
+                message: "Accounts appear after their first refresh.",
+                action: <ButtonLink to="/accounts">Go to Accounts</ButtonLink>,
+              }
+            : {
+                message: "No accounts match these filters.",
+                action: (
+                  <Button
+                    onClick={() => {
                       setParams({});
                     }}
-                  />
-                )}
-              </TableCell>
-            </TableRow>
-          )}
-          {page_?.items.map((row) => (
-            <TableRow key={row.account.id}>
-              <TableCell>{row.rank}</TableCell>
-              <TableCell>
-                <button
-                  type="button"
-                  className="font-medium text-text hover:underline"
-                  onClick={(event) => {
-                    returnFocusRef.current = event.currentTarget;
-                    setOpenRow(row);
-                  }}
-                >
-                  {row.account.name}
-                </button>
-                {row.unread_alerts > 0 && (
-                  <span
-                    role="img"
-                    aria-label={`${String(row.unread_alerts)} unread alerts`}
-                    title={`${String(row.unread_alerts)} unread alerts`}
-                    className="ml-2 inline-block size-2 rounded-full bg-accent align-middle"
-                  />
-                )}
-                <p className="text-[12.5px] text-text-tertiary">
-                  {[
-                    row.account.country_code === null
-                      ? null
-                      : countryName(row.account.country_code),
-                    row.account.industry === null
-                      ? null
-                      : (industryLabels.get(row.account.industry) ?? row.account.industry),
-                  ]
-                    .filter((part) => part !== null)
-                    .join(", ")}
-                </p>
-              </TableCell>
-              <TableCell>
-                <BandChip standing={row.standing} band={row.band} />
-              </TableCell>
-              <TableCell>
-                <span className="font-mono">{row.priority}</span>
-              </TableCell>
-              <TableCell>
-                <span className="font-mono">{row.fit}</span>
-              </TableCell>
-              <TableCell>
-                <span className="font-mono">{row.intent}</span>
-              </TableCell>
-              <TableCell>
-                {reasonOf(row) ?? (
-                  <ul className="flex flex-col gap-0.5 text-[12.5px]">
-                    {row.top_signals.map((signal) => (
-                      <li key={signal.question_key}>
-                        {signal.question_text}, {strengthLabel(signal.strength)},{" "}
-                        <span title={formatAbsoluteDateTime(signal.observed_at)}>
-                          {formatRelativeDate(signal.observed_at)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </TableCell>
-              <TableCell>
-                <span className="font-mono">{row.finding_count}</span>
-              </TableCell>
-              <TableCell>
-                {row.last_refreshed_at === null ? (
-                  "Never"
-                ) : (
-                  <span title={formatAbsoluteDateTime(row.last_refreshed_at)}>
-                    {formatRelativeDate(row.last_refreshed_at)}
-                  </span>
-                )}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+                  >
+                    Clear filters
+                  </Button>
+                ),
+              }
+        }
+      >
+        {(result) => (
+          <div className="overflow-hidden rounded-card border border-border bg-surface">
+            <table className="w-full border-collapse text-left">
+              <caption className="sr-only">Prospects</caption>
+              <thead>
+                <tr className="border-b border-border text-hint text-text-tertiary">
+                  {COLUMNS.map((column) => (
+                    <th key={column} scope="col" className="px-4 py-3 font-medium">
+                      {column}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {result.items.map((row) => (
+                  <tr key={row.account.id} className="border-b border-border last:border-b-0">
+                    <td className="num px-4 py-3">{row.rank}</td>
+                    <td className="px-4 py-3">
+                      <button
+                        type="button"
+                        className="font-medium hover:underline"
+                        onClick={(event) => {
+                          returnFocusRef.current = event.currentTarget;
+                          setOpenRow(row);
+                        }}
+                      >
+                        {row.account.name}
+                      </button>
+                      {row.unread_alerts > 0 && (
+                        <span
+                          role="img"
+                          aria-label={`${String(row.unread_alerts)} unread alerts`}
+                          title={`${String(row.unread_alerts)} unread alerts`}
+                          className="ml-2 inline-block size-2 rounded-full bg-accent align-middle"
+                        />
+                      )}
+                      <p className="m-0 text-hint text-text-tertiary">
+                        {[
+                          row.account.country_code === null
+                            ? null
+                            : countryName(row.account.country_code),
+                          row.account.industry === null
+                            ? null
+                            : (industryLabels.get(row.account.industry) ?? row.account.industry),
+                        ]
+                          .filter((part) => part !== null)
+                          .join(", ")}
+                      </p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <BandChip standing={row.standing} band={row.band} />
+                    </td>
+                    <td className="num px-4 py-3">{row.priority}</td>
+                    <td className="num px-4 py-3">{row.fit}</td>
+                    <td className="num px-4 py-3">{row.intent}</td>
+                    <td className="px-4 py-3">
+                      {reasonOf(row) ?? <TopSignals signals={row.top_signals} />}
+                    </td>
+                    <td className="num px-4 py-3">{row.finding_count}</td>
+                    <td className="px-4 py-3 text-text-secondary">
+                      {row.last_refreshed_at === null ? (
+                        "Never"
+                      ) : (
+                        <RelativeTime at={row.last_refreshed_at} />
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </DataView>
 
-      {page_ !== undefined && page_.total > page_.page_size && (
-        <div className="flex items-center gap-3 text-sm text-text-secondary">
+      {data !== undefined && data.total > data.page_size && (
+        <div className="flex items-center gap-3 text-text-secondary">
           <Button
             size="small"
             disabled={page <= 1}
@@ -435,9 +382,9 @@ export function ProspectsScreen() {
         </div>
       )}
 
-      {standing === "RANKED" && settings.data != null && (
-        <p className="text-[12.5px] text-text-tertiary">
-          {`Hot: Priority ${String(settings.data.hot_threshold)} or more. Warm: ${String(settings.data.warm_threshold)} to ${String(settings.data.hot_threshold - 1)}. Cold: below ${String(settings.data.warm_threshold)}.`}
+      {standing === "RANKED" && thresholds.data != null && (
+        <p className="m-0 text-hint text-text-tertiary">
+          {`Hot: Priority ${String(thresholds.data.hot_threshold)} or more. Warm: ${String(thresholds.data.warm_threshold)} to ${String(thresholds.data.hot_threshold - 1)}. Cold: below ${String(thresholds.data.warm_threshold)}.`}
         </p>
       )}
 
@@ -450,6 +397,6 @@ export function ProspectsScreen() {
           }}
         />
       )}
-    </div>
+    </>
   );
 }
