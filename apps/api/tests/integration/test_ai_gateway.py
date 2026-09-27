@@ -235,6 +235,8 @@ async def test_jev_costs_and_yesterdays_spend_do_not_count_against_the_budget(
 async def test_a_recording_replays_offline_and_the_budget_resets_at_midnight_utc(
     async_connection: AsyncConnection, tmp_path: Path
 ) -> None:
+    clock_file = tmp_path / "now.txt"
+    clock_file.write_text("2026-03-10T09:00:00Z")
     recorder = _gateway(
         _settings(tmp_path, "record"),
         async_connection,
@@ -275,6 +277,7 @@ async def test_evidence_extraction_replays_with_its_shape_and_audit_role(
         "quote_en": None,
         "rationale": "The company announces a cost programme.",
     }
+    (tmp_path / "now.txt").write_text("2026-03-10T09:00:00Z")
     recorder = _gateway(
         _settings(tmp_path, "record"),
         async_connection,
