@@ -1,6 +1,6 @@
 """Reads of the [Prospects and evidence](/architecture/interfaces.md#prospects-and-evidence)
-family: `API-39` (the prospect list), `API-40` (one score with its breakdown), `API-42` (an
-account's findings) and `API-43` (a finding's evidence). Each returns plain data shaped as its
+family: `API-39` (the prospect list), `API-40` (one score with its breakdown) and `API-42` (an
+account's findings). Each returns plain data shaped as its
 contract; the router validates it into the response model."""
 
 from __future__ import annotations
@@ -27,7 +27,6 @@ from leadradar.db.models.accounts import Account, AccountAlias
 from leadradar.db.models.configuration import ScoringConfig, SignalQuestion
 from leadradar.db.models.feedback import FindingFeedback, LeadFeedback
 from leadradar.db.models.identity import AppUser
-from leadradar.db.models.ingestion import Chunk, Document
 from leadradar.db.models.outreach import CrmSync
 from leadradar.db.models.signals import AccountScore, Alert, DisqualifierOverride, Finding
 from leadradar.feedback.queries import FeedbackSummary, FindingViewData, read_finding_view
@@ -519,48 +518,3 @@ async def list_findings(
         )
     )
     return views
-
-
-async def read_evidence(
-    session: AsyncSession, *, finding_id: uuid.UUID, context_chars: int
-) -> dict[str, object]:
-    """`API-43`: the finding's passage with up to `context_chars` of document text on each
-    side, and the quote's offsets in it; no excerpt once the document is purged."""
-    row = (
-        await session.execute(
-            select(Finding, Chunk, Document)
-            .join(Chunk, Chunk.id == Finding.chunk_id)
-            .join(Document, Document.id == Chunk.document_id)
-            .where(Finding.id == finding_id)
-        )
-    ).first()
-    if row is None:
-        raise ProspectNotFound("The finding does not exist.")
-    finding, chunk, document = row
-    purged = document.purged_at is not None or document.text is None
-    excerpt: str | None = None
-    quote_start: int | None = None
-    quote_end: int | None = None
-    if not purged and document.text is not None:
-        start = max(0, chunk.char_start - context_chars)
-        excerpt = document.text[start : chunk.char_end + context_chars]
-        found = excerpt.find(finding.quote)
-        if found >= 0:
-            quote_start, quote_end = found, found + len(finding.quote)
-    return {
-        "finding_id": str(finding.id),
-        "document": {
-            "id": str(document.id),
-            "title": document.title,
-            "url": document.url,
-            "source_type": document.source_type,
-            "plugin_code": document.plugin_code,
-            "language": document.language,
-            "published_at": _iso(document.published_at),
-        },
-        "section": chunk.section,
-        "purged": purged,
-        "excerpt": excerpt,
-        "quote_start": quote_start,
-        "quote_end": quote_end,
-    }

@@ -9,7 +9,6 @@ import { errorEnvelope, errorResponse, olgaAdmin } from "../api/authenticationAn
 import type { Schemas, paths } from "../api/contract";
 import {
   accounts,
-  evidenceFor,
   findings,
   prospectRows,
   scoreViews,
@@ -214,10 +213,6 @@ export function createProspectsHandlers() {
               right.observed_at.localeCompare(left.observed_at),
           ),
       );
-    }),
-    http.get("/api/v1/findings/{id}/evidence", ({ params, response }) => {
-      const evidence = evidenceFor(params.id);
-      return evidence === undefined ? errorResponse(notFound, 404) : response(200).json(evidence);
     }),
     http.post(
       "/api/v1/accounts/{id}/scores/{service_id}/overrides",

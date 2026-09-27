@@ -1125,6 +1125,60 @@
         "title": "ContactPersonaOrigin",
         "type": "string"
       },
+      "ContactSuggestion": {
+        "additionalProperties": false,
+        "description": "[`ContactSuggestion`](/architecture/interfaces.md#contactsuggestion).",
+        "properties": {
+          "document_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Title"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "job_title": {
+            "title": "Job Title",
+            "type": "string"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "quote": {
+            "title": "Quote",
+            "type": "string"
+          },
+          "source_url": {
+            "title": "Source Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "full_name",
+          "job_title",
+          "source_url",
+          "quote",
+          "document_title",
+          "published_at"
+        ],
+        "title": "ContactSuggestion",
+        "type": "object"
+      },
       "ContactUpdate": {
         "additionalProperties": false,
         "description": "[`ContactUpdate`](/architecture/interfaces.md#contactupdate).",
@@ -1961,78 +2015,6 @@
         "title": "EvaluationResultSummary",
         "type": "object"
       },
-      "EvidenceView": {
-        "additionalProperties": false,
-        "description": "[`EvidenceView`](/architecture/interfaces.md#evidenceview).",
-        "properties": {
-          "document": {
-            "$ref": "#/components/schemas/FindingDocument"
-          },
-          "excerpt": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Excerpt"
-          },
-          "finding_id": {
-            "title": "Finding Id",
-            "type": "string"
-          },
-          "purged": {
-            "title": "Purged",
-            "type": "boolean"
-          },
-          "quote_end": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Quote End"
-          },
-          "quote_start": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Quote Start"
-          },
-          "section": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Section"
-          }
-        },
-        "required": [
-          "finding_id",
-          "document",
-          "section",
-          "purged",
-          "excerpt",
-          "quote_start",
-          "quote_end"
-        ],
-        "title": "EvidenceView",
-        "type": "object"
-      },
       "FeedbackCreate_FindingFeedbackVerdict_": {
         "additionalProperties": false,
         "properties": {
@@ -2075,63 +2057,6 @@
         ],
         "title": "FindingDecidedBy",
         "type": "string"
-      },
-      "FindingDocument": {
-        "additionalProperties": false,
-        "description": "`FindingView.document`, reused by `EvidenceView.document` (\"as in `FindingView`\").",
-        "properties": {
-          "id": {
-            "title": "Id",
-            "type": "string"
-          },
-          "language": {
-            "title": "Language",
-            "type": "string"
-          },
-          "plugin_code": {
-            "$ref": "#/components/schemas/SourcePluginCode"
-          },
-          "published_at": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Published At"
-          },
-          "source_type": {
-            "$ref": "#/components/schemas/DocumentSourceType"
-          },
-          "title": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Title"
-          },
-          "url": {
-            "title": "Url",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "title",
-          "url",
-          "source_type",
-          "plugin_code",
-          "language",
-          "published_at"
-        ],
-        "title": "FindingDocument",
-        "type": "object"
       },
       "FindingFeedbackVerdict": {
         "description": "`finding_feedback.verdict`.",
@@ -6564,6 +6489,70 @@
         ]
       }
     },
+    "/api/v1/accounts/{id}/contact-suggestions": {
+      "post": {
+        "description": "`API-91`: computed on request and never stored.",
+        "operationId": "list_contact_suggestions_api_v1_accounts__id__contact_suggestions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ContactSuggestion"
+                  },
+                  "title": "Response List Contact Suggestions Api V1 Accounts  Id  Contact Suggestions Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List Contact Suggestions",
+        "tags": [
+          "accounts-and-contacts"
+        ]
+      }
+    },
     "/api/v1/accounts/{id}/contacts": {
       "get": {
         "description": "`API-25`.",
@@ -8718,66 +8707,6 @@
         "summary": "Post Evaluation Run",
         "tags": [
           "evaluation"
-        ]
-      }
-    },
-    "/api/v1/findings/{id}/evidence": {
-      "get": {
-        "description": "`API-43`.",
-        "operationId": "get_evidence_api_v1_findings__id__evidence_get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "cookie",
-            "name": "leadradar_session",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Leadradar Session"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EvidenceView"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            },
-            "description": "Error"
-          }
-        },
-        "summary": "Get Evidence",
-        "tags": [
-          "prospects-and-evidence"
         ]
       }
     },

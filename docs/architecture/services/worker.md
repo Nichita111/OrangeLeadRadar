@@ -250,7 +250,7 @@ One worker at a time runs the scheduler: each loop takes a PostgreSQL advisory l
 | `OPENROUTER_API_KEY` | unset | OpenRouter credentials; unset makes every Jev and LLM call unavailable, except in `replay` fixture mode |
 | `OPENROUTER_BASE_URL` | `https://openrouter.ai/api/v1` | OpenRouter API endpoint |
 | `LLM_CLASSIFIER_MODEL` | — (required with `OPENROUTER_API_KEY`) | OpenRouter model id, `organisation/model` such as `google/gemini-2.5-flash`, of the LLM classifier adapter |
-| `LLM_EVIDENCE_MODEL` | — (required with `OPENROUTER_API_KEY`) | OpenRouter model id of escalation, evidence, open signals and discovery extraction |
+| `LLM_EVIDENCE_MODEL` | — (required with `OPENROUTER_API_KEY`) | OpenRouter model id of escalation, evidence, open signals, discovery extraction and contact extraction |
 | `LLM_INTERPRETATION_MODEL` | — (required with `OPENROUTER_API_KEY`) | OpenRouter model id of interpretation |
 | `LLM_OUTREACH_MODEL` | — (required with `OPENROUTER_API_KEY`) | OpenRouter model id of outreach drafting |
 | `PROVIDER_FACTS_PER_CALL` | `8` | Provider facts given to one draft or interpretation |

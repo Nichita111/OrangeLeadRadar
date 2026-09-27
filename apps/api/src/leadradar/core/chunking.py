@@ -125,6 +125,12 @@ def passage_header(
     return " · ".join(parts)
 
 
+def retrieval_text(text: str, hint_terms: Sequence[str]) -> str:
+    """The text a question-scoped retrieval embeds: the question text followed by its hint terms
+    ([Chunking and passage selection](/architecture/rules.md#chunking-and-passage-selection))."""
+    return " ".join([text, *hint_terms])
+
+
 def fuse_rankings(
     rankings: Sequence[Sequence[int]], *, candidates: int, rrf_k: int
 ) -> list[tuple[int, float]]:

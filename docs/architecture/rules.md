@@ -44,6 +44,20 @@ Rounding is half up, to an integer, wherever a rule says "rounded".
 
 **Algorithm.** The classifier answers the choice question "Which role best describes this job title?" with the [persona values](/architecture/sql-store.md#contact) as options. The most probable persona is stored with origin `CLASSIFIER` when its probability is at least `ATTRIBUTE_MIN_P`, else `OTHER`. A `MANUAL` persona is never remapped.
 
+## Contact suggestion
+
+**Inputs.** An account, the stored passages of its documents and its contacts.
+
+**Algorithm.**
+
+1. Select passages by the question-scoped retrieval of [Chunking and passage selection](#chunking-and-passage-selection) over the account's passages whose `text` is not null, of every source type, for the question text "Who leads the company, named with a job title?" with the hint terms `CEO`, `CFO`, `CIO`, `COO`, `CTO`, `CISO`, `Chief`, `Head of`, `Director`, `board of management`, `managing director`, `Vorstand`, `Geschäftsführer` and `Leiter`; keep the first `CONTACT_SUGGESTION_MAX_PASSAGES` by fused score. With no passage, there is no suggestion and no LLM call.
+2. One [LLM extract contacts](/architecture/interfaces.md#llm) call gives the account's name and the selected passages, each with its passage header, and returns the people the passages state work at the account, each with full name, job title, passage id and quote.
+3. A candidate is kept only when its passage id is one of those given, its quote is a substring of that passage's text, its full name and job title are each a substring of the quote, and its full name has at least two words and contains no digit and no `@`.
+4. Full names are compared case-folded with whitespace collapsed. A candidate whose name equals an earlier kept candidate's, or an existing contact's of the account, is dropped. Kept candidates are ordered by their passage's fused score, then by their order in the output; the first `CONTACT_SUGGESTION_MAX` are the suggestions.
+5. A suggestion's source address is its passage's document `url`.
+
+**Invariants.** Nothing is written but the call's `AI_CALL` audit row: a suggestion becomes a [`contact`](/architecture/sql-store.md#contact) only when a user adds it, and then [Persona mapping](#persona-mapping) and [Retention and erasure](#retention-and-erasure) apply as to any contact ([ADR-27](/architecture/adrs/adr-27-contact-suggestions-added-by-a-person.md)). A suggestion carries a contact's name, job title and source address, plus its quote and document for the user to check, and never an email address or phone number ([RULE-07](/requirements/business.md#business-rules)).
+
 ## Source detection
 
 **Inputs.** The account's `WEBSITE` source, created as `https://{domain}/` when the account is created; its other [`account_source`](/architecture/sql-store.md#account_source) rows.

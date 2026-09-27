@@ -6,6 +6,7 @@ import { useScore } from "../../../api/prospectsAndEvidence";
 import { useAccount } from "../../../api/referenceData";
 import { Skeleton } from "../../../components/Skeleton";
 import { cn } from "../../../components/cn";
+import { OutreachTab } from "../../outreach-and-crm/OutreachTab";
 import { countryName } from "../../../shell/format";
 import { RelativeTime } from "../../../shell/RelativeTime";
 import { DataView } from "../../../shell/states/DataView";
@@ -15,21 +16,35 @@ import { ScoreFigures } from "../ScoreFigures";
 import { SignalsTab } from "./SignalsTab";
 import { WhyTab } from "./WhyTab";
 
-const TABS = [
-  { value: "why", label: "Why" },
-  { value: "signals", label: "Signals" },
-] as const;
+type Tab = "why" | "signals" | "outreach";
+
+const TABS: readonly { value: Tab; label: string; path: (id: string) => string }[] = [
+  { value: "why", label: "Why", path: (id) => `/accounts/${id}?tab=why` },
+  { value: "signals", label: "Signals", path: (id) => `/accounts/${id}?tab=signals` },
+  { value: "outreach", label: "Outreach", path: (id) => `/accounts/${id}/outreach` },
+];
 
 /**
  * Account detail, `/accounts/:id`, with the service from the selector. WF-13, WF-14. This screen
- * builds the header, the Why tab and the Signals tab; the other tabs belong to their own features.
+ * builds the header, the Why tab and the Signals tab; the other tabs belong to their own features,
+ * and `/accounts/:id/outreach` renders it on the Outreach tab.
  */
-export function AccountDetailScreen() {
+export function AccountDetailScreen({ tab }: { tab?: "outreach" }) {
   const { id = "" } = useParams();
-  return <WithService>{(service) => <AccountDetail id={id} service={service} />}</WithService>;
+  return (
+    <WithService>{(service) => <AccountDetail id={id} service={service} tab={tab} />}</WithService>
+  );
 }
 
-function AccountDetail({ id, service }: { id: string; service: Schemas["Service"] }) {
+function AccountDetail({
+  id,
+  service,
+  tab,
+}: {
+  id: string;
+  service: Schemas["Service"];
+  tab: "outreach" | undefined;
+}) {
   const [params] = useSearchParams();
   const account = useAccount(id);
   return (
@@ -43,8 +58,7 @@ function AccountDetail({ id, service }: { id: string; service: Schemas["Service"
         <AccountBody
           account={acc}
           service={service}
-          tab={params.get("tab") === "signals" ? "signals" : "why"}
-          findingId={params.get("finding")}
+          tab={tab ?? (params.get("tab") === "signals" ? "signals" : "why")}
         />
       )}
     </DataView>
@@ -55,12 +69,10 @@ function AccountBody({
   account,
   service,
   tab,
-  findingId,
 }: {
   account: Schemas["Account"];
   service: Schemas["Service"];
-  tab: "why" | "signals";
-  findingId: string | null;
+  tab: Tab;
 }) {
   const score = useScore(account.id, service.id);
   const industries = useIndustries();
@@ -89,9 +101,6 @@ function AccountBody({
                   .filter((part) => part !== null)
                   .join(", ")}
               </span>
-              <Link to={`/accounts/${account.id}/outreach`} className="text-accent-ink underline">
-                Contacts and outreach
-              </Link>
               {account.parent !== null && (
                 <span>
                   Parent:{" "}
@@ -132,10 +141,10 @@ function AccountBody({
           current === null ? null : (
             <>
               <nav aria-label="Account detail tabs" className="flex gap-1 border-b border-border">
-                {TABS.map(({ value, label }) => (
+                {TABS.map(({ value, label, path }) => (
                   <Link
                     key={value}
-                    to={`?tab=${value}`}
+                    to={path(account.id)}
                     aria-current={tab === value ? "page" : undefined}
                     className={cn(
                       "border-b-2 px-3 py-2 font-medium",
@@ -148,11 +157,9 @@ function AccountBody({
                   </Link>
                 ))}
               </nav>
-              {tab === "why" ? (
-                <WhyTab account={account} score={current} serviceId={service.id} />
-              ) : (
-                <SignalsTab accountId={account.id} serviceId={service.id} findingId={findingId} />
-              )}
+              {tab === "why" && <WhyTab account={account} score={current} serviceId={service.id} />}
+              {tab === "signals" && <SignalsTab accountId={account.id} serviceId={service.id} />}
+              {tab === "outreach" && <OutreachTab accountId={account.id} service={service} />}
             </>
           )
         }

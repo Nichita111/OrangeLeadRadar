@@ -68,13 +68,13 @@ Without a HubSpot token no sync runs and statuses are set by people only ([Engag
 
 ## Reading order
 
-1. Terms in the [glossary](/requirements/glossary.md): Outreach draft, Value proposition, Provider fact, Finding, Contact, Persona, Budget guard, Engagement status, Engagement statistics, Daily cycle.
+1. Terms in the [glossary](/requirements/glossary.md): Outreach draft, Value proposition, Provider fact, Finding, Contact, Contact suggestion, Persona, Budget guard, Engagement status, Engagement statistics, Daily cycle.
 2. Requirement rows: `S-OUT-01`, `S-OUT-02`, `S-ENG-01` to `S-ENG-03` in [system requirements](/requirements/system.md); `B-25`, `B-26`, `B-43` to `B-45`, `RULE-02`, `RULE-06`, `RULE-07`, `RULE-10` in [business requirements](/requirements/business.md).
 3. Stores: [`outreach_draft`](/architecture/sql-store.md#outreach_draft), [`engagement_status`](/architecture/sql-store.md#engagement_status), [`crm_sync`](/architecture/sql-store.md#crm_sync), [`finding`](/architecture/sql-store.md#finding), [`provider_fact`](/architecture/sql-store.md#provider_fact), [`contact`](/architecture/sql-store.md#contact), [`service`](/architecture/sql-store.md#service).
-4. Rules: [Outreach grounding](/architecture/rules.md#outreach-grounding), [Budget guard](/architecture/rules.md#budget-guard), [Engagement statistics](/architecture/rules.md#engagement-statistics), [Engagement sync](/architecture/rules.md#engagement-sync), [Scheduling](/architecture/rules.md#scheduling), [Priority, standing and band](/architecture/rules.md#priority-standing-and-band).
-5. Interfaces: [Outreach and CRM](/architecture/interfaces.md#outreach-and-crm) (`API-56` to `API-59`), [Engagement](/architecture/interfaces.md#engagement) (`API-86` to `API-88`), [Provider facts](/architecture/interfaces.md#provider-facts) (`API-79`), [LLM](/architecture/interfaces.md#llm) (`API-66`), [CRM](/architecture/interfaces.md#crm) (`API-70`, `API-89`).
+4. Rules: [Outreach grounding](/architecture/rules.md#outreach-grounding), [Contact suggestion](/architecture/rules.md#contact-suggestion), [Budget guard](/architecture/rules.md#budget-guard), [Engagement statistics](/architecture/rules.md#engagement-statistics), [Engagement sync](/architecture/rules.md#engagement-sync), [Scheduling](/architecture/rules.md#scheduling), [Priority, standing and band](/architecture/rules.md#priority-standing-and-band).
+5. Interfaces: [Outreach and CRM](/architecture/interfaces.md#outreach-and-crm) (`API-56` to `API-59`), [Engagement](/architecture/interfaces.md#engagement) (`API-86` to `API-88`), [Provider facts](/architecture/interfaces.md#provider-facts) (`API-79`), [Accounts and contacts](/architecture/interfaces.md#accounts-and-contacts) (`API-91`), [LLM](/architecture/interfaces.md#llm) (`API-66`, `API-92`), [CRM](/architecture/interfaces.md#crm) (`API-70`, `API-89`).
 6. Services: the [api](/architecture/services/api.md) (`OUTREACH_MAX_FINDINGS`, `OUTREACH_EMAIL_MAX_CHARS`, `OUTREACH_INMAIL_MAX_CHARS`, `HUBSPOT_ACCESS_TOKEN`, `APP_BASE_URL` in its [runtime](/architecture/services/api.md#runtime)); the [worker](/architecture/services/worker.md) (`PROVIDER_FACTS_PER_CALL`, `ENGAGEMENT_SYNC_INTERVAL_HOURS`, `HUBSPOT_REJECTED_LEAD_STATUSES` in its [runtime](/architecture/services/worker.md#runtime)); the [AI gateway](/architecture/services/worker.md#ai-gateway); the [frontend](/architecture/services/frontend.md) shell; [AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries) and [Degradation](/architecture/overview.md#degradation).
-7. Decisions: [ADR-03](/architecture/adrs/adr-03-models-answer-rules-score.md), [ADR-10](/architecture/adrs/adr-10-minimal-contact-data.md), [ADR-15](/architecture/adrs/adr-15-openrouter-as-the-llm-provider.md), [ADR-25](/architecture/adrs/adr-25-engagement-status-synced-from-hubspot.md), [ADR-26](/architecture/adrs/adr-26-daily-cycle.md).
+7. Decisions: [ADR-03](/architecture/adrs/adr-03-models-answer-rules-score.md), [ADR-10](/architecture/adrs/adr-10-minimal-contact-data.md), [ADR-27](/architecture/adrs/adr-27-contact-suggestions-added-by-a-person.md), [ADR-15](/architecture/adrs/adr-15-openrouter-as-the-llm-provider.md), [ADR-25](/architecture/adrs/adr-25-engagement-status-synced-from-hubspot.md), [ADR-26](/architecture/adrs/adr-26-daily-cycle.md).
 8. Screens: [Outreach composer](#outreach-composer), [HubSpot push dialog](#hubspot-push-dialog); the engagement status control of [Account detail](/features/prospect-dashboard.md#account-detail) and the statistics of [Prospects](/features/prospect-dashboard.md#prospects).
 9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-27`, `AC-50`, `AC-51`, `AC-62`, `AC-70`, `AC-84`, `AC-85`, `AC-86`, `AC-87`, `AC-88`.
 
@@ -88,7 +88,9 @@ Route `/accounts/:id/outreach`, with the service from the selector. Any signed-i
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │ DHL Group · Intelligent Automation                                           │
 ├───────────────────────────────┬──────────────────────────────────────────────┤
-│ Signals the draft can use     │ Channel (•) Email ( ) LinkedIn InMail        │
+│ Contacts            [ Add ]   │ Channel (•) Email ( ) LinkedIn InMail        │
+│ J. Example · CIO   [Edit][×]  │                                              │
+│ Signals the draft can use     │                                              │
 │ 1 AI and automation projects  │ To      [ J. Example — CIO ▾ ]  (optional)   │
 │   "DHL setzt in über 1.000 …" │                               [ Generate ]   │
 │ 2 Cost programme              │ Subject [ Automating the next 1,000 processes ] │
@@ -107,7 +109,7 @@ WF-19 — Outreach composer
 
 | ID | Requirement |
 |---|---|
-| `FR-086` | The left panel shall list the account's counted positive signals for the service, most points first, and mark the ones a generated draft cites; below them, the account's earlier drafts for the service with channel, age and status. |
+| `FR-086` | The left panel shall open with the account's contacts, with Suggest contacts, Add, Edit and Erase as [FR-182](/features/accounts-and-discovery.md#account-profile), [FR-048](/features/accounts-and-discovery.md#account-profile) and [FR-049](/features/accounts-and-discovery.md#account-profile) state, so that a contact added here can be chosen for the draft at once; below them, the account's counted positive signals for the service, most points first, and mark the ones a generated draft cites; below them, the account's earlier drafts for the service with channel, age and status. |
 | `FR-087` | Generate shall take the channel and an optional contact of the account, and show the subject (email only), the body and which signals it cites. |
 | `FR-088` | The subject and body shall be editable and saved with Save; the screen shall state that nothing is sent from LeadRadar. |
 | `FR-089` | Copy and Download .txt shall export the draft and mark it exported. |
@@ -117,7 +119,7 @@ WF-19 — Outreach composer
 
 Obligations: `S-OUT-01`, `S-ENG-01`.
 
-**Data**: `API-25`, `API-42`, `API-56`, `API-57`, `API-58`, `API-79`, `API-86`. **States**: [States](/architecture/services/frontend.md#states); `429` and `503` show the unavailable state and keep the edited text.
+**Data**: `API-25`, `API-26`, `API-27`, `API-28`, `API-91`, `API-42`, `API-56`, `API-57`, `API-58`, `API-79`, `API-86`. **States**: [States](/architecture/services/frontend.md#states); `429` and `503` show the unavailable state and keep the edited text.
 
 ## HubSpot push dialog
 

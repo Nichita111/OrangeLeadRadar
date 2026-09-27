@@ -101,21 +101,6 @@ export function useFindings(
   });
 }
 
-/** `API-43`: fetched only once a signal's evidence is opened. */
-export function useEvidence(findingId: string) {
-  return useQuery({
-    queryKey: [...prospectsAndEvidenceKeys, "evidence", findingId],
-    queryFn: async () =>
-      requireData(
-        (
-          await client.GET("/api/v1/findings/{id}/evidence", {
-            params: { path: { id: findingId } },
-          })
-        ).data,
-      ),
-  });
-}
-
 /** `API-44`. */
 export function useAddOverride() {
   const queryClient = useQueryClient();

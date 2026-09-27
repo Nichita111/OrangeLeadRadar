@@ -267,7 +267,7 @@ An address where an account publishes: the pages the website, careers and RSS pl
 
 ### contact
 
-A decision-maker at an account, entered by a user and kept to the minimum ([RULE-07](/requirements/business.md#business-rules), [ADR-10](/architecture/adrs/adr-10-minimal-contact-data.md)). There is deliberately no column for an email address or a phone number.
+A decision-maker at an account, entered by a user, typed or taken from a suggestion, and kept to the minimum ([RULE-07](/requirements/business.md#business-rules), [ADR-10](/architecture/adrs/adr-10-minimal-contact-data.md), [ADR-27](/architecture/adrs/adr-27-contact-suggestions-added-by-a-person.md)). There is deliberately no column for an email address or a phone number.
 
 | Column | Type | Notes |
 |---|---|---|

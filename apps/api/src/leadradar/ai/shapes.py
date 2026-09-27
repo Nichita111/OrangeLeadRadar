@@ -135,6 +135,38 @@ class Organisations(_Shape):
     organisations: list[Organisation]
 
 
+class ContactExtractionPassage(_Shape):
+    """One entry of [`ContactExtractionInput`](/architecture/interfaces.md#contactextractioninput)
+    `passages`."""
+
+    id: str
+    header: str
+    text: str
+
+
+class ContactExtractionInput(_Shape):
+    """[`ContactExtractionInput`](/architecture/interfaces.md#contactextractioninput)."""
+
+    account_name: str
+    passages: list[ContactExtractionPassage]
+
+
+class ContactCandidate(_Shape):
+    """[`ContactCandidate`](/architecture/interfaces.md#contactcandidate)."""
+
+    full_name: str
+    job_title: str
+    passage_id: str
+    quote: str
+
+
+class ContactCandidates(_Shape):
+    """The `extract_contacts` output: structured output needs an object at its root, so the
+    `ContactCandidate[]` of `API-92` is its one field."""
+
+    contacts: list[ContactCandidate]
+
+
 class OutreachFinding(_Shape):
     id: str
     question_text: str

@@ -4,7 +4,6 @@
 import type { Schemas } from "../api/contract";
 
 type Account = Schemas["Account"];
-type EvidenceView = Schemas["EvidenceView"];
 type FindingView = Schemas["FindingView"];
 type Industry = Schemas["Industry"];
 type Market = Schemas["Market"];
@@ -417,6 +416,7 @@ export const findings: FindingView[] = [
     "We are cutting costs by 500 million euros.",
     "GDELT",
     53.033,
+    { rationale: "A group-wide cost programme with a stated target." },
   ),
   finding(
     "fnd-cost-old",
@@ -453,37 +453,3 @@ export const findings: FindingView[] = [
     -41.352,
   ),
 ];
-
-const EXCERPTS: Record<string, string> = {
-  "fnd-cost":
-    "Im Rahmen der Strategie 2030: Wir senken die Kosten um 500 Millionen Euro. Weiter so.",
-};
-
-export function evidenceFor(findingId: string): EvidenceView | undefined {
-  const found = findings.find((candidate) => candidate.id === findingId);
-  if (found === undefined) {
-    return undefined;
-  }
-  const excerpt = EXCERPTS[findingId];
-  if (excerpt === undefined) {
-    return {
-      finding_id: findingId,
-      document: found.document,
-      section: null,
-      purged: true,
-      excerpt: null,
-      quote_start: null,
-      quote_end: null,
-    };
-  }
-  const start = excerpt.indexOf(found.quote);
-  return {
-    finding_id: findingId,
-    document: found.document,
-    section: "Strategy 2030",
-    purged: false,
-    excerpt,
-    quote_start: start,
-    quote_end: start + found.quote.length,
-  };
-}

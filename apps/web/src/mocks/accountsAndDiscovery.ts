@@ -1,5 +1,5 @@
-// The development mock of the contacts (`API-25` to `API-28`) and Discovery (`API-29` to
-// `API-32`) contracts (TypeScript Mock layer). Temporary: the persona is suggested from a few
+// The development mock of the contacts (`API-25` to `API-28`), contact suggestions (`API-91`) and
+// Discovery (`API-29` to `API-32`) contracts (TypeScript Mock layer). Temporary: the persona is suggested from a few
 // job-title words instead of the classifier, a domain is normalised by stripping the scheme, `www.`
 // and the path, the candidate list ignores `service_id`, and a run advances one status per read.
 // The accounts and runs the mock creates are answered here too, so a new account opens and its
@@ -8,7 +8,12 @@ import { createOpenApiHttp } from "openapi-msw";
 
 import { errorEnvelope, errorResponse } from "../api/authenticationAndUsers.fixtures";
 import type { Schemas, paths } from "../api/contract";
-import { contacts, discoveredLater, discoveryCandidates } from "./accountsAndDiscovery.fixtures";
+import {
+  contactSuggestions,
+  contacts,
+  discoveredLater,
+  discoveryCandidates,
+} from "./accountsAndDiscovery.fixtures";
 import { accounts, services } from "./prospectsAndEvidence.fixtures";
 
 type Account = Schemas["Account"];
@@ -153,6 +158,18 @@ export function createAccountsAndDiscoveryHandlers() {
       };
       contactRows.push(created);
       return response(200).json(created);
+    }),
+    http.post("/api/v1/accounts/{id}/contact-suggestions", ({ params, response }) => {
+      const known = new Set(
+        contactRows
+          .filter((row) => row.account_id === params.id)
+          .map((row) => row.full_name.toLowerCase()),
+      );
+      return response(200).json(
+        (contactSuggestions[params.id] ?? []).filter(
+          (suggestion) => !known.has(suggestion.full_name.toLowerCase()),
+        ),
+      );
     }),
     http.patch("/api/v1/contacts/{id}", async ({ params, request, response }) => {
       const current = contactRows.find((row) => row.id === params.id);

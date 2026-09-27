@@ -19,6 +19,8 @@ from leadradar.core.enums import (
     AppUserStatus,
     AuditEventKind,
     ClassificationStatus,
+    ContactPersona,
+    ContactPersonaOrigin,
     DisqualifierOverrideStatus,
     DocumentSourceType,
     DocumentTriageClassifier,
@@ -44,7 +46,7 @@ from leadradar.core.enums import (
     SignalQuestionStatus,
     SourcePluginCode,
 )
-from leadradar.db.models.accounts import Account
+from leadradar.db.models.accounts import Account, Contact
 from leadradar.db.models.audit import AuditEvent
 from leadradar.db.models.configuration import (
     Industry,
@@ -177,6 +179,20 @@ def make_account(connection: Connection, **overrides: Any) -> uuid.UUID:
     }
     values.update(overrides)
     return _insert(connection, Account.__table__, **values)
+
+
+def make_contact(connection: Connection, account_id: uuid.UUID, **overrides: Any) -> uuid.UUID:
+    values: dict[str, Any] = {
+        "account_id": account_id,
+        "full_name": "Ada Example",
+        "job_title": "Chief Information Officer",
+        "source_url": "https://example.com/board",
+        "persona": ContactPersona.CIO,
+        "persona_origin": ContactPersonaOrigin.MANUAL,
+        "retain_until": date.today() + timedelta(days=730),
+    }
+    values.update(overrides)
+    return _insert(connection, Contact.__table__, **values)
 
 
 def make_pipeline_run(connection: Connection, **overrides: Any) -> uuid.UUID:

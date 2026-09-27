@@ -73,6 +73,26 @@ export interface paths {
         patch: operations["patch_account_api_v1_accounts__id__patch"];
         trace?: never;
     };
+    "/api/v1/accounts/{id}/contact-suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * List Contact Suggestions
+         * @description `API-91`: computed on request and never stored.
+         */
+        post: operations["list_contact_suggestions_api_v1_accounts__id__contact_suggestions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/accounts/{id}/contacts": {
         parameters: {
             query?: never;
@@ -604,26 +624,6 @@ export interface paths {
          *     with the one already queued or running.
          */
         post: operations["post_evaluation_run_api_v1_evaluation_runs_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/findings/{id}/evidence": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Evidence
-         * @description `API-43`.
-         */
-        get: operations["get_evidence_api_v1_findings__id__evidence_get"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1678,6 +1678,24 @@ export interface components {
          */
         ContactPersonaOrigin: "MANUAL" | "CLASSIFIER";
         /**
+         * ContactSuggestion
+         * @description [`ContactSuggestion`](/architecture/interfaces.md#contactsuggestion).
+         */
+        ContactSuggestion: {
+            /** Document Title */
+            document_title: string | null;
+            /** Full Name */
+            full_name: string;
+            /** Job Title */
+            job_title: string;
+            /** Published At */
+            published_at: string | null;
+            /** Quote */
+            quote: string;
+            /** Source Url */
+            source_url: string;
+        };
+        /**
          * ContactUpdate
          * @description [`ContactUpdate`](/architecture/interfaces.md#contactupdate).
          */
@@ -2034,25 +2052,6 @@ export interface components {
              */
             run_id: string;
         };
-        /**
-         * EvidenceView
-         * @description [`EvidenceView`](/architecture/interfaces.md#evidenceview).
-         */
-        EvidenceView: {
-            document: components["schemas"]["FindingDocument"];
-            /** Excerpt */
-            excerpt: string | null;
-            /** Finding Id */
-            finding_id: string;
-            /** Purged */
-            purged: boolean;
-            /** Quote End */
-            quote_end: number | null;
-            /** Quote Start */
-            quote_start: number | null;
-            /** Section */
-            section: string | null;
-        };
         /** FeedbackCreate[FindingFeedbackVerdict] */
         FeedbackCreate_FindingFeedbackVerdict_: {
             /** Note */
@@ -2071,24 +2070,6 @@ export interface components {
          * @enum {string}
          */
         FindingDecidedBy: "CLASSIFIER" | "LLM";
-        /**
-         * FindingDocument
-         * @description `FindingView.document`, reused by `EvidenceView.document` ("as in `FindingView`").
-         */
-        FindingDocument: {
-            /** Id */
-            id: string;
-            /** Language */
-            language: string;
-            plugin_code: components["schemas"]["SourcePluginCode"];
-            /** Published At */
-            published_at: string | null;
-            source_type: components["schemas"]["DocumentSourceType"];
-            /** Title */
-            title: string | null;
-            /** Url */
-            url: string;
-        };
         /**
          * FindingFeedbackVerdict
          * @description `finding_feedback.verdict`.
@@ -3887,6 +3868,39 @@ export interface operations {
             };
         };
     };
+    list_contact_suggestions_api_v1_accounts__id__contact_suggestions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactSuggestion"][];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     list_contacts_api_v1_accounts__id__contacts_get: {
         parameters: {
             query?: never;
@@ -4897,39 +4911,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Run"];
-                };
-            };
-            /** @description Error */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    get_evidence_api_v1_findings__id__evidence_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: {
-                leadradar_session?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EvidenceView"];
                 };
             };
             /** @description Error */

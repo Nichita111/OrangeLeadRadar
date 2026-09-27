@@ -445,6 +445,7 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 | `API-26` | POST | `/accounts/{id}/contacts` | `*` | [`ContactCreate`](#contactcreate) → [`Contact`](#contact) |
 | `API-27` | PATCH | `/contacts/{id}` | `*` | [`ContactUpdate`](#contactupdate) → [`Contact`](#contact) |
 | `API-28` | DELETE | `/contacts/{id}` | `*` | — → `204` |
+| `API-91` | POST | `/accounts/{id}/contact-suggestions` | `*` | — → [`ContactSuggestion`](#contactsuggestion)`[]` |
 
 - `API-20` — `q` matches the name, any alias or the domain.
 - `API-21` — the domain is normalised by [Account identity](/architecture/rules.md#account-identity); an existing domain answers `409 CONFLICT` with `details.entity_id`. Creates the name alias, the `WEBSITE` source and any sources given; `next_refresh_at` stays null, so the scheduler treats the account as due ([Scheduling](/architecture/rules.md#scheduling)).
@@ -452,6 +453,7 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 - `API-24` — `aliases` replaces the aliases (the name alias is kept); `sources` replaces the `MANUAL` sources and may set a `DETECTED` source's status. Any attribute change enqueues a `RESCORE` with trigger `ACCOUNT_CHANGE`.
 - `API-26`, `API-27` — a contact without `source_url` answers `422`; a body field not in the shape, such as an email address, answers `422`. The persona is mapped by [Persona mapping](/architecture/rules.md#persona-mapping) unless one is given; when the classifier is unavailable the request answers `503`, or `429` when the [Budget guard](/architecture/rules.md#budget-guard) stops the LLM classifier adapter, and nothing is stored.
 - `API-28` — erases the contact as [Retention and erasure](/architecture/rules.md#retention-and-erasure) states, with reason `REQUEST`.
+- `API-91` — computes [Contact suggestion](/architecture/rules.md#contact-suggestion) and writes nothing but the call's `AI_CALL` audit row. An unknown account answers `404`; when the embedder or the LLM is unavailable the request answers `503`, and `429` when the [Budget guard](/architecture/rules.md#budget-guard) stops the call.
 
 ### Accounts and contacts shapes
 
@@ -549,6 +551,16 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | Field | Type | Source of truth |
 |---|---|---|
 | every field of [`ContactCreate`](#contactcreate), optional | | |
+
+#### ContactSuggestion
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `full_name`, `job_title` | string | the passage, kept by [Contact suggestion](/architecture/rules.md#contact-suggestion); the [`ContactCreate`](#contactcreate) fields when a user adds it |
+| `source_url` | string | the passage's [`document`](/architecture/sql-store.md#document) `url`; the `ContactCreate` `source_url` |
+| `quote` | string | verbatim from the passage, holding the name and the job title |
+| `document_title` | string, null | [`document`](/architecture/sql-store.md#document) `title` |
+| `published_at` | string, null | [`document`](/architecture/sql-store.md#document) `published_at` |
 
 ## Discovery
 
@@ -649,7 +661,6 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `API-40` | GET | `/accounts/{id}/scores/{service_id}` | `*` | — → [`ScoreView`](#scoreview) |
 | `API-41` | GET | `/accounts/{id}/scores/{service_id}/history` | `*` | — → [`ScoreChange`](#scorechange)`[]` |
 | `API-42` | GET | `/accounts/{id}/findings` | `*` | query `service_id`, `question_id`, `status` → [`FindingView`](#findingview)`[]` |
-| `API-43` | GET | `/findings/{id}/evidence` | `*` | — → [`EvidenceView`](#evidenceview) |
 | `API-44` | POST | `/accounts/{id}/scores/{service_id}/overrides` | `A` | [`OverrideCreate`](#overridecreate) → [`Override`](#override) |
 | `API-45` | POST | `/overrides/{id}/revoke` | `A` | — → [`Override`](#override) |
 
@@ -737,17 +748,6 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `document` | `{id, title, url, source_type, plugin_code, language, published_at}` | [`document`](/architecture/sql-store.md#document) |
 | `points` | number, null | the finding's `points` in the current breakdown; null when it is not the counted finding of its question |
 | `feedback` | `{verdict, user_name, created_at}`, null | the in-force [`finding_feedback`](/architecture/sql-store.md#finding_feedback) |
-
-#### EvidenceView
-
-| Field | Type | Source of truth |
-|---|---|---|
-| `finding_id` | string | [`finding`](/architecture/sql-store.md#finding) |
-| `document` | as in [`FindingView`](#findingview) | [`document`](/architecture/sql-store.md#document) |
-| `section` | string, null | the passage's [`chunk`](/architecture/sql-store.md#chunk) `section` |
-| `purged` | boolean | whether the document's `purged_at` is set |
-| `excerpt` | string, null | the passage with up to `EVIDENCE_CONTEXT_CHARS` of document text on each side; null when purged |
-| `quote_start`, `quote_end` | integer, null | offsets of the quote in `excerpt` |
 
 #### Override
 
@@ -1062,7 +1062,7 @@ The in-process port every classification goes through ([ADR-02](/architecture/ad
 
 ## LLM
 
-The in-process port for the six generation roles, all calling OpenRouter's chat completions API with a versioned prompt and structured output ([AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries)).
+The in-process port for the seven generation roles, all calling OpenRouter's chat completions API with a versioned prompt and structured output ([AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries)).
 
 ### LLM contracts
 
@@ -1074,6 +1074,7 @@ The in-process port for the six generation roles, all calling OpenRouter's chat 
 | `API-66` | `draft_outreach(input)` | AI gateway, `LLM_OUTREACH_MODEL` | none | [`OutreachOutput`](#outreachoutput) |
 | `API-84` | `extract_open_signals(input)` | AI gateway, `LLM_EVIDENCE_MODEL` | none | [`OpenSignalOutput`](#opensignaloutput)`[]` |
 | `API-85` | `interpret(input)` | AI gateway, `LLM_INTERPRETATION_MODEL` | none | [`InterpretationOutput`](#interpretationoutput) |
+| `API-92` | `extract_contacts(input)` | AI gateway, `LLM_EVIDENCE_MODEL` | none | [`ContactCandidate`](#contactcandidate)`[]` |
 
 - Every call passes the [Budget guard](/architecture/rules.md#budget-guard) first, times out after `AI_CALL_TIMEOUT_S`, writes one `AI_CALL` audit row and returns output that its rule has validated, or fails with `UPSTREAM_UNAVAILABLE` or `BUDGET_EXHAUSTED`.
 
@@ -1124,6 +1125,21 @@ The in-process port for the six generation roles, all calling OpenRouter's chat 
 | `name` | string | becomes [`discovery_candidate`](/architecture/sql-store.md#discovery_candidate) `name` |
 | `country_code`, `website` | string, null | only when the text states them |
 | `quote` | string | verbatim sentence naming the company and its signal; checked as a substring of `text` |
+
+#### ContactExtractionInput
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `account_name` | string | [`account`](/architecture/sql-store.md#account) |
+| `passages` | array of `{id, header, text}` | the [`chunk`](/architecture/sql-store.md#chunk) rows [Contact suggestion](/architecture/rules.md#contact-suggestion) selects, each with its passage header |
+
+#### ContactCandidate
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `full_name`, `job_title` | string | as the passage writes them |
+| `passage_id` | string | one of the `passages` given |
+| `quote` | string | verbatim sentence naming the person and the job title; checked as a substring of the passage's text |
 
 #### OutreachInput
 
