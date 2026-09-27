@@ -111,11 +111,11 @@ WF-19 — Outreach composer
 | `FR-087` | Generate shall take the channel and an optional contact of the account, and show the subject (email only), the body and which signals it cites. |
 | `FR-088` | The subject and body shall be editable and saved with Save; the screen shall state that nothing is sent from LeadRadar. |
 | `FR-089` | Copy and Download .txt shall export the draft and mark it exported. |
-| `FR-090` | When the account has no in-force positive signal for the service, Generate shall be disabled with the reason. |
+| `FR-090` | When the account has no in-force positive signal for the service, Generate shall be disabled with the reason; the account's relationship status never disables it. |
 | `FR-179` | Below the signals, the left panel shall list the Orange Systems facts the draft can use for the service, and mark the ones a generated draft cites. |
 | `FR-180` | After Copy or Download, the composer shall offer Mark as contacted, which sets the account's engagement status for the service to Contacted unless a later status is in force. |
 
-Obligations: `S-OUT-01`, `S-ENG-01`.
+Obligations: `S-OUT-01`, `S-ENG-01`, `S-ACC-06`.
 
 **Data**: `API-25`, `API-42`, `API-56`, `API-57`, `API-58`, `API-79`, `API-86`. **States**: [States](/architecture/services/frontend.md#states); `429` and `503` show the unavailable state and keep the edited text.
 

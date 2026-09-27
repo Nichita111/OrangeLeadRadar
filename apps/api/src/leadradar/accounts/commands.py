@@ -40,6 +40,7 @@ from leadradar.core.account_import import (
 from leadradar.core.enums import (
     AccountOperationalComplexity,
     AccountOrigin,
+    AccountRelationshipStatus,
     AccountSourceKind,
     AccountSourceOrigin,
     AccountSourceStatus,
@@ -66,7 +67,19 @@ _ATTRIBUTE_FIELDS = (
 
 #: `AccountUpdate`'s other plain fields ([Accounts and contacts]
 #: (/architecture/interfaces.md#accountcreate)): edited the same way, but without an origin.
-_PLAIN_FIELDS = ("name", "parent_account_id", "linkedin_url", "notes", "status")
+_PLAIN_FIELDS = (
+    "name",
+    "parent_account_id",
+    "linkedin_url",
+    "notes",
+    "status",
+    "relationship_status",
+)
+
+#: A field whose lone change enqueues no [Rescoring](/architecture/rules.md#rescoring) run: it is
+#: not an [Account attribute](/architecture/rules.md#account-attributes) ([ADR-27]
+#: (/architecture/adrs/adr-27-relationship-status-beside-lead-feedback.md)).
+_FIELDS_WITHOUT_RESCORE = frozenset({"relationship_status"})
 
 
 @dataclass(frozen=True)
@@ -104,6 +117,7 @@ class AccountUpdateData:
     linkedin_url: str | None = None
     notes: str | None = None
     status: AccountStatus | None = None
+    relationship_status: AccountRelationshipStatus | None = None
     aliases: tuple[str, ...] | None = None
     sources: tuple[SourceUpdateInput, ...] | None = None
 
@@ -119,6 +133,7 @@ class AccountUpdateData:
             "linkedin_url": self.linkedin_url,
             "notes": self.notes,
             "status": self.status,
+            "relationship_status": self.relationship_status,
         }
         return {field_name: value for field_name, value in values.items() if value is not None}
 
@@ -460,7 +475,9 @@ async def update_account(
     """`API-24`. Raises `AccountNotFound`, `UnknownIndustry`, `UnknownParentAccount`. Any
     attribute change enqueues a `RESCORE` with trigger `ACCOUNT_CHANGE` for every active service
     ([Rescoring](/architecture/rules.md#rescoring) Triggers), and writes no audit row when
-    nothing changed (matching `auth.users.update_user`'s G8)."""
+    nothing changed (matching `auth.users.update_user`'s G8). `relationship_status` is not an
+    attribute: a change to it alone writes the value and the audit row, and enqueues no run
+    ([ADR-27](/architecture/adrs/adr-27-relationship-status-beside-lead-feedback.md))."""
     account = (
         await session.execute(select(Account).where(Account.id == account_id).with_for_update())
     ).scalar_one_or_none()
@@ -500,9 +517,10 @@ async def update_account(
             entity_id=account.id,
             payload=payload,
         )
-        await _enqueue_account_change_rescores(
-            session, account_id=account.id, actor_id=actor_id, now=now
-        )
+        if set(payload) - _FIELDS_WITHOUT_RESCORE:
+            await _enqueue_account_change_rescores(
+                session, account_id=account.id, actor_id=actor_id, now=now
+            )
 
     result = await account_data(session, account)
     await session.commit()

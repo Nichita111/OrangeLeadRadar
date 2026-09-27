@@ -22,6 +22,7 @@ from leadradar.api.feedback_and_alerts import FindingView, LeadFeedback, finding
 from leadradar.api.outreach_and_crm import CrmSyncView
 from leadradar.api.pagination import Page, PageRequest, page_request
 from leadradar.core.enums import (
+    AccountRelationshipStatus,
     AccountScoreBand,
     AccountScoreStanding,
     DisqualifierOverrideStatus,
@@ -61,6 +62,7 @@ class ProspectAccount(BaseModel):
     domain: str
     country_code: str | None
     industry: str | None
+    relationship_status: AccountRelationshipStatus
 
 
 class ProspectTopSignal(BaseModel):

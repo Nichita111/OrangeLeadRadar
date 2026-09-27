@@ -20,14 +20,30 @@ import { DataView } from "../../../shell/states/DataView";
 
 const LABEL = "flex flex-col gap-1 text-hint text-text-tertiary";
 const ORIGINS: Schemas["AccountOrigin"][] = ["IMPORTED", "MANUAL", "DISCOVERED"];
+const RELATIONSHIP_STATUSES: Schemas["AccountRelationshipStatus"][] = [
+  "PROSPECT",
+  "IN_TALKS",
+  "CLIENT",
+  "PAST_CLIENT",
+  "DO_NOT_CONTACT",
+];
 
-/** S-ACC-01: Accounts, `/accounts`, any signed-in user. FR-038 to FR-040, FR-137, FR-138. */
+/** S-ACC-01: Accounts, `/accounts`, any signed-in user. FR-038 to FR-040, FR-137, FR-138, FR-182. */
 export function AccountsScreen() {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<Schemas["AccountStatus"] | undefined>("ACTIVE");
+  const [relationshipStatus, setRelationshipStatus] = useState<
+    Schemas["AccountRelationshipStatus"] | undefined
+  >(undefined);
   const [origin, setOrigin] = useState<Schemas["AccountOrigin"] | undefined>(undefined);
   const [page, setPage] = useState(1);
-  const accounts = useAccounts({ q, status, origin, page });
+  const accounts = useAccounts({
+    q,
+    status,
+    relationship_status: relationshipStatus,
+    origin,
+    page,
+  });
   const industries = useIndustries();
   const refresh = useRefreshAccount();
   const { notify } = useToast();
@@ -78,6 +94,25 @@ export function AccountsScreen() {
           </Select>
         </label>
         <label className={LABEL}>
+          Relationship
+          <Select
+            value={relationshipStatus ?? ""}
+            onChange={(event) => {
+              setRelationshipStatus(
+                RELATIONSHIP_STATUSES.find((value) => value === event.target.value),
+              );
+              setPage(1);
+            }}
+          >
+            <option value="">All</option>
+            {RELATIONSHIP_STATUSES.map((value) => (
+              <option key={value} value={value}>
+                {enumLabel(value)}
+              </option>
+            ))}
+          </Select>
+        </label>
+        <label className={LABEL}>
           Origin
           <Select
             value={origin ?? ""}
@@ -109,7 +144,15 @@ export function AccountsScreen() {
             <table className="w-full border-collapse text-left">
               <thead>
                 <tr className="border-b border-border text-hint text-text-tertiary">
-                  {["Account", "Country", "Industry", "Origin", "Last refresh", ""].map(
+                  {[
+                    "Account",
+                    "Country",
+                    "Industry",
+                    "Relationship",
+                    "Origin",
+                    "Last refresh",
+                    "",
+                  ].map(
                     (heading) => (
                       <th key={heading} scope="col" className="px-3 py-2 font-medium">
                         {heading}
@@ -133,6 +176,7 @@ export function AccountsScreen() {
                       {account.country_code === null ? "—" : countryName(account.country_code)}
                     </td>
                     <td className="px-3 py-2">{industryLabel(account.industry)}</td>
+                    <td className="px-3 py-2">{enumLabel(account.relationship_status)}</td>
                     <td className="px-3 py-2">{enumLabel(account.origin)}</td>
                     <td className="px-3 py-2 text-text-secondary">
                       {account.last_refreshed_at === null ? (
