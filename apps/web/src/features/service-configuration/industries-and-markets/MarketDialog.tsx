@@ -108,7 +108,7 @@ function MarketForm({ market, onDone }: { market?: Schemas["Market"]; onDone: ()
     <form onSubmit={submit} className="flex flex-col gap-4">
       <FormField
         label="Code"
-        hint={market === undefined ? "Cannot be changed later." : undefined}
+        {...(market === undefined ? { hint: "Cannot be changed later." } : {})}
         error={errors.fields["code"]}
       >
         {(field) => (

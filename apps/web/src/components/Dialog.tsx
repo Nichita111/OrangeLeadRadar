@@ -20,7 +20,9 @@ export function Dialog({ trigger, title, description, open, onOpenChange, childr
   };
   return (
     <DialogPrimitive.Root {...controlled}>
-      {trigger !== undefined && <DialogPrimitive.Trigger asChild>{trigger}</DialogPrimitive.Trigger>}
+      {trigger !== undefined && (
+        <DialogPrimitive.Trigger asChild>{trigger}</DialogPrimitive.Trigger>
+      )}
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-text/40" />
         <DialogPrimitive.Content className="fixed top-1/2 left-1/2 z-50 flex max-h-[90vh] w-[520px] max-w-[95vw] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 overflow-auto rounded-card border border-border bg-surface p-6 shadow-overlay">

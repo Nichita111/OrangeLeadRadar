@@ -37,9 +37,7 @@ export function CheckboxGroup({
 
   function toggle(value: string) {
     onChange(
-      selected.includes(value)
-        ? selected.filter((entry) => entry !== value)
-        : [...selected, value],
+      selected.includes(value) ? selected.filter((entry) => entry !== value) : [...selected, value],
     );
   }
 
@@ -51,9 +49,8 @@ export function CheckboxGroup({
       <div
         role="group"
         aria-labelledby={labelId}
-        aria-invalid={error !== undefined || undefined}
         {...(describedBy !== "" ? { "aria-describedby": describedBy } : {})}
-        className="flex max-h-64 flex-wrap gap-x-4 gap-y-2 overflow-y-auto rounded-control border border-control-border p-3 aria-[invalid=true]:border-negative"
+        className={`flex max-h-64 flex-wrap gap-x-4 gap-y-2 overflow-y-auto rounded-control border p-3 ${error !== undefined ? "border-negative" : "border-control-border"}`}
       >
         {options.map((option) => (
           <label key={option.value} className="flex items-center gap-2">

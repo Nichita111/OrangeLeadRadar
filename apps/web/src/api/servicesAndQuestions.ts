@@ -30,9 +30,7 @@ export function useService(id: string | undefined) {
   });
 }
 
-async function invalidateServices(
-  queryClient: ReturnType<typeof useQueryClient>,
-): Promise<void> {
+async function invalidateServices(queryClient: ReturnType<typeof useQueryClient>): Promise<void> {
   await queryClient.invalidateQueries({ queryKey: ["services-and-questions"] });
 }
 

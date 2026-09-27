@@ -38,7 +38,7 @@ export function RowMenu({ label, items }: RowMenuProps): ReactNode {
           {items.map((item) => (
             <DropdownMenu.Item
               key={item.label}
-              disabled={item.disabled}
+              {...(item.disabled === undefined ? {} : { disabled: item.disabled })}
               onSelect={item.onSelect}
               className="cursor-pointer rounded-control px-2.5 py-1.5 text-left outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[highlighted]:bg-page"
             >

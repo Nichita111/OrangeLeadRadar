@@ -99,7 +99,7 @@ function IndustryForm({
     <form onSubmit={submit} className="flex flex-col gap-4">
       <FormField
         label="Code"
-        hint={industry === undefined ? "Cannot be changed later." : undefined}
+        {...(industry === undefined ? { hint: "Cannot be changed later." } : {})}
         error={errors.fields["code"]}
       >
         {(field) => (

@@ -8,6 +8,7 @@ import { ProspectsScreen } from "./features/prospect-dashboard/prospects/Prospec
 import { SignIn } from "./features/identity-and-access/sign-in/SignIn";
 import { Users } from "./features/identity-and-access/users/Users";
 import { IndustriesAndMarketsScreen } from "./features/service-configuration/industries-and-markets/IndustriesAndMarketsScreen";
+import { ServicesScreen } from "./features/service-configuration/services/ServicesScreen";
 import { DocumentTitle } from "./shell/DocumentTitle";
 import { RequireAdmin } from "./shell/RequireAdmin";
 import { RequireSession } from "./shell/RequireSession";
@@ -72,6 +73,24 @@ export const routes: RouteObject[] = [
               </RequireAdmin>
             ),
             handle: handle({ title: "Audit log", adminOnly: true }),
+          },
+          {
+            path: "/services",
+            element: (
+              <RequireAdmin>
+                <ServicesScreen />
+              </RequireAdmin>
+            ),
+            handle: handle({ title: "Services", adminOnly: true }),
+          },
+          {
+            path: "/settings/industries-markets",
+            element: (
+              <RequireAdmin>
+                <IndustriesAndMarketsScreen />
+              </RequireAdmin>
+            ),
+            handle: handle({ title: "Industries and markets", adminOnly: true }),
           },
           { path: "*", element: <NotFound />, handle: handle({ title: "Page not found" }) },
         ],

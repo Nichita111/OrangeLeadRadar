@@ -116,10 +116,17 @@ function IndustryRow({ industry }: { industry: Schemas["Industry"] }) {
         <RowMenu
           label={`Actions for ${industry.label}`}
           items={[
-            { label: "Rename", onSelect: () => { setRenameOpen(true); } },
+            {
+              label: "Rename",
+              onSelect: () => {
+                setRenameOpen(true);
+              },
+            },
             {
               label: isActive ? "Retire" : "Restore",
-              onSelect: () => { setConfirmOpen(true); },
+              onSelect: () => {
+                setConfirmOpen(true);
+              },
             },
           ]}
         />
@@ -215,10 +222,17 @@ function MarketRow({ market }: { market: Schemas["Market"] }) {
         <RowMenu
           label={`Actions for ${market.name}`}
           items={[
-            { label: "Rename", onSelect: () => { setRenameOpen(true); } },
+            {
+              label: "Rename",
+              onSelect: () => {
+                setRenameOpen(true);
+              },
+            },
             {
               label: isActive ? "Retire" : "Restore",
-              onSelect: () => { setConfirmOpen(true); },
+              onSelect: () => {
+                setConfirmOpen(true);
+              },
             },
           ]}
         />
