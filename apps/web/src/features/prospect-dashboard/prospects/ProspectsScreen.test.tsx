@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { services } from "../../../api/pending/prospectsAndEvidence.fixtures";
+import { services } from "../../../mocks/prospectsAndEvidence.fixtures";
 import { http, server } from "../../../testServer";
 import { renderAt, requestedUrls } from "../testSupport";
 

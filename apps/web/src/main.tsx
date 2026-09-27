@@ -13,10 +13,11 @@ if (container === null) {
 const root = createRoot(container);
 
 async function boot(): Promise<void> {
-  // The development mock of the pending Prospects contracts (API-39 to API-45); the production build drops this
-  // block. It is deleted with src/api/pending/ when the api declares those paths.
+  // The development mock of the contracts not yet built (TypeScript Mock layer); the production
+  // build drops this block, which `check:build` verifies. A family's handlers are deleted when
+  // the api builds it.
   if (import.meta.env.DEV) {
-    const { startDevMock } = await import("./api/pending/devServer");
+    const { startDevMock } = await import("./mocks/devServer");
     await startDevMock();
   }
   const config = await loadConfig();

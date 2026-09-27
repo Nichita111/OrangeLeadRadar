@@ -1,8 +1,7 @@
-// Typed fixtures of the pending contracts API-07, API-15, API-16, API-23, API-39 to API-45, API-71
-// and API-74, for the development mock and the tests. Deleted with src/api/pending/ when the api's
-// snapshot declares those paths. The accounts are the Examples of rules.md: Lufthansa Group is
-// Example 1, the excluded account is Example 2.
-import type { Schemas } from "../contract";
+// Typed fixtures of the contracts not yet built, for the development mock and the tests
+// (TypeScript Mock layer). Deleted family by family as the api builds each one. The accounts are
+// the Examples of rules.md: Lufthansa Group is Example 1, the excluded account is Example 2.
+import type { Schemas } from "../api/contract";
 
 type Account = Schemas["Account"];
 type EvidenceView = Schemas["EvidenceView"];
@@ -10,10 +9,10 @@ type FindingView = Schemas["FindingView"];
 type Industry = Schemas["Industry"];
 type Market = Schemas["Market"];
 type ProspectRow = Schemas["ProspectRow"];
-type ScoreBreakdown = Schemas["ScoreBreakdown"];
+type ScoreBreakdown = Schemas["ScoreViewBreakdown"];
 type ScoreView = Schemas["ScoreView"];
-type ScoringConfig = Schemas["ScoringConfigModel"];
-type ScoringConfigSummary = Schemas["ScoringConfigSummaryModel"];
+type ScoringConfig = Schemas["ScoringConfig"];
+type ScoringConfigSummary = Schemas["ScoringConfigSummary"];
 type Service = Schemas["Service"];
 
 function service(id: string, name: string, status: Service["status"]): Service {

@@ -1,7 +1,7 @@
 import { afterEach } from "vitest";
 
 import { anaSales, olgaAdmin } from "../../api/authenticationAndUsers.fixtures";
-import { createProspectsHandlers } from "../../api/pending/prospectsHandlers";
+import { createProspectsHandlers } from "../../mocks/prospectsAndEvidence";
 import { renderApp, signedInAs } from "../../testRender";
 import { server } from "../../testServer";
 

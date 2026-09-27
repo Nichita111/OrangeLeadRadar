@@ -1,6 +1,6 @@
 import { setupWorker } from "msw/browser";
 
-import { createProspectsHandlers } from "./prospectsHandlers";
+import { createProspectsHandlers } from "./prospectsAndEvidence";
 
 /** Starts the browser worker with the development mock; unhandled requests go to the network. */
 export async function startDevMock(): Promise<void> {

@@ -1,9 +1,10 @@
 """Alembic environment for the [SQL store](/architecture/sql-store.md).
 
-Reads no environment itself: the entry point ([`leadradar.api.main`](/architecture/services/api.md#runtime))
-builds the `ApiSettings` and passes it through `config.attributes["settings"]` before running
-`command.upgrade`. Migrations run over a synchronous `psycopg` connection even though the api
-itself is async end to end, because Alembic's migration context is synchronous.
+Reads no environment itself: the entry point
+([`leadradar.api.main`](/architecture/services/api.md#runtime)) builds the `ApiSettings` and
+passes it through `config.attributes["settings"]` before running `command.upgrade`. Migrations
+run over a synchronous `psycopg` connection even though the api itself is async end to end,
+because Alembic's migration context is synchronous.
 """
 
 from __future__ import annotations
@@ -26,7 +27,7 @@ target_metadata = Base.metadata
 
 def _settings() -> ApiSettings:
     settings = config.attributes.get("settings")
-    if settings is None:
+    if not isinstance(settings, ApiSettings):
         raise RuntimeError(
             "alembic/env.py needs an ApiSettings instance in config.attributes['settings']; "
             "it reads no environment variable itself."

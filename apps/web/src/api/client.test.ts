@@ -13,7 +13,7 @@ describe("api client", () => {
         seen.push(request.headers.get("X-Requested-With"));
         return response(204).empty();
       }),
-      http.patch("/api/v1/users/{user_id}", ({ request, response }) => {
+      http.patch("/api/v1/users/{id}", ({ request, response }) => {
         seen.push(request.headers.get("X-Requested-With"));
         return response(200).json({
           id: "0b6f6f3e-5f0a-4f0e-9d0e-1a1a1a1a1a01",
@@ -26,8 +26,8 @@ describe("api client", () => {
       }),
     );
     await client.POST("/api/v1/auth/logout", { params: { cookie: { leadradar_session: "" } } });
-    await client.PATCH("/api/v1/users/{user_id}", {
-      params: { path: { user_id: "0b6f6f3e-5f0a-4f0e-9d0e-1a1a1a1a1a01" } },
+    await client.PATCH("/api/v1/users/{id}", {
+      params: { path: { id: "0b6f6f3e-5f0a-4f0e-9d0e-1a1a1a1a1a01" } },
       body: { display_name: "A" },
     });
     expect(seen).toEqual(["XMLHttpRequest", "XMLHttpRequest"]);

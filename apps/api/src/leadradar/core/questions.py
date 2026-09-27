@@ -6,7 +6,7 @@ least two options, unique keys, and at least one of strength `NONE`."""
 from __future__ import annotations
 
 from leadradar.core.enums import FindingStrength, SignalQuestionAnswerType
-from leadradar.core.scoring_settings import FieldError
+from leadradar.core.scoring.settings import FieldError
 
 MIN_CHOICE_OPTIONS = 2
 

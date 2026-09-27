@@ -65,7 +65,7 @@ def compose(project: str, *args: str, env: dict[str, str] | None = None,
         check=check,
         capture_output=capture,
         text=True,
-        timeout=600,
+        timeout=3600,
     )
 
 

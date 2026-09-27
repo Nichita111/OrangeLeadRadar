@@ -9,6 +9,7 @@ from pydantic import SecretStr
 from pydantic_settings import SettingsConfigDict
 
 from leadradar.ai.settings import AiGatewaySettings
+from leadradar.logs import LogLevel
 
 
 class WorkerSettings(AiGatewaySettings):
@@ -17,7 +18,7 @@ class WorkerSettings(AiGatewaySettings):
 
     model_config = SettingsConfigDict(extra="ignore")
 
-    log_level: str = "INFO"
+    log_level: LogLevel = "INFO"
 
     database_url: SecretStr
     worker_concurrency: int = 4

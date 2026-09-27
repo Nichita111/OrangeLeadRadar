@@ -196,6 +196,9 @@ def score_account(
         {
             "key": de.key,
             "label": de.label,
+            "kind": de.kind,
+            "criterion_key": de.criterion_key,
+            "question_key": de.question_key,
             "matched": de.matched,
             "overridden": de.overridden,
             "override_id": de.override_id,

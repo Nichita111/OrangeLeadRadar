@@ -217,100 +217,44 @@
             "type": "array"
           },
           "country_code": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Country Code"
+            "title": "Country Code",
+            "type": "string"
           },
           "domain": {
             "title": "Domain",
             "type": "string"
           },
           "employee_count": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Employee Count"
+            "title": "Employee Count",
+            "type": "integer"
           },
           "industry": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Industry"
+            "title": "Industry",
+            "type": "string"
           },
           "linkedin_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Linkedin Url"
+            "title": "Linkedin Url",
+            "type": "string"
           },
           "name": {
             "title": "Name",
             "type": "string"
           },
           "notes": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Notes"
+            "title": "Notes",
+            "type": "string"
           },
           "operational_complexity": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AccountOperationalComplexity"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/AccountOperationalComplexity"
           },
           "parent_account_id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Parent Account Id"
+            "format": "uuid",
+            "title": "Parent Account Id",
+            "type": "string"
           },
           "revenue_eur": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Revenue Eur"
+            "title": "Revenue Eur",
+            "type": "integer"
           },
           "sources": {
             "default": [],
@@ -564,130 +508,57 @@
         "description": "[`AccountUpdate`](/architecture/interfaces.md#accountupdate), the request of `API-24`.\nEvery field of [`AccountCreate`](#accountcreate) except `domain`, optional, plus `status`; a\nfield left unset changes nothing ([`AccountUpdateData`](../accounts/commands.py)).",
         "properties": {
           "aliases": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Aliases"
+            "items": {
+              "type": "string"
+            },
+            "title": "Aliases",
+            "type": "array"
           },
           "country_code": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Country Code"
+            "title": "Country Code",
+            "type": "string"
           },
           "employee_count": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Employee Count"
+            "title": "Employee Count",
+            "type": "integer"
           },
           "industry": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Industry"
+            "title": "Industry",
+            "type": "string"
           },
           "linkedin_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Linkedin Url"
+            "title": "Linkedin Url",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
           },
           "notes": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Notes"
+            "title": "Notes",
+            "type": "string"
           },
           "operational_complexity": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AccountOperationalComplexity"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/AccountOperationalComplexity"
           },
           "parent_account_id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Parent Account Id"
+            "format": "uuid",
+            "title": "Parent Account Id",
+            "type": "string"
           },
           "revenue_eur": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Revenue Eur"
+            "title": "Revenue Eur",
+            "type": "integer"
           },
           "sources": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AccountUpdateSource"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Sources"
+            "items": {
+              "$ref": "#/components/schemas/AccountUpdateSource"
+            },
+            "title": "Sources",
+            "type": "array"
           },
           "status": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AccountStatus"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/AccountStatus"
           }
         },
         "title": "AccountUpdate",
@@ -718,7 +589,7 @@
       },
       "ActivationRequest": {
         "additionalProperties": false,
-        "description": "`ActivationRequest`: `change_note` required.",
+        "description": "[`ActivationRequest`](/architecture/interfaces.md#activationrequest): `change_note`\nrequired.",
         "properties": {
           "change_note": {
             "title": "Change Note",
@@ -1132,6 +1003,149 @@
         "title": "Body_post_accounts_import_api_v1_accounts_import_post",
         "type": "object"
       },
+      "CandidateDecision": {
+        "additionalProperties": false,
+        "description": "[`CandidateDecision`](/architecture/interfaces.md#candidatedecision).",
+        "properties": {
+          "domain": {
+            "title": "Domain",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "title": "CandidateDecision",
+        "type": "object"
+      },
+      "Contact": {
+        "additionalProperties": false,
+        "description": "[`Contact`](/architecture/interfaces.md#contact).",
+        "properties": {
+          "account_id": {
+            "title": "Account Id",
+            "type": "string"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "job_title": {
+            "title": "Job Title",
+            "type": "string"
+          },
+          "persona": {
+            "$ref": "#/components/schemas/ContactPersona"
+          },
+          "persona_origin": {
+            "$ref": "#/components/schemas/ContactPersonaOrigin"
+          },
+          "retain_until": {
+            "title": "Retain Until",
+            "type": "string"
+          },
+          "source_url": {
+            "title": "Source Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "account_id",
+          "full_name",
+          "job_title",
+          "source_url",
+          "persona",
+          "persona_origin",
+          "retain_until"
+        ],
+        "title": "Contact",
+        "type": "object"
+      },
+      "ContactCreate": {
+        "additionalProperties": false,
+        "description": "[`ContactCreate`](/architecture/interfaces.md#contactcreate).",
+        "properties": {
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "job_title": {
+            "title": "Job Title",
+            "type": "string"
+          },
+          "persona": {
+            "$ref": "#/components/schemas/ContactPersona",
+            "title": "Persona"
+          },
+          "source_url": {
+            "title": "Source Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "full_name",
+          "job_title",
+          "source_url"
+        ],
+        "title": "ContactCreate",
+        "type": "object"
+      },
+      "ContactPersona": {
+        "description": "`contact.persona` (the Persona values table).",
+        "enum": [
+          "CIO",
+          "CTO",
+          "COO",
+          "CFO",
+          "CISO",
+          "HEAD_OF_DIGITAL_TRANSFORMATION",
+          "HEAD_OF_AUTOMATION",
+          "HEAD_OF_PROCESS_EXCELLENCE",
+          "HEAD_OF_SHARED_SERVICES",
+          "OTHER"
+        ],
+        "title": "ContactPersona",
+        "type": "string"
+      },
+      "ContactPersonaOrigin": {
+        "description": "`contact.persona_origin`.",
+        "enum": [
+          "MANUAL",
+          "CLASSIFIER"
+        ],
+        "title": "ContactPersonaOrigin",
+        "type": "string"
+      },
+      "ContactUpdate": {
+        "additionalProperties": false,
+        "description": "[`ContactUpdate`](/architecture/interfaces.md#contactupdate).",
+        "properties": {
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "job_title": {
+            "title": "Job Title",
+            "type": "string"
+          },
+          "persona": {
+            "$ref": "#/components/schemas/ContactPersona",
+            "title": "Persona"
+          },
+          "source_url": {
+            "title": "Source Url",
+            "type": "string"
+          }
+        },
+        "title": "ContactUpdate",
+        "type": "object"
+      },
       "CrmSyncStatus": {
         "description": "`crm_sync.status`.",
         "enum": [
@@ -1203,6 +1217,214 @@
         "title": "CrmSyncView",
         "type": "object"
       },
+      "DemoLoginRequest": {
+        "additionalProperties": false,
+        "description": "[`DemoLoginRequest`](/architecture/interfaces.md#demologinrequest).",
+        "properties": {
+          "role": {
+            "$ref": "#/components/schemas/AppUserRole"
+          }
+        },
+        "required": [
+          "role"
+        ],
+        "title": "DemoLoginRequest",
+        "type": "object"
+      },
+      "Dependency": {
+        "description": "`details.dependency` of `UPSTREAM_UNAVAILABLE`, exactly the\n[Dependencies](/architecture/interfaces.md#conventions) table's column: a wire-only enum,\nowned by interfaces and defined here once.",
+        "enum": [
+          "DATABASE",
+          "CLASSIFIER",
+          "LLM",
+          "EMBEDDER",
+          "HUBSPOT"
+        ],
+        "title": "Dependency",
+        "type": "string"
+      },
+      "DiscoveryCandidate": {
+        "additionalProperties": false,
+        "description": "[`DiscoveryCandidate`](/architecture/interfaces.md#discoverycandidate).",
+        "properties": {
+          "account_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Id"
+          },
+          "country_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country Code"
+          },
+          "domain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domain"
+          },
+          "employee_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Employee Count"
+          },
+          "evidence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DiscoveryCandidateEvidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fit_estimate": {
+            "title": "Fit Estimate",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "industry": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Industry"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "origin": {
+            "$ref": "#/components/schemas/DiscoveryCandidateOrigin"
+          },
+          "reject_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reject Reason"
+          },
+          "service_id": {
+            "title": "Service Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/DiscoveryCandidateStatus"
+          }
+        },
+        "required": [
+          "id",
+          "service_id",
+          "name",
+          "domain",
+          "country_code",
+          "industry",
+          "employee_count",
+          "origin",
+          "status",
+          "fit_estimate",
+          "evidence",
+          "reject_reason",
+          "account_id"
+        ],
+        "title": "DiscoveryCandidate",
+        "type": "object"
+      },
+      "DiscoveryCandidateEvidence": {
+        "additionalProperties": false,
+        "description": "`DiscoveryCandidate.evidence`.",
+        "properties": {
+          "document_id": {
+            "title": "Document Id",
+            "type": "string"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "quote": {
+            "title": "Quote",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "document_id",
+          "title",
+          "url",
+          "published_at",
+          "quote"
+        ],
+        "title": "DiscoveryCandidateEvidence",
+        "type": "object"
+      },
+      "DiscoveryCandidateOrigin": {
+        "description": "`discovery_candidate.origin`.",
+        "enum": [
+          "CRUNCHBASE_SEARCH",
+          "NEWS_MENTION"
+        ],
+        "title": "DiscoveryCandidateOrigin",
+        "type": "string"
+      },
+      "DiscoveryCandidateStatus": {
+        "description": "`discovery_candidate.status`.",
+        "enum": [
+          "PENDING",
+          "ACCEPTED",
+          "REJECTED"
+        ],
+        "title": "DiscoveryCandidateStatus",
+        "type": "string"
+      },
       "Disqualifier": {
         "additionalProperties": false,
         "description": "One entry of `disqualifiers`.",
@@ -1259,6 +1481,90 @@
         "title": "Disqualifier",
         "type": "object"
       },
+      "DisqualifierBreakdown": {
+        "additionalProperties": false,
+        "description": "One entry of `disqualifiers`: names the fact it tests by `kind` and its `criterion_key`\nor `question_key`, the other null.",
+        "properties": {
+          "criterion_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Criterion Key"
+          },
+          "finding_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finding Id"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/DisqualifierKind"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "matched": {
+            "title": "Matched",
+            "type": "boolean"
+          },
+          "overridden": {
+            "title": "Overridden",
+            "type": "boolean"
+          },
+          "override_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Override Id"
+          },
+          "question_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question Key"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "kind",
+          "criterion_key",
+          "question_key",
+          "matched",
+          "overridden",
+          "override_id",
+          "finding_id"
+        ],
+        "title": "DisqualifierBreakdown",
+        "type": "object"
+      },
       "DisqualifierKind": {
         "description": "The `kind` of a disqualifier of the [scoring settings document]\n(/architecture/sql-store.md#scoring-settings-document).",
         "enum": [
@@ -1266,6 +1572,15 @@
           "SIGNAL"
         ],
         "title": "DisqualifierKind",
+        "type": "string"
+      },
+      "DisqualifierOverrideStatus": {
+        "description": "`disqualifier_override.status`.",
+        "enum": [
+          "ACTIVE",
+          "REVOKED"
+        ],
+        "title": "DisqualifierOverrideStatus",
         "type": "string"
       },
       "DocumentSourceType": {
@@ -1287,6 +1602,100 @@
         ],
         "title": "DocumentTriageClassifier",
         "type": "string"
+      },
+      "ErrorBody": {
+        "additionalProperties": false,
+        "description": "`error` of [Conventions](/architecture/interfaces.md#conventions) `ErrorEnvelope`.",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "details": {
+            "$ref": "#/components/schemas/ErrorDetails",
+            "title": "Details"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ErrorBody",
+        "type": "object"
+      },
+      "ErrorDetailField": {
+        "additionalProperties": false,
+        "description": "One entry of `details.fields[]` ([Conventions](/architecture/interfaces.md#conventions)\n`VALIDATION`).",
+        "properties": {
+          "field": {
+            "title": "Field",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "field",
+          "message"
+        ],
+        "title": "ErrorDetailField",
+        "type": "object"
+      },
+      "ErrorDetails": {
+        "additionalProperties": false,
+        "description": "`details` of [Conventions](/architecture/interfaces.md#conventions) `ErrorEnvelope`: the\nclosed set of names the Envelope table gives. Every field is optional and, per the Naming\nparagraph (G10), absent rather than `null` when unset.",
+        "properties": {
+          "dependency": {
+            "$ref": "#/components/schemas/Dependency"
+          },
+          "entity_id": {
+            "format": "uuid",
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/ErrorDetailField"
+            },
+            "title": "Fields",
+            "type": "array"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "resets_at": {
+            "format": "date-time",
+            "title": "Resets At",
+            "type": "string"
+          },
+          "retry_after_min": {
+            "title": "Retry After Min",
+            "type": "integer"
+          }
+        },
+        "title": "ErrorDetails",
+        "type": "object"
+      },
+      "ErrorEnvelope": {
+        "additionalProperties": false,
+        "description": "The `{\"error\": {...}}` shape of [Conventions](/architecture/interfaces.md#conventions),\nnamed `ErrorEnvelope` in the OpenAPI document.",
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorBody"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "ErrorEnvelope",
+        "type": "object"
       },
       "EvaluationItem": {
         "additionalProperties": false,
@@ -1542,10 +1951,14 @@
         "title": "EvaluationResultSummary",
         "type": "object"
       },
-      "FeedbackCreate_FindingFeedbackVerdict_": {
+      "EvidenceView": {
         "additionalProperties": false,
+        "description": "[`EvidenceView`](/architecture/interfaces.md#evidenceview).",
         "properties": {
-          "note": {
+          "document": {
+            "$ref": "#/components/schemas/FindingDocument"
+          },
+          "excerpt": {
             "anyOf": [
               {
                 "type": "string"
@@ -1554,7 +1967,68 @@
                 "type": "null"
               }
             ],
-            "title": "Note"
+            "title": "Excerpt"
+          },
+          "finding_id": {
+            "title": "Finding Id",
+            "type": "string"
+          },
+          "purged": {
+            "title": "Purged",
+            "type": "boolean"
+          },
+          "quote_end": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quote End"
+          },
+          "quote_start": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quote Start"
+          },
+          "section": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section"
+          }
+        },
+        "required": [
+          "finding_id",
+          "document",
+          "section",
+          "purged",
+          "excerpt",
+          "quote_start",
+          "quote_end"
+        ],
+        "title": "EvidenceView",
+        "type": "object"
+      },
+      "FeedbackCreate_FindingFeedbackVerdict_": {
+        "additionalProperties": false,
+        "properties": {
+          "note": {
+            "title": "Note",
+            "type": "string"
           },
           "verdict": {
             "$ref": "#/components/schemas/FindingFeedbackVerdict"
@@ -1570,15 +2044,8 @@
         "additionalProperties": false,
         "properties": {
           "note": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Note"
+            "title": "Note",
+            "type": "string"
           },
           "verdict": {
             "$ref": "#/components/schemas/LeadFeedbackVerdict"
@@ -1598,6 +2065,63 @@
         ],
         "title": "FindingDecidedBy",
         "type": "string"
+      },
+      "FindingDocument": {
+        "additionalProperties": false,
+        "description": "`FindingView.document`, reused by `EvidenceView.document` (\"as in `FindingView`\").",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "plugin_code": {
+            "$ref": "#/components/schemas/SourcePluginCode"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "source_type": {
+            "$ref": "#/components/schemas/DocumentSourceType"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "url",
+          "source_type",
+          "plugin_code",
+          "language",
+          "published_at"
+        ],
+        "title": "FindingDocument",
+        "type": "object"
       },
       "FindingFeedbackVerdict": {
         "description": "`finding_feedback.verdict`.",
@@ -1883,17 +2407,87 @@
         "title": "FindingViewQuestion",
         "type": "object"
       },
-      "HTTPValidationError": {
+      "FitBreakdown": {
+        "additionalProperties": false,
+        "description": "The `fit` object.",
         "properties": {
-          "detail": {
+          "criteria": {
             "items": {
-              "$ref": "#/components/schemas/ValidationError"
+              "$ref": "#/components/schemas/FitCriterionBreakdown"
             },
-            "title": "Detail",
+            "title": "Criteria",
             "type": "array"
+          },
+          "value": {
+            "title": "Value",
+            "type": "integer"
           }
         },
-        "title": "HTTPValidationError",
+        "required": [
+          "value",
+          "criteria"
+        ],
+        "title": "FitBreakdown",
+        "type": "object"
+      },
+      "FitCriterionBreakdown": {
+        "additionalProperties": false,
+        "description": "One entry of `fit.criteria`.",
+        "properties": {
+          "attribute": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attribute"
+          },
+          "credit": {
+            "title": "Credit",
+            "type": "number"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ICPCriterionKind"
+          },
+          "match": {
+            "enum": [
+              "MATCH",
+              "MISMATCH",
+              "UNKNOWN"
+            ],
+            "title": "Match",
+            "type": "string"
+          },
+          "points": {
+            "title": "Points",
+            "type": "number"
+          },
+          "weight": {
+            "$ref": "#/components/schemas/WeightLevel"
+          },
+          "weight_value": {
+            "title": "Weight Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "key",
+          "kind",
+          "weight",
+          "weight_value",
+          "attribute",
+          "match",
+          "credit",
+          "points"
+        ],
+        "title": "FitCriterionBreakdown",
         "type": "object"
       },
       "Health": {
@@ -2723,6 +3317,306 @@
         "title": "MarketUpdate",
         "type": "object"
       },
+      "OutreachDraft": {
+        "additionalProperties": false,
+        "description": "[`OutreachDraft`](/architecture/interfaces.md#outreachdraft).",
+        "properties": {
+          "account_id": {
+            "title": "Account Id",
+            "type": "string"
+          },
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "channel": {
+            "$ref": "#/components/schemas/OutreachDraftChannel"
+          },
+          "contact": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OutreachDraftContact"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by_name": {
+            "title": "Created By Name",
+            "type": "string"
+          },
+          "edited": {
+            "title": "Edited",
+            "type": "boolean"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/OutreachDraftFinding"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "service_id": {
+            "title": "Service Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OutreachDraftStatus"
+          },
+          "subject": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject"
+          }
+        },
+        "required": [
+          "id",
+          "account_id",
+          "service_id",
+          "subject",
+          "body",
+          "edited",
+          "created_at",
+          "channel",
+          "status",
+          "contact",
+          "findings",
+          "created_by_name"
+        ],
+        "title": "OutreachDraft",
+        "type": "object"
+      },
+      "OutreachDraftChannel": {
+        "description": "`outreach_draft.channel`.",
+        "enum": [
+          "EMAIL",
+          "LINKEDIN_INMAIL"
+        ],
+        "title": "OutreachDraftChannel",
+        "type": "string"
+      },
+      "OutreachDraftContact": {
+        "additionalProperties": false,
+        "description": "`OutreachDraft.contact`.",
+        "properties": {
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "job_title": {
+            "title": "Job Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "full_name",
+          "job_title"
+        ],
+        "title": "OutreachDraftContact",
+        "type": "object"
+      },
+      "OutreachDraftFinding": {
+        "additionalProperties": false,
+        "description": "One entry of `OutreachDraft.findings`.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "question_text": {
+            "title": "Question Text",
+            "type": "string"
+          },
+          "quote": {
+            "title": "Quote",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "question_text",
+          "quote"
+        ],
+        "title": "OutreachDraftFinding",
+        "type": "object"
+      },
+      "OutreachDraftStatus": {
+        "description": "`outreach_draft.status`.",
+        "enum": [
+          "DRAFT",
+          "EXPORTED"
+        ],
+        "title": "OutreachDraftStatus",
+        "type": "string"
+      },
+      "OutreachDraftUpdate": {
+        "additionalProperties": false,
+        "description": "[`OutreachDraftUpdate`](/architecture/interfaces.md#outreachdraftupdate).",
+        "properties": {
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OutreachDraftStatus",
+            "title": "Status"
+          },
+          "subject": {
+            "title": "Subject",
+            "type": "string"
+          }
+        },
+        "title": "OutreachDraftUpdate",
+        "type": "object"
+      },
+      "OutreachRequest": {
+        "additionalProperties": false,
+        "description": "[`OutreachRequest`](/architecture/interfaces.md#outreachrequest).",
+        "properties": {
+          "channel": {
+            "$ref": "#/components/schemas/OutreachDraftChannel"
+          },
+          "contact_id": {
+            "title": "Contact Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel"
+        ],
+        "title": "OutreachRequest",
+        "type": "object"
+      },
+      "Override": {
+        "additionalProperties": false,
+        "description": "[`Override`](/architecture/interfaces.md#override).",
+        "properties": {
+          "account_id": {
+            "title": "Account Id",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by_name": {
+            "title": "Created By Name",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          },
+          "revoked_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked By Name"
+          },
+          "rule_key": {
+            "title": "Rule Key",
+            "type": "string"
+          },
+          "rule_label": {
+            "title": "Rule Label",
+            "type": "string"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "service_id": {
+            "title": "Service Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/DisqualifierOverrideStatus"
+          }
+        },
+        "required": [
+          "id",
+          "account_id",
+          "service_id",
+          "rule_key",
+          "note",
+          "rule_label",
+          "status",
+          "created_by_name",
+          "created_at",
+          "revoked_by_name",
+          "revoked_at",
+          "run_id"
+        ],
+        "title": "Override",
+        "type": "object"
+      },
+      "OverrideCreate": {
+        "additionalProperties": false,
+        "description": "[`OverrideCreate`](/architecture/interfaces.md#overridecreate).",
+        "properties": {
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "rule_key": {
+            "title": "Rule Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rule_key",
+          "note"
+        ],
+        "title": "OverrideCreate",
+        "type": "object"
+      },
       "Page_AccountRow_": {
         "additionalProperties": false,
         "properties": {
@@ -2817,6 +3711,38 @@
           "total"
         ],
         "title": "Page[AuditEntry]",
+        "type": "object"
+      },
+      "Page_DiscoveryCandidate_": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DiscoveryCandidate"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "title": "Page Size",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "page",
+          "page_size",
+          "total"
+        ],
+        "title": "Page[DiscoveryCandidate]",
         "type": "object"
       },
       "Page_EvaluationItem_": {
@@ -2935,6 +3861,279 @@
         "title": "PipelineRunTrigger",
         "type": "string"
       },
+      "ProspectAccount": {
+        "additionalProperties": false,
+        "description": "`ProspectRow.account`.",
+        "properties": {
+          "country_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country Code"
+          },
+          "domain": {
+            "title": "Domain",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "industry": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Industry"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "domain",
+          "country_code",
+          "industry"
+        ],
+        "title": "ProspectAccount",
+        "type": "object"
+      },
+      "ProspectPage": {
+        "additionalProperties": false,
+        "description": "[`ProspectPage`](/architecture/interfaces.md#prospectpage): `Page<ProspectRow>` plus\n`band_counts`.",
+        "properties": {
+          "band_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/AccountScoreBand"
+            },
+            "title": "Band Counts",
+            "type": "object"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ProspectRow"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "title": "Page Size",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "page",
+          "page_size",
+          "total",
+          "band_counts"
+        ],
+        "title": "ProspectPage",
+        "type": "object"
+      },
+      "ProspectReason": {
+        "additionalProperties": false,
+        "description": "`ProspectRow.reason`: null when `RANKED`; the other members are null besides the one its\nstanding names.",
+        "properties": {
+          "customer_marked_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Marked By Name"
+          },
+          "disqualifier_labels": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Disqualifier Labels"
+          },
+          "min_fit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Fit"
+          }
+        },
+        "required": [
+          "min_fit",
+          "disqualifier_labels",
+          "customer_marked_by_name"
+        ],
+        "title": "ProspectReason",
+        "type": "object"
+      },
+      "ProspectRow": {
+        "additionalProperties": false,
+        "description": "[`ProspectRow`](/architecture/interfaces.md#prospectrow).",
+        "properties": {
+          "account": {
+            "$ref": "#/components/schemas/ProspectAccount"
+          },
+          "as_of": {
+            "title": "As Of",
+            "type": "string"
+          },
+          "band": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountScoreBand"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "finding_count": {
+            "title": "Finding Count",
+            "type": "integer"
+          },
+          "fit": {
+            "title": "Fit",
+            "type": "integer"
+          },
+          "intent": {
+            "title": "Intent",
+            "type": "integer"
+          },
+          "last_refreshed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Refreshed At"
+          },
+          "priority": {
+            "title": "Priority",
+            "type": "integer"
+          },
+          "rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rank"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProspectReason"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "standing": {
+            "$ref": "#/components/schemas/AccountScoreStanding"
+          },
+          "top_signals": {
+            "items": {
+              "$ref": "#/components/schemas/ProspectTopSignal"
+            },
+            "title": "Top Signals",
+            "type": "array"
+          },
+          "unread_alerts": {
+            "title": "Unread Alerts",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "rank",
+          "account",
+          "fit",
+          "intent",
+          "priority",
+          "standing",
+          "band",
+          "reason",
+          "top_signals",
+          "finding_count",
+          "unread_alerts",
+          "as_of",
+          "last_refreshed_at"
+        ],
+        "title": "ProspectRow",
+        "type": "object"
+      },
+      "ProspectTopSignal": {
+        "additionalProperties": false,
+        "description": "One entry of `ProspectRow.top_signals`.",
+        "properties": {
+          "observed_at": {
+            "title": "Observed At",
+            "type": "string"
+          },
+          "question_key": {
+            "title": "Question Key",
+            "type": "string"
+          },
+          "question_text": {
+            "title": "Question Text",
+            "type": "string"
+          },
+          "strength": {
+            "$ref": "#/components/schemas/FindingStrength"
+          }
+        },
+        "required": [
+          "question_key",
+          "question_text",
+          "strength",
+          "observed_at"
+        ],
+        "title": "ProspectTopSignal",
+        "type": "object"
+      },
       "QuestionOption": {
         "additionalProperties": false,
         "description": "One entry of [`SignalQuestion`](/architecture/interfaces.md#signalquestion) `options`.",
@@ -2958,6 +4157,192 @@
           "strength"
         ],
         "title": "QuestionOption",
+        "type": "object"
+      },
+      "QuestionPreview": {
+        "additionalProperties": false,
+        "description": "[`QuestionPreview`](/architecture/interfaces.md#questionpreview).",
+        "properties": {
+          "classifier": {
+            "$ref": "#/components/schemas/DocumentTriageClassifier"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/QuestionPreviewResult"
+            },
+            "title": "Results",
+            "type": "array"
+          }
+        },
+        "required": [
+          "classifier",
+          "results"
+        ],
+        "title": "QuestionPreview",
+        "type": "object"
+      },
+      "QuestionPreviewDocument": {
+        "additionalProperties": false,
+        "description": "`QuestionPreview.results[].document`.",
+        "properties": {
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "url",
+          "published_at"
+        ],
+        "title": "QuestionPreviewDocument",
+        "type": "object"
+      },
+      "QuestionPreviewRequest": {
+        "additionalProperties": false,
+        "description": "[`QuestionPreviewRequest`](/architecture/interfaces.md#questionpreviewrequest).",
+        "properties": {
+          "account_id": {
+            "title": "Account Id",
+            "type": "string"
+          },
+          "answer_type": {
+            "$ref": "#/components/schemas/SignalQuestionAnswerType",
+            "title": "Answer Type"
+          },
+          "hint_terms": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Hint Terms",
+            "type": "array"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/QuestionOption"
+            },
+            "title": "Options",
+            "type": "array"
+          },
+          "question_id": {
+            "title": "Question Id",
+            "type": "string"
+          },
+          "sample_text": {
+            "title": "Sample Text",
+            "type": "string"
+          },
+          "service_id": {
+            "title": "Service Id",
+            "type": "string"
+          },
+          "source_types": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentSourceType"
+            },
+            "title": "Source Types",
+            "type": "array"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "service_id"
+        ],
+        "title": "QuestionPreviewRequest",
+        "type": "object"
+      },
+      "QuestionPreviewResult": {
+        "additionalProperties": false,
+        "description": "One entry of `QuestionPreview.results`.",
+        "properties": {
+          "document": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QuestionPreviewDocument"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "escalated": {
+            "title": "Escalated",
+            "type": "boolean"
+          },
+          "p_positive": {
+            "title": "P Positive",
+            "type": "number"
+          },
+          "passage": {
+            "title": "Passage",
+            "type": "string"
+          },
+          "quote": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quote"
+          },
+          "quote_en": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quote En"
+          },
+          "rationale": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rationale"
+          },
+          "strength": {
+            "$ref": "#/components/schemas/FindingStrength"
+          }
+        },
+        "required": [
+          "passage",
+          "document",
+          "p_positive",
+          "escalated",
+          "strength",
+          "quote",
+          "quote_en",
+          "rationale"
+        ],
+        "title": "QuestionPreviewResult",
         "type": "object"
       },
       "QuestionSetting": {
@@ -3347,7 +4732,305 @@
         "title": "ScoreChangeOverride",
         "type": "object"
       },
-      "ScoringConfigModel": {
+      "ScoreView": {
+        "additionalProperties": false,
+        "description": "[`ScoreView`](/architecture/interfaces.md#scoreview).",
+        "properties": {
+          "account_id": {
+            "title": "Account Id",
+            "type": "string"
+          },
+          "as_of": {
+            "title": "As Of",
+            "type": "string"
+          },
+          "band": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountScoreBand"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "breakdown": {
+            "$ref": "#/components/schemas/ScoreViewBreakdown"
+          },
+          "fit": {
+            "title": "Fit",
+            "type": "integer"
+          },
+          "intent": {
+            "title": "Intent",
+            "type": "integer"
+          },
+          "last_crm_sync": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CrmSyncView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lead_feedback": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LeadFeedback"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "overrides": {
+            "items": {
+              "$ref": "#/components/schemas/Override"
+            },
+            "title": "Overrides",
+            "type": "array"
+          },
+          "priority": {
+            "title": "Priority",
+            "type": "integer"
+          },
+          "rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rank"
+          },
+          "score_id": {
+            "title": "Score Id",
+            "type": "string"
+          },
+          "scoring_version": {
+            "title": "Scoring Version",
+            "type": "integer"
+          },
+          "service_id": {
+            "title": "Service Id",
+            "type": "string"
+          },
+          "standing": {
+            "$ref": "#/components/schemas/AccountScoreStanding"
+          }
+        },
+        "required": [
+          "score_id",
+          "account_id",
+          "service_id",
+          "scoring_version",
+          "as_of",
+          "fit",
+          "intent",
+          "priority",
+          "standing",
+          "band",
+          "rank",
+          "breakdown",
+          "overrides",
+          "lead_feedback",
+          "last_crm_sync"
+        ],
+        "title": "ScoreView",
+        "type": "object"
+      },
+      "ScoreViewBreakdown": {
+        "additionalProperties": false,
+        "description": "`ScoreView.breakdown`: [Score breakdown](/architecture/rules.md#score-breakdown) with\neach question entry's `question_text` added.",
+        "properties": {
+          "as_of": {
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "band": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountScoreBand"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "disqualifiers": {
+            "items": {
+              "$ref": "#/components/schemas/DisqualifierBreakdown"
+            },
+            "title": "Disqualifiers",
+            "type": "array"
+          },
+          "fit": {
+            "$ref": "#/components/schemas/FitBreakdown"
+          },
+          "intent": {
+            "$ref": "#/components/schemas/ScoreViewIntentBreakdown"
+          },
+          "priority": {
+            "title": "Priority",
+            "type": "integer"
+          },
+          "settings_version": {
+            "title": "Settings Version",
+            "type": "integer"
+          },
+          "standing": {
+            "$ref": "#/components/schemas/AccountScoreStanding"
+          }
+        },
+        "required": [
+          "settings_version",
+          "as_of",
+          "fit",
+          "intent",
+          "disqualifiers",
+          "priority",
+          "standing",
+          "band"
+        ],
+        "title": "ScoreViewBreakdown",
+        "type": "object"
+      },
+      "ScoreViewIntentBreakdown": {
+        "additionalProperties": false,
+        "description": "`ScoreView.breakdown.intent`, whose question entries carry `question_text`.",
+        "properties": {
+          "max_positive": {
+            "title": "Max Positive",
+            "type": "number"
+          },
+          "negative_sum": {
+            "title": "Negative Sum",
+            "type": "number"
+          },
+          "positive_sum": {
+            "title": "Positive Sum",
+            "type": "number"
+          },
+          "questions": {
+            "items": {
+              "$ref": "#/components/schemas/ScoreViewQuestionBreakdown"
+            },
+            "title": "Questions",
+            "type": "array"
+          },
+          "value": {
+            "title": "Value",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "value",
+          "positive_sum",
+          "negative_sum",
+          "max_positive",
+          "questions"
+        ],
+        "title": "ScoreViewIntentBreakdown",
+        "type": "object"
+      },
+      "ScoreViewQuestionBreakdown": {
+        "additionalProperties": false,
+        "description": "`ScoreView.breakdown`'s question entries, with `question_text` and the counted finding's\n`observed_at` added on read ([`ScoreView`](/architecture/interfaces.md#scoreview)).",
+        "properties": {
+          "decay": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decay"
+          },
+          "finding_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finding Id"
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed At"
+          },
+          "points": {
+            "title": "Points",
+            "type": "number"
+          },
+          "polarity": {
+            "$ref": "#/components/schemas/SignalQuestionPolarity"
+          },
+          "question_key": {
+            "title": "Question Key",
+            "type": "string"
+          },
+          "question_text": {
+            "title": "Question Text",
+            "type": "string"
+          },
+          "strength": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FindingStrength"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          },
+          "weight": {
+            "$ref": "#/components/schemas/WeightLevel"
+          },
+          "weight_value": {
+            "title": "Weight Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "question_key",
+          "polarity",
+          "weight",
+          "weight_value",
+          "finding_id",
+          "strength",
+          "decay",
+          "value",
+          "points",
+          "question_text",
+          "observed_at"
+        ],
+        "title": "ScoreViewQuestionBreakdown",
+        "type": "object"
+      },
+      "ScoringConfig": {
         "additionalProperties": false,
         "description": "[`ScoringConfig`](/architecture/interfaces.md#scoringconfig).",
         "properties": {
@@ -3418,7 +5101,7 @@
           "activated_by_name",
           "settings"
         ],
-        "title": "ScoringConfigModel",
+        "title": "ScoringConfig",
         "type": "object"
       },
       "ScoringConfigStatus": {
@@ -3431,7 +5114,7 @@
         "title": "ScoringConfigStatus",
         "type": "string"
       },
-      "ScoringConfigSummaryModel": {
+      "ScoringConfigSummary": {
         "additionalProperties": false,
         "description": "[`ScoringConfigSummary`](/architecture/interfaces.md#scoringconfigsummary).",
         "properties": {
@@ -3496,7 +5179,7 @@
           "activated_at",
           "activated_by_name"
         ],
-        "title": "ScoringConfigSummaryModel",
+        "title": "ScoringConfigSummary",
         "type": "object"
       },
       "ScoringDraftUpdate": {
@@ -3504,18 +5187,11 @@
         "description": "[`ScoringDraftUpdate`](/architecture/interfaces.md#scoringdraftupdate).",
         "properties": {
           "change_note": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Change Note"
+            "title": "Change Note",
+            "type": "string"
           },
           "settings": {
-            "$ref": "#/components/schemas/ScoringSettingsDocument"
+            "$ref": "#/components/schemas/ScoringSettings"
           }
         },
         "required": [
@@ -3524,13 +5200,136 @@
         "title": "ScoringDraftUpdate",
         "type": "object"
       },
-      "ScoringSettingsDocument": {
+      "ScoringPreview": {
+        "additionalProperties": false,
+        "description": "[`ScoringPreview`](/architecture/interfaces.md#scoringpreview).",
+        "properties": {
+          "active_version": {
+            "title": "Active Version",
+            "type": "integer"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/ScoringPreviewChange"
+            },
+            "title": "Changes",
+            "type": "array"
+          },
+          "draft_version": {
+            "title": "Draft Version",
+            "type": "integer"
+          },
+          "unchanged_count": {
+            "title": "Unchanged Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "draft_version",
+          "active_version",
+          "changes",
+          "unchanged_count"
+        ],
+        "title": "ScoringPreview",
+        "type": "object"
+      },
+      "ScoringPreviewAccount": {
+        "additionalProperties": false,
+        "description": "`ScoringPreview.changes[].account`.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "ScoringPreviewAccount",
+        "type": "object"
+      },
+      "ScoringPreviewChange": {
+        "additionalProperties": false,
+        "description": "One entry of `ScoringPreview.changes`.",
+        "properties": {
+          "account": {
+            "$ref": "#/components/schemas/ScoringPreviewAccount"
+          },
+          "current": {
+            "$ref": "#/components/schemas/ScoringPreviewScore"
+          },
+          "proposed": {
+            "$ref": "#/components/schemas/ScoringPreviewScore"
+          }
+        },
+        "required": [
+          "account",
+          "current",
+          "proposed"
+        ],
+        "title": "ScoringPreviewChange",
+        "type": "object"
+      },
+      "ScoringPreviewScore": {
+        "additionalProperties": false,
+        "description": "`ScoringPreview.changes[].current` and `.proposed`.",
+        "properties": {
+          "band": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountScoreBand"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "priority": {
+            "title": "Priority",
+            "type": "integer"
+          },
+          "rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rank"
+          },
+          "standing": {
+            "$ref": "#/components/schemas/AccountScoreStanding"
+          }
+        },
+        "required": [
+          "priority",
+          "standing",
+          "band",
+          "rank"
+        ],
+        "title": "ScoringPreviewScore",
+        "type": "object"
+      },
+      "ScoringSettings": {
         "additionalProperties": false,
         "description": "The `settings` column of [`scoring_config`](/architecture/sql-store.md#scoring_config).",
         "properties": {
           "default_half_life_days": {
             "additionalProperties": {
               "type": "integer"
+            },
+            "default": {
+              "COMPANY_PROFILE": 365,
+              "COMPANY_PUBLICATION": 365,
+              "JOB_POSTING": 60,
+              "NEWS": 90
             },
             "title": "Default Half Life Days",
             "type": "object"
@@ -3544,10 +5343,12 @@
             "type": "array"
           },
           "fit_weight": {
+            "default": 0.4,
             "title": "Fit Weight",
             "type": "number"
           },
           "hot_threshold": {
+            "default": 70,
             "title": "Hot Threshold",
             "type": "integer"
           },
@@ -3560,22 +5361,27 @@
             "type": "array"
           },
           "intent_saturation": {
+            "default": 0.5,
             "title": "Intent Saturation",
             "type": "number"
           },
           "intent_weight": {
+            "default": 0.6,
             "title": "Intent Weight",
             "type": "number"
           },
           "min_decay": {
+            "default": 0.05,
             "title": "Min Decay",
             "type": "number"
           },
           "min_fit": {
+            "default": 40,
             "title": "Min Fit",
             "type": "integer"
           },
           "negative_factor": {
+            "default": 1.0,
             "title": "Negative Factor",
             "type": "number"
           },
@@ -3591,14 +5397,21 @@
             "additionalProperties": {
               "type": "number"
             },
+            "default": {
+              "MEDIUM": 0.75,
+              "STRONG": 1.0,
+              "WEAK": 0.5
+            },
             "title": "Strength Values",
             "type": "object"
           },
           "unknown_match": {
+            "default": 0.5,
             "title": "Unknown Match",
             "type": "number"
           },
           "warm_threshold": {
+            "default": 40,
             "title": "Warm Threshold",
             "type": "integer"
           },
@@ -3606,25 +5419,17 @@
             "additionalProperties": {
               "type": "number"
             },
+            "default": {
+              "HIGH": 3,
+              "LOW": 1,
+              "MEDIUM": 2,
+              "NONE": 0
+            },
             "title": "Weight Values",
             "type": "object"
           }
         },
-        "required": [
-          "fit_weight",
-          "intent_weight",
-          "min_fit",
-          "hot_threshold",
-          "warm_threshold",
-          "weight_values",
-          "strength_values",
-          "default_half_life_days",
-          "min_decay",
-          "negative_factor",
-          "intent_saturation",
-          "unknown_match"
-        ],
-        "title": "ScoringSettingsDocument",
+        "title": "ScoringSettings",
         "type": "object"
       },
       "Service": {
@@ -4273,91 +6078,23 @@
         "description": "[`UserUpdate`](/architecture/interfaces.md#userupdate). `password`'s `PASSWORD_MIN_LENGTH`\nis enforced once, by `auth.users.update_user` (`UserCreate`'s note).",
         "properties": {
           "display_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Display Name"
+            "title": "Display Name",
+            "type": "string"
           },
           "password": {
-            "anyOf": [
-              {
-                "format": "password",
-                "type": "string",
-                "writeOnly": true
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Password"
+            "format": "password",
+            "title": "Password",
+            "type": "string",
+            "writeOnly": true
           },
           "role": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AppUserRole"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/AppUserRole"
           },
           "status": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AppUserStatus"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/AppUserStatus"
           }
         },
         "title": "UserUpdate",
-        "type": "object"
-      },
-      "ValidationError": {
-        "properties": {
-          "ctx": {
-            "title": "Context",
-            "type": "object"
-          },
-          "input": {
-            "title": "Input"
-          },
-          "loc": {
-            "items": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "integer"
-                }
-              ]
-            },
-            "title": "Location",
-            "type": "array"
-          },
-          "msg": {
-            "title": "Message",
-            "type": "string"
-          },
-          "type": {
-            "title": "Error Type",
-            "type": "string"
-          }
-        },
-        "required": [
-          "loc",
-          "msg",
-          "type"
-        ],
-        "title": "ValidationError",
         "type": "object"
       },
       "WeightLevel": {
@@ -4520,15 +6257,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Get Accounts",
@@ -4578,15 +6315,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Post Account",
@@ -4638,15 +6375,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Post Accounts Import",
@@ -4698,15 +6435,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Get Account",
@@ -4766,20 +6503,269 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Patch Account",
         "tags": [
           "accounts-and-contacts"
+        ]
+      }
+    },
+    "/api/v1/accounts/{id}/contacts": {
+      "get": {
+        "description": "`API-25`.",
+        "operationId": "list_contacts_api_v1_accounts__id__contacts_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "title": "Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Contact"
+                  },
+                  "title": "Response List Contacts Api V1 Accounts  Id  Contacts Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List Contacts",
+        "tags": [
+          "accounts-and-contacts"
+        ]
+      },
+      "post": {
+        "description": "`API-26`.",
+        "operationId": "create_contact_api_v1_accounts__id__contacts_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "title": "Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Contact"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Create Contact",
+        "tags": [
+          "accounts-and-contacts"
+        ]
+      }
+    },
+    "/api/v1/accounts/{id}/findings": {
+      "get": {
+        "description": "`API-42`.",
+        "operationId": "list_findings_api_v1_accounts__id__findings_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "service_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Service Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "question_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Question Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/FindingStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FindingView"
+                  },
+                  "title": "Response List Findings Api V1 Accounts  Id  Findings Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List Findings",
+        "tags": [
+          "prospects-and-evidence"
+        ]
+      }
+    },
+    "/api/v1/accounts/{id}/outreach-drafts": {
+      "get": {
+        "description": "`API-57`.",
+        "operationId": "list_outreach_drafts_api_v1_accounts__id__outreach_drafts_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "title": "Service Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OutreachDraft"
+                  },
+                  "title": "Response List Outreach Drafts Api V1 Accounts  Id  Outreach Drafts Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List Outreach Drafts",
+        "tags": [
+          "outreach-and-crm"
         ]
       }
     },
@@ -4836,20 +6822,72 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Post Account Refresh",
         "tags": [
           "runs-and-source-plugins"
+        ]
+      }
+    },
+    "/api/v1/accounts/{id}/scores/{service_id}": {
+      "get": {
+        "description": "`API-40`.",
+        "operationId": "get_score_api_v1_accounts__id__scores__service_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "title": "Service Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoreView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get Score",
+        "tags": [
+          "prospects-and-evidence"
         ]
       }
     },
@@ -4906,15 +6944,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Post Crm Push",
@@ -4986,15 +7024,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Post Lead Feedback",
@@ -5060,20 +7098,144 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Get Score History",
         "tags": [
           "feedback-and-alerts"
+        ]
+      }
+    },
+    "/api/v1/accounts/{id}/scores/{service_id}/outreach-drafts": {
+      "post": {
+        "description": "`API-56`.",
+        "operationId": "create_outreach_draft_api_v1_accounts__id__scores__service_id__outreach_drafts_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "title": "Service Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OutreachRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutreachDraft"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Create Outreach Draft",
+        "tags": [
+          "outreach-and-crm"
+        ]
+      }
+    },
+    "/api/v1/accounts/{id}/scores/{service_id}/overrides": {
+      "post": {
+        "description": "`API-44`.",
+        "operationId": "create_override_api_v1_accounts__id__scores__service_id__overrides_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "title": "Service Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OverrideCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Override"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Create Override",
+        "tags": [
+          "prospects-and-evidence"
         ]
       }
     },
@@ -5171,15 +7333,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Get Alerts",
@@ -5231,15 +7393,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Post Alert Acknowledge",
@@ -5429,20 +7591,62 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Get Audit",
         "tags": [
           "audit-and-health"
+        ]
+      }
+    },
+    "/api/v1/auth/demo-login": {
+      "post": {
+        "description": "`API-78`.",
+        "operationId": "demo_login_api_v1_auth_demo_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DemoLoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthenticatedUser"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Demo Login",
+        "tags": [
+          "authentication-and-users"
         ]
       }
     },
@@ -5470,15 +7674,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Login",
@@ -5505,15 +7709,15 @@
           "204": {
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Logout",
@@ -5554,20 +7758,298 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Me",
         "tags": [
           "authentication-and-users"
+        ]
+      }
+    },
+    "/api/v1/contacts/{id}": {
+      "delete": {
+        "description": "`API-28`.",
+        "operationId": "delete_contact_api_v1_contacts__id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "title": "Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Delete Contact",
+        "tags": [
+          "accounts-and-contacts"
+        ]
+      },
+      "patch": {
+        "description": "`API-27`.",
+        "operationId": "update_contact_api_v1_contacts__id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "title": "Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Contact"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Update Contact",
+        "tags": [
+          "accounts-and-contacts"
+        ]
+      }
+    },
+    "/api/v1/discovery-candidates": {
+      "get": {
+        "description": "`API-30`.",
+        "operationId": "list_discovery_candidates_api_v1_discovery_candidates_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "service_id",
+            "required": true,
+            "schema": {
+              "title": "Service Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/DiscoveryCandidateStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Page Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_DiscoveryCandidate_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List Discovery Candidates",
+        "tags": [
+          "discovery"
+        ]
+      }
+    },
+    "/api/v1/discovery-candidates/{id}/accept": {
+      "post": {
+        "description": "`API-31`.",
+        "operationId": "accept_discovery_candidate_api_v1_discovery_candidates__id__accept_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "title": "Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CandidateDecision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Accept Discovery Candidate",
+        "tags": [
+          "discovery"
+        ]
+      }
+    },
+    "/api/v1/discovery-candidates/{id}/reject": {
+      "post": {
+        "description": "`API-32`.",
+        "operationId": "reject_discovery_candidate_api_v1_discovery_candidates__id__reject_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "title": "Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CandidateDecision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscoveryCandidate"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Reject Discovery Candidate",
+        "tags": [
+          "discovery"
         ]
       }
     },
@@ -5681,15 +8163,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Get Evaluation Items",
@@ -5739,15 +8221,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Post Evaluation Item",
@@ -5799,15 +8281,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Get Label Queue",
@@ -5853,15 +8335,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Get Evaluation Results",
@@ -5913,15 +8395,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Get Evaluation Result",
@@ -5973,20 +8455,63 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Post Evaluation Run",
         "tags": [
           "evaluation"
+        ]
+      }
+    },
+    "/api/v1/findings/{id}/evidence": {
+      "get": {
+        "description": "`API-43`.",
+        "operationId": "get_evidence_api_v1_findings__id__evidence_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "title": "Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get Evidence",
+        "tags": [
+          "prospects-and-evidence"
         ]
       }
     },
@@ -6043,15 +8568,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Post Finding Feedback",
@@ -6084,6 +8609,16 @@
               }
             },
             "description": "Service Unavailable"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Error"
           }
         },
         "summary": "Get Health",
@@ -6125,15 +8660,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Get Impact",
@@ -6195,15 +8730,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "List Industries Route",
@@ -6253,15 +8788,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Create Industry Route",
@@ -6322,15 +8857,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Update Industry Route",
@@ -6392,15 +8927,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "List Markets Route",
@@ -6450,15 +8985,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Create Market Route",
@@ -6519,20 +9054,158 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Update Market Route",
         "tags": [
           "configuration"
+        ]
+      }
+    },
+    "/api/v1/outreach-drafts/{id}": {
+      "patch": {
+        "description": "`API-58`.",
+        "operationId": "update_outreach_draft_api_v1_outreach_drafts__id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "title": "Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OutreachDraftUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutreachDraft"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Update Outreach Draft",
+        "tags": [
+          "outreach-and-crm"
+        ]
+      }
+    },
+    "/api/v1/overrides/{id}/revoke": {
+      "post": {
+        "description": "`API-45`.",
+        "operationId": "revoke_override_api_v1_overrides__id__revoke_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "title": "Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Override"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Revoke Override",
+        "tags": [
+          "prospects-and-evidence"
+        ]
+      }
+    },
+    "/api/v1/questions/preview": {
+      "post": {
+        "description": "`API-14`.",
+        "operationId": "preview_question_api_v1_questions_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuestionPreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionPreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Preview Question",
+        "tags": [
+          "services-and-questions"
         ]
       }
     },
@@ -6589,15 +9262,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Update Question Route",
@@ -6733,15 +9406,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Get Runs",
@@ -6793,15 +9466,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Get Run By Id",
@@ -6853,15 +9526,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Post Run Cancel",
@@ -6907,21 +9580,21 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ScoringConfigModel"
+                  "$ref": "#/components/schemas/ScoringConfig"
                 }
               }
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Get Scoring Config Route",
@@ -6976,23 +9649,68 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/ScoringConfig"
+                }
               }
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "API-18: Activate a DRAFT scoring config",
+        "tags": [
+          "scoring"
+        ]
+      }
+    },
+    "/api/v1/scoring-configs/{id}/preview": {
+      "post": {
+        "description": "`API-19`.",
+        "operationId": "preview_scoring_config_api_v1_scoring_configs__id__preview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "title": "Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoringPreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Preview Scoring Config",
         "tags": [
           "scoring"
         ]
@@ -7035,15 +9753,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "List Services",
@@ -7093,15 +9811,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Create Service Route",
@@ -7153,15 +9871,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Get Service Route",
@@ -7221,20 +9939,237 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Update Service Route",
         "tags": [
           "configuration"
+        ]
+      }
+    },
+    "/api/v1/services/{id}/discovery-runs": {
+      "post": {
+        "description": "`API-29`.",
+        "operationId": "start_discovery_run_api_v1_services__id__discovery_runs_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "title": "Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Run"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Start Discovery Run",
+        "tags": [
+          "discovery"
+        ]
+      }
+    },
+    "/api/v1/services/{id}/prospects": {
+      "get": {
+        "description": "`API-39`.",
+        "operationId": "list_prospects_api_v1_services__id__prospects_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "standing",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/AccountScoreStanding",
+              "default": "RANKED"
+            }
+          },
+          {
+            "in": "query",
+            "name": "band",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/components/schemas/AccountScoreBand"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Band"
+            }
+          },
+          {
+            "in": "query",
+            "name": "country_code",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Country Code"
+            }
+          },
+          {
+            "in": "query",
+            "name": "industry",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Industry"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "priority",
+                    "intent",
+                    "fit",
+                    "name",
+                    "last_refreshed"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Sort"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Page Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProspectPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List Prospects",
+        "tags": [
+          "prospects-and-evidence"
         ]
       }
     },
@@ -7285,15 +10220,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "List Questions Route",
@@ -7353,15 +10288,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Create Question Route",
@@ -7408,7 +10343,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/ScoringConfigSummaryModel"
+                    "$ref": "#/components/schemas/ScoringConfigSummary"
                   },
                   "title": "Response List Scoring Configs Route Api V1 Services  Id  Scoring Configs Get",
                   "type": "array"
@@ -7417,15 +10352,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "List Scoring Configs Route",
@@ -7481,21 +10416,21 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ScoringConfigModel"
+                  "$ref": "#/components/schemas/ScoringConfig"
                 }
               }
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Save Scoring Draft Route",
@@ -7541,15 +10476,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Get Source Plugins",
@@ -7609,15 +10544,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Patch Source Plugin",
@@ -7662,15 +10597,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Get Users",
@@ -7719,15 +10654,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Create User Route",
@@ -7736,17 +10671,17 @@
         ]
       }
     },
-    "/api/v1/users/{user_id}": {
+    "/api/v1/users/{id}": {
       "patch": {
-        "operationId": "update_user_route_api_v1_users__user_id__patch",
+        "operationId": "update_user_route_api_v1_users__id__patch",
         "parameters": [
           {
             "in": "path",
-            "name": "user_id",
+            "name": "id",
             "required": true,
             "schema": {
               "format": "uuid",
-              "title": "User Id",
+              "title": "Id",
               "type": "string"
             }
           },
@@ -7788,15 +10723,15 @@
             },
             "description": "Successful Response"
           },
-          "422": {
+          "default": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Error"
           }
         },
         "summary": "Update User Route",

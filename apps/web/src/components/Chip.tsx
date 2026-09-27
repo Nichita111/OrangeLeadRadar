@@ -2,11 +2,13 @@ import type { ReactNode } from "react";
 
 import { cn } from "./cn";
 
-export type ChipTone = "neutral" | "accent" | "positive" | "negative" | "caution" | "cool";
+export type ChipTone =
+  "neutral" | "accent" | "accentFilled" | "positive" | "negative" | "caution" | "cool";
 
 const tones: Record<ChipTone, string> = {
   neutral: "bg-page text-text-secondary border border-border",
   accent: "bg-accent-soft text-accent-ink",
+  accentFilled: "bg-accent text-on-accent",
   positive: "bg-positive-soft text-positive",
   negative: "bg-negative-soft text-negative",
   caution: "bg-caution-soft text-caution",

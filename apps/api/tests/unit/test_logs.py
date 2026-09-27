@@ -93,3 +93,12 @@ def test_an_exception_log_line_is_still_one_json_line_with_the_traceback(
     assert "\n" not in line
     record = json.loads(line)
     assert "ValueError: boom" in record["exc_info"]
+
+
+def test_at_info_no_sql_statement_line_is_written(capsys: pytest.CaptureFixture[str]) -> None:
+    """SQL text and bound parameters must not reach the log at `INFO`
+    ([Python Style](/guidelines/python.md#style): never log a contact name)."""
+    configure_json_logging("INFO")
+    logging.getLogger("sqlalchemy.engine.Engine").info("SELECT name FROM contact")
+
+    assert capsys.readouterr().out == ""

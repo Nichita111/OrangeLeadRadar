@@ -31,6 +31,7 @@ from leadradar.accounts.queries import (
     list_accounts,
 )
 from leadradar.api.authentication import CurrentUser
+from leadradar.api.pagination import Page
 from leadradar.core.enums import (
     AccountOperationalComplexity,
     AccountOrigin,
@@ -43,17 +44,6 @@ from leadradar.db.models.accounts import Account as AccountModel
 from leadradar.db.session import get_session
 
 router = APIRouter(tags=["accounts-and-contacts"])
-
-
-class Page[ItemT](BaseModel):
-    """`Page<T>` ([Conventions](/architecture/interfaces.md#conventions) Pagination)."""
-
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    items: list[ItemT]
-    page: int
-    page_size: int
-    total: int
 
 
 class AccountRow(BaseModel):
@@ -136,14 +126,14 @@ class AccountCreate(BaseModel):
 
     domain: str
     name: str
-    country_code: str | None = None
-    industry: str | None = None
-    employee_count: int | None = None
-    revenue_eur: int | None = None
-    operational_complexity: AccountOperationalComplexity | None = None
-    parent_account_id: uuid.UUID | None = None
-    linkedin_url: str | None = None
-    notes: str | None = None
+    country_code: str = None
+    industry: str = None
+    employee_count: int = None
+    revenue_eur: int = None
+    operational_complexity: AccountOperationalComplexity = None
+    parent_account_id: uuid.UUID = None
+    linkedin_url: str = None
+    notes: str = None
     aliases: list[str] = []
     sources: list[AccountCreateSource] = []
 
@@ -165,17 +155,18 @@ class AccountUpdate(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    country_code: str | None = None
-    industry: str | None = None
-    employee_count: int | None = None
-    revenue_eur: int | None = None
-    operational_complexity: AccountOperationalComplexity | None = None
-    parent_account_id: uuid.UUID | None = None
-    linkedin_url: str | None = None
-    notes: str | None = None
-    status: AccountStatus | None = None
-    aliases: list[str] | None = None
-    sources: list[AccountUpdateSource] | None = None
+    name: str = None
+    country_code: str = None
+    industry: str = None
+    employee_count: int = None
+    revenue_eur: int = None
+    operational_complexity: AccountOperationalComplexity = None
+    parent_account_id: uuid.UUID = None
+    linkedin_url: str = None
+    notes: str = None
+    status: AccountStatus = None
+    aliases: list[str] = None
+    sources: list[AccountUpdateSource] = None
 
 
 class ImportRowFieldError(BaseModel):
@@ -394,6 +385,7 @@ async def patch_account(
 ) -> Account:
     """`API-24`."""
     data = AccountUpdateData(
+        name=body.name,
         country_code=body.country_code,
         industry=body.industry,
         employee_count=body.employee_count,

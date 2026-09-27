@@ -40,7 +40,7 @@ from leadradar.core.enums import (
     SignalQuestionPolarity,
     SourcePluginCode,
 )
-from leadradar.core.scoring_settings import (
+from leadradar.core.scoring.settings import (
     Disqualifier,
     DisqualifierKind,
     ICPCriterion,

@@ -13,6 +13,10 @@ import logging
 import sys
 from contextvars import ContextVar
 from datetime import UTC, datetime
+from typing import Literal
+
+LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR"]
+"""The values of `LOG_LEVEL` ([api Runtime](/architecture/services/api.md#runtime))."""
 
 request_id_var: ContextVar[str | None] = ContextVar("request_id", default=None)
 run_id_var: ContextVar[str | None] = ContextVar("run_id", default=None)
@@ -48,12 +52,13 @@ class JsonFormatter(logging.Formatter):
         return json.dumps(payload, default=str)
 
 
-def configure_json_logging(level: str) -> None:
+def configure_json_logging(level: LogLevel) -> None:
     """Formats every record of every logger as one JSON line on stdout.
 
     Removes every existing handler from the root and from the named loggers that FastAPI,
     uvicorn and Alembic configure on their own, so that a stray plain line cannot appear, and
-    disables uvicorn's access log.
+    disables uvicorn's access log. The `sqlalchemy` logger stays at `WARNING` whatever the level,
+    so that no statement or bound parameter is logged.
     """
     handler = logging.StreamHandler(stream=sys.stdout)
     handler.setFormatter(JsonFormatter())
@@ -67,6 +72,6 @@ def configure_json_logging(level: str) -> None:
         logger = logging.getLogger(name)
         logger.handlers.clear()
         logger.propagate = True
-        logger.setLevel(level)
+        logger.setLevel(logging.WARNING if name == "sqlalchemy" else level)
 
     logging.getLogger("uvicorn.access").disabled = True
