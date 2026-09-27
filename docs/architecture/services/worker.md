@@ -10,14 +10,14 @@ tags: [accounts-and-discovery, audit-trail, evaluation-and-feedback, outreach-an
 
 ## Responsibilities
 
-The worker runs every piece of background work: account refreshes, reclassification, rescoring, discovery, quality checks, scheduling and housekeeping. It claims jobs from the queue in the database, calls the source plug-ins, the embedder, the classifier and the LLM, and writes documents, passages, triage, classifications, findings, scores, alerts and candidates.
+The worker runs every piece of background work: account refreshes, reclassification, rescoring, interpretation, discovery, the engagement sync, quality checks, the daily cycle's scheduling and housekeeping. It claims jobs from the queue in the database, calls the source plug-ins, the embedder, the classifier, the LLM and HubSpot, and writes documents, passages, triage, classifications, findings, open signals, scores, interpretations, alerts, candidates and synced engagement statuses.
 
 It never answers an HTTP request, never changes configuration, and never writes what a user decides: feedback, overrides, labels, drafts or account fields a user entered.
 
 ## Owns
 
 - **Tables and columns**: those of the worker column of [store ownership](/architecture/overview.md#store-ownership).
-- **Rules implemented**: [Account attributes](/architecture/rules.md#account-attributes), [Source detection](/architecture/rules.md#source-detection), [Plug-in availability](/architecture/rules.md#plug-in-availability), [Fetch window](/architecture/rules.md#fetch-window), [Document normalisation](/architecture/rules.md#document-normalisation), [Chunking and passage selection](/architecture/rules.md#chunking-and-passage-selection), [Triage](/architecture/rules.md#triage), [Signal classification](/architecture/rules.md#signal-classification), [Escalation](/architecture/rules.md#escalation), [Evidence extraction](/architecture/rules.md#evidence-extraction), [Reclassification](/architecture/rules.md#reclassification), [Budget guard](/architecture/rules.md#budget-guard), [Recency decay](/architecture/rules.md#recency-decay), [Fit score](/architecture/rules.md#fit-score), [Intent score](/architecture/rules.md#intent-score), [Disqualification](/architecture/rules.md#disqualification), [Priority, standing and band](/architecture/rules.md#priority-standing-and-band), [Score breakdown](/architecture/rules.md#score-breakdown), [Rescoring](/architecture/rules.md#rescoring), [Alerts](/architecture/rules.md#alerts), [Discovery](/architecture/rules.md#discovery), [Evaluation metrics](/architecture/rules.md#evaluation-metrics) (the run), [Refresh scheduling](/architecture/rules.md#refresh-scheduling), and the housekeeping of [Retention and erasure](/architecture/rules.md#retention-and-erasure).
+- **Rules implemented**: [Account attributes](/architecture/rules.md#account-attributes), [Source detection](/architecture/rules.md#source-detection), [Plug-in availability](/architecture/rules.md#plug-in-availability), [Fetch window](/architecture/rules.md#fetch-window), [Document normalisation](/architecture/rules.md#document-normalisation), [Chunking and passage selection](/architecture/rules.md#chunking-and-passage-selection), [Triage](/architecture/rules.md#triage), [Signal classification](/architecture/rules.md#signal-classification), [Escalation](/architecture/rules.md#escalation), [Evidence extraction](/architecture/rules.md#evidence-extraction), [Reclassification](/architecture/rules.md#reclassification), [Open signals](/architecture/rules.md#open-signals) (the extraction; decisions are the api's), [Budget guard](/architecture/rules.md#budget-guard), [Recency decay](/architecture/rules.md#recency-decay), [Fit score](/architecture/rules.md#fit-score), [Intent score](/architecture/rules.md#intent-score), [Disqualification](/architecture/rules.md#disqualification), [Priority, standing and band](/architecture/rules.md#priority-standing-and-band), [Score breakdown](/architecture/rules.md#score-breakdown), [Rescoring](/architecture/rules.md#rescoring), [Interpretation](/architecture/rules.md#interpretation), [Alerts](/architecture/rules.md#alerts), [Discovery](/architecture/rules.md#discovery), [Evaluation metrics](/architecture/rules.md#evaluation-metrics) (the run), [Engagement sync](/architecture/rules.md#engagement-sync), [Scheduling](/architecture/rules.md#scheduling), and the housekeeping of [Retention and erasure](/architecture/rules.md#retention-and-erasure).
 - **Rules invoked**: [Account identity](/architecture/rules.md#account-identity), implemented by the [api](/architecture/services/api.md), when discovery matches companies.
 
 The rules are pure functions in the product package's core module; the api imports the ones it invokes from there.
@@ -25,7 +25,7 @@ The rules are pure functions in the product package's core module; the api impor
 ## Provides and consumes
 
 - Provides the [AI gateway](#ai-gateway) module that implements the [Classifier](/architecture/interfaces.md#classifier) and [LLM](/architecture/interfaces.md#llm) ports for both processes, and the [Source plug-ins](/architecture/interfaces.md#source-plug-ins) port.
-- Consumes the [Embedder](/architecture/interfaces.md#embedder), OpenRouter's chat completions API and, for Jev, its Decisions API, and the providers of the [source plug-ins](#source-plug-ins).
+- Consumes the [Embedder](/architecture/interfaces.md#embedder), OpenRouter's chat completions API and, for Jev, its Decisions API, the providers of the [source plug-ins](#source-plug-ins), and `API-89` of the [CRM](/architecture/interfaces.md#crm) port for [Engagement sync](/architecture/rules.md#engagement-sync).
 
 ## Design
 
@@ -35,11 +35,11 @@ A worker process runs `WORKER_CONCURRENCY` job loops. A loop claims the next job
 
 | Priority | Jobs |
 |---|---|
-| 0 | `RESCORE` from `FEEDBACK`, `OVERRIDE` or `ACCOUNT_CHANGE` |
+| 0 | `RESCORE` from `FEEDBACK`, `OVERRIDE`, `ENGAGEMENT` or `ACCOUNT_CHANGE` |
 | 1 | `ACCOUNT_REFRESH` from `USER` |
 | 3 | `RECLASSIFY`, and `RESCORE` from `SCORING_ACTIVATION` |
 | 5 | `ACCOUNT_REFRESH` from `SCHEDULE` |
-| 7 | `DISCOVERY`, `EVALUATION` |
+| 7 | `DISCOVERY`, `EVALUATION`, `ENGAGEMENT_SYNC` |
 
 **Retries.** A step that raises is retried with `not_before` = now + `JOB_RETRY_BACKOFF_S × 2^(attempts − 1)`, up to `JOB_MAX_ATTEMPTS` attempts, after which the job is `FAILED` and its run records the error: an entry of `errors` with the stage the step was in, the `plugin_code` of a `FETCH` job, and the code the step raised, else `INTERNAL`. A `RUNNING` job whose `locked_at` is older than `JOB_LOCK_TIMEOUT_S` is returned to `READY`; this is safe because every step is idempotent: it writes through the unique constraints of the [SQL store](/architecture/sql-store.md#constraints-and-indexes) and skips work already recorded ([N-05](/requirements/system.md)).
 
@@ -60,19 +60,20 @@ stateDiagram-v2
 
 | Kind | Stages, in order | Jobs |
 |---|---|---|
-| `ACCOUNT_REFRESH` | `FETCH` → `PROCESS` → `TRIAGE` → `CLASSIFY` → `EVIDENCE` → `SCORE` | one `FETCH` per available plug-in; `PROCESS` per batch of fetched documents, which also classifies the account's operational complexity ([Account attributes](/architecture/rules.md#account-attributes)); `SIGNAL` per batch of the account's documents with pending work — processed documents not yet triaged — non-duplicate, not purged, every passage embedded —, kept documents whose selected passages lack a classification at a current revision, `PENDING_LLM` pairs, and `EVIDENCE_FAILED` pairs whose `evidence_retried` is false — covering triage, classification and evidence; one `SCORE` for all active services |
-| `RECLASSIFY` | `TRIAGE` → `CLASSIFY` → `EVIDENCE` → `SCORE` | one `SIGNAL` per active account, over its stored documents; one `SCORE` for the service, the first job when no account is active |
-| `RESCORE` | `SCORE` | one `SCORE` |
+| `ACCOUNT_REFRESH` | `FETCH` → `PROCESS` → `TRIAGE` → `CLASSIFY` → `EVIDENCE` → `OPEN_SIGNALS` → `SCORE` → `INTERPRET` | one `FETCH` per available plug-in; `PROCESS` per batch of fetched documents, which also classifies the account's operational complexity ([Account attributes](/architecture/rules.md#account-attributes)); `SIGNAL` per batch of the account's documents with pending work — processed documents not yet triaged — non-duplicate, not purged, every passage embedded —, kept documents whose selected passages lack a classification at a current revision, `PENDING_LLM` pairs, and `EVIDENCE_FAILED` pairs whose `evidence_retried` is false — covering triage, classification and evidence; one `OPEN_SIGNALS` for all active services; one `SCORE` for all active services; one `INTERPRET` |
+| `RECLASSIFY` | `TRIAGE` → `CLASSIFY` → `EVIDENCE` → `SCORE` → `INTERPRET` | one `SIGNAL` per active account, over its stored documents; one `SCORE` for the service, the first job when no account is active; one `INTERPRET` |
+| `RESCORE` | `SCORE` → `INTERPRET` | one `SCORE`; one `INTERPRET` |
 | `DISCOVERY` | `FETCH` → `TRIAGE` → `SCORE` | one `DISCOVER` that searches every available discovery source in turn, then ranks and caps the candidates |
 | `EVALUATION` | `CLASSIFY` | one `EVALUATE` over every active item of an active question; it writes the [`evaluation_result`](/architecture/sql-store.md#evaluation_result) |
+| `ENGAGEMENT_SYNC` | `SYNC` → `SCORE` → `INTERPRET` | `SYNC` per batch of companies; one `SCORE` for the pairs whose status changed; one `INTERPRET` |
 
-A `SCORE` job's `payload` is `{}`: its scope is its run's `account_id` and `service_id`, as the Jobs column states. A `FETCH` job's `payload` is `{plugin_code}`: its account is its run's `account_id`. A `PROCESS` job's `payload` is `{}`: it covers the documents its run fetched and the account's earlier documents, not purged, with a passage still without an embedding; when it fails after its retries, those documents stay stored without embeddings, are not triaged or classified, and are processed by the account's next refresh. A `SIGNAL` job's `payload` is `{}` in a refresh, whose account is its run's `account_id`, and `{account_id}` in a `RECLASSIFY` run, whose question is its run's `question_id`. A refresh requested when no plug-in is available starts with its `SCORE` job. A `DISCOVER` job's `payload` is `{}`: its service is its run's `service_id`.
+A `SCORE` job's `payload` is `{}`: its scope is its run's `account_id` and `service_id`, as the Jobs column states, except in an `ENGAGEMENT_SYNC` run, whose `SCORE` payload lists the account and service pairs. A `FETCH` job's `payload` is `{plugin_code}`: its account is its run's `account_id`. A `PROCESS` job's `payload` is `{}`: it covers the documents its run fetched and the account's earlier documents, not purged, with a passage still without an embedding; when it fails after its retries, those documents stay stored without embeddings, are not triaged or classified, and are processed by the account's next refresh. A `SIGNAL` job's `payload` is `{}` in a refresh, whose account is its run's `account_id`, and `{account_id}` in a `RECLASSIFY` run, whose question is its run's `question_id`. A refresh requested when no plug-in is available starts with its `SCORE` job. A `DISCOVER` job's `payload` is `{}`: its service is its run's `service_id`. An `INTERPRET` job's `payload` is `{}`: it interprets the current `RANKED` scores of the run's scope that have none ([Interpretation](/architecture/rules.md#interpretation)).
 
 The first job claimed sets its run `RUNNING` with `started_at`. Claiming a job moves its run's `stage` to the first stage its step covers — `FETCH` for `FETCH` and `DISCOVER`, `PROCESS` for `PROCESS`, `TRIAGE` for `SIGNAL`, `CLASSIFY` for `EVALUATE`, `SCORE` for `SCORE` — never back to an earlier stage; the `SIGNAL` step moves it on through `CLASSIFY` and `EVIDENCE` itself.
 
 Cancelling a run sets it `CANCELLED` with `finished_at` and its `READY` jobs `CANCELLED`; a running job finishes its step, and any job that step enqueues is `CANCELLED` with it. A cancelled run writes a `RUN_CANCELLED` audit row and no `RUN_FINISHED` row, and sets no refresh times.
 
-A run is `FAILED` when its final stage — `SCORE`, the `DISCOVER` job or the last `EVALUATE` — fails after its retries; a failed earlier job makes it `PARTIAL`. The `SCORE` stage of a refresh runs even when every fetch failed, so decay is applied every interval. On finish a `RUN_FINISHED` audit row is written and, for `ACCOUNT_REFRESH`, the account's refresh times are set by [Refresh scheduling](/architecture/rules.md#refresh-scheduling). A classifier call of the `PROCESS` step that fails adds one entry `{stage PROCESS, code}` to its run's `errors`, and the step continues, so the run ends `PARTIAL`.
+A run is `FAILED` when its final stage — `SCORE`, the `DISCOVER` job or the last `EVALUATE` — fails after its retries; a failed earlier job, a failed `OPEN_SIGNALS` job, or an `INTERPRET` job that failed or left a score uninterpreted, makes it `PARTIAL`: scores never wait for their interpretation. The `SCORE` stage of a refresh runs even when every fetch failed, so decay is applied every interval. On finish a `RUN_FINISHED` audit row is written and, for `ACCOUNT_REFRESH`, the account's refresh times are set by [Scheduling](/architecture/rules.md#scheduling); for `DISCOVERY`, [Alerts](/architecture/rules.md#alerts) raises its `NEW_CANDIDATES` alert. A classifier call of the `PROCESS` step that fails adds one entry `{stage PROCESS, code}` to its run's `errors`, and the step continues, so the run ends `PARTIAL`.
 
 ### Signal graph
 
@@ -158,7 +159,7 @@ Crunchbase category mapping: the first of the organisation's categories that thi
 
 ### Scheduler and housekeeping
 
-One worker at a time runs the scheduler: each loop takes a PostgreSQL advisory lock and skips the tick if another holds it. Every `SCHEDULER_TICK_S` it applies [Refresh scheduling](/architecture/rules.md#refresh-scheduling); once a day at `HOUSEKEEPING_HOUR_UTC` it applies [Retention and erasure](/architecture/rules.md#retention-and-erasure).
+One worker at a time runs the scheduler: each loop takes a PostgreSQL advisory lock and skips the tick if another holds it. Every `SCHEDULER_TICK_S` it applies [Scheduling](/architecture/rules.md#scheduling) — refreshes, discovery and the engagement sync of the daily cycle; once a day at `HOUSEKEEPING_HOUR_UTC` it applies [Retention and erasure](/architecture/rules.md#retention-and-erasure).
 
 ## Runtime
 
@@ -175,6 +176,8 @@ One worker at a time runs the scheduler: each loop takes a PostgreSQL advisory l
 | `SCHEDULER_TICK_S` | `60` | Scheduler interval |
 | `SCHEDULER_MAX_ENQUEUE` | `20` | Refreshes enqueued per tick |
 | `REFRESH_INTERVAL_HOURS` | `24` | Time between refreshes of an account |
+| `DISCOVERY_INTERVAL_HOURS` | `24` | Time between scheduled discovery runs of a service |
+| `ENGAGEMENT_SYNC_INTERVAL_HOURS` | `24` | Time between engagement syncs from HubSpot |
 | `HOUSEKEEPING_HOUR_UTC` | `3` | Hour of the daily housekeeping |
 | `CLOCK_FILE` | unset | For recording, the acceptance tests and the demo, honoured when `FIXTURE_MODE` is `record` or `replay`: a file holding the current time as ISO-8601, read on every use of the clock; unset uses the system clock. Pacing always measures real time |
 | `REFRESH_TARGET_MINUTES` | `10` | Target duration of one account refresh in replay mode ([N-02](/requirements/system.md)) |
@@ -225,6 +228,11 @@ One worker at a time runs the scheduler: each loop takes a PostgreSQL advisory l
 | `DISCOVERY_MAX_CANDIDATES` | `50` | Candidates per discovery run |
 | `DISCOVERY_LOOKBACK_DAYS` | `30` | News window of discovery |
 | `DISCOVERY_MAX_DOCUMENTS` | `100` | News documents read per discovery run |
+| `OPEN_SIGNAL_MAX_DOCUMENTS_PER_REFRESH` | `10` | Kept documents asked for open signals per service per refresh |
+| `OPEN_SIGNAL_MAX_PER_DOCUMENT` | `3` | Open signals kept from one document |
+| `INTERPRETATION_MAX_CHARS` | `1500` | Longest interpretation, all its text together |
+| `INTERPRETATION_MAX_OPEN_SIGNALS` | `5` | Newest open signals given to an interpretation |
+| `HUBSPOT_REJECTED_LEAD_STATUSES` | `UNQUALIFIED` | Comma-separated HubSpot `hs_lead_status` values that [Engagement sync](/architecture/rules.md#engagement-sync) reads as rejected |
 | `EVAL_CLASSIFIER_ONLY_P` | `0.5` | `p_positive` at which the classifier alone counts as positive in `classifier_only` |
 | `EVAL_CALIBRATION_BINS` | `10` | Bins of the calibration metric |
 | `EVAL_MAX_ERRORS` | `50` | Misclassified items a quality check lists |
@@ -242,8 +250,10 @@ One worker at a time runs the scheduler: each loop takes a PostgreSQL advisory l
 | `OPENROUTER_API_KEY` | unset | OpenRouter credentials; unset makes every Jev and LLM call unavailable, except in `replay` fixture mode |
 | `OPENROUTER_BASE_URL` | `https://openrouter.ai/api/v1` | OpenRouter API endpoint |
 | `LLM_CLASSIFIER_MODEL` | — (required with `OPENROUTER_API_KEY`) | OpenRouter model id, `organisation/model` such as `google/gemini-2.5-flash`, of the LLM classifier adapter |
-| `LLM_EVIDENCE_MODEL` | — (required with `OPENROUTER_API_KEY`) | OpenRouter model id of escalation, evidence and discovery extraction |
+| `LLM_EVIDENCE_MODEL` | — (required with `OPENROUTER_API_KEY`) | OpenRouter model id of escalation, evidence, open signals and discovery extraction |
+| `LLM_INTERPRETATION_MODEL` | — (required with `OPENROUTER_API_KEY`) | OpenRouter model id of interpretation |
 | `LLM_OUTREACH_MODEL` | — (required with `OPENROUTER_API_KEY`) | OpenRouter model id of outreach drafting |
+| `PROVIDER_FACTS_PER_CALL` | `8` | Provider facts given to one draft or interpretation |
 | `LLM_DAILY_BUDGET_EUR` | `20` | Daily OpenRouter spend cap ([Budget guard](/architecture/rules.md#budget-guard)) |
 | `CLASSIFIER_TIMEOUT_S` | `10` | Timeout of one classifier call |
 | `AI_CALL_TIMEOUT_S` | `60` | Timeout of one LLM call |
@@ -257,7 +267,7 @@ One worker at a time runs the scheduler: each loop takes a PostgreSQL advisory l
 
 **Source plug-in keys.** `CRUNCHBASE_API_KEY`, `NEWSAPI_KEY`, `SERPAPI_KEY`: unset by default; a plug-in whose key is unset is unavailable.
 
-The worker also reads `DATABASE_URL` and `LOG_LEVEL` of the [api runtime](/architecture/services/api.md#runtime).
+The worker also reads `DATABASE_URL`, `LOG_LEVEL` and `HUBSPOT_ACCESS_TOKEN` of the [api runtime](/architecture/services/api.md#runtime).
 
 ## Examples
 

@@ -1,5 +1,5 @@
 """Adds [`account`](/architecture/sql-store.md#account) `relationship_status` (`S-ACC-06`,
-`B-41`): the team's relationship with the company, set by a user and shared by every service. Not
+`B-48`): the team's relationship with the company, set by a user and shared by every service. Not
 null, defaulting to `PROSPECT`, which backfills existing rows. No rule reads it, so it enqueues no
 run and needs no grant change (`account` is already granted by migration `0002`).
 

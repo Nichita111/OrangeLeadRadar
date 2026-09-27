@@ -10,24 +10,24 @@ tags: [accounts-and-discovery, audit-trail, evaluation-and-feedback, identity-an
 
 ## Responsibilities
 
-The api answers every REST contract of [interfaces](/architecture/interfaces.md): sign-in and users, configuration, accounts and contacts, run requests, prospects, evidence, overrides, feedback, labels, outreach drafts, the HubSpot push, the audit and health. It validates input, writes what a user changed, enqueues the background work the change requires, and makes the interactive AI calls: question preview, outreach drafting, and persona mapping when a contact is added without a persona. It owns the schema and applies migrations at start.
+The api answers every REST contract of [interfaces](/architecture/interfaces.md): sign-in and users, configuration, accounts and contacts, run requests, prospects, evidence, overrides, feedback, labels, outreach drafts, the HubSpot push, provider facts, open-signal decisions, engagement statuses and their statistics, the daily summary, the audit and health. It validates input, writes what a user changed, enqueues the background work the change requires, and makes the interactive AI calls: question preview, outreach drafting, and persona mapping when a contact is added without a persona. It owns the schema and applies migrations at start.
 
 It never fetches from a source, never classifies in batch, never writes a score, and never sends a message to anyone outside the product.
 
 ## Owns
 
 - **Tables and columns**: those of the api column of [store ownership](/architecture/overview.md#store-ownership); the Alembic migrations of the whole [SQL store](/architecture/sql-store.md).
-- **Rules implemented**: [Account identity](/architecture/rules.md#account-identity), [Scoring settings validation](/architecture/rules.md#scoring-settings-validation), [Feedback effects](/architecture/rules.md#feedback-effects) (the status and label writes; the rescore is the worker's), the label queue of [Evaluation metrics](/architecture/rules.md#evaluation-metrics), [Outreach grounding](/architecture/rules.md#outreach-grounding), [Persona mapping](/architecture/rules.md#persona-mapping) on contact creation and edit, and erasure on request of [Retention and erasure](/architecture/rules.md#retention-and-erasure).
+- **Rules implemented**: [Account identity](/architecture/rules.md#account-identity), [Scoring settings validation](/architecture/rules.md#scoring-settings-validation), [Feedback effects](/architecture/rules.md#feedback-effects) (the status and label writes; the rescore is the worker's), the label queue of [Evaluation metrics](/architecture/rules.md#evaluation-metrics), [Outreach grounding](/architecture/rules.md#outreach-grounding), [Persona mapping](/architecture/rules.md#persona-mapping) on contact creation and edit, the decisions of [Open signals](/architecture/rules.md#open-signals), [Engagement statistics](/architecture/rules.md#engagement-statistics), [Daily summary](/architecture/rules.md#daily-summary), and erasure on request of [Retention and erasure](/architecture/rules.md#retention-and-erasure).
 - **Rules invoked**, implemented by the [worker](/architecture/services/worker.md): [Chunking and passage selection](/architecture/rules.md#chunking-and-passage-selection), [Signal classification](/architecture/rules.md#signal-classification), [Escalation](/architecture/rules.md#escalation) and [Evidence extraction](/architecture/rules.md#evidence-extraction) for question preview, without writing; [Fit score](/architecture/rules.md#fit-score) through [Priority, standing and band](/architecture/rules.md#priority-standing-and-band) for scoring preview, without writing.
 
 ## Provides and consumes
 
-- Provides every REST family of [interfaces](/architecture/interfaces.md), `API-01` to `API-61` and `API-71` to `API-78`.
-- Consumes the [Classifier](/architecture/interfaces.md#classifier) and [LLM](/architecture/interfaces.md#llm) ports through the worker's [AI gateway](/architecture/services/worker.md#ai-gateway) module, the [Embedder](/architecture/interfaces.md#embedder) and the [CRM](/architecture/interfaces.md#crm) port.
+- Provides every REST family of [interfaces](/architecture/interfaces.md), `API-01` to `API-61`, `API-71` to `API-83`, `API-86` to `API-88` and `API-90`.
+- Consumes the [Classifier](/architecture/interfaces.md#classifier) and [LLM](/architecture/interfaces.md#llm) ports through the worker's [AI gateway](/architecture/services/worker.md#ai-gateway) module, the [Embedder](/architecture/interfaces.md#embedder) and `API-70` of the [CRM](/architecture/interfaces.md#crm) port.
 
 ## Design
 
-**Layering.** A route validates its input into a Pydantic model, calls one function of the capability it belongs to, and shapes the response; that function owns the transaction and is the only code that touches the database for the request. Capabilities follow the interface families: auth and users, services and questions, scoring, industries and markets, accounts and contacts, discovery, runs and plug-ins, prospects and evidence, feedback and alerts, evaluation, outreach and CRM, audit. Errors are typed per capability and mapped once, at the edge, onto the envelope of [Conventions](/architecture/interfaces.md#conventions).
+**Layering.** A route validates its input into a Pydantic model, calls one function of the capability it belongs to, and shapes the response; that function owns the transaction and is the only code that touches the database for the request. Capabilities follow the interface families: auth and users, services and questions, scoring, industries and markets, provider facts, open signals, accounts and contacts, discovery, runs and plug-ins, prospects and evidence, feedback and alerts, evaluation, outreach and CRM, engagement, audit. Errors are typed per capability and mapped once, at the edge, onto the envelope of [Conventions](/architecture/interfaces.md#conventions).
 
 **Transactions.** One transaction per request. A change and the work it triggers commit together: the row the user changed, its audit row, and any `pipeline_run` with its first `job` rows are written in the same transaction, so a crash never leaves a change without its reclassification or rescore, or the reverse. The partial unique indexes of [constraints](/architecture/sql-store.md#constraints-and-indexes) make a concurrent duplicate refresh or discovery answer with the existing run.
 
@@ -69,6 +69,8 @@ It never fetches from a source, never classifies in batch, never writes a score,
 | `EVIDENCE_CONTEXT_CHARS` | `600` | Document text shown on each side of an evidence passage |
 | `LABEL_QUEUE_SIZE` | `20` | Tasks per label-queue request |
 | `OUTREACH_MAX_FINDINGS` | `5` | Findings given to an outreach draft |
+| `PROVIDER_FACT_MAX_CHARS` | `300` | Longest provider fact |
+| `DIGEST_PERIOD_HOURS` | `24` | Period the daily summary covers |
 | `PROSPECT_TOP_SIGNALS` | `2` | Top signals shown on a Prospects row |
 | `HUBSPOT_TOP_SIGNALS` | `3` | Top signals written to HubSpot |
 | `IMPACT_PERIOD_DAYS` | `30` | Period the impact report covers |
@@ -79,7 +81,7 @@ It never fetches from a source, never classifies in batch, never writes a score,
 | `AUDIT_DEFAULT_RANGE_DAYS` | `30` | Default audit range |
 | `HEALTH_TIMEOUT_MS` | `2000` | Timeout of each health check |
 | `INTERACTIVE_P95_TARGET_MS` | `800` | Target p95 latency of interactive reads ([N-01](/requirements/system.md)) |
-| `HUBSPOT_ACCESS_TOKEN` | unset | HubSpot private-app token; unset disables the push |
+| `HUBSPOT_ACCESS_TOKEN` | unset | HubSpot private-app token, with read access to companies and contacts and write access to companies; unset disables the push and the engagement sync |
 | `HUBSPOT_TIMEOUT_S` | `10` | Timeout of a HubSpot call |
 | `SEED_ADMIN_PASSWORD`, `SEED_SALES_PASSWORD` | — (required by `make seed-demo`) | Passwords of the demo users |
 | `LOG_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARNING` or `ERROR`; logs are JSON lines |

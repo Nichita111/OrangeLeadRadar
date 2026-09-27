@@ -1,7 +1,7 @@
 ---
 type: Rule
 title: Rules
-description: The deterministic computations of LeadRadar - account identity, fetching, normalisation, triage, classification and escalation, evidence, the budget guard, Fit, Intent, decay, exclusion, Priority and bands, rescoring, alerts, discovery, feedback, evaluation, outreach grounding and retention - with worked scoring examples.
+description: The deterministic computations of LeadRadar - account identity, fetching, normalisation, triage, classification and escalation, evidence, open signals, the budget guard, Fit, Intent, decay, exclusion, Priority and bands, rescoring, interpretation, alerts, the daily summary, discovery, feedback, evaluation, outreach grounding, engagement, scheduling and retention - with worked scoring examples.
 status: draft
 tags: [accounts-and-discovery, audit-trail, evaluation-and-feedback, identity-and-access, outreach-and-crm, prospect-dashboard, service-configuration, signal-pipeline]
 ---
@@ -11,6 +11,8 @@ tags: [accounts-and-discovery, audit-trail, evaluation-and-feedback, identity-an
 Each rule states its inputs, its algorithm and what holds afterwards. Numbers are configuration keys, defined with their defaults in the [worker runtime](/architecture/services/worker.md#runtime) or the [api runtime](/architecture/services/api.md#runtime), or keys of the [scoring settings document](/architecture/sql-store.md#scoring-settings-document); a rule never states a literal threshold. Every rule except the model calls it names is a pure function of its inputs: the clock and randomness are injected. Models answer questions and write text; the scoring rules alone decide every score, band, standing and exclusion ([RULE-03](/requirements/business.md#business-rules), [ADR-03](/architecture/adrs/adr-03-models-answer-rules-score.md)).
 
 Rounding is half up, to an integer, wherever a rule says "rounded".
+
+**Numbers in generated text.** Where a rule says generated text "states no number its inputs do not carry", a number is a run of digits in the text, with the separators `.`, `,`, `'` and spaces between digit groups removed; each must appear, normalised the same way, in one of the inputs the rule names.
 
 ## Account identity
 
@@ -204,13 +206,28 @@ An invalid output is requested again, up to `EVIDENCE_MAX_ATTEMPTS` attempts in 
 
 **Invariants.** Nothing is fetched. No other question is reclassified. A change to weight, half-life or any other scoring setting never reclassifies ([ADR-09](/architecture/adrs/adr-09-findings-per-passage-and-question-revision.md)).
 
+## Open signals
+
+**Inputs.** The documents an `ACCOUNT_REFRESH` run kept for a service whose [`document_triage`](/architecture/sql-store.md#document_triage) `open_signal_services` does not hold the service, and their selected passages ([Chunking and passage selection](#chunking-and-passage-selection)); the service's description and the texts of its active questions; `OPEN_SIGNAL_MAX_DOCUMENTS_PER_REFRESH`, `OPEN_SIGNAL_MAX_PER_DOCUMENT` ([ADR-24](/architecture/adrs/adr-24-open-signals-shown-never-scored.md)).
+
+**Algorithm.** After the run's `SIGNAL` jobs, for each active service:
+
+1. Take at most `OPEN_SIGNAL_MAX_DOCUMENTS_PER_REFRESH` such documents, by the service's triage relevance, highest first, then newest first.
+2. For each, one [LLM extract open signals](/architecture/interfaces.md#llm) call gives the selected passages with their headers, the service's description and its questions, and asks for the buying signals for the service in the passages that none of the questions asks about. Each answer names its passage, a label, a polarity, a quote, its translation and one sentence on why it matters.
+3. An answer is kept when its quote is verbatim from the passage it names and its translation and sentence are valid, as [Evidence extraction](#evidence-extraction) validates a finding's; an invalid answer is dropped and the others are kept. At most `OPEN_SIGNAL_MAX_PER_DOCUMENT` are kept per document, in the order returned, each as an [`open_signal`](/architecture/sql-store.md#open_signal) `ACTIVE` with `observed_at` as a finding's.
+4. The service is added to the document's `open_signal_services` in the same transaction, whatever the call returned. A call the [Budget guard](#budget-guard) stops, or whose provider is unavailable, adds nothing, counts in `pending_budget` when the budget stopped it, and is asked again by the account's next refresh.
+
+**Decisions.** An Admin dismisses an open signal (`DISMISSED`), or promotes it: a question prefilled from its label and quote, which the Admin edits and confirms, is created by the rules of `API-11` — with its `RECLASSIFY` run ([Reclassification](#reclassification)) — and the open signal becomes `PROMOTED` with the question's id.
+
+**Invariants.** An open signal never enters a score or a breakdown ([RULE-03](/requirements/business.md#business-rules)). A document is asked at most once per service. Every open signal's quote is verbatim from its passage ([RULE-02](/requirements/business.md#business-rules)). Reclassification and discovery never ask for open signals.
+
 ## Budget guard
 
 **Inputs.** `LLM_DAILY_BUDGET_EUR`; the `cost_eur` of today's `AI_CALL` rows with provider `OPENROUTER` in [`audit_event`](/architecture/sql-store.md#audit_event); the clock.
 
-**Algorithm.** Before every LLM call — a call to OpenRouter's chat completions API: escalation, evidence, discovery extraction, outreach, question preview, and classification when `CLASSIFIER_PROVIDER` is `LLM` — the spend since 00:00 UTC is summed. Jev calls go to OpenRouter's Decisions API and are not LLM calls. When it has reached `LLM_DAILY_BUDGET_EUR`:
+**Algorithm.** Before every LLM call — a call to OpenRouter's chat completions API: escalation, evidence, open signals, discovery extraction, interpretation, outreach, question preview, and classification when `CLASSIFIER_PROVIDER` is `LLM` — the spend since 00:00 UTC is summed. Jev calls go to OpenRouter's Decisions API and are not LLM calls. When it has reached `LLM_DAILY_BUDGET_EUR`:
 
-- in the worker, a stopped classifier call leaves its passages unclassified and a stopped escalation or evidence call leaves its pairs `PENDING_LLM`; the run's `progress.pending_budget` counts both and the run finishes `PARTIAL`; the account's next refresh resumes them, so the budget reset at 00:00 UTC is picked up by the next refresh after it;
+- in the worker, a stopped classifier call leaves its passages unclassified, a stopped escalation or evidence call leaves its pairs `PENDING_LLM`, and a stopped open-signal or interpretation call leaves its document or score for the next run; the run's `progress.pending_budget` counts them and the run finishes `PARTIAL`; the account's next refresh resumes them, so the budget reset at 00:00 UTC is picked up by the next refresh after it;
 - in the api, the request answers `429 BUDGET_EXHAUSTED`.
 
 The cost of a call is the `usage.cost` OpenRouter returns with it, in US dollars, converted at `USD_EUR_RATE`. Jev calls are costed the same way and recorded under provider `JEV`, but not capped by `LLM_DAILY_BUDGET_EUR`.
@@ -229,6 +246,8 @@ The cost of a call is the `usage.cost` OpenRouter returns with it, in US dollars
 
 **Algorithm.** For each criterion `c`: `w_c` = `weight_values[c.weight]`; `m_c` = 1 when the account's attribute matches ([ICP criterion](/architecture/sql-store.md#scoring-settings-document)), 0 when it is known and does not match, `unknown_match` when it is unknown. `Fit` = rounded `100 × Σ w_c·m_c / Σ w_c`. With no criteria, or every weight `NONE`, `Fit` = 100: the service restricts nothing.
 
+**Invariants.** A criterion an account misses lowers its Fit and never excludes it ([RULE-11](/requirements/business.md#business-rules), [ADR-22](/architecture/adrs/adr-22-icp-criteria-weigh-never-exclude.md)).
+
 ## Intent score
 
 **Inputs.** The in-force findings of the account for the service's questions at their current revisions; `questions`, `weight_values`, `strength_values`, `negative_factor`, `intent_saturation` of the active settings; [Recency decay](#recency-decay).
@@ -240,18 +259,18 @@ The cost of a call is the `usage.cost` OpenRouter returns with it, in US dollars
 
 ## Disqualification
 
-**Inputs.** The disqualifiers of the active settings; the account's attributes; its in-force findings; its `ACTIVE` [`disqualifier_override`](/architecture/sql-store.md#disqualifier_override) rows for the service.
+**Inputs.** The disqualifiers of the active settings; the account's in-force findings; its `ACTIVE` [`disqualifier_override`](/architecture/sql-store.md#disqualifier_override) rows for the service; `min_decay`.
 
-**Algorithm.** A rule **matches** as its kind states in the [scoring settings document](/architecture/sql-store.md#scoring-settings-document). A matched rule with an `ACTIVE` override for its `key` is **overridden**. The account is excluded when at least one rule matches and is not overridden.
+**Algorithm.** A rule **matches** when the account has an in-force finding as the rule's [disqualifier](/architecture/sql-store.md#scoring-settings-document) states. A matched rule with an `ACTIVE` override for its `key` is **overridden**. The account is excluded when at least one rule matches and is not overridden.
 
 ## Priority, standing and band
 
-**Inputs.** `Fit`, `Intent`; exclusion; the in-force [`lead_feedback`](/architecture/sql-store.md#lead_feedback); `fit_weight`, `intent_weight`, `min_fit`, `hot_threshold`, `warm_threshold`.
+**Inputs.** `Fit`, `Intent`; exclusion; the in-force [`lead_feedback`](/architecture/sql-store.md#lead_feedback) and [`engagement_status`](/architecture/sql-store.md#engagement_status); `fit_weight`, `intent_weight`, `hot_threshold`, `warm_threshold`.
 
 **Algorithm.**
 
 - `Priority` = rounded `fit_weight × Fit + intent_weight × Intent`, from the integer `Fit` and `Intent`.
-- `standing`, first match wins: `CUSTOMER` when the in-force lead feedback is `ALREADY_CUSTOMER`; `DISQUALIFIED` when excluded; `BELOW_FIT` when `Fit < min_fit`; else `RANKED`.
+- `standing`, first match wins: `CUSTOMER` when the in-force lead feedback is `ALREADY_CUSTOMER`; `REJECTED` when the in-force engagement status is `REJECTED`; `DISQUALIFIED` when excluded; else `RANKED`, however low its Fit ([RULE-11](/requirements/business.md#business-rules)).
 - `band`, for `RANKED` only: `HOT` when `Priority ≥ hot_threshold`, `WARM` when `Priority ≥ warm_threshold`, else `COLD`.
 - The ranking orders `RANKED` accounts by `Priority` descending, then `Intent` descending, `Fit` descending and account name ascending.
 
@@ -274,26 +293,40 @@ The cost of a call is the `usage.cost` OpenRouter returns with it, in US dollars
     "questions": [
       {"question_key": "COST_PROGRAM", "polarity": "POSITIVE", "weight": "HIGH", "weight_value": 3,
        "finding_id": "…", "strength": "STRONG", "decay": 0.707107, "value": 0.707107, "points": 53.033}]},
-  "disqualifiers": [{"key": "OUTSIDE_REGION", "label": "Outside DACH", "kind": "ICP_MISMATCH",
-                     "criterion_key": "REGION", "question_key": null, "matched": false,
+  "disqualifiers": [{"key": "INSOLVENT", "label": "In insolvency", "matched": false,
                      "overridden": false, "override_id": null, "finding_id": null}],
   "priority": 60, "standing": "RANKED", "band": "WARM"
 }
 ```
 
-`match` is `MATCH`, `MISMATCH` or `UNKNOWN`. A criterion's `points` is `100 × w_c·m_c / Σ w_c`; a question's is `± 100 × w_q·c_q / (intent_saturation × M)`, multiplied by `negative_factor` and negative for a negative question. Before rounding and clamping the points add up to the value, so every point of a score is traceable to a criterion or a finding. A disqualifier entry names the fact it tests by its `kind` and its `criterion_key` or `question_key`, the other being null. A question entry's `finding_id`, `strength` and `decay` are null when it has no counted finding, and a question counts exactly when its `finding_id` is set; a criterion's `attribute` is the account's value it tested — a code, a country or a number such as the employee count — and null when that value is unknown. A criterion has no label: screens show its key in sentence case. Numbers are rounded to six decimals and keys are sorted, so equal inputs give byte-identical JSON.
+`match` is `MATCH`, `MISMATCH` or `UNKNOWN`. A criterion's `points` is `100 × w_c·m_c / Σ w_c`; a question's is `± 100 × w_q·c_q / (intent_saturation × M)`, multiplied by `negative_factor` and negative for a negative question. Before rounding and clamping the points add up to the value, so every point of a score is traceable to a criterion or a finding. A question entry's `finding_id`, `strength` and `decay` are null when it has no counted finding, and a question counts exactly when its `finding_id` is set; a criterion's `attribute` is the account's value it tested — a code, a country or a number such as the employee count — and null when that value is unknown. A criterion has no label: screens show its key in sentence case. Numbers are rounded to six decimals and keys are sorted, so equal inputs give byte-identical JSON.
 
 ## Rescoring
 
-**Inputs.** The account's attributes; the service's `ACTIVE` settings; the in-force findings, lead feedback and overrides; `as_of`, which is the start time of the run.
+**Inputs.** The account's attributes; the service's `ACTIVE` settings; the in-force findings, lead feedback, engagement status and overrides; `as_of`, which is the start time of the run.
 
-**Triggers.** The `SCORE` stage of every account refresh, for every active service; a `RESCORE` run for scoring activation (whole service), an account change (the account, every service), feedback or an override (the account, one service); the end of a `RECLASSIFY` run (whole service).
+**Triggers.** The `SCORE` stage of every account refresh, for every active service; a `RESCORE` run for scoring activation (whole service), an account change (the account, every service), feedback, an engagement status set by a user or an override (the account, one service); the end of a `RECLASSIFY` run (whole service); the end of an `ENGAGEMENT_SYNC` run (each account and service whose status it changed).
 
 **Services.** Only a service with an `ACTIVE` scoring version is scored. A new service is skipped until its first activation, whose `RESCORE` run gives its accounts their first scores; its questions are classified meanwhile.
 
-**Algorithm.** Compute the score and its breakdown. Compare it with the current row on `scoring_config_id`, `fit`, `intent`, `priority`, `standing`, `band`, and the sets of finding ids and override ids in the breakdown. If all are equal, write nothing. Otherwise insert the new row as current and clear `is_current` on the previous one in the same transaction, then apply [Alerts](#alerts).
+**Algorithm.** Compute the score and its breakdown. Compare it with the current row on `scoring_config_id`, `fit`, `intent`, `priority`, `standing`, `band`, and the sets of finding ids and override ids in the breakdown. If all are equal, write nothing. Otherwise insert the new row as current and clear `is_current` on the previous one in the same transaction, then apply [Alerts](#alerts). The run's `INTERPRET` stage follows ([Interpretation](#interpretation)).
 
 **Invariants.** Only the worker writes [`account_score`](/architecture/sql-store.md#account_score). Recomputing with the same inputs and `as_of` gives an identical row ([RULE-05](/requirements/business.md#business-rules)). Previous rows are kept: they are the score history. Rescoring fetches nothing and classifies nothing.
+
+## Interpretation
+
+**Inputs.** The current scores of the run's accounts and services whose standing is `RANKED` and that have no [`score_interpretation`](/architecture/sql-store.md#score_interpretation); for each, its breakdown with the labels of its criteria, the counted findings — the breakdown's question entries with non-zero points — with their question text, strength, age, quote, translation and rationale, the account's newest `INTERPRETATION_MAX_OPEN_SIGNALS` `ACTIVE` [open signals](/architecture/sql-store.md#open_signal) for the service, the service's name and `value_proposition`, and at most `PROVIDER_FACTS_PER_CALL` `ACTIVE` [provider facts](/architecture/sql-store.md#provider_fact) that apply to the service, those naming it first, then the newest ([ADR-23](/architecture/adrs/adr-23-written-interpretation-after-scoring.md)).
+
+**Algorithm.** One [LLM interpret](/architecture/interfaces.md#llm) call per score returns `summary`, `holding_back`, `finding_notes`, `open_signal_ids` and `provider_fact_ids`. The output is valid when:
+
+- `finding_notes` holds exactly one note per counted positive finding given, and no other id;
+- `open_signal_ids` and `provider_fact_ids` are subsets of those given;
+- `holding_back` is present exactly when the breakdown has a counted negative finding or a criterion that is `MISMATCH`;
+- the text states no number its inputs do not carry ([Numbers in generated text](#rules)), contains no URL, email address or phone number, and is at most `INTERPRETATION_MAX_CHARS` characters in total.
+
+An invalid output is requested once more; a second invalid output stores nothing and adds `{stage: INTERPRET, code: INVALID_OUTPUT}` to the run's errors. A call the [Budget guard](#budget-guard) stops, or whose provider is unavailable, stores nothing. Either way the run ends `PARTIAL`, and the account's next refresh or rescore — whose `INTERPRET` stage finds the same current score without an interpretation — writes it.
+
+**Invariants.** At most one interpretation per score row, written by the worker. No score, band, standing or exclusion is ever read from one ([RULE-03](/requirements/business.md#business-rules)); it is shown only beside the findings, open signals and facts it cites ([RULE-02](/requirements/business.md#business-rules)). A score that is not `RANKED` has none.
 
 ## Scoring settings validation
 
@@ -302,34 +335,52 @@ The cost of a call is the `usage.cost` OpenRouter returns with it, in US dollars
 **Algorithm.** A draft is saved, and a draft is activated, only when all hold; each failure is reported as a `VALIDATION` field error whose field is the JSON pointer of the offending key, e.g. `/questions/2/weight`:
 
 - `fit_weight` and `intent_weight` are in 0–1 and add up to 1;
-- `0 ≤ warm_threshold < hot_threshold ≤ 100` and `min_fit` is in 0–100;
+- `0 ≤ warm_threshold < hot_threshold ≤ 100`;
 - `weight_values` has all four weight levels with non-negative values; `strength_values` has `WEAK ≤ MEDIUM ≤ STRONG`, each in (0, 1];
 - `default_half_life_days` has all four source types, each > 0; `min_decay` in 0–1; `negative_factor ≥ 0`; `intent_saturation` in (0, 1]; `unknown_match` in 0–1;
 - criterion, question and disqualifier keys are unique; every operand is valid for its kind (a non-empty list of `ACTIVE` [`industry`](/architecture/sql-store.md#industry) codes, ISO country codes or enum values; `min ≤ max`);
 - `questions` names every `ACTIVE` question of the service exactly once and no other;
-- every disqualifier names an existing `criterion_key` or `question_key`.
+- every disqualifier names a `question_key` of `questions` and a `min_strength`, and carries no other operand: a `min_fit` key or a disqualifier on an ICP criterion is refused ([ADR-22](/architecture/adrs/adr-22-icp-criteria-weigh-never-exclude.md)).
 
 ## Alerts
 
-**Inputs.** A newly written current score row and the row it replaced; the findings created by the same run; `ALERT_MAX_AGE_DAYS`.
+**Inputs.** A newly written current score row and the row it replaced; the findings created by the same run; `ALERT_MAX_AGE_DAYS`; a finished `DISCOVERY` run; an [`engagement_status`](/architecture/sql-store.md#engagement_status) row written by [Engagement sync](#engagement-sync).
 
 **Algorithm.**
 
 - `BAND_UP`: rank bands `HOT` 3, `WARM` 2, `COLD` 1, and no band 0. An alert is created when the new rank is greater than the previous rank and at least 2.
 - `STRONG_SIGNAL`: for each new finding of strength `STRONG` whose question is `POSITIVE` with weight `HIGH` in the active settings, observed within `ALERT_MAX_AGE_DAYS` of `as_of`, on an account whose new standing is `RANKED`.
+- `NEW_CANDIDATES`: for a `DISCOVERY` run that finished having created at least one candidate, one alert for its service.
+- `REPLY_RECEIVED`: for each status row with status `ANSWERED` that [Engagement sync](#engagement-sync) writes.
 
-**Invariants.** At most one alert per finding and one per score row, so re-running a refresh creates no duplicate.
+**Invariants.** At most one alert per finding, per score row, per discovery run and per status row, so re-running a refresh, a discovery or a sync creates no duplicate.
+
+## Daily summary
+
+**Inputs.** A service; the clock; `DIGEST_PERIOD_HOURS`.
+
+**Algorithm.** Over the period of the last `DIGEST_PERIOD_HOURS` before now:
+
+| Value | Computation |
+|---|---|
+| `findings_created` | In-force findings of the service's questions created in the period |
+| `band_up`, `band_down` | Accounts whose current score for the service was written in the period with a band rank, as [Alerts](#alerts) ranks bands, higher or lower than the row it replaced |
+| `candidates_proposed` | [`discovery_candidate`](/architecture/sql-store.md#discovery_candidate) rows of the service created in the period |
+| `open_signals_noticed` | [`open_signal`](/architecture/sql-store.md#open_signal) rows of the service created in the period |
+| `engagement_changes` | [`engagement_status`](/architecture/sql-store.md#engagement_status) rows of the service created in the period, counted per status |
+
+**Invariants.** Every value is a count of stored rows; the summary writes nothing.
 
 ## Discovery
 
 **Inputs.** A service, its active settings and questions; the available plug-ins; existing accounts and candidates.
 
-**Algorithm.** A `DISCOVERY` run, started by a user:
+**Algorithm.** A `DISCOVERY` run, started by a user or by [Scheduling](#scheduling):
 
 1. When `CRUNCHBASE` is available: an organisation search restricted by the ICP's `GEOGRAPHY` countries, `INDUSTRY` values mapped to Crunchbase categories and `EMPLOYEE_RANGE`, up to `DISCOVERY_MAX_CANDIDATES` results.
 2. For each available news plug-in: a query made of the `hint_terms` of the service's positive questions whose `source_types` include `NEWS`, restricted to the ICP's countries where the plug-in supports it, over the last `DISCOVERY_LOOKBACK_DAYS`, up to `DISCOVERY_MAX_DOCUMENTS` documents per run, split evenly across the news plug-ins and taken newest first; a service whose positive questions have no such hint terms searches no news. Documents are stored with no account. A document is triaged once: one already triaged is not read again, and an identical document is not stored again. Each is triaged for the service's relevance only, with the question "Could this text matter for whether a company it reports on might need this service: {service description}?" and no context line; for a kept document the [LLM extract organisations](/architecture/interfaces.md#llm) call names the companies that are the subject of the signal, with the country and website when the text states them. An organisation is kept only when its `quote` is a substring of the document text, its name normalises to something, and it has a stated website or country. A website is stated when the text contains it and it has a registrable domain, which becomes the candidate's `domain`; a country is stated when it is an ISO 3166-1 alpha-2 code. A classifier or LLM call that fails, or that the [Budget guard](#budget-guard) stops, skips only its document and adds `{stage TRIAGE, code}` to the run's `errors`; the other documents continue, and the run ends `PARTIAL`. A source plug-in that fails adds an entry to the run's `errors` and the other sources continue.
-3. Mentions of one normalised name in several documents make one company, with the document and quote of the newest article naming it. Drop a company that matches an existing account ([Account identity](#account-identity)) or any earlier candidate of the service in any status, or that an `ICP_MISMATCH` disqualifier excludes on its known attributes.
-4. Compute `fit_estimate` with the [Fit score](#fit-score) over the known attributes; keep the `DISCOVERY_MAX_CANDIDATES` best by `fit_estimate`; equal estimates are ordered by the naming article's `published_at`, newest first and unknown last, then by `normalised_name`.
+3. Mentions of one normalised name in several documents make one company, with the document and quote of the newest article naming it. Drop a company that matches an existing account ([Account identity](#account-identity)) or any earlier candidate of the service in any status.
+4. Compute `fit_estimate` with the [Fit score](#fit-score) over the known attributes; keep the `DISCOVERY_MAX_CANDIDATES` best by `fit_estimate`; equal estimates are ordered by the naming article's `published_at`, newest first and unknown last, then by `normalised_name`. A company that misses an ICP criterion is kept with a lower estimate, never dropped for it ([RULE-11](/requirements/business.md#business-rules)).
 
 **Acceptance.** Accepting a candidate requires a domain, taken from the candidate or entered by the user. It creates an account with origin `DISCOVERED`, the candidate's known attributes as `MANUAL` values, its name as alias and a `WEBSITE` source, links the candidate, and enqueues an `ACCOUNT_REFRESH` with trigger `USER`. A domain that is already an account's is refused as `CONFLICT` naming it.
 
@@ -397,11 +448,12 @@ Numbers are rounded to two decimals.
 
 ## Outreach grounding
 
-**Inputs.** The account; the service's name and `value_proposition`; up to `OUTREACH_MAX_FINDINGS` in-force findings of the service's positive questions, ordered by their `points` in the current breakdown; the contact's `full_name`, `job_title` and `persona`, when one is chosen; the channel; the requesting user's display name.
+**Inputs.** The account; the service's name and `value_proposition`; up to `OUTREACH_MAX_FINDINGS` in-force findings of the service's positive questions, ordered by their `points` in the current breakdown; at most `PROVIDER_FACTS_PER_CALL` `ACTIVE` [provider facts](/architecture/sql-store.md#provider_fact) that apply to the service, those naming it first, then the newest; the contact's `full_name`, `job_title` and `persona`, when one is chosen; the channel; the requesting user's display name.
 
-**Algorithm.** The [LLM draft outreach](/architecture/interfaces.md#llm) call returns a subject (email only), a body and the ids of the findings it cites. The output is valid when:
+**Algorithm.** The [LLM draft outreach](/architecture/interfaces.md#llm) call returns a subject (email only), a body, the ids of the findings it cites and the ids of the provider facts it cites. The output is valid when:
 
-- the cited ids are a non-empty subset of the findings given;
+- the cited finding ids are a non-empty subset of the findings given, and the cited fact ids a subset of the facts given;
+- the subject and body state no number that the cited findings' quotes and translations or the cited facts do not carry ([Numbers in generated text](#rules)), so a draft claims nothing about Orange Systems beyond its facts;
 - the body is at most `OUTREACH_EMAIL_MAX_CHARS` or `OUTREACH_INMAIL_MAX_CHARS` characters;
 - it contains no URL except the cited findings' document URLs, and no email address or phone number.
 
@@ -409,13 +461,48 @@ An invalid output is requested once more; a second invalid output answers `503 U
 
 **Invariants.** Nothing is sent: the draft is stored for a person to copy or export ([RULE-06](/requirements/business.md#business-rules)).
 
-## Refresh scheduling
+## Engagement statistics
 
-**Inputs.** Active accounts' `next_refresh_at`; active refresh runs; `SCHEDULER_TICK_S`, `SCHEDULER_MAX_ENQUEUE`, `REFRESH_INTERVAL_HOURS`; the clock.
+**Inputs.** A service; its active accounts; the in-force [`engagement_status`](/architecture/sql-store.md#engagement_status) of each account for the service, `NOT_CONTACTED` when it has none; their current bands for the service.
 
-**Algorithm.** Every `SCHEDULER_TICK_S` the scheduler enqueues an `ACCOUNT_REFRESH` with trigger `SCHEDULE` for up to `SCHEDULER_MAX_ENQUEUE` active accounts whose `next_refresh_at` is due and that have no `QUEUED` or `RUNNING` refresh, oldest due first. An account whose `next_refresh_at` is null — a new one — is due. When a refresh finishes in any status but `CANCELLED`, `next_refresh_at` = `finished_at` + `REFRESH_INTERVAL_HOURS`, and `last_refreshed_at` = `finished_at` unless it `FAILED`. A user's refresh request while one is queued or running returns that run.
+**Algorithm.**
 
-**Invariants.** At most one queued or running refresh per account. Because every refresh ends with the `SCORE` stage, every active account is rescored at least once per interval, so decay is applied even when no new document arrives.
+| Value | Computation |
+|---|---|
+| `counts` | Accounts per engagement status in force |
+| `by_band` | The same counts per current band, and for accounts without a band |
+| `contacted` | Accounts whose status in force is `CONTACTED`, `ANSWERED`, `MEETING_BOOKED` or `REJECTED` |
+| `answered_share` | Accounts whose status in force is `ANSWERED`, `MEETING_BOOKED` or `REJECTED`, divided by `contacted`; null when `contacted` is 0 |
+| `meeting_share` | Accounts whose status in force is `MEETING_BOOKED`, divided by `contacted`; null when `contacted` is 0 |
+
+Shares are rounded to two decimals.
+
+## Engagement sync
+
+**Inputs.** The pairs of an active account and a service whose in-force [`engagement_status`](/architecture/sql-store.md#engagement_status) is `CONTACTED`, `ANSWERED` or `MEETING_BOOKED`; each pair's `contacted_at`, the `occurred_at` of its latest `CONTACTED` row; `HUBSPOT_REJECTED_LEAD_STATUSES`; the clock ([ADR-25](/architecture/adrs/adr-25-engagement-status-synced-from-hubspot.md)).
+
+**Algorithm.** An `ENGAGEMENT_SYNC` run started by [Scheduling](#scheduling):
+
+1. For each distinct account of the pairs, the [CRM read company engagement](/architecture/interfaces.md#crm) call finds the HubSpot company by the account's domain and returns, over its associated contacts, the latest sales-email reply time, the latest booked-meeting time and the set of lead statuses — never a contact's name, email address or phone number. A company HubSpot does not hold changes nothing.
+2. For each pair of the account, the status HubSpot shows is `REJECTED` when a lead status is in `HUBSPOT_REJECTED_LEAD_STATUSES`; else `MEETING_BOOKED` when the latest booked-meeting time is after `contacted_at`; else `ANSWERED` when the latest reply time is after `contacted_at`; else none.
+3. Statuses rank `CONTACTED` 1, `ANSWERED` 2, `MEETING_BOOKED` 3, `REJECTED` 4. A status HubSpot shows is written, with origin `HUBSPOT`, `occurred_at` the reply or meeting time or, for `REJECTED`, the run's start, and an `ENGAGEMENT_SYNCED` audit row, only when it ranks above the status in force and the pair has not received it from HubSpot since `contacted_at`; so a status a person set later is never overridden by what HubSpot already said.
+4. [Alerts](#alerts) raises `REPLY_RECEIVED` for each `ANSWERED` row written, and the run's `SCORE` stage rescores each pair whose status changed.
+
+**Invariants.** The sync never sends anything and never writes to HubSpot ([RULE-06](/requirements/business.md#business-rules)); nothing it reads about a person is stored, logged or audited ([RULE-07](/requirements/business.md#business-rules)). Without `HUBSPOT_ACCESS_TOKEN` no sync runs, and statuses are set by people only.
+
+## Scheduling
+
+The daily cycle: every account is refreshed, every service searched for new companies and every contacted company's engagement read from HubSpot, each on its interval ([ADR-26](/architecture/adrs/adr-26-daily-cycle.md)).
+
+**Inputs.** Active accounts' `next_refresh_at`; active services; queued and running runs and the start times of the last `DISCOVERY` run of each service and of the last `ENGAGEMENT_SYNC` run; `SCHEDULER_TICK_S`, `SCHEDULER_MAX_ENQUEUE`, `REFRESH_INTERVAL_HOURS`, `DISCOVERY_INTERVAL_HOURS`, `ENGAGEMENT_SYNC_INTERVAL_HOURS`, `HUBSPOT_ACCESS_TOKEN`; the clock.
+
+**Refresh.** Every `SCHEDULER_TICK_S` the scheduler enqueues an `ACCOUNT_REFRESH` with trigger `SCHEDULE` for up to `SCHEDULER_MAX_ENQUEUE` active accounts whose `next_refresh_at` is due and that have no `QUEUED` or `RUNNING` refresh, oldest due first. An account whose `next_refresh_at` is null — a new one — is due. When a refresh finishes in any status but `CANCELLED`, `next_refresh_at` = `finished_at` + `REFRESH_INTERVAL_HOURS`, and `last_refreshed_at` = `finished_at` unless it `FAILED`. A user's refresh request while one is queued or running returns that run.
+
+**Discovery.** On each tick the scheduler enqueues a `DISCOVERY` run with trigger `SCHEDULE` for every active service that has no `QUEUED` or `RUNNING` discovery and whose last discovery, whatever its trigger, started at least `DISCOVERY_INTERVAL_HOURS` ago or never ran. Its candidates wait for a person's decision as any other ([ADR-12](/architecture/adrs/adr-12-suggested-accounts-need-acceptance.md)).
+
+**Engagement sync.** When `HUBSPOT_ACCESS_TOKEN` is set, on each tick the scheduler enqueues an `ENGAGEMENT_SYNC` run with trigger `SCHEDULE` when none is `QUEUED` or `RUNNING` and the last one started at least `ENGAGEMENT_SYNC_INTERVAL_HOURS` ago or never ran.
+
+**Invariants.** At most one queued or running refresh per account, discovery per service and engagement sync. Because every refresh ends with the `SCORE` stage, every active account is rescored at least once per interval, so decay is applied even when no new document arrives.
 
 ## Retention and erasure
 
@@ -440,7 +527,9 @@ The acceptance tests verify these cases through the product's surface. Settings 
 | `SIZE` | `EMPLOYEE_RANGE` | min 5000 | `LOW` |
 | `COMPLEXITY` | `OPERATIONAL_COMPLEXITY` | `HIGH` | `MEDIUM` |
 
-**Questions.** `COST_PROGRAM` positive `HIGH`; `AUTOMATION_HIRING` positive `MEDIUM`; `AI_INITIATIVE` positive `HIGH`; `IN_HOUSE_AUTOMATION` negative `MEDIUM`; all with the source-type half-life.
+**Questions.** `COST_PROGRAM` positive `HIGH`; `AUTOMATION_HIRING` positive `MEDIUM`; `AI_INITIATIVE` positive `HIGH`; `IN_HOUSE_AUTOMATION` negative `MEDIUM`; `INSOLVENCY` negative `NONE`; all with the source-type half-life.
+
+**Disqualifier.** `INSOLVENT`, labelled "In insolvency", on `INSOLVENCY` with `min_strength` `MEDIUM`.
 
 **Example 1 — a ranked account.** Industry `AEROSPACE_AVIATION`, country `DE`, employees unknown, complexity `HIGH`.
 
@@ -454,8 +543,10 @@ The acceptance tests verify these cases through the product's surface. Settings 
 | `P`, `N`, `M` | `3·0.707107 + 2·0.530330`; `2·0.827037`; `3 + 2 + 3` | 3.181981; 1.654074; 8 |
 | Intent | `100 × (3.181981 − 1.654074) / (0.5 × 8)` | 38.20 → **38** |
 | Priority | `0.4 × 94 + 0.6 × 38` | 60.4 → **60** |
-| Standing, band | Fit ≥ 40; 40 ≤ 60 < 70 | `RANKED`, **`WARM`** |
+| Standing, band | no exclusion; 40 ≤ 60 < 70 | `RANKED`, **`WARM`** |
 
-**Example 2 — an excluded account and its override.** The settings add the disqualifier `OUTSIDE_REGION` of kind `ICP_MISMATCH` on `REGION`. An account with country `FR` and otherwise the attributes and findings of Example 1 has Fit `100 × (3 + 0 + 0.5 + 2) / 8` = 68.75 → 69, Intent 38, Priority `0.4 × 69 + 0.6 × 38` = 50.4 → 50, and standing `DISQUALIFIED` with no band. After an Admin overrides `OUTSIDE_REGION` for it, the same numbers give standing `RANKED` and band `WARM`.
+**Example 2 — an account outside the region ranks lower and stays ranked.** An account with country `FR` and otherwise the attributes and findings of Example 1 misses `REGION`: Fit `100 × (3 + 0 + 0.5 + 2) / 8` = 68.75 → 69, Intent 38, Priority `0.4 × 69 + 0.6 × 38` = 50.4 → 50, standing `RANKED` and band `WARM`, ranked below Example 1's account ([RULE-11](/requirements/business.md#business-rules)).
 
 **Example 3 — decay floor.** A `WEAK` `NEWS` finding 400 days old has decay `0.5^(400/90)` = 0.0459, below `min_decay` 0.05, and contributes 0.
+
+**Example 4 — an excluded account and its override.** The account of Example 1 with, in addition, a `MEDIUM` `NEWS` finding of `INSOLVENCY` 10 days old matches `INSOLVENT` (decay `0.5^(10/90)` = 0.9259 ≥ `min_decay`). `INSOLVENCY` has weight `NONE`, so Fit 94, Intent 38 and Priority 60 are unchanged, and the standing is `DISQUALIFIED` with no band; the breakdown names `INSOLVENT` with that finding. After an Admin overrides `INSOLVENT` for it, the same numbers give standing `RANKED` and band `WARM`; after the override is revoked it is `DISQUALIFIED` again.

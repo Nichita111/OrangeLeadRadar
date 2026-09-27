@@ -18,7 +18,7 @@ export interface AccountFilters {
   page: number;
 }
 
-/** `API-20` (`FR-038`, `FR-169`). */
+/** `API-20` (`FR-038`, `FR-182`). */
 export function useAccounts(filters: AccountFilters) {
   return useQuery({
     queryKey: [...accountsKeys, "list", filters],

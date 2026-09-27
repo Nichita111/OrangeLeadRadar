@@ -77,8 +77,8 @@ _PLAIN_FIELDS = (
 )
 
 #: A field whose lone change enqueues no [Rescoring](/architecture/rules.md#rescoring) run: it is
-#: not an [Account attribute](/architecture/rules.md#account-attributes) ([ADR-22]
-#: (/architecture/adrs/adr-22-relationship-status-beside-lead-feedback.md)).
+#: not an [Account attribute](/architecture/rules.md#account-attributes) ([ADR-27]
+#: (/architecture/adrs/adr-27-relationship-status-beside-lead-feedback.md)).
 _FIELDS_WITHOUT_RESCORE = frozenset({"relationship_status"})
 
 
@@ -477,7 +477,7 @@ async def update_account(
     ([Rescoring](/architecture/rules.md#rescoring) Triggers), and writes no audit row when
     nothing changed (matching `auth.users.update_user`'s G8). `relationship_status` is not an
     attribute: a change to it alone writes the value and the audit row, and enqueues no run
-    ([ADR-22](/architecture/adrs/adr-22-relationship-status-beside-lead-feedback.md))."""
+    ([ADR-27](/architecture/adrs/adr-27-relationship-status-beside-lead-feedback.md))."""
     account = (
         await session.execute(select(Account).where(Account.id == account_id).with_for_update())
     ).scalar_one_or_none()

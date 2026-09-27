@@ -1,7 +1,7 @@
 ---
 type: Feature
 title: Accounts and discovery
-description: How Sales builds the target account list - CSV import with a dry run, manual entry, profile attributes, aliases, source addresses and minimal contacts - and how discovery suggests new accounts for a service that a person accepts or rejects.
+description: How Sales builds the target account list - CSV import with a dry run, manual entry, profile attributes, aliases, source addresses and minimal contacts - and how discovery suggests new accounts for a service, on request and every day, that a person accepts or rejects.
 status: draft
 tags: [accounts-and-discovery]
 ---
@@ -10,7 +10,7 @@ tags: [accounts-and-discovery]
 
 ## Purpose
 
-An account is a company worth watching, identified by its web domain and shared by the whole team. Sales brings in the target list from a CSV export, such as one from LinkedIn Sales Navigator, or adds accounts one by one, and keeps their profile, the names they are reported under and the addresses where they publish. Decision-makers are recorded with the minimum personal data. Discovery widens the list: for a service it proposes companies that fit the ICP or appear in relevant news, and nothing happens to a suggestion until a person accepts it.
+An account is a company worth watching, identified by its web domain and shared by the whole team. Sales brings in the target list from a CSV export, such as one from LinkedIn Sales Navigator, or adds accounts one by one, and keeps their profile, the names they are reported under and the addresses where they publish. Decision-makers are recorded with the minimum personal data. Discovery widens the list beyond the imported file: for a service it proposes companies that fit the ICP or appear in relevant news — on request and every day — ranked by how well they fit, a company outside the ICP kept with a lower estimate; nothing happens to a suggestion until a person accepts it.
 
 ## Flows
 
@@ -41,6 +41,8 @@ sequenceDiagram
 
 ### FL-06 Discover and accept suggested accounts
 
+A user starts discovery from [Suggested accounts](#suggested-accounts), or the daily cycle starts it ([FL-08](/features/signal-pipeline.md#fl-08-daily-cycle)); a scheduled run that proposes companies raises an alert.
+
 ```mermaid
 sequenceDiagram
   actor Sales
@@ -63,15 +65,15 @@ sequenceDiagram
 
 ## Reading order
 
-1. Terms in the [glossary](/requirements/glossary.md): Account, Account alias, Account source, Contact, Persona, Discovery candidate, Fit score, Free core, Relationship status.
-2. Requirement rows: `S-ACC-01` to `S-ACC-06`, `S-DSC-01`, `S-DSC-02`, `S-ING-06` in [system requirements](/requirements/system.md); `B-07` to `B-10`, `B-37`, `B-41`, `RULE-01`, `RULE-07` in [business requirements](/requirements/business.md); `N-08`.
+1. Terms in the [glossary](/requirements/glossary.md): Account, Account alias, Account source, Contact, Persona, Discovery, Discovery candidate, Daily cycle, Fit score, Free core, Relationship status.
+2. Requirement rows: `S-ACC-01` to `S-ACC-06`, `S-DSC-01` to `S-DSC-03`, `S-ING-06` in [system requirements](/requirements/system.md); `B-07` to `B-10`, `B-37`, `B-48`, `RULE-01`, `RULE-07`, `RULE-11` in [business requirements](/requirements/business.md); `N-08`.
 3. Stores: [`account`](/architecture/sql-store.md#account), [`account_alias`](/architecture/sql-store.md#account_alias), [`account_source`](/architecture/sql-store.md#account_source), [`contact`](/architecture/sql-store.md#contact), [`discovery_candidate`](/architecture/sql-store.md#discovery_candidate).
-4. Rules: [Account identity](/architecture/rules.md#account-identity), [Account attributes](/architecture/rules.md#account-attributes), [Persona mapping](/architecture/rules.md#persona-mapping), [Discovery](/architecture/rules.md#discovery), [Fit score](/architecture/rules.md#fit-score), [Retention and erasure](/architecture/rules.md#retention-and-erasure).
+4. Rules: [Account identity](/architecture/rules.md#account-identity), [Account attributes](/architecture/rules.md#account-attributes), [Persona mapping](/architecture/rules.md#persona-mapping), [Discovery](/architecture/rules.md#discovery), [Scheduling](/architecture/rules.md#scheduling), [Fit score](/architecture/rules.md#fit-score), [Retention and erasure](/architecture/rules.md#retention-and-erasure).
 5. Interfaces: [Accounts and contacts](/architecture/interfaces.md#accounts-and-contacts) (`API-20` to `API-28`, [`AccountImportRow`](/architecture/interfaces.md#accountimportrow)) and [Discovery](/architecture/interfaces.md#discovery) (`API-29` to `API-32`).
 6. Services: the [api](/architecture/services/api.md) and its [runtime](/architecture/services/api.md#runtime) (`IMPORT_MAX_ROWS`, `CONTACT_RETENTION_DAYS`); the [worker](/architecture/services/worker.md) for discovery; the [frontend](/architecture/services/frontend.md) shell; the accounts of the [demo dataset](/architecture/overview.md#demo-dataset) and the account columns of [store ownership](/architecture/overview.md#store-ownership).
-7. Decisions: [ADR-10](/architecture/adrs/adr-10-minimal-contact-data.md), [ADR-12](/architecture/adrs/adr-12-suggested-accounts-need-acceptance.md), [ADR-07](/architecture/adrs/adr-07-source-plug-ins-with-a-free-core.md), [ADR-22](/architecture/adrs/adr-22-relationship-status-beside-lead-feedback.md).
+7. Decisions: [ADR-10](/architecture/adrs/adr-10-minimal-contact-data.md), [ADR-12](/architecture/adrs/adr-12-suggested-accounts-need-acceptance.md), [ADR-07](/architecture/adrs/adr-07-source-plug-ins-with-a-free-core.md), [ADR-22](/architecture/adrs/adr-22-icp-criteria-weigh-never-exclude.md), [ADR-26](/architecture/adrs/adr-26-daily-cycle.md), [ADR-27](/architecture/adrs/adr-27-relationship-status-beside-lead-feedback.md).
 8. Screens: [Accounts](#accounts), [Account import](#account-import), [Account profile](#account-profile), [Suggested accounts](#suggested-accounts).
-9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-09` to `AC-15`, `AC-59`, `AC-63`, `AC-69`, `AC-78`.
+9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-09` to `AC-15`, `AC-59`, `AC-63`, `AC-69`, `AC-89`, `AC-91`.
 
 ## Accounts
 
@@ -103,7 +105,7 @@ WF-06 — Accounts
 | `FR-040` | A row shall open the account's [Account detail](/features/prospect-dashboard.md#account-detail) for the selected service. |
 | `FR-137` | The name cell shall show the parent account as Part of its name, an inactive account with an Inactive chip and an account whose refresh is running with a Refreshing chip. |
 | `FR-138` | In the New account dialog the domain field shall show, under the field, that the domain is already an account, naming it, and the confirming button shall then read Open existing account. |
-| `FR-169` | A Relationship filter shall narrow the list to the accounts of one relationship status. |
+| `FR-182` | A Relationship filter shall narrow the list to the accounts of one relationship status. |
 
 Obligations: `S-ACC-01`, `S-ACC-05`, `S-ACC-06`.
 
@@ -217,8 +219,9 @@ WF-09 — Suggested accounts
 | `FR-053` | Reject shall take an optional reason and remove the candidate from the pending list for good. |
 | `FR-141` | While a discovery run is active a callout shall show the news sources searched, the articles read and the companies found so far; the fit estimate of a candidate shall be shown as a score, and when no candidate is pending the empty state shall say how to find new ones. |
 | `FR-142` | Accepting a candidate shall mark it in place as Accepted with its refresh queued, and a candidate without a website shall say that the domain will be asked for. |
+| `FR-181` | A candidate proposed by the daily cycle shall carry a Found by the daily search chip with when it was proposed. |
 
-Obligations: `S-DSC-01`, `S-DSC-02`.
+Obligations: `S-DSC-01`, `S-DSC-02`, `S-DSC-03`.
 
 **Data**: `API-29`, `API-30`, `API-31`, `API-32`, `API-34`, `API-35`, `API-71`. **States**: [States](/architecture/services/frontend.md#states); when the service's latest discovery run found no Crunchbase organisation, the screen states that suggestions come from news only.
 
