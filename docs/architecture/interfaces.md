@@ -533,6 +533,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 - `API-33` — an inactive account answers `409`. The frontend polls `API-35` for progress ([ADR-13](/architecture/adrs/adr-13-run-progress-by-polling.md)).
 - `API-34` — newest first.
 - `API-36` — a `RECLASSIFY`, `RESCORE` or `EVALUATION` run can be cancelled by an Admin only (`403 FORBIDDEN` for Sales), so a user cannot leave a question's stored passages or a scoring version half applied. It cancels the run's `READY` jobs; running jobs finish their current step; the run ends `CANCELLED`. A finished run answers `409`.
+- `API-38` — a `rate_limit_per_minute` or `daily_quota` of 0 or below answers `422 VALIDATION`; `daily_quota` sent as `null` removes the quota.
 
 ### Runs and source plug-ins shapes
 

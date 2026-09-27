@@ -148,10 +148,22 @@ WF-11 — Source plug-ins
 
 | ID | Requirement |
 |---|---|
-| `FR-059` | The screen shall list every plug-in with whether it needs a key, whether the key is configured, the enabled switch, whether it is available now, requests today against the daily quota, the per-minute limit, the last success and the last error. |
+| `FR-059` | The screen shall list every plug-in with whether it needs a key, whether the key is configured, the enabled switch, whether it is available now, requests today against the daily quota, the per-minute limit, the last success and the last error. With no plug-in seeded, the empty state says the plug-ins are created when the database is seeded, and offers no button. |
 | `FR-060` | A plug-in whose key is missing shall say that it stays unavailable until the key is set in the deployment's configuration, whatever the switch says. |
-| `FR-061` | The switch and the limits shall save immediately and apply from the next fetch. |
-| `FR-143` | Each plug-in row shall say in words what it reads, and its availability shall be one of Available, Switched off, or Unavailable with the reason, such as the key being missing. |
+| `FR-061` | The switch shall save when it is changed, and a limit when its field loses focus or Enter is pressed, if its value changed; Escape restores the saved value; an empty daily quota means none; each save applies from the next fetch and confirms with a short toast. |
+| `FR-143` | Each plug-in row shall say in words what it reads, as the table below states, and its availability shall be one of Available, Switched off, or Unavailable with its reason — key missing, or daily quota reached — taken in that order from `enabled`, then `needs_key` with `key_configured`, then `requests_today` against `daily_quota`; a switched-off plug-in whose key is missing reads Switched off and still carries the note of `FR-060`. |
+
+What each plug-in reads, in the words the screen shows; the technical scope is the Reads column of [`source_plugin`](/architecture/sql-store.md#source_plugin).
+
+| Plug-in | What it reads |
+|---|---|
+| `GDELT` | News articles worldwide that name the account, found through the GDELT Project |
+| `RSS` | The news and blog feeds listed among the account's sources |
+| `WEBSITE` | The account's own website, newsroom and investor pages, and the reports they link |
+| `CAREERS` | Job postings on the account's career pages and job boards |
+| `CRUNCHBASE` | The company's profile, key people, funding and acquisitions |
+| `NEWSAPI` | News articles that name the account, found through NewsAPI |
+| `SERPAPI` | Google News and web search results for the account, found through SerpAPI |
 
 Obligations: `S-PIP-05`, `S-ING-01`.
 

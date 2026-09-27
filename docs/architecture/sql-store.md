@@ -354,8 +354,8 @@ One row per source plug-in, seeded; holds the Admin's switches and limits. API k
 |---|---|---|
 | `code` | enum, unique | One of the plug-in values below. |
 | `enabled` | boolean | The Admin's switch. A plug-in that needs a key and has none is unavailable whatever this says ([Plug-in availability](/architecture/rules.md#plug-in-availability)). |
-| `rate_limit_per_minute` | integer | Maximum requests per minute to the provider. |
-| `daily_quota` | integer, null | Maximum requests per UTC day; null for none. |
+| `rate_limit_per_minute` | integer > 0 | Maximum requests per minute to the provider. |
+| `daily_quota` | integer > 0, null | Maximum requests per UTC day; null for none. |
 | `last_success_at` | timestamptz, null | Last request that succeeded. |
 | `last_error` | text, null | Message of the last failed request. |
 | `last_error_at` | timestamptz, null | When it failed. |
