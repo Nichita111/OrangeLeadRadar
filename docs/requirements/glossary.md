@@ -31,6 +31,7 @@ A term is the one name of its concept in prose. **Identifier** is the name code,
 | Classifier | The fast model that returns probabilities over fixed answers: Jev, or the LLM classifier adapter. | `CLASSIFIER` | [Classifier](/architecture/interfaces.md#classifier) |
 | Confidence | How sure the deciding model was of a finding, from 0 to 1. | `confidence` | [`finding`](/architecture/sql-store.md#finding) |
 | Contact | A decision-maker at an account, kept to the minimum. | `contact` | [`contact`](/architecture/sql-store.md#contact) |
+| Contact suggestion | A person an account's stored documents name with a job title, offered with the quote that states it and stored only when a user adds it as a contact. | `ContactSuggestion` | [Contact suggestion](/architecture/rules.md#contact-suggestion) |
 | Daily cycle | What the scheduler does every day: refresh every active account, run discovery for every active service and sync engagement statuses from HubSpot. | — | [Scheduling](/architecture/rules.md#scheduling) |
 | Daily summary | The counts at the top of Alerts of what changed for a service over the last day. | `digest` | [Daily summary](/architecture/rules.md#daily-summary) |
 | Demo sign-in | Signing in without a password as the demo dataset's Sales or Admin user, offered only in replay fixture mode. | `demo-login` | `API-78` in [Authentication and users](/architecture/interfaces.md#authentication-and-users) |
@@ -109,3 +110,5 @@ Evidence quotes are shown as written, with their translation beside them, never 
 |---|---|---|
 | `B-38` | Jev became available through OpenRouter, so keeping it classifying under an exhausted budget no longer needed its own should-have row | `B-33` through `S-SIG-08` |
 | `S-SIG-10` | The same obligation belongs to the budget guard, as first specified | `S-SIG-08` |
+| `API-43` | Sales reads the original page, so no screen shows the stored passage around a quote any more | `FindingView` `document.url` of `API-42` |
+| `FR-131` | Every quote opens its original page, so the Why tab no longer opens a passage on the Signals tab | `FR-116` |
