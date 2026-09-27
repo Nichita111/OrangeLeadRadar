@@ -4,35 +4,30 @@
 [ADR-05](/architecture/adrs/adr-05-langgraph-only-for-the-signal-graph.md).
 
 Each node writes its results before the next runs; the graph keeps no LangGraph
-checkpoint — the database is the durable state.
-
-Inputs to ``run_signal_step``:
-- ``documents``: list of dicts with keys ``document_id``, ``account_id``, ``run_id``,
-  ``source_type``, ``language``, ``plugin_code``, ``published_at``, ``fetched_at``,
-  ``title``, ``text`` (first ``TRIAGE_CHARS`` characters already sliced by caller or
-  in full when passage-level).
-- ``service_descriptions``: mapping service_id → description text (for triage relevance
-  questions).
-- ``account``: ``{id, name, domain, country_code}``.
-- ``passages``: list of dicts ``{chunk_id, document_id, text, section, ordinal}``.
-- ``questions``: list of dicts ``{id, service_id, key, text, answer_type, options,
-  revision, source_types}``.
-
-The SIGNAL step does not fetch or chunk — it receives already-selected passages.
+checkpoint — the database is the durable state. ``run_signal_job`` loads the account's
+documents to triage, its questions, and the pairs waiting for the LLM, and hands them to
+``run_signal_step`` as a ``SignalBatch``. The step does not fetch or chunk: it works on the
+passages the ``PROCESS`` step stored.
 """
 
 from __future__ import annotations
 
 import uuid
+from collections.abc import Awaitable, Callable, Collection
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 
-from sqlalchemy import select, update
+import httpx
+from sqlalchemy import and_, exists, or_, select, update
+from sqlalchemy import cast as sql_cast
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql import Select
 
 from leadradar.ai.audit import AiCallContext
-from leadradar.ai.errors import BudgetExhausted
+from leadradar.ai.embedder import embed
+from leadradar.ai.errors import BudgetExhausted, UpstreamUnavailable
 from leadradar.ai.fixtures import FixtureMissing
 from leadradar.ai.shapes import (
     ClassifierAnswer,
@@ -45,11 +40,15 @@ from leadradar.ai.shapes import (
     EvidenceOutput,
 )
 from leadradar.core.enums import (
+    AccountStatus,
     ClassificationStatus,
     DocumentTriageClassifier,
+    DocumentTriageOutcome,
+    EvaluationItemStatus,
     FindingDecidedBy,
     FindingStatus,
     FindingStrength,
+    PipelineRunKind,
     PipelineRunStage,
     ServiceStatus,
     SignalQuestionAnswerType,
@@ -58,6 +57,7 @@ from leadradar.core.enums import (
 from leadradar.core.signal.classification import (
     SCALE_SUFFIX,
     AnswerMapping,
+    choice_option_strength,
     classifier_questions_for,
     map_answer,
     merge_yes_no_probabilities,
@@ -69,18 +69,27 @@ from leadradar.core.signal.triage import (
     ABOUT_ACCOUNT_QUESTION_ID,
     RELEVANT_QUESTION_PREFIX,
     TriageResult,
+    is_own_source,
+    kept_for_service,
     triage,
 )
 from leadradar.db.models.accounts import Account
 from leadradar.db.models.configuration import Service, SignalQuestion
+from leadradar.db.models.feedback import EvaluationItem
 from leadradar.db.models.ingestion import Chunk, Document, Job, PipelineRun
 from leadradar.db.models.signals import Classification, DocumentTriage, Finding
+from leadradar.worker.queue import add_run_error, add_run_progress
 from leadradar.worker.settings import WorkerSettings
+from leadradar.worker.steps import StepFailed
+from leadradar.worker.steps.passage_selection import select_document_passages
 
 # ── State ──────────────────────────────────────────────────────────────────────
 
 
 class SignalGateway(Protocol):
+    @property
+    def classifier(self) -> DocumentTriageClassifier: ...
+
     async def classify(
         self, request: ClassifierRequest, context: AiCallContext
     ) -> list[ClassifierAnswer]: ...
@@ -116,7 +125,6 @@ class SignalBatch:
 
     # Runtime config
     gateway: SignalGateway
-    now: datetime
     triage_chars: int
     triage_about_min_p: float
     triage_relevance_min_p: float
@@ -126,40 +134,154 @@ class SignalBatch:
     evidence_min_quote_chars: int
     evidence_max_quote_chars: int
     evidence_max_rationale_chars: int
+    #: Embeds question texts for passage selection (`API-67`).
+    embed: Callable[[list[str]], Awaitable[list[list[float]]]]
+    passages_per_question: int
+    max_passages_per_document: int
+    retrieval_candidates: int
+    retrieval_rrf_k: int
 
     # Outputs accumulated by nodes
     triage_results: dict[str, TriageResult] = field(default_factory=dict)  # doc_id → result
     # classification_id for pairs that reached POSITIVE
     finding_inputs: list[dict[str, Any]] = field(default_factory=list)
+    # (document_id, service_id) → ordinals of the passages selected for that service's questions
+    selected: dict[tuple[str, str], set[int]] = field(default_factory=dict)
+    # Pairs left waiting by an earlier job, resumed by the evidence node after `finding_inputs`
+    pending_inputs: list[dict[str, Any]] = field(default_factory=list)
+    #: What this job created, added to the run's `progress` at the end.
+    counts: dict[str, int] = field(
+        default_factory=lambda: {
+            "documents_kept": 0,
+            "pairs_classified": 0,
+            "pairs_escalated": 0,
+            "findings_created": 0,
+            "pending_budget": 0,
+        }
+    )
+    #: The job, for the run's `progress` and `errors`.
+    job_id: uuid.UUID | None = None
+    llm_unavailable: str | None = None
 
 
 # ── Node: triage ────────────────────────────────────────────────────────────────
 
 
+def _triage_text(state: SignalBatch, doc: dict[str, Any]) -> str:
+    text_slice = (doc.get("text") or "")[: state.triage_chars]
+    return f"{doc['title']}\n{text_slice}" if doc.get("title") else text_slice
+
+
+def _relevant_question(state: SignalBatch, service_id: str) -> ClassifierQuestion:
+    return ClassifierQuestion(
+        id=f"{RELEVANT_QUESTION_PREFIX}{service_id}",
+        kind="YES_NO",
+        text=(
+            f"Could this text matter for whether {state.account_name}"
+            f" might need this service: {state.service_descriptions.get(service_id, '')}?"
+        ),
+        options=None,
+    )
+
+
+async def _complete_stored_triage(
+    state: SignalBatch, session: AsyncSession, doc: dict[str, Any], stored: DocumentTriage
+) -> None:
+    doc_id = doc["document_id"]
+    kept: set[str] = set()
+    for service_id in state.service_ids:
+        raw_p = stored.service_relevance.get(service_id)
+        if raw_p is None:
+            request = ClassifierRequest(
+                state=_triage_text(state, doc),
+                context=(
+                    f"Company: {state.account_name} ({state.account_domain},"
+                    f" {state.account_country_code or ''})"
+                ),
+                questions=[_relevant_question(state, service_id)],
+            )
+            answers = await _classify_call(
+                state,
+                request,
+                AiCallContext(
+                    entity_type="document", entity_id=uuid.UUID(doc_id), run_id=state.run_id
+                ),
+            )
+            relevance_p = next(
+                (
+                    answer.probabilities.get("YES", 0.0)
+                    for answer in answers
+                    if answer.question_id == f"{RELEVANT_QUESTION_PREFIX}{service_id}"
+                ),
+                0.0,
+            )
+            keep = kept_for_service(
+                outcome=stored.outcome,
+                relevance_p=relevance_p,
+                triage_relevance_min_p=state.triage_relevance_min_p,
+            )
+            became_kept = keep and stored.outcome is not DocumentTriageOutcome.KEPT
+            statement = (
+                update(DocumentTriage)
+                .where(DocumentTriage.id == stored.id)
+                .values(
+                    service_relevance=DocumentTriage.service_relevance.op("||")(
+                        sql_cast({service_id: relevance_p}, JSONB)
+                    ),
+                )
+            )
+            if keep:
+                statement = statement.values(outcome=DocumentTriageOutcome.KEPT)
+            await session.execute(statement)
+            if became_kept:
+                state.counts["documents_kept"] += 1
+                stored.outcome = DocumentTriageOutcome.KEPT
+        else:
+            relevance_p = float(cast(float, raw_p))
+            keep = kept_for_service(
+                outcome=stored.outcome,
+                relevance_p=relevance_p,
+                triage_relevance_min_p=state.triage_relevance_min_p,
+            )
+        if keep:
+            kept.add(service_id)
+    state.triage_results[doc_id] = TriageResult(
+        outcome=stored.outcome,
+        kept_service_ids=frozenset(kept),
+        about_account_p=float(stored.about_account_p)
+        if stored.about_account_p is not None
+        else None,
+    )
+
+
 async def _node_triage(state: SignalBatch, session: AsyncSession) -> None:
-    """Triage each document: call classifier, write ``document_triage`` row.
-
-    Idempotent: skips documents that already have a ``document_triage`` row.
-    """
-    # Load already-triaged document ids
-    existing_ids: set[str] = set()
-    if state.documents:
-        doc_ids = [uuid.UUID(d["document_id"]) for d in state.documents]
-        stmt = select(DocumentTriage.document_id).where(DocumentTriage.document_id.in_(doc_ids))
-        rows = await session.execute(stmt)
-        existing_ids = {str(r) for r in rows.scalars()}
-
+    """Triage each document to triage: call the classifier, write its ``document_triage`` row."""
+    document_ids = [uuid.UUID(doc["document_id"]) for doc in state.documents]
+    stored_rows = (
+        list(
+            (
+                await session.scalars(
+                    select(DocumentTriage).where(DocumentTriage.document_id.in_(document_ids))
+                )
+            ).all()
+        )
+        if document_ids
+        else []
+    )
+    stored_by_document = {str(row.document_id): row for row in stored_rows}
     for doc in state.documents:
         doc_id = doc["document_id"]
-        if doc_id in existing_ids:
+        stored = stored_by_document.get(doc_id)
+        if stored is not None:
+            await _complete_stored_triage(state, session, doc, stored)
             continue
 
-        is_own_source = _is_own_source(doc.get("plugin_code", ""))
-        text_slice = (doc.get("text") or "")[: state.triage_chars]
+        own_source = is_own_source(doc["plugin_code"])
+        text_slice = _triage_text(state, doc)
 
         # Build classifier questions for triage
         triage_questions: list[ClassifierQuestion] = []
-        if not is_own_source:
+        if not own_source:
             ctx_name = state.account_name
             ctx_domain = state.account_domain
             ctx_country = state.account_country_code or ""
@@ -176,18 +298,7 @@ async def _node_triage(state: SignalBatch, session: AsyncSession) -> None:
             )
 
         for svc_id in state.service_ids:
-            desc = state.service_descriptions.get(svc_id, "")
-            triage_questions.append(
-                ClassifierQuestion(
-                    id=f"{RELEVANT_QUESTION_PREFIX}{svc_id}",
-                    kind="YES_NO",
-                    text=(
-                        f"Could this text matter for whether {state.account_name}"
-                        f" might need this service: {desc}?"
-                    ),
-                    options=None,
-                )
-            )
+            triage_questions.append(_relevant_question(state, svc_id))
 
         context_line = (
             f"Company: {state.account_name} ({state.account_domain},"
@@ -199,7 +310,8 @@ async def _node_triage(state: SignalBatch, session: AsyncSession) -> None:
             questions=triage_questions,
         )
 
-        answers_list = await state.gateway.classify(
+        answers_list = await _classify_call(
+            state,
             req,
             AiCallContext(entity_type="document", entity_id=uuid.UUID(doc_id), run_id=state.run_id),
         )
@@ -208,13 +320,15 @@ async def _node_triage(state: SignalBatch, session: AsyncSession) -> None:
         }
 
         result = triage(
-            is_own_source=is_own_source,
+            is_own_source=own_source,
             service_ids=state.service_ids,
             answers=answers,
             triage_about_min_p=state.triage_about_min_p,
             triage_relevance_min_p=state.triage_relevance_min_p,
         )
         state.triage_results[doc_id] = result
+        if result.outcome is DocumentTriageOutcome.KEPT:
+            state.counts["documents_kept"] += 1
 
         # Derive service_relevance dict for storing
         service_relevance: dict[str, float] = {}
@@ -226,7 +340,7 @@ async def _node_triage(state: SignalBatch, session: AsyncSession) -> None:
         session.add(
             DocumentTriage(
                 document_id=uuid.UUID(doc_id),
-                classifier=DocumentTriageClassifier.LLM,
+                classifier=state.gateway.classifier,
                 about_account_p=result.about_account_p,
                 service_relevance=service_relevance,
                 outcome=result.outcome,
@@ -234,6 +348,67 @@ async def _node_triage(state: SignalBatch, session: AsyncSession) -> None:
         )
 
     await session.flush()
+
+
+# ── Node: select passages ───────────────────────────────────────────────────────
+
+
+async def _node_select(state: SignalBatch, session: AsyncSession) -> None:
+    """Select, for each kept document and each service it kept, the passages its applicable
+    questions are asked on ([Passage selection]
+    (/architecture/rules.md#chunking-and-passage-selection)): the only passage of a one-passage
+    document, else the union of each question's best passages."""
+    ordinals_by_document: dict[str, list[int]] = {}
+    for passage in state.passages:
+        ordinals_by_document.setdefault(passage["document_id"], []).append(passage["ordinal"])
+    vectors: dict[str, list[float]] = {}
+
+    for document in state.documents:
+        document_id = document["document_id"]
+        result = state.triage_results.get(document_id)
+        ordinals = ordinals_by_document.get(document_id, [])
+        if result is None or not ordinals:
+            continue
+        for service_id in result.kept_service_ids:
+            if len(ordinals) == 1:
+                state.selected[(document_id, service_id)] = set(ordinals)
+                continue
+            applicable = _applicable_questions(state, document["source_type"], {service_id})
+            if not applicable:
+                continue
+            missing = [q for q in applicable if q["id"] not in vectors]
+            if missing:
+                try:
+                    embedded = await state.embed(
+                        [" ".join([q["text"], *q["hint_terms"]]) for q in missing]
+                    )
+                except UpstreamUnavailable as error:
+                    raise StepFailed("UPSTREAM_UNAVAILABLE", str(error)) from error
+                vectors.update(
+                    {q["id"]: vector for q, vector in zip(missing, embedded, strict=True)}
+                )
+            state.selected[(document_id, service_id)] = set(
+                await select_document_passages(
+                    session,
+                    document_id=uuid.UUID(document_id),
+                    questions=[(q["id"], q["hint_terms"], vectors[q["id"]]) for q in applicable],
+                    passages_per_question=state.passages_per_question,
+                    candidates=state.retrieval_candidates,
+                    rrf_k=state.retrieval_rrf_k,
+                    max_passages_per_document=state.max_passages_per_document,
+                )
+            )
+
+
+def _applicable_questions(
+    state: SignalBatch, source_type: str, service_ids: Collection[str]
+) -> list[dict[str, Any]]:
+    """The questions of the given services whose `source_types` include the source type."""
+    return [
+        q
+        for q in state.questions
+        if q["service_id"] in service_ids and source_type in q["source_types"]
+    ]
 
 
 # ── Node: classify passages ─────────────────────────────────────────────────────
@@ -246,9 +421,7 @@ async def _node_classify(state: SignalBatch, session: AsyncSession) -> None:
     via the unique key ``(chunk_id, question_id, question_revision)``.
     """
     # Build lookup: document_id → source_type and triage kept-service set
-    doc_source_type: dict[str, str] = {
-        d["document_id"]: d.get("source_type", "NEWS") for d in state.documents
-    }
+    doc_source_type: dict[str, str] = {d["document_id"]: d["source_type"] for d in state.documents}
     doc_kept_services: dict[str, frozenset[str]] = {}
     for doc_id, tr in state.triage_results.items():
         doc_kept_services[doc_id] = tr.kept_service_ids
@@ -264,11 +437,10 @@ async def _node_classify(state: SignalBatch, session: AsyncSession) -> None:
         if not kept_services:
             continue  # Document not kept or not triaged
 
-        source_type = doc_source_type.get(doc_id, "NEWS")
         applicable_questions = [
             q
-            for q in state.questions
-            if (q["service_id"] in kept_services and source_type in q.get("source_types", []))
+            for q in _applicable_questions(state, doc_source_type[doc_id], kept_services)
+            if passage["ordinal"] in state.selected.get((doc_id, q["service_id"]), ())
         ]
         if not applicable_questions:
             continue
@@ -335,7 +507,8 @@ async def _node_classify(state: SignalBatch, session: AsyncSession) -> None:
             questions=clf_questions,
         )
 
-        answers_list = await state.gateway.classify(
+        answers_list = await _classify_call(
+            state,
             req,
             AiCallContext(
                 entity_type="chunk", entity_id=uuid.UUID(chunk_id_str), run_id=state.run_id
@@ -370,35 +543,32 @@ async def _node_classify(state: SignalBatch, session: AsyncSession) -> None:
                 escalation_upper=state.escalation_upper,
             )
 
+            strength: FindingStrength | None = None  # null while PENDING_LLM
             if initial_route is Route.NEGATIVE:
                 status = ClassificationStatus.NEGATIVE
                 strength = FindingStrength.NONE
-                escalated = False
-            elif initial_route is Route.POSITIVE:
-                # Will proceed to evidence extraction
-                status = ClassificationStatus.PENDING_LLM  # temporarily; evidence node updates
-                strength = mapping.candidate_strength
-                escalated = False
-            else:  # ESCALATE
-                status = ClassificationStatus.PENDING_LLM  # temporarily; escalation node updates
-                strength = mapping.candidate_strength
-                escalated = True
+            else:  # the evidence node settles it
+                status = ClassificationStatus.PENDING_LLM
+            escalated = initial_route is Route.ESCALATE
 
             clf = Classification(
                 chunk_id=chunk_id,
                 question_id=uuid.UUID(q["id"]),
                 question_revision=int(q["revision"]),
                 run_id=state.run_id,
-                classifier=DocumentTriageClassifier.LLM,
+                classifier=state.gateway.classifier,
                 answer=merged,
                 p_positive=mapping.p_positive,
                 escalated=escalated,
-                strength=strength if strength is not FindingStrength.NONE else None,
+                strength=strength,
                 status=status,
                 evidence_retried=False,
             )
             session.add(clf)
             await session.flush()
+            state.counts["pairs_classified"] += 1
+            if escalated:
+                state.counts["pairs_escalated"] += 1
 
             if initial_route in (Route.POSITIVE, Route.ESCALATE):
                 # Queue for escalation/evidence in the next nodes
@@ -414,6 +584,7 @@ async def _node_classify(state: SignalBatch, session: AsyncSession) -> None:
                         "header": header,
                         "language": doc_data.get("language", "en"),
                         "route": initial_route,
+                        "was_failed": False,
                         "published_at": doc_data.get("published_at"),
                         "fetched_at": doc_data.get("fetched_at"),
                     }
@@ -426,146 +597,171 @@ async def _node_classify(state: SignalBatch, session: AsyncSession) -> None:
 
 
 async def _node_evidence(state: SignalBatch, session: AsyncSession) -> None:
-    """Route, escalate and extract evidence for pending classifications.
-
-    Writes final ``classification`` status and ``finding`` rows.
-    """
-    for item in state.finding_inputs:
+    """Escalate and extract evidence for this job's new pairs, then for the pairs an earlier job
+    left waiting; writes the final ``classification`` status and the ``finding`` rows."""
+    for item in [*state.finding_inputs, *state.pending_inputs]:
         clf_id = uuid.UUID(item["classification_id"])
-        q = item["question"]
-        mapping: AnswerMapping = item["mapping"]
-        passage_text: str = item["passage_text"]
-        header: str = item["header"]
-        language: str = item["language"]
-        initial_route: Route = item["route"]
-        published_at: datetime | None = item.get("published_at")
-        fetched_at_raw = item.get("fetched_at") or state.now
-        fetched_at: datetime = (
-            fetched_at_raw
-            if isinstance(fetched_at_raw, datetime)
-            else datetime.fromisoformat(str(fetched_at_raw))
-        )
-
+        if item["was_failed"]:
+            await session.execute(
+                update(Classification)
+                .where(Classification.id == clf_id)
+                .values(evidence_retried=True)
+            )
         try:
-            if initial_route is Route.POSITIVE:
-                # Evidence extraction directly
-                evidence_out = await _do_extract_evidence(
-                    state=state,
-                    q=q,
-                    passage_text=passage_text,
-                    header=header,
-                    language=language,
-                    candidate_strength=mapping.candidate_strength,
-                )
-                if evidence_out is None:
-                    # All attempts exhausted
-                    await _update_classification(
-                        session, clf_id, ClassificationStatus.EVIDENCE_FAILED, None
-                    )
-                    continue
-
-                await _write_finding(
-                    session=session,
-                    clf_id=clf_id,
-                    chunk_id=uuid.UUID(item["chunk_id"]),
-                    account_id=state.account_id,
-                    question=q,
-                    strength=mapping.candidate_strength,
-                    confidence=mapping.p_positive,
-                    decided_by=FindingDecidedBy.CLASSIFIER,
-                    option_key=mapping.option_key,
-                    quote=evidence_out.quote,
-                    quote_en=evidence_out.quote_en,
-                    rationale=evidence_out.rationale,
-                    observed_at_dt=observed_at(published_at, fetched_at),
-                )
-                await _update_classification(
-                    session, clf_id, ClassificationStatus.POSITIVE, mapping.candidate_strength
-                )
-
-            else:  # ESCALATE
-                esc_out = await _do_escalate(
-                    state=state,
-                    q=q,
-                    passage_text=passage_text,
-                    header=header,
-                    language=language,
-                )
-                if esc_out is None:
-                    # Budget or unavailability — stays PENDING_LLM
-                    continue
-
-                post_route = post_escalation_route(esc_out.strength)
-                if post_route is Route.NEGATIVE:
-                    await _update_classification(
-                        session, clf_id, ClassificationStatus.NEGATIVE, FindingStrength.NONE
-                    )
-                    continue
-
-                # Positive from escalation — validate embedded quote
-                if esc_out.quote is None:
-                    await _update_classification(
-                        session, clf_id, ClassificationStatus.EVIDENCE_FAILED, None
-                    )
-                    continue
-
-                evidence_valid = validate_quote(
-                    quote=esc_out.quote,
-                    passage=passage_text,
-                    lang=language,
-                    quote_en=esc_out.quote_en,
-                    rationale=esc_out.rationale or "",
-                    evidence_min_quote_chars=state.evidence_min_quote_chars,
-                    evidence_max_quote_chars=state.evidence_max_quote_chars,
-                    evidence_max_rationale_chars=state.evidence_max_rationale_chars,
-                )
-                if not evidence_valid.valid:
-                    # Escalation returned invalid quote — treat as EVIDENCE_FAILED
-                    await _update_classification(
-                        session, clf_id, ClassificationStatus.EVIDENCE_FAILED, None
-                    )
-                    continue
-
-                await _write_finding(
-                    session=session,
-                    clf_id=clf_id,
-                    chunk_id=uuid.UUID(item["chunk_id"]),
-                    account_id=state.account_id,
-                    question=q,
-                    strength=esc_out.strength,
-                    confidence=esc_out.confidence,
-                    decided_by=FindingDecidedBy.LLM,
-                    option_key=esc_out.option_key,
-                    quote=esc_out.quote,
-                    quote_en=esc_out.quote_en,
-                    rationale=esc_out.rationale or "",
-                    observed_at_dt=observed_at(published_at, fetched_at),
-                )
-                await _update_classification(
-                    session, clf_id, ClassificationStatus.POSITIVE, esc_out.strength
-                )
-
-        except (BudgetExhausted, FixtureMissing):
-            # Stays PENDING_LLM; caller decides whether to mark run PARTIAL
-            pass
+            if item["route"] is Route.POSITIVE:
+                await _resolve_positive(state, session, item)
+            else:
+                await _resolve_escalated(state, session, item)
+        except BudgetExhausted:
+            await _update_classification(session, clf_id, ClassificationStatus.PENDING_LLM, None)
+            state.counts["pending_budget"] += 1
+        except UpstreamUnavailable as error:
+            await _update_classification(session, clf_id, ClassificationStatus.PENDING_LLM, None)
+            state.llm_unavailable = state.llm_unavailable or str(error)
+        except FixtureMissing as error:
+            raise StepFailed("FIXTURE_MISSING", str(error)) from error
 
     await session.flush()
+
+
+def _validate(
+    state: SignalBatch,
+    item: dict[str, Any],
+    *,
+    quote: str,
+    quote_en: str | None,
+    rationale: str,
+) -> str | None:
+    """The passage's own text at the quote's place when the quote is valid, else None."""
+    return validate_quote(
+        quote=quote,
+        passage=item["passage_text"],
+        lang=item["language"],
+        quote_en=quote_en,
+        rationale=rationale,
+        evidence_min_quote_chars=state.evidence_min_quote_chars,
+        evidence_max_quote_chars=state.evidence_max_quote_chars,
+        evidence_max_rationale_chars=state.evidence_max_rationale_chars,
+    ).span
+
+
+async def _resolve_positive(
+    state: SignalBatch, session: AsyncSession, item: dict[str, Any]
+) -> None:
+    q = item["question"]
+    mapping: AnswerMapping = item["mapping"]
+    clf_id = uuid.UUID(item["classification_id"])
+    for _ in range(state.evidence_max_attempts):
+        out = await state.gateway.extract_evidence(
+            EvidenceInput(
+                account_name=state.account_name,
+                question=_escalation_question(q),
+                passage=item["passage_text"],
+                language=item["language"],
+                header=item["header"],
+                strength=mapping.candidate_strength,
+            ),
+            AiCallContext(run_id=state.run_id),
+        )
+        span = _validate(
+            state, item, quote=out.quote, quote_en=out.quote_en, rationale=out.rationale
+        )
+        if span is not None:
+            _write_finding(
+                state,
+                session,
+                item,
+                strength=mapping.candidate_strength,
+                confidence=mapping.p_positive,
+                decided_by=FindingDecidedBy.CLASSIFIER,
+                option_key=mapping.option_key,
+                quote=span,
+                quote_en=out.quote_en,
+                rationale=out.rationale,
+            )
+            await _update_classification(
+                session, clf_id, ClassificationStatus.POSITIVE, mapping.candidate_strength
+            )
+            return
+    await _update_classification(
+        session, clf_id, ClassificationStatus.EVIDENCE_FAILED, mapping.candidate_strength
+    )
+
+
+async def _resolve_escalated(
+    state: SignalBatch, session: AsyncSession, item: dict[str, Any]
+) -> None:
+    q = item["question"]
+    clf_id = uuid.UUID(item["classification_id"])
+    is_choice = q["answer_type"] == SignalQuestionAnswerType.CHOICE.value
+    last_strength: FindingStrength | None = None
+    for _ in range(state.evidence_max_attempts):
+        out = await state.gateway.escalate(
+            EscalationInput(
+                account_name=state.account_name,
+                question=_escalation_question(q),
+                passage=item["passage_text"],
+                language=item["language"],
+                header=item["header"],
+            ),
+            AiCallContext(run_id=state.run_id),
+        )
+        if post_escalation_route(out.strength) is Route.NEGATIVE:
+            await _update_classification(
+                session, clf_id, ClassificationStatus.NEGATIVE, FindingStrength.NONE
+            )
+            return
+        last_strength = out.strength
+        strength = out.strength
+        if is_choice:
+            option_strength = choice_option_strength(q.get("options") or [], out.option_key)
+            if option_strength is None:
+                continue
+            strength = option_strength
+        if out.quote is None:
+            continue
+        rationale = out.rationale or ""
+        span = _validate(state, item, quote=out.quote, quote_en=out.quote_en, rationale=rationale)
+        if span is None:
+            continue
+        _write_finding(
+            state,
+            session,
+            item,
+            strength=strength,
+            confidence=out.confidence,
+            decided_by=FindingDecidedBy.LLM,
+            option_key=out.option_key if is_choice else None,
+            quote=span,
+            quote_en=out.quote_en,
+            rationale=rationale,
+        )
+        await _update_classification(session, clf_id, ClassificationStatus.POSITIVE, strength)
+        return
+    await _update_classification(
+        session, clf_id, ClassificationStatus.EVIDENCE_FAILED, last_strength
+    )
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 
-def _is_own_source(plugin_code: str) -> bool:
-    """True for sources that are about the account by construction."""
-    return plugin_code in {
-        "CAREERS",
-        "CRUNCHBASE",
-        "WEBSITE",
-        "NEWSROOM",
-        "INVESTOR_RELATIONS",
-        "RSS_FEED",
-        "RSS",
-    }
+async def _classify_call(
+    state: SignalBatch, request: ClassifierRequest, context: AiCallContext
+) -> list[ClassifierAnswer]:
+    """One classifier call; an unavailable classifier or a missing recording fails the job."""
+    try:
+        return await state.gateway.classify(request, context)
+    except UpstreamUnavailable as error:
+        raise StepFailed("UPSTREAM_UNAVAILABLE", str(error)) from error
+    except FixtureMissing as error:
+        raise StepFailed("FIXTURE_MISSING", str(error)) from error
+
+
+def _escalation_question(q: dict[str, Any]) -> EscalationQuestion:
+    return EscalationQuestion.model_validate(
+        {"text": q["text"], "answer_type": q["answer_type"], "options": q.get("options")}
+    )
 
 
 def _build_passage_header(
@@ -595,108 +791,24 @@ def _build_passage_header(
     return " · ".join(parts)
 
 
-async def _do_extract_evidence(
-    *,
-    state: SignalBatch,
-    q: dict[str, Any],
-    passage_text: str,
-    header: str,
-    language: str,
-    candidate_strength: FindingStrength,
-) -> EvidenceOutput | None:
-    """Try up to ``EVIDENCE_MAX_ATTEMPTS`` times to get a valid quote.
-
-    Returns ``EvidenceOutput`` on success, ``None`` after all attempts fail.
-    """
-    for _ in range(state.evidence_max_attempts):
-        inp = EvidenceInput(
-            account_name=state.account_name,
-            question=EscalationQuestion.model_validate(
-                {
-                    "text": q["text"],
-                    "answer_type": q["answer_type"],
-                    "options": q.get("options"),
-                }
-            ),
-            passage=passage_text,
-            language=language,
-            header=header,
-            strength=candidate_strength,
-        )
-        try:
-            out = await state.gateway.extract_evidence(
-                inp,
-                AiCallContext(run_id=state.run_id),
-            )
-        except (BudgetExhausted, FixtureMissing):
-            raise  # caller handles these
-        valid = validate_quote(
-            quote=out.quote,
-            passage=passage_text,
-            lang=language,
-            quote_en=out.quote_en,
-            rationale=out.rationale,
-            evidence_min_quote_chars=state.evidence_min_quote_chars,
-            evidence_max_quote_chars=state.evidence_max_quote_chars,
-            evidence_max_rationale_chars=state.evidence_max_rationale_chars,
-        )
-        if valid.valid:
-            return out
-    return None  # all attempts exhausted
-
-
-async def _do_escalate(
-    *,
-    state: SignalBatch,
-    q: dict[str, Any],
-    passage_text: str,
-    header: str,
-    language: str,
-) -> EscalationOutput | None:
-    """Call escalation.  Returns ``None`` on budget exhaustion or missing fixture."""
-    inp = EscalationInput(
-        account_name=state.account_name,
-        question=EscalationQuestion.model_validate(
-            {
-                "text": q["text"],
-                "answer_type": q["answer_type"],
-                "options": q.get("options"),
-            }
-        ),
-        passage=passage_text,
-        language=language,
-        header=header,
-    )
-    try:
-        return await state.gateway.escalate(
-            inp,
-            AiCallContext(run_id=state.run_id),
-        )
-    except (BudgetExhausted, FixtureMissing):
-        return None
-
-
 async def _update_classification(
     session: AsyncSession,
     clf_id: uuid.UUID,
     status: ClassificationStatus,
     strength: FindingStrength | None,
 ) -> None:
-    values: dict[str, Any] = {"status": status}
-    if strength is not None:
-        values["strength"] = strength if strength is not FindingStrength.NONE else None
     await session.execute(
-        update(Classification).where(Classification.id == clf_id).values(**values)
+        update(Classification)
+        .where(Classification.id == clf_id)
+        .values(status=status, strength=strength)
     )
 
 
-async def _write_finding(
-    *,
+def _write_finding(
+    state: SignalBatch,
     session: AsyncSession,
-    clf_id: uuid.UUID,
-    chunk_id: uuid.UUID,
-    account_id: uuid.UUID,
-    question: dict[str, Any],
+    item: dict[str, Any],
+    *,
     strength: FindingStrength,
     confidence: float,
     decided_by: FindingDecidedBy,
@@ -704,15 +816,15 @@ async def _write_finding(
     quote: str,
     quote_en: str | None,
     rationale: str,
-    observed_at_dt: datetime,
 ) -> None:
+    question = item["question"]
     session.add(
         Finding(
-            account_id=account_id,
+            account_id=state.account_id,
             question_id=uuid.UUID(question["id"]),
             question_revision=int(question["revision"]),
-            classification_id=clf_id,
-            chunk_id=chunk_id,
+            classification_id=uuid.UUID(item["classification_id"]),
+            chunk_id=uuid.UUID(item["chunk_id"]),
             strength=strength,
             confidence=confidence,
             decided_by=decided_by,
@@ -720,22 +832,23 @@ async def _write_finding(
             quote=quote,
             quote_en=quote_en,
             rationale=rationale,
-            observed_at=observed_at_dt,
+            observed_at=observed_at(item["published_at"], item["fetched_at"]),
             status=FindingStatus.ACTIVE,
         )
     )
+    state.counts["findings_created"] += 1
 
 
 # ── Supersede findings of a previous revision (Reclassification) ───────────────
 
 
-async def supersede_old_revision_findings(
+async def supersede_older_revisions(
     session: AsyncSession,
     *,
     question_id: uuid.UUID,
     current_revision: int,
 ) -> None:
-    """Mark findings of older revisions ``SUPERSEDED``.
+    """Mark findings and evaluation items of older revisions stale.
 
     Implements [Reclassification](/architecture/rules.md#reclassification) step 1:
     *"Mark the question's findings of an older revision ``SUPERSEDED``."*
@@ -748,6 +861,15 @@ async def supersede_old_revision_findings(
             Finding.status == FindingStatus.ACTIVE,
         )
         .values(status=FindingStatus.SUPERSEDED)
+    )
+    await session.execute(
+        update(EvaluationItem)
+        .where(
+            EvaluationItem.question_id == question_id,
+            EvaluationItem.question_revision < current_revision,
+            EvaluationItem.status == EvaluationItemStatus.ACTIVE,
+        )
+        .values(status=EvaluationItemStatus.STALE)
     )
 
 
@@ -767,13 +889,140 @@ async def run_signal_step(
     await _set_stage(session, batch.run_id, PipelineRunStage.TRIAGE)
     await _node_triage(batch, session)
     await _set_stage(session, batch.run_id, PipelineRunStage.CLASSIFY)
+    await _node_select(batch, session)
     await _node_classify(batch, session)
     await _set_stage(session, batch.run_id, PipelineRunStage.EVIDENCE)
     await _node_evidence(batch, session)
+    if batch.job_id is not None:
+        await add_run_progress(
+            session, job_id=batch.job_id, run_id=batch.run_id, counts=batch.counts
+        )
+        if batch.llm_unavailable is not None:
+            await add_run_error(
+                session,
+                job_id=batch.job_id,
+                run_id=batch.run_id,
+                error={
+                    "stage": PipelineRunStage.EVIDENCE.value,
+                    "code": "UPSTREAM_UNAVAILABLE",
+                    "message": batch.llm_unavailable,
+                },
+            )
 
 
 async def _set_stage(session: AsyncSession, run_id: uuid.UUID, stage: PipelineRunStage) -> None:
     await session.execute(update(PipelineRun).where(PipelineRun.id == run_id).values(stage=stage))
+
+
+# ── Work waiting for a SIGNAL job ───────────────────────────────────────────────
+
+
+def _documents_to_triage(account_id: uuid.UUID) -> Select[Document]:
+    """The account's processed documents not yet triaged: non-duplicate, not purged, every
+    passage embedded ([Run lifecycle](/architecture/services/worker.md#run-lifecycle))."""
+    return select(Document).where(
+        Document.account_id == account_id,
+        Document.duplicate_of_id.is_(None),
+        Document.purged_at.is_(None),
+        ~exists().where(DocumentTriage.document_id == Document.id),
+        ~exists().where(
+            Chunk.document_id == Document.id, Chunk.text.is_not(None), Chunk.embedding.is_(None)
+        ),
+    )
+
+
+def _documents_to_reclassify(account_id: uuid.UUID) -> Select[Document]:
+    """The account's stored, triaged documents eligible for reclassification."""
+    return (
+        select(Document)
+        .join(DocumentTriage, DocumentTriage.document_id == Document.id)
+        .where(
+            Document.account_id == account_id,
+            Document.duplicate_of_id.is_(None),
+            Document.purged_at.is_(None),
+            DocumentTriage.outcome != DocumentTriageOutcome.NOT_ABOUT_ACCOUNT,
+        )
+    )
+
+
+def _pending_pairs(account_id: uuid.UUID) -> Select[Classification, Chunk, Document]:
+    """The account's pairs waiting for the LLM at their question's current revision: `PENDING_LLM`,
+    and `EVIDENCE_FAILED` until its one retry ([Escalation](/architecture/rules.md#escalation),
+    [Evidence extraction](/architecture/rules.md#evidence-extraction))."""
+    return (
+        select(Classification, Chunk, Document)
+        .join(Chunk, Chunk.id == Classification.chunk_id)
+        .join(Document, Document.id == Chunk.document_id)
+        .join(SignalQuestion, SignalQuestion.id == Classification.question_id)
+        .join(Service, Service.id == SignalQuestion.service_id)
+        .where(
+            Document.account_id == account_id,
+            Chunk.text.is_not(None),
+            Classification.question_revision == SignalQuestion.revision,
+            SignalQuestion.status == SignalQuestionStatus.ACTIVE,
+            Service.status == ServiceStatus.ACTIVE,
+            or_(
+                Classification.status == ClassificationStatus.PENDING_LLM,
+                and_(
+                    Classification.status == ClassificationStatus.EVIDENCE_FAILED,
+                    Classification.evidence_retried.is_(False),
+                ),
+            ),
+        )
+    )
+
+
+async def has_pending_signal_work(session: AsyncSession, account_id: uuid.UUID) -> bool:
+    """True when the account has a document to triage or a pair waiting for the LLM."""
+    return bool(
+        await session.scalar(
+            select(
+                or_(
+                    _documents_to_triage(account_id).exists(),
+                    _pending_pairs(account_id).exists(),
+                )
+            )
+        )
+    )
+
+
+def _pending_inputs(
+    rows: list[tuple[Classification, Chunk, Document]],
+    *,
+    account_name: str,
+    questions: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """The evidence node's items for pairs left waiting: the candidate mapping is recomputed from
+    the stored answer."""
+    items: list[dict[str, Any]] = []
+    for clf, chunk, doc in rows:
+        q = questions[str(clf.question_id)]
+        items.append(
+            {
+                "classification_id": str(clf.id),
+                "chunk_id": str(chunk.id),
+                "question": q,
+                "mapping": map_answer(
+                    answer_type=SignalQuestionAnswerType(q["answer_type"]),
+                    probabilities=cast(dict[str, float], clf.answer),
+                    options=q.get("options"),
+                ),
+                "passage_text": chunk.text or "",
+                "header": _build_passage_header(
+                    account_name=account_name,
+                    title=doc.title or "",
+                    section=chunk.section,
+                    published_at=doc.published_at,
+                    fetched_at=doc.fetched_at,
+                ),
+                "language": doc.language,
+                "route": Route.ESCALATE if clf.escalated else Route.POSITIVE,
+                "was_failed": clf.status is ClassificationStatus.EVIDENCE_FAILED,
+                "published_at": doc.published_at,
+                "fetched_at": doc.fetched_at,
+            }
+        )
+    return items
 
 
 # ── Job-loop adapter ────────────────────────────────────────────────────────────
@@ -784,27 +1033,18 @@ async def run_signal_job(
     *,
     job: Job,
     run: PipelineRun,
-    worker_instance_id: str,
-    alert_max_age_days: int,
     settings: WorkerSettings,
     gateway: SignalGateway,
-    now: datetime,
+    embedder: httpx.AsyncClient,
 ) -> None:
     """Adapter that wires a SIGNAL ``Job`` into the generic job-loop handler protocol.
 
-    Loads account, services, questions, documents and passages from the database,
-    builds a ``SignalBatch`` from ``WorkerSettings`` and calls ``run_signal_step``.
-
-    Job payload keys (all optional, fallback to run context):
-    - ``document_ids``: list of document id strings to process; if absent all
-      non-duplicate documents of the run are used.
-    - ``service_ids``: list of service id strings to include; if absent all
-      ACTIVE services are used.
-    - ``question_id``: single question id string for RECLASSIFY runs.
+    Loads an account's pending refresh work or a changed question's stored documents.
     """
     cfg = settings
 
-    account_id = run.account_id
+    reclassify = run.kind is PipelineRunKind.RECLASSIFY
+    account_id = uuid.UUID(str(job.payload["account_id"])) if reclassify else run.account_id
     if account_id is None:
         raise ValueError(f"SIGNAL step: run {run.id} has no account_id")
 
@@ -812,18 +1052,12 @@ async def run_signal_job(
     account = await session.get(Account, account_id)
     if account is None:
         raise ValueError(f"SIGNAL step: account {account_id} not found")
+    if reclassify and account.status is not AccountStatus.ACTIVE:
+        return
 
-    # Load active services (or subset from payload)
-    _svc_raw = job.payload.get("service_ids")
-    raw_service_ids: list[str] = [str(s) for s in (_svc_raw if isinstance(_svc_raw, list) else [])]
-    if raw_service_ids:
-        svc_uuids = [uuid.UUID(s) for s in raw_service_ids]
-        svc_stmt = select(Service).where(
-            Service.id.in_(svc_uuids),
-            Service.status == ServiceStatus.ACTIVE,
-        )
-    else:
-        svc_stmt = select(Service).where(Service.status == ServiceStatus.ACTIVE)
+    svc_stmt = select(Service).where(Service.status == ServiceStatus.ACTIVE)
+    if reclassify:
+        svc_stmt = svc_stmt.where(Service.id == run.service_id)
     services = list((await session.execute(svc_stmt)).scalars())
     service_ids = [str(svc.id) for svc in services]
     service_descriptions = {str(svc.id): svc.description for svc in services}
@@ -833,19 +1067,15 @@ async def run_signal_job(
         SignalQuestion.service_id.in_([svc.id for svc in services]),
         SignalQuestion.status == SignalQuestionStatus.ACTIVE,
     )
-    # For RECLASSIFY: filter to one question
-    reclassify_question_id_raw = job.payload.get("question_id")
-    if reclassify_question_id_raw is not None:
-        reclassify_qid = uuid.UUID(str(reclassify_question_id_raw))
-        q_stmt = q_stmt.where(SignalQuestion.id == reclassify_qid)
-        questions_rows = list((await session.execute(q_stmt)).scalars())
-        if questions_rows:
-            # Supersede findings of older revisions before classifying
-            await supersede_old_revision_findings(
-                session, question_id=reclassify_qid, current_revision=questions_rows[0].revision
-            )
-    else:
-        questions_rows = list((await session.execute(q_stmt)).scalars())
+    if reclassify:
+        q_stmt = q_stmt.where(SignalQuestion.id == run.question_id)
+    questions_rows = list((await session.execute(q_stmt)).scalars())
+    if reclassify:
+        if not questions_rows:
+            return
+        await supersede_older_revisions(
+            session, question_id=questions_rows[0].id, current_revision=questions_rows[0].revision
+        )
 
     questions: list[dict[str, Any]] = [
         {
@@ -857,26 +1087,15 @@ async def run_signal_job(
             "options": q.options if isinstance(q.options, list) else None,
             "revision": q.revision,
             "source_types": list(q.source_types),
+            "hint_terms": list(q.hint_terms),
         }
         for q in questions_rows
     ]
 
-    # Load documents
-    _doc_raw = job.payload.get("document_ids")
-    raw_doc_ids: list[str] = [str(d) for d in (_doc_raw if isinstance(_doc_raw, list) else [])]
-    if raw_doc_ids:
-        doc_uuids = [uuid.UUID(d) for d in raw_doc_ids]
-        doc_stmt = select(Document).where(
-            Document.id.in_(doc_uuids),
-            Document.duplicate_of_id.is_(None),
-        )
-    else:
-        doc_stmt = select(Document).where(
-            Document.run_id == run.id,
-            Document.account_id == account_id,
-            Document.duplicate_of_id.is_(None),
-        )
-    docs = list((await session.execute(doc_stmt)).scalars())
+    document_query = (
+        _documents_to_reclassify(account_id) if reclassify else _documents_to_triage(account_id)
+    )
+    docs = list((await session.execute(document_query)).scalars())
 
     documents: list[dict[str, Any]] = [
         {
@@ -911,6 +1130,30 @@ async def run_signal_job(
             for c in chunks
         ]
 
+    pending_rows = (
+        []
+        if reclassify
+        else [
+            (clf, chunk, doc)
+            for clf, chunk, doc in (
+                await session.execute(
+                    _pending_pairs(account_id).where(
+                        Classification.question_id.in_([q.id for q in questions_rows])
+                    )
+                )
+            )
+        ]
+    )
+
+    async def embed_texts(texts: list[str]) -> list[list[float]]:
+        return await embed(
+            embedder,
+            embedder_url=cfg.embedder_url,
+            dim=cfg.embedding_dim,
+            batch_size=cfg.embed_batch_size,
+            texts=texts,
+        )
+
     batch = SignalBatch(
         account_id=account_id,
         account_name=account.name,
@@ -923,7 +1166,6 @@ async def run_signal_job(
         passages=passages,
         questions=questions,
         gateway=gateway,
-        now=now,
         triage_chars=cfg.triage_chars,
         triage_about_min_p=cfg.triage_about_min_p,
         triage_relevance_min_p=cfg.triage_relevance_min_p,
@@ -933,6 +1175,15 @@ async def run_signal_job(
         evidence_min_quote_chars=cfg.evidence_min_quote_chars,
         evidence_max_quote_chars=cfg.evidence_max_quote_chars,
         evidence_max_rationale_chars=cfg.evidence_max_rationale_chars,
+        embed=embed_texts,
+        passages_per_question=cfg.passages_per_question,
+        max_passages_per_document=cfg.max_passages_per_document,
+        retrieval_candidates=cfg.retrieval_candidates,
+        retrieval_rrf_k=cfg.retrieval_rrf_k,
+        pending_inputs=_pending_inputs(
+            pending_rows, account_name=account.name, questions={q["id"]: q for q in questions}
+        ),
+        job_id=job.id,
     )
 
     await run_signal_step(session, batch=batch)

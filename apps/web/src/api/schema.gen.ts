@@ -445,7 +445,9 @@ export interface paths {
         };
         /**
          * List Discovery Candidates
-         * @description `API-30`.
+         * @description `API-30`: a service's discovery candidates, ordered by `fit_estimate` descending, then by
+         *     the naming article's `published_at` newest first and unknown last, then by
+         *     `normalised_name`.
          */
         get: operations["list_discovery_candidates_api_v1_discovery_candidates_get"];
         put?: never;
@@ -467,7 +469,10 @@ export interface paths {
         put?: never;
         /**
          * Accept Discovery Candidate
-         * @description `API-31`.
+         * @description `API-31`: `payload.domain` is used only when the candidate has none. Raises
+         *     `CandidateNotFound`, `CandidateNotPending`, `CandidateDomainRequired`,
+         *     `create_discovered_account`'s own errors (`InvalidAccountDomain`, `DomainConflict`,
+         *     `UnknownIndustry`).
          */
         post: operations["accept_discovery_candidate_api_v1_discovery_candidates__id__accept_post"];
         delete?: never;
@@ -487,7 +492,8 @@ export interface paths {
         put?: never;
         /**
          * Reject Discovery Candidate
-         * @description `API-32`.
+         * @description `API-32`: `payload.reason` becomes `reject_reason`. Raises `CandidateNotFound`,
+         *     `CandidateNotPending`.
          */
         post: operations["reject_discovery_candidate_api_v1_discovery_candidates__id__reject_post"];
         delete?: never;
@@ -1037,7 +1043,8 @@ export interface paths {
         put?: never;
         /**
          * Start Discovery Run
-         * @description `API-29`.
+         * @description `API-29`: `202` with a new discovery run, or `200` with the one already queued or
+         *     running. Raises `ServiceNotFound`, `ServiceNotActive`, `NoActiveScoringVersion` (G7).
          */
         post: operations["start_discovery_run_api_v1_services__id__discovery_runs_post"];
         delete?: never;
@@ -1281,6 +1288,7 @@ export interface components {
             name: string;
             /** Notes */
             notes?: string;
+            /** Operational Complexity */
             operational_complexity?: components["schemas"]["AccountOperationalComplexity"];
             /**
              * Parent Account Id
@@ -1422,6 +1430,7 @@ export interface components {
             name?: string;
             /** Notes */
             notes?: string;
+            /** Operational Complexity */
             operational_complexity?: components["schemas"]["AccountOperationalComplexity"];
             /**
              * Parent Account Id
@@ -1432,6 +1441,7 @@ export interface components {
             revenue_eur?: number;
             /** Sources */
             sources?: components["schemas"]["AccountUpdateSource"][];
+            /** Status */
             status?: components["schemas"]["AccountStatus"];
         };
         /**
@@ -1756,7 +1766,7 @@ export interface components {
         };
         /**
          * DiscoveryCandidateEvidence
-         * @description `DiscoveryCandidate.evidence`.
+         * @description `DiscoveryCandidate.evidence`: the `NEWS_MENTION` document that named the company.
          */
         DiscoveryCandidateEvidence: {
             /** Document Id */
@@ -1766,7 +1776,7 @@ export interface components {
             /** Quote */
             quote: string;
             /** Title */
-            title: string;
+            title: string | null;
             /** Url */
             url: string;
         };
@@ -2330,7 +2340,7 @@ export interface components {
             /** Invalid */
             invalid: number;
             /** Rows */
-            rows: components["schemas"]["ImportRowItem"][];
+            rows: components["schemas"]["ImportRowResult"][];
             /** Updated */
             updated: number;
         };
@@ -2346,10 +2356,18 @@ export interface components {
             message: string;
         };
         /**
-         * ImportRowItem
+         * ImportRowOutcome
+         * @description `ImportResult.rows[].outcome` ([Accounts and contacts]
+         *     (/architecture/interfaces.md#accountimportrow)); an interface-only enum, not a store column,
+         *     so it does not belong in `core.enums`.
+         * @enum {string}
+         */
+        ImportRowOutcome: "CREATED" | "UPDATED" | "POSSIBLE_DUPLICATE" | "INVALID";
+        /**
+         * ImportRowResult
          * @description One entry of `ImportResult.rows`.
          */
-        ImportRowItem: {
+        ImportRowResult: {
             /** Account Id */
             account_id: string | null;
             /** Domain */
@@ -2358,8 +2376,7 @@ export interface components {
             errors: components["schemas"]["ImportRowFieldError"][];
             /** Line */
             line: number;
-            /** Outcome */
-            outcome: string;
+            outcome: components["schemas"]["ImportRowOutcome"];
         };
         /**
          * Industry
@@ -3213,10 +3230,7 @@ export interface components {
              * Format: uuid
              */
             service_id: string;
-            /** Settings */
-            settings: {
-                [key: string]: unknown;
-            };
+            settings: components["schemas"]["ScoringSettings"];
             status: components["schemas"]["ScoringConfigStatus"];
             /** Version */
             version: number;
@@ -3488,6 +3502,8 @@ export interface components {
             polarity: components["schemas"]["SignalQuestionPolarity"];
             /** Revision */
             revision: number;
+            /** Run Id */
+            run_id: string | null;
             /**
              * Service Id
              * Format: uuid
@@ -3589,7 +3605,10 @@ export interface components {
         SourcePluginCode: "GDELT" | "RSS" | "WEBSITE" | "CAREERS" | "CRUNCHBASE" | "NEWSAPI" | "SERPAPI";
         /**
          * SourcePluginUpdate
-         * @description [`SourcePluginUpdate`](/architecture/interfaces.md#sourcepluginupdate).
+         * @description [`SourcePluginUpdate`](/architecture/interfaces.md#sourcepluginupdate). A `rate_limit_per_minute`
+         *     or `daily_quota` of `0` or below answers `422 VALIDATION`
+         *     ([`source_plugin`](/architecture/sql-store.md#source_plugin)); `null` still means "absent" for
+         *     the rate limit and "no quota" for the daily quota.
          */
         SourcePluginUpdate: {
             /** Daily Quota */
@@ -3652,7 +3671,9 @@ export interface components {
              * Format: password
              */
             password?: string;
+            /** Role */
             role?: components["schemas"]["AppUserRole"];
+            /** Status */
             status?: components["schemas"]["AppUserStatus"];
         };
         /**
@@ -4548,7 +4569,9 @@ export interface operations {
             };
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -4579,7 +4602,9 @@ export interface operations {
             path: {
                 id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -4614,7 +4639,9 @@ export interface operations {
             path: {
                 id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -5682,10 +5709,21 @@ export interface operations {
             path: {
                 id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
+            /** @description The discovery already queued */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Run"];
+                };
+            };
             /** @description Successful Response */
             202: {
                 headers: {

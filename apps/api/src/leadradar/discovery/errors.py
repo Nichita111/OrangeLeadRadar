@@ -19,6 +19,16 @@ class CandidateNotPending(DiscoveryError):
     be decided", `409 CONFLICT`)."""
 
 
+class ServiceNotActive(DiscoveryError):
+    """`API-29`: the service is not `ACTIVE` ([Discovery contracts]
+    (/architecture/interfaces.md#discovery-contracts): "answers `409`", `409 CONFLICT`)."""
+
+
+class NoActiveScoringVersion(DiscoveryError):
+    """`API-29`: the service has no `ACTIVE` scoring version ([Discovery contracts]
+    (/architecture/interfaces.md#discovery-contracts): "answers `409`", `409 CONFLICT`)."""
+
+
 class CandidateDomainRequired(DiscoveryError):
     """`API-31`: the candidate has no domain and none was given ([Discovery]
     (/architecture/rules.md#discovery) Acceptance: "Accepting a candidate requires a domain",

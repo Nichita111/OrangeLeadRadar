@@ -195,7 +195,7 @@ Route `/suggested-accounts`. Any signed-in user; lists the selected service's ca
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │ Suggested accounts · Intelligent Automation   Pending ▾   [ Find new accounts ] │
-│ Finding… news searched 3/3 · 42 articles · 6 companies                        │
+│ Finding… 1 news source searched · 42 articles · 6 companies                   │
 ├──────────────────────┬─────────┬────────────┬──────┬───────────────────────────┤
 │ Company              │ Country │ Industry   │ Fit  │ Why suggested             │
 ├──────────────────────┼─────────┼────────────┼──────┼───────────────────────────┤
@@ -212,14 +212,14 @@ WF-09 — Suggested accounts
 |---|---|
 | `FR-050` | Find new accounts shall start a discovery run for the selected service and show its progress until it finishes; while one runs the button shows it instead of starting another. |
 | `FR-051` | The list shall show pending candidates by default, ordered by fit estimate, with country, industry, employees when known, and why each was suggested: the Crunchbase match or the news quote with a link to the article. |
-| `FR-052` | Accept shall ask for the website domain when the candidate has none, then open the new account; a domain that is already an account shall link to it instead. |
+| `FR-052` | Accept shall ask for the website domain when the candidate has none, then mark the candidate Accepted with a link that opens the new account; a domain that is already an account shall link to it instead. |
 | `FR-053` | Reject shall take an optional reason and remove the candidate from the pending list for good. |
-| `FR-141` | While a discovery run is active a callout shall show the news searched, the articles read and the companies found so far; the fit estimate of a candidate shall be shown as a score, and when no candidate is pending the empty state shall say how to find new ones. |
+| `FR-141` | While a discovery run is active a callout shall show the news sources searched, the articles read and the companies found so far; the fit estimate of a candidate shall be shown as a score, and when no candidate is pending the empty state shall say how to find new ones. |
 | `FR-142` | Accepting a candidate shall mark it in place as Accepted with its refresh queued, and a candidate without a website shall say that the domain will be asked for. |
 
 Obligations: `S-DSC-01`, `S-DSC-02`.
 
-**Data**: `API-29`, `API-30`, `API-31`, `API-32`, `API-35`, `API-71`. **States**: [States](/architecture/services/frontend.md#states); without Crunchbase the screen states that suggestions come from news only.
+**Data**: `API-29`, `API-30`, `API-31`, `API-32`, `API-34`, `API-35`, `API-71`. **States**: [States](/architecture/services/frontend.md#states); when the service's latest discovery run found no Crunchbase organisation, the screen states that suggestions come from news only.
 
 ## Open questions
 

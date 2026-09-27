@@ -279,6 +279,8 @@ The words the screens show for glossary terms. A label is a presentation of the 
 | Finding status `ACTIVE`, `REJECTED`, `SUPERSEDED` | Counting, Marked wrong, Outdated question |
 | `decided_by` `CLASSIFIER`, `LLM` | Quick check, Detailed check |
 | Scoring settings | Scoring |
+| Answer type `YES_NO`, `SCALE`, `CHOICE` | Yes/no, Scale, Choice |
+| Source plug-in `GDELT`, `RSS`, `WEBSITE`, `CAREERS`, `CRUNCHBASE`, `NEWSAPI`, `SERPAPI` | GDELT, RSS, Website, Careers, Crunchbase, NewsAPI, SerpAPI |
 
 | ID | Requirement |
 |---|---|

@@ -16,6 +16,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from leadradar.core.enums import (
+    AccountStatus,
     JobStatus,
     JobStep,
     PipelineRunKind,
@@ -24,10 +25,52 @@ from leadradar.core.enums import (
     SourcePluginCode,
 )
 from leadradar.core.job_queue import job_priority
-from leadradar.core.run_lifecycle import refresh_first_jobs
+from leadradar.core.run_lifecycle import reclassify_first_jobs, refresh_first_jobs
+from leadradar.db.models.accounts import Account
 from leadradar.db.models.ingestion import Job, PipelineRun
 
 _ACTIVE_STATUSES = (PipelineRunStatus.QUEUED, PipelineRunStatus.RUNNING)
+
+
+async def enqueue_reclassify(
+    session: AsyncSession,
+    *,
+    question_id: uuid.UUID,
+    service_id: uuid.UUID,
+    requested_by: uuid.UUID,
+    now: datetime,
+) -> uuid.UUID:
+    """Insert a question-change run and its account SIGNAL jobs in the caller's transaction."""
+    run = PipelineRun(
+        kind=PipelineRunKind.RECLASSIFY,
+        trigger=PipelineRunTrigger.QUESTION_CHANGE,
+        account_id=None,
+        service_id=service_id,
+        question_id=question_id,
+        status=PipelineRunStatus.QUEUED,
+        stage=None,
+        progress={},
+        errors=[],
+        requested_by=requested_by,
+        started_at=None,
+        finished_at=None,
+    )
+    session.add(run)
+    await session.flush()
+    account_ids = list(
+        (
+            await session.scalars(
+                select(Account.id)
+                .where(Account.status == AccountStatus.ACTIVE)
+                .order_by(Account.id)
+            )
+        ).all()
+    )
+    priority = job_priority(PipelineRunKind.RECLASSIFY, PipelineRunTrigger.QUESTION_CHANGE)
+    for step, payload in reclassify_first_jobs(account_ids):
+        add_job(session, run_id=run.id, step=step, payload=payload, priority=priority, now=now)
+    await session.flush()
+    return run.id
 
 
 def add_job(

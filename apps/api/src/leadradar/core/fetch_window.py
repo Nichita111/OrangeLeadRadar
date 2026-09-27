@@ -30,15 +30,21 @@ def fetch_window(
     return FetchWindow(since=lower, until=now)
 
 
+def terms_clause(terms: Sequence[str]) -> str:
+    """The OR-joined, quoted clause of a set of terms, shared by this module's `news_query` and
+    [Discovery](/architecture/rules.md#discovery) step 2's own query: an empty string with no
+    terms."""
+    return " OR ".join(f'"{term}"' for term in terms)
+
+
 def news_query(*, name: str, aliases: Sequence[str], hint_terms: Sequence[str]) -> str:
     """One news query for a service: the account's name or any alias, combined with `hint_terms`
     of the service's active questions whose `source_types` include `NEWS`; no terms queries the
     name alone."""
-    names = " OR ".join(f'"{candidate}"' for candidate in (name, *aliases))
+    names = terms_clause((name, *aliases))
     if not hint_terms:
         return names
-    terms = " OR ".join(f'"{term}"' for term in hint_terms)
-    return f"({names}) ({terms})"
+    return f"({names}) ({terms_clause(hint_terms)})"
 
 
 def news_queries_by_service(
@@ -50,3 +56,9 @@ def news_queries_by_service(
         service_id: news_query(name=name, aliases=aliases, hint_terms=terms)
         for service_id, terms in hint_terms_by_service.items()
     }
+
+
+def plugin_share(max_documents: int, plugin_count: int) -> int:
+    """[Fetch window](/architecture/rules.md#fetch-window) step 7: one plug-in's share of
+    `MAX_DOCUMENTS_PER_REFRESH`, so the shares of a refresh's plug-ins never exceed it."""
+    return max_documents // plugin_count

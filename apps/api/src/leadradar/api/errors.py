@@ -38,6 +38,13 @@ from leadradar.auth.errors import (
     UserNotFound,
 )
 from leadradar.configuration.errors import Conflict, DraftInvalid, NotFound, QuestionInvalid
+from leadradar.discovery.errors import (
+    CandidateDomainRequired,
+    CandidateNotFound,
+    CandidateNotPending,
+    NoActiveScoringVersion,
+    ServiceNotActive,
+)
 from leadradar.evaluation.errors import (
     ChunkNotFound,
     QuestionNotFound,
@@ -136,7 +143,11 @@ def _field_name(location: tuple[int | str, ...]) -> str:
     `("query", "name")`; a single string part is a bare name, anything else — several parts, none
     (a malformed body), or a single non-string part such as a malformed body's index — is a JSON
     pointer."""
-    parts = location[1:]
+    # Pydantic inserts a union branch label before a nested list error when an optional
+    # request field contains an invalid item. That label is not part of the JSON body.
+    parts = tuple(
+        part for part in location[1:] if not (isinstance(part, str) and part.startswith("list["))
+    )
     if len(parts) == 1 and isinstance(parts[0], str):
         return parts[0]
     return "/" + "/".join(str(part) for part in parts)
@@ -262,6 +273,7 @@ def register_error_handlers(app: FastAPI) -> None:
                 "message": error["msg"],
             }
             for error in exc.errors()
+            if error["type"] != "none_required"
         ]
         return JSONResponse(
             status_code=422,
@@ -394,4 +406,35 @@ def register_error_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(RevisionNotCurrent)
     async def handle_revision_not_current(request: Request, exc: RevisionNotCurrent) -> Response:
+        return JSONResponse(status_code=409, content=envelope("CONFLICT", str(exc)))
+
+    @app.exception_handler(CandidateNotFound)
+    async def handle_candidate_not_found(request: Request, exc: CandidateNotFound) -> Response:
+        return JSONResponse(status_code=404, content=envelope("NOT_FOUND", str(exc)))
+
+    @app.exception_handler(CandidateNotPending)
+    async def handle_candidate_not_pending(request: Request, exc: CandidateNotPending) -> Response:
+        return JSONResponse(status_code=409, content=envelope("CONFLICT", str(exc)))
+
+    @app.exception_handler(CandidateDomainRequired)
+    async def handle_candidate_domain_required(
+        request: Request, exc: CandidateDomainRequired
+    ) -> Response:
+        return JSONResponse(
+            status_code=422,
+            content=envelope(
+                "VALIDATION",
+                "The input is invalid.",
+                {"fields": [{"field": exc.field, "message": str(exc)}]},
+            ),
+        )
+
+    @app.exception_handler(ServiceNotActive)
+    async def handle_service_not_active(request: Request, exc: ServiceNotActive) -> Response:
+        return JSONResponse(status_code=409, content=envelope("CONFLICT", str(exc)))
+
+    @app.exception_handler(NoActiveScoringVersion)
+    async def handle_no_active_scoring_version(
+        request: Request, exc: NoActiveScoringVersion
+    ) -> Response:
         return JSONResponse(status_code=409, content=envelope("CONFLICT", str(exc)))

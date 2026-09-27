@@ -5,12 +5,7 @@ import { createOpenApiHttp } from "openapi-msw";
 
 import { errorEnvelope, errorResponse, olgaAdmin } from "../api/authenticationAndUsers.fixtures";
 import type { Schemas, paths } from "../api/contract";
-import {
-  evidenceFor,
-  findings,
-  prospectRows,
-  scoreViews,
-} from "./prospectsAndEvidence.fixtures";
+import { evidenceFor, findings, prospectRows, scoreViews } from "./prospectsAndEvidence.fixtures";
 
 export function createProspectsHandlers() {
   const http = createOpenApiHttp<paths>({ baseUrl: window.location.origin });

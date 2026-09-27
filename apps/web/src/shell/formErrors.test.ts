@@ -40,4 +40,61 @@ describe("formErrors (FR-007)", () => {
     expect(formErrors(error, fieldsOfForm)).toEqual({ fields: {}, callout: "Already used." });
     expect(formErrors(new Error("boom"), fieldsOfForm).callout).toBe("boom");
   });
+
+  it("places a pointer error on the longest registered prefix (FR-034)", () => {
+    const formFields = ["/icp_criteria/2", "/icp_criteria/2/values", "/questions/1/weight"];
+    const error = new ApiError(
+      422,
+      errorEnvelope("VALIDATION", "Invalid.", {
+        fields: [
+          { field: "/icp_criteria/2/values", message: "Values are invalid." },
+          { field: "/questions/1/weight", message: "Weight is invalid." },
+        ],
+      }),
+    );
+    expect(formErrors(error, formFields)).toEqual({
+      fields: {
+        "/icp_criteria/2/values": "Values are invalid.",
+        "/questions/1/weight": "Weight is invalid.",
+      },
+      callout: undefined,
+    });
+  });
+
+  it("keeps every message that lands on the same field, instead of overwriting", () => {
+    const formFields = ["/disqualifiers/0/question_key"];
+    const error = new ApiError(
+      422,
+      errorEnvelope("VALIDATION", "Invalid.", {
+        fields: [
+          { field: "/disqualifiers/0/question_key", message: "question_key is required." },
+          {
+            field: "/disqualifiers/0/question_key",
+            message: "question_key must name an existing question.",
+          },
+        ],
+      }),
+    );
+    expect(formErrors(error, formFields)).toEqual({
+      fields: {
+        "/disqualifiers/0/question_key":
+          "question_key is required. question_key must name an existing question.",
+      },
+      callout: undefined,
+    });
+  });
+
+  it("puts a pointer with no registered field or prefix in the callout", () => {
+    const formFields = ["/icp_criteria/2"];
+    const error = new ApiError(
+      422,
+      errorEnvelope("VALIDATION", "Invalid.", {
+        fields: [{ field: "/disqualifiers/0/question_key", message: "Unknown question." }],
+      }),
+    );
+    expect(formErrors(error, formFields)).toEqual({
+      fields: {},
+      callout: "Unknown question.",
+    });
+  });
 });

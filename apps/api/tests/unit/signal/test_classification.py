@@ -242,3 +242,16 @@ class TestObservedAt:
     def test_falls_back_to_fetched_at_when_published_none(self) -> None:
         result = observed_at(None, _NOW)
         assert result == _NOW
+
+
+def test_choice_option_strength_is_the_options_strength_or_none() -> None:
+    from leadradar.core.signal.classification import choice_option_strength
+
+    options = [
+        {"key": "A", "label": "a", "strength": "STRONG"},
+        {"key": "B", "label": "b", "strength": "NONE"},
+    ]
+    assert choice_option_strength(options, "A") is FindingStrength.STRONG
+    assert choice_option_strength(options, "B") is None
+    assert choice_option_strength(options, "C") is None
+    assert choice_option_strength(options, None) is None

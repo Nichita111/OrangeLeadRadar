@@ -7,9 +7,14 @@ from __future__ import annotations
 
 import hashlib
 import io
+import json
 import re
 import unicodedata
+import uuid
+from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import datetime, timedelta
+from typing import Literal
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import py3langid
@@ -19,6 +24,7 @@ from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 
 from leadradar.core.account_identity import InvalidDomain, normalise_domain
+from leadradar.core.chunking import cosine_similarity
 
 #: Query parameters [Document normalisation](/architecture/rules.md#document-normalisation)
 #: drops from a canonical URL; `utm_*` is a prefix, the rest are exact names.
@@ -71,6 +77,45 @@ def is_near_duplicate(similarity: float, threshold: float) -> bool:
     """Whether a first-passage cosine similarity of `similarity` makes two documents near
     duplicates at `NEAR_DUPLICATE_SIMILARITY`."""
     return similarity >= threshold
+
+
+@dataclass(frozen=True)
+class DatedVector:
+    """A document as [step 6](/architecture/rules.md#document-normalisation) sees it: its
+    `published_at` (else `fetched_at`) as `dated`, its `content_hash`, and the embedding of its
+    first passage."""
+
+    id: uuid.UUID
+    dated: datetime
+    content_hash: str
+    first_vector: Sequence[float]
+
+
+def near_duplicate_of(
+    document: DatedVector,
+    candidates: Sequence[DatedVector],
+    *,
+    similarity: float,
+    window_days: int,
+) -> uuid.UUID | None:
+    """The earliest document of `candidates`, by `(dated, content_hash)`, that orders before
+    `document`, is dated within `window_days` of it and whose first passage is a near duplicate
+    of its own; `None` when there is none."""
+    key = (document.dated, document.content_hash)
+    window = timedelta(days=window_days)
+    qualifying = [
+        candidate
+        for candidate in candidates
+        if candidate.id != document.id
+        and (candidate.dated, candidate.content_hash) < key
+        and document.dated - candidate.dated <= window
+        and is_near_duplicate(
+            cosine_similarity(document.first_vector, candidate.first_vector), similarity
+        )
+    ]
+    if not qualifying:
+        return None
+    return min(qualifying, key=lambda candidate: (candidate.dated, candidate.content_hash)).id
 
 
 def canonicalize_url(url: str, canonical_link: str | None = None) -> str:
@@ -217,3 +262,61 @@ def extract_json_record(*, title: str | None, description: str | None, content: 
     """A provider's JSON record read as plain text: its `title`, `description` and `content`
     fields joined, blanks dropped."""
     return normalise_text("\n\n".join(field for field in (title, description, content) if field))
+
+
+ContentType = Literal["HTML", "PDF", "JSON"]
+
+
+@dataclass(frozen=True)
+class NormalisedItem:
+    """A fetched item after steps 1-5 of [Document
+    normalisation](/architecture/rules.md#document-normalisation): what a `document` row and its
+    passages are built from."""
+
+    text: str
+    sections: tuple[tuple[int, str], ...]
+    canonical_url: str
+    content_hash: str
+    language: str
+
+
+def _json_field(record: object, key: str) -> str | None:
+    value = record.get(key) if isinstance(record, dict) else None
+    return value if isinstance(value, str) else None
+
+
+def normalise_item(
+    *,
+    url: str,
+    content_type: ContentType,
+    body: bytes,
+    title: str | None,
+    min_document_chars: int,
+) -> NormalisedItem | None:
+    """Steps 1-4 of [Document normalisation](/architecture/rules.md#document-normalisation)
+    over one raw item; `None` when its text is shorter than `MIN_DOCUMENT_CHARS`. `title` is
+    the plug-in's own, used when a JSON record carries none."""
+    if content_type == "HTML":
+        extracted = extract_html(body.decode("utf-8", errors="replace"))
+    elif content_type == "PDF":
+        extracted = extract_pdf(body)
+    else:
+        record = json.loads(body)
+        extracted = ExtractedDocument(
+            text=extract_json_record(
+                title=_json_field(record, "title") or title,
+                description=_json_field(record, "description"),
+                content=_json_field(record, "content"),
+            ),
+            sections=(),
+            canonical_link=None,
+        )
+    if len(extracted.text) < min_document_chars:
+        return None
+    return NormalisedItem(
+        text=extracted.text,
+        sections=extracted.sections,
+        canonical_url=canonicalize_url(url, extracted.canonical_link),
+        content_hash=content_hash(extracted.text),
+        language=detect_language(extracted.text),
+    )

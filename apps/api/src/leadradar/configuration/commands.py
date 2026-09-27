@@ -5,9 +5,7 @@
 `S-CFG-07`) - each in one transaction it owns, with its audit row
 ([api Design](/architecture/services/api.md#design) Transactions).
 
-Reclassification (a question's `RECLASSIFY` run) and scoring activation (`API-18`) are other
-tasks' (`S-CFG-04`, reclassify-after-change); this module creates and edits questions and drafts
-but never enqueues either.
+Question creation and revision enqueue reclassification in the same transaction.
 """
 
 from __future__ import annotations
@@ -47,6 +45,8 @@ from leadradar.core.enums import (
     DocumentSourceType,
     IndustryStatus,
     MarketStatus,
+    PipelineRunKind,
+    PipelineRunTrigger,
     ScoringConfigStatus,
     ServiceStatus,
     SignalQuestionAnswerType,
@@ -70,6 +70,25 @@ from leadradar.db.models.configuration import (
     Service,
     SignalQuestion,
 )
+from leadradar.runs.enqueue import enqueue_reclassify
+
+
+async def _audit_reclassify(
+    session: AsyncSession, *, run_id: uuid.UUID, actor_id: uuid.UUID, now: datetime
+) -> None:
+    await append_audit_event(
+        session,
+        action=AuditAction.RUN_REQUESTED,
+        occurred_at=now,
+        actor_id=actor_id,
+        entity_type="pipeline_run",
+        entity_id=run_id,
+        run_id=run_id,
+        payload={
+            "kind": PipelineRunKind.RECLASSIFY.value,
+            "trigger": PipelineRunTrigger.QUESTION_CHANGE.value,
+        },
+    )
 
 
 async def _ensure_draft(session: AsyncSession, service: Service) -> ScoringConfig:
@@ -197,7 +216,8 @@ async def update_service(
 
     Reactivating a service (`INACTIVE` to `ACTIVE`) reclassifies every active question
     ([Services and questions](/architecture/interfaces.md#services-and-questions) `API-10`'s
-    note). This function records the status change."""
+    note): this function records the status change and, on that transition only, enqueues one
+    `RECLASSIFY` run per `ACTIVE` question of the service, in the same transaction."""
     service = await require_service(session, service_id)
 
     sent: dict[str, object] = {}
@@ -216,6 +236,11 @@ async def update_service(
         "status": service.status,
     }
     changes = changed_fields(current, sent)
+    reactivating = (
+        "status" in changes
+        and current["status"] == ServiceStatus.INACTIVE
+        and status == ServiceStatus.ACTIVE
+    )
 
     if name is not None and "name" in changes:
         service.name = name
@@ -247,6 +272,18 @@ async def update_service(
             entity_id=service.id,
             payload=changes,
         )
+
+        if reactivating:
+            question_ids = await queries.active_question_ids(session, service.id)
+            for question_id in question_ids:
+                run_id = await enqueue_reclassify(
+                    session,
+                    question_id=question_id,
+                    service_id=service.id,
+                    requested_by=actor_id,
+                    now=now,
+                )
+                await _audit_reclassify(session, run_id=run_id, actor_id=actor_id, now=now)
     await session.commit()
     return await queries.get_service(session, service.id)
 
@@ -318,8 +355,12 @@ async def create_question(
         entity_id=question.id,
         payload={"key": key, "revision": 1},
     )
+    run_id = await enqueue_reclassify(
+        session, question_id=question.id, service_id=service_id, requested_by=actor_id, now=now
+    )
+    await _audit_reclassify(session, run_id=run_id, actor_id=actor_id, now=now)
     await session.commit()
-    return await queries.question_summary(session, question)
+    return await queries.question_summary(session, question, run_id=run_id)
 
 
 _SHAPE_FIELDS = frozenset({"text", "answer_type", "options", "source_types"})
@@ -340,10 +381,12 @@ async def update_question(
 ) -> QuestionSummary:
     """`API-13` (`S-CFG-02`): a change to `text`, `answer_type`, `options` or `source_types`
     increments `revision`; deactivating removes the question from the draft, reactivating adds it
-    back at weight `MEDIUM`. Raises `QuestionNotFound`, `QuestionInvalid` on a bad `options`
+    back at weight `MEDIUM`. Changing `answer_type` away from `CHOICE` clears the stored `options`
+    as part of the same update. Raises `QuestionNotFound`, `QuestionInvalid` on a bad `options`
     shape.
 
-    This function increments `revision` and updates the draft's `questions`."""
+    This function increments `revision`, updates the draft and queues reclassification
+    when needed."""
     question = (
         await session.execute(
             select(SignalQuestion).where(SignalQuestion.id == question_id).with_for_update()
@@ -376,14 +419,27 @@ async def update_question(
     }
     changes = changed_fields(current, sent)
 
+    effective_answer_type = answer_type if answer_type is not None else question.answer_type
+    clearing_options = (
+        effective_answer_type != SignalQuestionAnswerType.CHOICE
+        and options is None
+        and question.options is not None
+    )
+
     if _SHAPE_FIELDS & changes.keys():
-        effective_answer_type = answer_type if answer_type is not None else question.answer_type
         effective_options = (
-            options if options is not None else queries.question_options(question.options)
+            None
+            if clearing_options
+            else options
+            if options is not None
+            else queries.question_options(question.options)
         )
         shape_errors = validate_question_shape(effective_answer_type, effective_options)
         if shape_errors:
             raise QuestionInvalid(shape_errors)
+
+    if clearing_options:
+        changes["options"] = None
 
     activating = changes.get("status") == SignalQuestionStatus.ACTIVE
     deactivating = changes.get("status") == SignalQuestionStatus.INACTIVE
@@ -395,6 +451,8 @@ async def update_question(
         question.answer_type = answer_type
     if options is not None and "options" in changes:
         question.options = cast("list[object]", options)
+    elif clearing_options:
+        question.options = None
     if source_types is not None and "source_types" in changes:
         question.source_types = [source.value for source in source_types]
     if hint_terms is not None and "hint_terms" in changes:
@@ -425,8 +483,18 @@ async def update_question(
             entity_id=question.id,
             payload={**changes, "revision": question.revision},
         )
+    run_id = None
+    if revision_bumped or activating:
+        run_id = await enqueue_reclassify(
+            session,
+            question_id=question.id,
+            service_id=question.service_id,
+            requested_by=actor_id,
+            now=now,
+        )
+        await _audit_reclassify(session, run_id=run_id, actor_id=actor_id, now=now)
     await session.commit()
-    return await queries.question_summary(session, question)
+    return await queries.question_summary(session, question, run_id=run_id)
 
 
 # --- Scoring drafts ----------------------------------------------------------------------------

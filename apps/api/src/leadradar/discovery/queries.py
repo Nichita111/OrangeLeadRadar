@@ -8,7 +8,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime
 
-from sqlalchemy import func, select
+from sqlalchemy import func, nulls_last, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from leadradar.core.enums import DiscoveryCandidateOrigin, DiscoveryCandidateStatus
@@ -92,8 +92,9 @@ async def list_candidates(
     page: int,
     page_size: int,
 ) -> PageData[DiscoveryCandidateView]:
-    """`API-30`: ordered by `fit_estimate` descending ([Discovery contracts]
-    (/architecture/interfaces.md#discovery-contracts))."""
+    """`API-30`: ordered by `fit_estimate` descending, then by the naming document's
+    `published_at` newest first and unknown last, then by `normalised_name` (G12) — the same
+    ordering key `core.discovery.ordering_key` computes over an already-ranked run."""
     filters = [DiscoveryCandidate.service_id == service_id]
     if status is not None:
         filters.append(DiscoveryCandidate.status == status)
@@ -107,7 +108,11 @@ async def list_candidates(
             select(DiscoveryCandidate, Document)
             .outerjoin(Document, Document.id == DiscoveryCandidate.document_id)
             .where(*filters)
-            .order_by(DiscoveryCandidate.fit_estimate.desc(), DiscoveryCandidate.created_at)
+            .order_by(
+                DiscoveryCandidate.fit_estimate.desc(),
+                nulls_last(Document.published_at.desc()),
+                DiscoveryCandidate.normalised_name,
+            )
             .offset((page - 1) * page_size)
             .limit(page_size)
         )

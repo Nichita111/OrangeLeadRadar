@@ -12,7 +12,8 @@ import uuid
 from datetime import datetime
 
 from fastapi import APIRouter, Cookie, Depends, Request, Response
-from pydantic import BaseModel, ConfigDict, SecretStr
+from pydantic import BaseModel, ConfigDict, SecretStr, field_validator
+from pydantic.json_schema import SkipJsonSchema
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from leadradar.api.authentication import (
@@ -101,10 +102,17 @@ class UserUpdate(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    display_name: str = None
-    role: AppUserRole = None
-    status: AppUserStatus = None
-    password: SecretStr = None
+    display_name: str | SkipJsonSchema[None] = None
+    role: AppUserRole | SkipJsonSchema[None] = None
+    status: AppUserStatus | SkipJsonSchema[None] = None
+    password: SecretStr | SkipJsonSchema[None] = None
+
+    @field_validator("display_name", "role", "status", "password", mode="before")
+    @classmethod
+    def _optional_field_is_not_null(cls, value: object) -> object:
+        if value is None:
+            raise ValueError("Omit this field instead of sending null.")
+        return value
 
 
 def _to_authenticated_user(user: AppUser) -> AuthenticatedUser:

@@ -10,15 +10,32 @@ from dataclasses import dataclass
 
 from leadradar.core.enums import DocumentTriageOutcome, SourcePluginCode
 
-# Sources that are about the account by construction — ABOUT_ACCOUNT is skipped.
-_OWN_SOURCES: frozenset[str] = frozenset(
+# Sources that are about the account by construction: the plug-ins that read the account's
+# own pages ([`account_source`](/architecture/sql-store.md#account_source)) and CRUNCHBASE.
+_OWN_SOURCES: frozenset[SourcePluginCode] = frozenset(
     {
+        SourcePluginCode.WEBSITE,
+        SourcePluginCode.RSS,
         SourcePluginCode.CAREERS,
         SourcePluginCode.CRUNCHBASE,
-        # Any source whose kind is the account's own website/newsroom/IR/RSS is treated as
-        # own-source by the caller setting `is_own_source=True`.
     }
 )
+
+
+def is_own_source(plugin_code: SourcePluginCode | str) -> bool:
+    """True when the source is about the account by construction, so `ABOUT_ACCOUNT` is skipped."""
+    return plugin_code in _OWN_SOURCES
+
+
+def kept_for_service(
+    *, outcome: DocumentTriageOutcome, relevance_p: float, triage_relevance_min_p: float
+) -> bool:
+    """Whether a stored triage keeps the document for this service."""
+    return (
+        outcome is not DocumentTriageOutcome.NOT_ABOUT_ACCOUNT
+        and relevance_p >= triage_relevance_min_p
+    )
+
 
 ABOUT_ACCOUNT_QUESTION_ID = "ABOUT_ACCOUNT"
 RELEVANT_QUESTION_PREFIX = "RELEVANT_"
@@ -48,8 +65,7 @@ def triage(
     Parameters
     ----------
     is_own_source:
-        True when the document came from the account's own source (WEBSITE, NEWSROOM,
-        INVESTOR_RELATIONS, RSS_FEED) or from CAREERS or CRUNCHBASE — the ABOUT_ACCOUNT
+        True when the document came from a source `is_own_source` names — the ABOUT_ACCOUNT
         question is skipped for those.
     service_ids:
         Active service ids that were included in the classifier request.

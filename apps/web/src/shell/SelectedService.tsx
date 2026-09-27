@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 
-import { useServices } from "../api/referenceData";
 import type { Schemas } from "../api/contract";
+import { useServices } from "../api/servicesAndQuestions";
 import { useCurrentUser } from "./CurrentUser";
 
 type Service = Schemas["Service"];

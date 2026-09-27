@@ -2,6 +2,8 @@
 export interface RouteHandle {
   title: string;
   adminOnly?: true;
+  /** A breadcrumb link shown before the title, on a route nested under another screen. */
+  parent?: { title: string; route: string };
 }
 
 export function isRouteHandle(value: unknown): value is RouteHandle {

@@ -75,6 +75,7 @@ class QuestionSummary:
     revision: int
     status: SignalQuestionStatus
     finding_count: int
+    run_id: uuid.UUID | None = None
 
 
 @dataclass(frozen=True)
@@ -208,7 +209,9 @@ def question_options(value: object) -> list[dict[str, object]] | None:
     return cast("list[dict[str, object]] | None", value if isinstance(value, list) else None)
 
 
-async def question_summary(session: AsyncSession, question: SignalQuestion) -> QuestionSummary:
+async def question_summary(
+    session: AsyncSession, question: SignalQuestion, run_id: uuid.UUID | None = None
+) -> QuestionSummary:
     """[`SignalQuestion`](/architecture/interfaces.md#signalquestion) shaped from an already
     loaded row, its `finding_count` computed on read."""
     count = await _finding_count(session, question.id)
@@ -226,6 +229,7 @@ async def question_summary(session: AsyncSession, question: SignalQuestion) -> Q
         revision=question.revision,
         status=question.status,
         finding_count=count,
+        run_id=run_id,
     )
 
 
@@ -274,6 +278,24 @@ async def active_question_keys(session: AsyncSession, service_id: uuid.UUID) -> 
         .all()
     )
     return frozenset(keys)
+
+
+async def active_question_ids(session: AsyncSession, service_id: uuid.UUID) -> list[uuid.UUID]:
+    """Every `ACTIVE` [`signal_question`](/architecture/sql-store.md#signal_question) `id` of the
+    service (`API-10`'s note: reactivating a service reclassifies each)."""
+    ids = (
+        (
+            await session.execute(
+                select(SignalQuestion.id).where(
+                    SignalQuestion.service_id == service_id,
+                    SignalQuestion.status == SignalQuestionStatus.ACTIVE,
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    return list(ids)
 
 
 async def active_industry_codes(session: AsyncSession) -> frozenset[str]:

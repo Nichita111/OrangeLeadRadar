@@ -3,7 +3,8 @@
 `FETCH` job, sent through the record/replay transport
 ([ADR-11](/architecture/adrs/adr-11-recorded-fixtures.md)), that identifies itself with
 `CRAWLER_USER_AGENT`, checks `robots.txt` once per host, paces requests
-`CRAWL_HOST_DELAY_MS` apart, counts every request it makes for
+`CRAWL_HOST_DELAY_MS` apart (and a plug-in's requests `60000 / rate_limit_per_minute` ms
+apart), stops at the plug-in's remaining daily quota, counts every request it makes for
 [`plugin_usage`](/architecture/sql-store.md#plugin_usage), and never asks `linkedin.com`
 ([ADR-19](/architecture/adrs/adr-19-source-provider-terms-and-limits.md))."""
 
@@ -11,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -24,6 +26,18 @@ from leadradar.core.crawl_pacing import seconds_to_wait
 from leadradar.plugins.errors import PluginFetchFailed
 
 _LINKEDIN_HOST = "linkedin.com"
+
+
+@dataclass
+class _ProviderPace:
+    """When a plug-in last sent a request, shared by every client of the plug-in in this
+    process, so its `rate_limit_per_minute` holds across the jobs of one worker."""
+
+    lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+    last_request_at: datetime | None = None
+
+
+_PROVIDER_PACES: dict[str, _ProviderPace] = {}
 
 
 class RobotsDisallowed(Exception):
@@ -49,6 +63,8 @@ class CrawlHttpClient:
         adapter: str,
         user_agent: str,
         host_delay_ms: int,
+        min_interval_ms: int,
+        requests_allowed: int | None,
         timeout_s: float,
         clock: Callable[[], datetime],
         http: httpx.AsyncClient,
@@ -57,6 +73,11 @@ class CrawlHttpClient:
         self._adapter = adapter
         self._user_agent = user_agent
         self._host_delay_ms = host_delay_ms
+        #: `60000 / rate_limit_per_minute`, between any two requests of the plug-in.
+        self._min_interval_ms = min_interval_ms
+        #: What is left of the plug-in's `daily_quota` today; `None` without a quota.
+        self._requests_allowed = requests_allowed
+        self._provider_pace = _PROVIDER_PACES.setdefault(adapter, _ProviderPace())
         self._timeout_s = timeout_s
         self._clock = clock
         self._http = http
@@ -68,6 +89,9 @@ class CrawlHttpClient:
         self._last_request_at: dict[str, datetime] = {}
         self._robots: dict[str, RobotFileParser] = {}
         self.requests_made = 0
+        #: For the `FETCH` handler: whether any request got an answer, and why the last failed.
+        self.succeeded = False
+        self.last_failure: str | None = None
 
     async def aclose(self) -> None:
         await self._http.aclose()
@@ -80,27 +104,48 @@ class CrawlHttpClient:
         return self._clock()
 
     async def _pace(self, host: str) -> None:
-        if self._skip_pacing:
-            return
-        wait = seconds_to_wait(
-            last_request_at=self._last_request_at.get(host),
-            now=self._clock(),
-            delay_ms=self._host_delay_ms,
+        """Waits the larger of the host's and the plug-in's remaining delay, then records the
+        request time for both; the plug-in's lock keeps concurrent jobs in line."""
+        async with self._provider_pace.lock:
+            if not self._skip_pacing:
+                now = self._clock()
+                wait = max(
+                    seconds_to_wait(
+                        last_request_at=self._last_request_at.get(host),
+                        now=now,
+                        delay_ms=self._host_delay_ms,
+                    ),
+                    seconds_to_wait(
+                        last_request_at=self._provider_pace.last_request_at,
+                        now=now,
+                        delay_ms=self._min_interval_ms,
+                    ),
+                )
+                if wait > 0:
+                    await asyncio.sleep(wait)
+            self._last_request_at[host] = self._clock()
+            self._provider_pace.last_request_at = self._clock()
+
+    async def _send(self, url: str, host: str) -> httpx.Response:
+        """One request of the plug-in, `robots.txt` included: quota-checked, paced, counted."""
+        if self._requests_allowed is not None and self.requests_made >= self._requests_allowed:
+            self.last_failure = "daily quota reached"
+            raise PluginFetchFailed(self.last_failure)
+        await self._pace(host)
+        self.requests_made += 1
+        return await self._http.get(
+            url,
+            headers={"User-Agent": self._user_agent},
+            timeout=self._timeout_s,
+            extensions={ADAPTER_EXTENSION: self._adapter},
         )
-        if wait > 0:
-            await asyncio.sleep(wait)
 
     async def _robots_allows(self, url: str, host: str, scheme: str, netloc: str) -> bool:
         parser = self._robots.get(host)
         if parser is None:
             parser = RobotFileParser()
             try:
-                response = await self._http.get(
-                    f"{scheme}://{netloc}/robots.txt",
-                    headers={"User-Agent": self._user_agent},
-                    timeout=self._timeout_s,
-                    extensions={ADAPTER_EXTENSION: f"{self._adapter}-robots"},
-                )
+                response = await self._send(f"{scheme}://{netloc}/robots.txt", host)
             except httpx.TransportError:
                 parser.parse([])  # unreachable robots.txt: nothing is disallowed by it
             else:
@@ -118,20 +163,15 @@ class CrawlHttpClient:
             raise RobotsDisallowed(url)
         if not await self._robots_allows(url, host, parts.scheme, parts.netloc):
             raise RobotsDisallowed(url)
-        await self._pace(host)
-        self._last_request_at[host] = self._clock()
-        self.requests_made += 1
         try:
-            response = await self._http.get(
-                url,
-                headers={"User-Agent": self._user_agent},
-                timeout=self._timeout_s,
-                extensions={ADAPTER_EXTENSION: self._adapter},
-            )
+            response = await self._send(url, host)
         except httpx.TransportError as error:
-            raise PluginFetchFailed(f"{url}: {error}") from error
+            self.last_failure = f"{url}: {error}"
+            raise PluginFetchFailed(self.last_failure) from error
         if response.status_code == 429 or response.status_code >= 500:
-            raise PluginFetchFailed(f"{url} answered {response.status_code}")
+            self.last_failure = f"{url} answered {response.status_code}"
+            raise PluginFetchFailed(self.last_failure)
+        self.succeeded = True
         return response
 
 
@@ -140,6 +180,8 @@ def build_crawl_client(
     adapter: str,
     user_agent: str,
     host_delay_ms: int,
+    min_interval_ms: int,
+    requests_allowed: int | None,
     timeout_s: float,
     clock: Callable[[], datetime],
     fixture_mode: FixtureMode,
@@ -151,6 +193,8 @@ def build_crawl_client(
         adapter=adapter,
         user_agent=user_agent,
         host_delay_ms=host_delay_ms,
+        min_interval_ms=min_interval_ms,
+        requests_allowed=requests_allowed,
         timeout_s=timeout_s,
         clock=clock,
         http=build_fixture_client(fixture_mode, fixture_dir),

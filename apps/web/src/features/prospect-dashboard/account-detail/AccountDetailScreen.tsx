@@ -1,8 +1,9 @@
 import { Link, useParams, useSearchParams } from "react-router";
 
 import type { Schemas } from "../../../api/contract";
+import { useIndustries } from "../../../api/industriesAndMarkets";
 import { useScore } from "../../../api/prospectsAndEvidence";
-import { useAccount, useIndustries } from "../../../api/referenceData";
+import { useAccount } from "../../../api/referenceData";
 import { Skeleton } from "../../../components/Skeleton";
 import { cn } from "../../../components/cn";
 import { countryName } from "../../../shell/format";

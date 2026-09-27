@@ -227,7 +227,7 @@ A company that may buy. Accounts are shared by the whole team.
 | `employee_count` | integer, null | Number of employees. |
 | `revenue_eur` | bigint, null | Annual revenue in EUR. |
 | `operational_complexity` | enum: `LOW`, `MEDIUM`, `HIGH`, null | How complex the company's operations are, by the countries it operates in and its business units; headcount is `employee_count`. `LOW`: at most 2 countries and one business unit. `MEDIUM`: 3 to 10 countries, or 2 to 4 business units. `HIGH`: more than 10 countries, or 5 or more business units. When the two measures point to different levels, the higher applies. Entered, or classified by [Account attributes](/architecture/rules.md#account-attributes). |
-| `attribute_origin` | jsonb | Object: attribute name → `MANUAL`, `CRUNCHBASE` or `CLASSIFIER`, for `country_code`, `industry`, `employee_count`, `revenue_eur` and `operational_complexity`. A `MANUAL` value is never overwritten by a plug-in or the classifier. |
+| `attribute_origin` | jsonb | Object: attribute name → `MANUAL`, `CRUNCHBASE` or `CLASSIFIER`, for `country_code`, `industry`, `employee_count`, `revenue_eur` and `operational_complexity`. A `MANUAL` value is never overwritten by a plug-in or the classifier. Accepting a discovery candidate counts as `MANUAL` entry of its known attributes, even though their values came from AI extraction. |
 | `parent_account_id` | uuid FK → [`account`](#account), null | Group parent, e.g. SWISS → Lufthansa Group. Display and navigation only; findings are never inherited. |
 | `origin` | enum: `IMPORTED`, `MANUAL`, `DISCOVERED` | How the account entered: CSV import, manual entry, or an accepted [`discovery_candidate`](#discovery_candidate). |
 | `status` | enum: `ACTIVE`, `INACTIVE` | An inactive account is not refreshed, scored or listed in Prospects; its data is kept. |
@@ -354,8 +354,8 @@ One row per source plug-in, seeded; holds the Admin's switches and limits. API k
 |---|---|---|
 | `code` | enum, unique | One of the plug-in values below. |
 | `enabled` | boolean | The Admin's switch. A plug-in that needs a key and has none is unavailable whatever this says ([Plug-in availability](/architecture/rules.md#plug-in-availability)). |
-| `rate_limit_per_minute` | integer | Maximum requests per minute to the provider. |
-| `daily_quota` | integer, null | Maximum requests per UTC day; null for none. |
+| `rate_limit_per_minute` | integer > 0 | Maximum requests per minute to the provider. |
+| `daily_quota` | integer > 0, null | Maximum requests per UTC day; null for none. |
 | `last_success_at` | timestamptz, null | Last request that succeeded. |
 | `last_error` | text, null | Message of the last failed request. |
 | `last_error_at` | timestamptz, null | When it failed. |
@@ -397,7 +397,7 @@ A unit of background work a user can see: a refresh, a reclassification, a resco
 | `question_id` | uuid FK → [`signal_question`](#signal_question), null | `RECLASSIFY`. |
 | `status` | enum: `QUEUED`, `RUNNING`, `SUCCEEDED`, `PARTIAL`, `FAILED`, `CANCELLED` | `PARTIAL`: finished, but at least one plug-in or step failed, or pairs were left `PENDING_LLM`, as `errors` and `progress` state. `FAILED`: its final stage failed after its retries. |
 | `stage` | enum, null: `FETCH`, `PROCESS`, `TRIAGE`, `CLASSIFY`, `EVIDENCE`, `SCORE` | The stage in progress; null when queued or finished. The stages each kind passes through are the [run lifecycle](/architecture/services/worker.md#run-lifecycle). |
-| `progress` | jsonb | Counters: `documents_fetched`, `documents_new`, `documents_kept`, `passages`, `pairs_classified`, `pairs_escalated`, `findings_created`, `pending_budget`, `candidates`, `items_evaluated`. |
+| `progress` | jsonb | Counters: `documents_fetched`, `documents_new`, `documents_kept`, `passages`, `pairs_classified`, `pairs_escalated`, `findings_created`, `pending_budget`, `candidates`, `items_evaluated`, `news_searched`, `organisations_found`. |
 | `errors` | jsonb | Array of `{stage, plugin_code?, code, message}`; `code` is an error code of [Conventions](/architecture/interfaces.md#conventions) or `FIXTURE_MISSING`. |
 | `requested_by` | uuid FK → [`app_user`](#app_user), null | The user whose action caused it; null for the scheduler. |
 | `started_at` | timestamptz, null | When the first job started. |
@@ -410,7 +410,7 @@ The work queue behind runs ([ADR-04](/architecture/adrs/adr-04-postgres-job-queu
 | Column | Type | Notes |
 |---|---|---|
 | `run_id` | uuid FK → [`pipeline_run`](#pipeline_run) | Owning run. |
-| `step` | enum: `FETCH`, `PROCESS`, `SIGNAL`, `SCORE`, `DISCOVER`, `EVALUATE` | `FETCH`: one plug-in for one account. `PROCESS`: normalise, deduplicate, chunk and embed a batch of fetched documents. `SIGNAL`: run the [signal graph](/architecture/services/worker.md#signal-graph) over a batch of documents or passages. `SCORE`: rescore. `DISCOVER`: one discovery source for one service. `EVALUATE`: the labelled pairs of its run. |
+| `step` | enum: `FETCH`, `PROCESS`, `SIGNAL`, `SCORE`, `DISCOVER`, `EVALUATE` | `FETCH`: one plug-in for one account; stores each new item it fetches as a normalised document with its passages. `PROCESS`: embed the passages of a batch of fetched documents, mark near duplicates, and classify the account's operational complexity. `SIGNAL`: run the [signal graph](/architecture/services/worker.md#signal-graph) over a batch of documents or passages. `SCORE`: rescore. `DISCOVER`: every available discovery source for one service, and the ranking of its candidates. `EVALUATE`: the labelled pairs of its run. |
 | `payload` | jsonb | Step input: identifiers only, never document text. |
 | `status` | enum: `READY`, `RUNNING`, `DONE`, `FAILED`, `CANCELLED` | `FAILED` after `JOB_MAX_ATTEMPTS` attempts. |
 | `priority` | smallint | Lower runs first, as the [job queue](/architecture/services/worker.md#job-queue) assigns it. |
@@ -430,7 +430,7 @@ One fetched item: a news article, a web page, a report, a job posting or a compa
 | `run_id` | uuid FK → [`pipeline_run`](#pipeline_run) | The run that fetched it. |
 | `plugin_code` | enum | A [`source_plugin`](#source_plugin) `code` value. |
 | `source_type` | enum: `NEWS`, `COMPANY_PUBLICATION`, `JOB_POSTING`, `COMPANY_PROFILE` | `NEWS`: third-party reporting. `COMPANY_PUBLICATION`: the company's own website, newsroom, reports and feeds. `JOB_POSTING`: a job advertisement. `COMPANY_PROFILE`: a structured profile or corporate event from a data provider. |
-| `url` | text | As fetched. |
+| `url` | text | As requested, before any redirect ([Fetch window](/architecture/rules.md#fetch-window) step 3). |
 | `canonical_url` | text | After [Document normalisation](/architecture/rules.md#document-normalisation). |
 | `title` | text, null | Title, when the source has one. |
 | `language` | text | ISO 639-1 code, detected. |
@@ -772,7 +772,7 @@ The closed vocabulary of `audit_event.action`. **AI call payload**: `ai_role` (a
 | `SCORING_ACTIVATED` | `CONFIG` | `scoring_config` | `version`, `previous_version`, `change_note` |
 | `PLUGIN_UPDATED` | `CONFIG` | `source_plugin` | changed fields |
 | `ACCOUNT_CREATED` | `ACCOUNT` | `account` | `domain`, `origin` |
-| `ACCOUNT_UPDATED` | `ACCOUNT` | `account` | changed fields |
+| `ACCOUNT_UPDATED` | `ACCOUNT` | `account` | changed fields; also written by the worker, with no actor and with its run, when a refresh detects sources or writes an attribute; the payload names the changed fields |
 | `ACCOUNTS_IMPORTED` | `ACCOUNT` | — | `rows`, `created`, `updated`, `duplicates`, `invalid` |
 | `CANDIDATE_ACCEPTED` | `ACCOUNT` | `discovery_candidate` | `account_id` |
 | `CANDIDATE_REJECTED` | `ACCOUNT` | `discovery_candidate` | `reason` |

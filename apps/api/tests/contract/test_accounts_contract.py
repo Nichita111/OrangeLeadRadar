@@ -310,3 +310,56 @@ async def test_import_writes_the_valid_rows_and_reports_an_invalid_one(
 
     lookup = await sales_client.get("/api/v1/accounts", params={"q": domain})
     assert lookup.json()["total"] == 1
+
+
+# --- AC-64: a news.google.com feed is refused by API-21 and API-24 ---------------------------
+
+
+async def test_post_account_refuses_a_google_news_feed_and_accepts_another_host(
+    sales_client: httpx.AsyncClient,
+) -> None:
+    refused = await sales_client.post(
+        "/api/v1/accounts",
+        json={
+            "domain": _domain(),
+            "name": "Feeds",
+            "sources": [
+                {"kind": "RSS_FEED", "url": "https://example.org/feed.xml"},
+                {"kind": "RSS_FEED", "url": "https://news.google.com/rss/search?q=x"},
+            ],
+        },
+    )
+    accepted = await sales_client.post(
+        "/api/v1/accounts",
+        json={
+            "domain": _domain(),
+            "name": "Feeds",
+            "sources": [{"kind": "RSS_FEED", "url": "https://example.org/feed.xml"}],
+        },
+    )
+
+    assert refused.status_code == 422
+    assert refused.json()["error"]["code"] == "VALIDATION"
+    assert [entry["field"] for entry in refused.json()["error"]["details"]["fields"]] == [
+        "/sources/1/url"
+    ]
+    assert accepted.status_code == 200
+
+
+async def test_patch_account_refuses_a_google_news_feed(
+    sales_client: httpx.AsyncClient,
+) -> None:
+    created = await sales_client.post(
+        "/api/v1/accounts", json={"domain": _domain(), "name": "Feeds"}
+    )
+
+    response = await sales_client.patch(
+        f"/api/v1/accounts/{created.json()['id']}",
+        json={"sources": [{"kind": "RSS_FEED", "url": "https://news.google.com/rss"}]},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "VALIDATION"
+    assert [entry["field"] for entry in response.json()["error"]["details"]["fields"]] == [
+        "/sources/0/url"
+    ]

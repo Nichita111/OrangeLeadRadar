@@ -172,7 +172,10 @@ def test_each_feedback_contract_accepts_only_its_verdicts(
 def test_documented_closed_response_sets_are_enums(app: FastAPI) -> None:
     schemas = object_at(app.openapi(), "components", "schemas")
 
-    assert value_at(schemas, "ImportRowResult", "properties", "outcome", "enum") == [
+    assert object_at(schemas, "ImportRowResult", "properties", "outcome") == {
+        "$ref": "#/components/schemas/ImportRowOutcome"
+    }
+    assert value_at(schemas, "ImportRowOutcome", "enum") == [
         "CREATED",
         "UPDATED",
         "POSSIBLE_DUPLICATE",
@@ -181,12 +184,14 @@ def test_documented_closed_response_sets_are_enums(app: FastAPI) -> None:
     assert object_at(schemas, "ScoreChange", "properties", "trigger") == {
         "$ref": "#/components/schemas/PipelineRunTrigger"
     }
-    assert object_at(schemas, "AlertBandChange", "properties", "from") == {
-        "$ref": "#/components/schemas/AccountScoreBand"
+    nullable_band = {
+        "anyOf": [
+            {"$ref": "#/components/schemas/AccountScoreBand"},
+            {"type": "null"},
+        ]
     }
-    assert object_at(schemas, "AlertBandChange", "properties", "to") == {
-        "$ref": "#/components/schemas/AccountScoreBand"
-    }
+    assert object_at(schemas, "AlertBandChange", "properties", "from") == nullable_band
+    assert object_at(schemas, "AlertBandChange", "properties", "to") == nullable_band
 
 
 def test_scoring_config_summary_uses_its_interface_name(app: FastAPI) -> None:
@@ -194,6 +199,28 @@ def test_scoring_config_summary_uses_its_interface_name(app: FastAPI) -> None:
 
     assert "ScoringConfigSummary" in schemas
     assert "ScoringConfigSummaryModel" not in schemas
+
+
+def test_scoring_config_settings_is_published_as_the_scoring_settings_schema(
+    app: FastAPI,
+) -> None:
+    """`ScoringConfig.settings` names the [scoring settings document]
+    (/architecture/sql-store.md#scoring-settings-document) schema, not an untyped object."""
+    schemas = object_at(app.openapi(), "components", "schemas")
+
+    settings_ref = object_at(schemas, "ScoringConfig", "properties", "settings")
+    assert settings_ref == {"$ref": "#/components/schemas/ScoringSettings"}
+
+    settings_schema = object_at(schemas, "ScoringSettings")
+    for field in (
+        "fit_weight",
+        "intent_weight",
+        "weight_values",
+        "icp_criteria",
+        "questions",
+        "disqualifiers",
+    ):
+        assert field in object_at(settings_schema, "properties")
 
 
 def test_score_wire_fields_keep_the_documented_null_and_required_semantics(app: FastAPI) -> None:

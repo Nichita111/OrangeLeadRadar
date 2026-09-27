@@ -9,7 +9,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request, Response
 from fastapi import status as http_status
-from pydantic import BaseModel, ConfigDict, TypeAdapter
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from leadradar.api.authentication import CurrentUser, require_admin
@@ -116,7 +116,7 @@ def to_run(view: RunView) -> Run:
     )
 
 
-def _plugins_with_a_key(settings: ApiSettings) -> frozenset[SourcePluginCode]:
+def plugins_with_a_key(settings: ApiSettings) -> frozenset[SourcePluginCode]:
     """The plug-ins whose key is set in the runtime; the keys themselves stay in `settings`."""
     keys = {
         SourcePluginCode.CRUNCHBASE: settings.crunchbase_api_key,
@@ -145,7 +145,7 @@ async def post_account_refresh(
         session,
         account_id=id,
         principal=principal,
-        keys_configured=_plugins_with_a_key(request.app.state.settings),
+        keys_configured=plugins_with_a_key(request.app.state.settings),
         now=request.app.state.clock(),
     )
     if not result.created:
@@ -221,13 +221,16 @@ class SourcePlugin(BaseModel):
 
 
 class SourcePluginUpdate(BaseModel):
-    """[`SourcePluginUpdate`](/architecture/interfaces.md#sourcepluginupdate)."""
+    """[`SourcePluginUpdate`](/architecture/interfaces.md#sourcepluginupdate). A `rate_limit_per_minute`
+    or `daily_quota` of `0` or below answers `422 VALIDATION`
+    ([`source_plugin`](/architecture/sql-store.md#source_plugin)); `null` still means "absent" for
+    the rate limit and "no quota" for the daily quota."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     enabled: bool | None = None
-    rate_limit_per_minute: int | None = None
-    daily_quota: int | None = None
+    rate_limit_per_minute: int | None = Field(default=None, gt=0)
+    daily_quota: int | None = Field(default=None, gt=0)
 
 
 def _source_plugin(view: SourcePluginView) -> SourcePlugin:
@@ -255,7 +258,7 @@ async def get_source_plugins(
     """`API-37`: every plug-in, Admin only."""
     views = await list_source_plugins(
         session,
-        keys_configured=_plugins_with_a_key(request.app.state.settings),
+        keys_configured=plugins_with_a_key(request.app.state.settings),
         now=request.app.state.clock(),
     )
     return [_source_plugin(view) for view in views]
@@ -278,7 +281,7 @@ async def patch_source_plugin(
         rate_limit_per_minute=body.rate_limit_per_minute,
         daily_quota=body.daily_quota,
         daily_quota_set="daily_quota" in fields_sent,
-        keys_configured=_plugins_with_a_key(request.app.state.settings),
+        keys_configured=plugins_with_a_key(request.app.state.settings),
         principal=admin,
         now=request.app.state.clock(),
     )

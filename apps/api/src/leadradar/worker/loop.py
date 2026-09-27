@@ -11,6 +11,7 @@ from collections.abc import Callable, Mapping
 from contextlib import suppress
 from datetime import datetime
 
+import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from leadradar.ai.gateway import AiGateway
@@ -75,6 +76,7 @@ async def _run_claimed_job(
     clock: Clock,
     worker_id: str,
     gateway: AiGateway | None = None,
+    embedder: httpx.AsyncClient | None = None,
 ) -> None:
     handler = handlers.get(job.step)
     if handler is None:
@@ -96,7 +98,13 @@ async def _run_claimed_job(
         async with session_factory() as session, session.begin():
             await handler(
                 StepContext(
-                    job=job, session=session, now=clock(), settings=settings, gateway=gateway
+                    job=job,
+                    session=session,
+                    now=clock(),
+                    settings=settings,
+                    gateway=gateway,
+                    embedder=embedder,
+                    sessions=session_factory,
                 )
             )
             await complete_job(
@@ -136,6 +144,7 @@ async def process_next_job(
     clock: Clock,
     worker_id: str,
     gateway: AiGateway | None = None,
+    embedder: httpx.AsyncClient | None = None,
 ) -> bool:
     """Runs one job to its outcome; `False` when no job was due."""
     async with session_factory() as session, session.begin():
@@ -147,6 +156,12 @@ async def process_next_job(
 
     token = run_id_var.set(str(job.run_id))
     try:
+        logger.info(
+            "Claimed job %s at step %s",
+            job.id,
+            job.step.value,
+            extra={"job_id": str(job.id), "step": job.step.value, "worker_id": worker_id},
+        )
         await _run_claimed_job(
             session_factory,
             job,
@@ -155,6 +170,7 @@ async def process_next_job(
             clock=clock,
             worker_id=worker_id,
             gateway=gateway,
+            embedder=embedder,
         )
     finally:
         run_id_var.reset(token)
@@ -170,6 +186,7 @@ async def run_job_loop(
     worker_id: str,
     stop: asyncio.Event,
     gateway: AiGateway | None = None,
+    embedder: httpx.AsyncClient | None = None,
 ) -> None:
     """Processes jobs until `stop` is set, finishing the job in hand first; waits
     `JOB_POLL_INTERVAL_S` whenever no job is due."""
@@ -182,6 +199,7 @@ async def run_job_loop(
                 clock=clock,
                 worker_id=worker_id,
                 gateway=gateway,
+                embedder=embedder,
             )
         except Exception:
             # The database is unreachable or refused the claim: logged, and tried again after

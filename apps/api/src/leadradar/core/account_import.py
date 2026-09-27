@@ -34,6 +34,12 @@ _ALIAS_SEPARATOR = ";"
 _REFUSED_RSS_HOST = "news.google.com"
 
 
+def is_refused_feed(kind: AccountSourceKind, url: str) -> bool:
+    """Whether `url` is an `RSS_FEED` on `news.google.com`, which an import row, `API-21` and
+    `API-24` all refuse."""
+    return kind == AccountSourceKind.RSS_FEED and urlsplit(url).hostname == _REFUSED_RSS_HOST
+
+
 class ImportRowOutcome(StrEnum):
     """`ImportResult.rows[].outcome` ([Accounts and contacts]
     (/architecture/interfaces.md#accountimportrow)); an interface-only enum, not a store column,
@@ -159,7 +165,7 @@ def parse_import_row(
         url = _cell(raw, column)
         if url is None:
             continue
-        if kind == AccountSourceKind.RSS_FEED and urlsplit(url).hostname == _REFUSED_RSS_HOST:
+        if is_refused_feed(kind, url):
             errors.append(FieldError(column, "a news.google.com feed is refused."))
             continue
         sources.append(ParsedSource(kind=kind, url=url))

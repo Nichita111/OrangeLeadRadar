@@ -195,3 +195,43 @@ async def test_api18_missing_change_note_returns_422(
     )
 
     assert response.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# Finding the activation's RESCORE run (G1 b)
+# ---------------------------------------------------------------------------
+
+
+async def test_after_activation_the_newest_rescore_run_for_the_service_has_trigger_activation(
+    admin_client: httpx.AsyncClient,
+) -> None:
+    """G1 (b): the client finds the activation's `RESCORE` run through `API-34`, filtered by
+    `kind=RESCORE&service_id=…`, newest first (`FR-036`, `AC-06`)."""
+    suffix = uuid.uuid4().hex[:8].upper()
+    service = await admin_client.post(
+        "/api/v1/services",
+        json={
+            "code": f"SERVICE_{suffix}",
+            "name": f"Service {suffix}",
+            "description": "A service",
+            "value_proposition": "A proposition",
+        },
+    )
+    assert service.status_code == 200, service.text
+    service_id = service.json()["id"]
+    configs = await admin_client.get(f"/api/v1/services/{service_id}/scoring-configs")
+    draft_id = next(c["id"] for c in configs.json() if c["status"] == "DRAFT")
+
+    activated = await admin_client.post(
+        f"/api/v1/scoring-configs/{draft_id}/activate", json={"change_note": "Go live."}
+    )
+    assert activated.status_code == 200, activated.text
+
+    runs = await admin_client.get(
+        "/api/v1/runs", params={"kind": "RESCORE", "service_id": service_id}
+    )
+    assert runs.status_code == 200, runs.text
+    page = runs.json()
+    assert page["items"], "expected the activation's RESCORE run to be listed"
+    assert page["items"][0]["trigger"] == "SCORING_ACTIVATION"
+    assert page["items"][0]["service"]["id"] == service_id

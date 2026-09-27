@@ -104,6 +104,19 @@ def fit(
     return FitResult(value=value, criteria=results)
 
 
+def augment_icp_match(
+    attributes: Mapping[str, object], criteria: Sequence[FitCriterionResult]
+) -> dict[str, object]:
+    """`attributes` with `_icp_match_{criterion.key}` added for each Fit criterion result, so
+    [Disqualification](/architecture/rules.md#disqualification) can see an `ICP_MISMATCH` without
+    recomputing Fit; shared by [Score breakdown](/architecture/rules.md#score-breakdown) and
+    [Discovery](/architecture/rules.md#discovery)."""
+    augmented = dict(attributes)
+    for criterion in criteria:
+        augmented[f"_icp_match_{criterion.key}"] = criterion.match
+    return augmented
+
+
 def _criterion_match(
     c: Mapping[str, object],
     attributes: dict[str, object],

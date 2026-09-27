@@ -10,7 +10,8 @@ from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, ValidationInfo, field_validator
+from pydantic.json_schema import SkipJsonSchema
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -32,6 +33,7 @@ from leadradar.accounts.queries import (
 )
 from leadradar.api.authentication import CurrentUser
 from leadradar.api.pagination import Page
+from leadradar.core.account_import import ImportRowOutcome, is_refused_feed
 from leadradar.core.enums import (
     AccountOperationalComplexity,
     AccountOrigin,
@@ -110,6 +112,12 @@ class Account(BaseModel):
     next_refresh_at: datetime | None
 
 
+def _accept_feed_url(kind: AccountSourceKind | None, url: str) -> str:
+    if kind is not None and is_refused_feed(kind, url):
+        raise ValueError("a news.google.com feed is refused.")
+    return url
+
+
 class AccountCreateSource(BaseModel):
     """One entry of [`AccountCreate`](/architecture/interfaces.md#accountcreate) `sources`."""
 
@@ -117,6 +125,11 @@ class AccountCreateSource(BaseModel):
 
     kind: AccountSourceKind
     url: str
+
+    @field_validator("url")
+    @classmethod
+    def _url_is_not_a_refused_feed(cls, url: str, info: ValidationInfo) -> str:
+        return _accept_feed_url(info.data.get("kind"), url)
 
 
 class AccountCreate(BaseModel):
@@ -126,16 +139,33 @@ class AccountCreate(BaseModel):
 
     domain: str
     name: str
-    country_code: str = None
-    industry: str = None
-    employee_count: int = None
-    revenue_eur: int = None
-    operational_complexity: AccountOperationalComplexity = None
-    parent_account_id: uuid.UUID = None
-    linkedin_url: str = None
-    notes: str = None
+    country_code: str | SkipJsonSchema[None] = None
+    industry: str | SkipJsonSchema[None] = None
+    employee_count: int | SkipJsonSchema[None] = None
+    revenue_eur: int | SkipJsonSchema[None] = None
+    operational_complexity: AccountOperationalComplexity | SkipJsonSchema[None] = None
+    parent_account_id: uuid.UUID | SkipJsonSchema[None] = None
+    linkedin_url: str | SkipJsonSchema[None] = None
+    notes: str | SkipJsonSchema[None] = None
     aliases: list[str] = []
     sources: list[AccountCreateSource] = []
+
+    @field_validator(
+        "country_code",
+        "industry",
+        "employee_count",
+        "revenue_eur",
+        "operational_complexity",
+        "parent_account_id",
+        "linkedin_url",
+        "notes",
+        mode="before",
+    )
+    @classmethod
+    def _optional_field_is_not_null(cls, value: object) -> object:
+        if value is None:
+            raise ValueError("Omit this field instead of sending null.")
+        return value
 
 
 class AccountUpdateSource(BaseModel):
@@ -147,6 +177,11 @@ class AccountUpdateSource(BaseModel):
     url: str
     status: AccountSourceStatus = AccountSourceStatus.ACTIVE
 
+    @field_validator("url")
+    @classmethod
+    def _url_is_not_a_refused_feed(cls, url: str, info: ValidationInfo) -> str:
+        return _accept_feed_url(info.data.get("kind"), url)
+
 
 class AccountUpdate(BaseModel):
     """[`AccountUpdate`](/architecture/interfaces.md#accountupdate), the request of `API-24`.
@@ -155,18 +190,39 @@ class AccountUpdate(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    name: str = None
-    country_code: str = None
-    industry: str = None
-    employee_count: int = None
-    revenue_eur: int = None
-    operational_complexity: AccountOperationalComplexity = None
-    parent_account_id: uuid.UUID = None
-    linkedin_url: str = None
-    notes: str = None
-    status: AccountStatus = None
-    aliases: list[str] = None
-    sources: list[AccountUpdateSource] = None
+    name: str | SkipJsonSchema[None] = None
+    country_code: str | SkipJsonSchema[None] = None
+    industry: str | SkipJsonSchema[None] = None
+    employee_count: int | SkipJsonSchema[None] = None
+    revenue_eur: int | SkipJsonSchema[None] = None
+    operational_complexity: AccountOperationalComplexity | SkipJsonSchema[None] = None
+    parent_account_id: uuid.UUID | SkipJsonSchema[None] = None
+    linkedin_url: str | SkipJsonSchema[None] = None
+    notes: str | SkipJsonSchema[None] = None
+    status: AccountStatus | SkipJsonSchema[None] = None
+    aliases: list[str] | SkipJsonSchema[None] = None
+    sources: list[AccountUpdateSource] | SkipJsonSchema[None] = None
+
+    @field_validator(
+        "name",
+        "country_code",
+        "industry",
+        "employee_count",
+        "revenue_eur",
+        "operational_complexity",
+        "parent_account_id",
+        "linkedin_url",
+        "notes",
+        "status",
+        "aliases",
+        "sources",
+        mode="before",
+    )
+    @classmethod
+    def _optional_field_is_not_null(cls, value: object) -> object:
+        if value is None:
+            raise ValueError("Omit this field instead of sending null.")
+        return value
 
 
 class ImportRowFieldError(BaseModel):
@@ -179,14 +235,14 @@ class ImportRowFieldError(BaseModel):
     message: str
 
 
-class ImportRowItem(BaseModel):
+class ImportRowResult(BaseModel):
     """One entry of `ImportResult.rows`."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     line: int
     domain: str | None
-    outcome: str
+    outcome: ImportRowOutcome
     account_id: uuid.UUID | None
     errors: list[ImportRowFieldError]
 
@@ -197,7 +253,7 @@ class ImportResult(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     dry_run: bool
-    rows: list[ImportRowItem]
+    rows: list[ImportRowResult]
     created: int
     updated: int
     duplicates: int
@@ -218,7 +274,9 @@ def _to_account_row(row: AccountRowData) -> AccountRow:
     )
 
 
-def _to_account(data: AccountData) -> Account:
+def to_account(data: AccountData) -> Account:
+    """`AccountData` shaped into the one [`Account`](/architecture/interfaces.md#account) response
+    model; `api/discovery.py` reuses it for `API-31` rather than redefining the shape."""
     return Account(
         id=data.row.id,
         name=data.row.name,
@@ -313,7 +371,7 @@ async def post_account(
     result = await create_account(
         session, data=data, actor_id=principal.id, now=request.app.state.clock()
     )
-    return _to_account(result)
+    return to_account(result)
 
 
 @router.post("/accounts/import")
@@ -343,7 +401,7 @@ async def post_accounts_import(
     return ImportResult(
         dry_run=result.dry_run,
         rows=[
-            ImportRowItem(
+            ImportRowResult(
                 line=row.line,
                 domain=row.domain,
                 outcome=row.outcome.value,
@@ -372,7 +430,7 @@ async def get_account(
     if account is None:
         raise AccountNotFound(f"No account {id}.")
     result = await account_data(session, account)
-    return _to_account(result)
+    return to_account(result)
 
 
 @router.patch("/accounts/{id}")
@@ -409,4 +467,4 @@ async def patch_account(
         actor_id=principal.id,
         now=request.app.state.clock(),
     )
-    return _to_account(result)
+    return to_account(result)

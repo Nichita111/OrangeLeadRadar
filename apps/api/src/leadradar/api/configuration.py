@@ -12,6 +12,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic.json_schema import SkipJsonSchema
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from leadradar.api.authentication import CurrentUser, require_admin
@@ -112,6 +113,7 @@ class SignalQuestion(BaseModel):
     revision: int
     status: SignalQuestionStatus
     finding_count: int
+    run_id: uuid.UUID | None
 
 
 class SignalQuestionCreate(BaseModel):
@@ -173,6 +175,7 @@ def _to_signal_question(summary: QuestionSummary) -> SignalQuestion:
         revision=summary.revision,
         status=summary.status,
         finding_count=summary.finding_count,
+        run_id=summary.run_id,
     )
 
 
@@ -322,7 +325,7 @@ class ScoringConfigSummary(BaseModel):
 class ScoringConfig(ScoringConfigSummary):
     """[`ScoringConfig`](/architecture/interfaces.md#scoringconfig)."""
 
-    settings: dict[str, object]
+    settings: ScoringSettings
 
 
 class ScoringDraftUpdate(BaseModel):
@@ -331,7 +334,14 @@ class ScoringDraftUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     settings: ScoringSettings
-    change_note: str = None
+    change_note: str | SkipJsonSchema[None] = None
+
+    @field_validator("change_note", mode="before")
+    @classmethod
+    def _change_note_is_not_null(cls, value: object) -> object:
+        if value is None:
+            raise ValueError("Omit this field instead of sending null.")
+        return value
 
 
 def _to_scoring_config_summary(summary: queries.ScoringConfigSummary) -> ScoringConfigSummary:

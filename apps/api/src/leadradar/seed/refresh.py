@@ -90,16 +90,31 @@ async def _run_statuses(
 async def wait_for_runs_final(
     db: AsyncSession, run_ids: list[uuid.UUID], settings: ApiSettings
 ) -> None:
-    """Polls the runs `request_account_refresh` created until every one leaves `QUEUED` or
-    `RUNNING`. The deadline is one `REFRESH_TARGET_MINUTES` per run - the target duration of one
-    account refresh in replay mode - since the worker processes them concurrently, never one at
-    a time."""
+    """Wait for every requested run to exist and finish successfully."""
     if not run_ids:
         return
     deadline = time.monotonic() + len(run_ids) * settings.refresh_target_minutes * 60
     while True:
         statuses = await _run_statuses(db, run_ids)
+        missing = set(run_ids) - statuses.keys()
+        if missing:
+            raise LookupError(
+                "Requested refresh runs are missing: "
+                + ", ".join(str(run_id) for run_id in sorted(missing))
+            )
         if all(status not in _ACTIVE_STATUSES for status in statuses.values()):
+            unsuccessful = {
+                run_id: status
+                for run_id, status in statuses.items()
+                if status != PipelineRunStatus.SUCCEEDED
+            }
+            if unsuccessful:
+                raise RuntimeError(
+                    "Demo refresh runs did not succeed: "
+                    + ", ".join(
+                        f"{run_id}={status.value}" for run_id, status in unsuccessful.items()
+                    )
+                )
             return
         if time.monotonic() >= deadline:
             unfinished = [

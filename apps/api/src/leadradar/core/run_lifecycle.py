@@ -5,6 +5,7 @@ status a finished run ends in. The worker's job loop invokes them; nothing here 
 
 from __future__ import annotations
 
+import uuid
 from collections.abc import Collection
 
 from leadradar.core.enums import (
@@ -50,10 +51,17 @@ def stage_after_claim(current: PipelineRunStage | None, step: JobStep) -> Pipeli
     return claimed
 
 
-def owed_final_job(kind: PipelineRunKind, steps_in_run: Collection[JobStep]) -> JobStep | None:
-    """With every job of the run final: the step the job loop must still enqueue — `SCORE` for
-    an `ACCOUNT_REFRESH` or `RECLASSIFY` run that has no `SCORE` job — or `None` when the run is
+def owed_job(kind: PipelineRunKind, steps_in_run: Collection[JobStep]) -> JobStep | None:
+    """With every job of the run final: the step the job loop must still enqueue — `PROCESS` for
+    an `ACCOUNT_REFRESH` that has `FETCH` jobs and no `PROCESS` job, else `SCORE` for an
+    `ACCOUNT_REFRESH` or `RECLASSIFY` run that has no `SCORE` job — or `None` when the run is
     ready to finish."""
+    if (
+        kind is PipelineRunKind.ACCOUNT_REFRESH
+        and JobStep.FETCH in steps_in_run
+        and JobStep.PROCESS not in steps_in_run
+    ):
+        return JobStep.PROCESS
     if kind in _KINDS_OWED_A_SCORE_JOB and JobStep.SCORE not in steps_in_run:
         return JobStep.SCORE
     return None
@@ -84,3 +92,12 @@ def refresh_first_jobs(
         (JobStep.FETCH, {"plugin_code": code.value})
         for code in sorted(available_plugins, key=order.index)
     ]
+
+
+def reclassify_first_jobs(
+    account_ids: Collection[uuid.UUID],
+) -> list[tuple[JobStep, dict[str, object]]]:
+    """One SIGNAL job per active account, or SCORE when there are none."""
+    if not account_ids:
+        return [(JobStep.SCORE, {})]
+    return [(JobStep.SIGNAL, {"account_id": str(account_id)}) for account_id in account_ids]

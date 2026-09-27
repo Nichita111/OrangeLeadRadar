@@ -9,14 +9,16 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from urllib.parse import urlencode
 
 from leadradar.core.crawl_pacing import seconds_to_wait
+from leadradar.core.document_normalisation import ContentType
 from leadradar.core.enums import DocumentSourceType, SourcePluginCode
 from leadradar.plugins.errors import PluginFetchFailed
 from leadradar.plugins.http import CrawlHttpClient, RobotsDisallowed
-from leadradar.plugins.shapes import ContentType, FetchContext, RawItem
+from leadradar.plugins.shapes import FetchContext, RawItem
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +45,9 @@ class GdeltPlugin:
         self._backoff_s = backoff_s
         self._last_query_at: datetime | None = None
 
-    async def _search(self, client: CrawlHttpClient, query: str, context: FetchContext) -> object:
+    async def _search_query(
+        self, client: CrawlHttpClient, query: str, since: datetime, until: datetime
+    ) -> object:
         if not client.skip_pacing:
             wait = seconds_to_wait(
                 last_request_at=self._last_query_at,
@@ -57,8 +61,8 @@ class GdeltPlugin:
             "mode": "ArtList",
             "format": "json",
             "maxrecords": str(self._max_records),
-            "startdatetime": context.since.strftime(_TIMEFORMAT),
-            "enddatetime": context.until.strftime(_TIMEFORMAT),
+            "startdatetime": since.strftime(_TIMEFORMAT),
+            "enddatetime": until.strftime(_TIMEFORMAT),
         }
         url = f"{_DOC_API_URL}?{urlencode(params)}"
         try:
@@ -74,11 +78,22 @@ class GdeltPlugin:
         except ValueError as error:
             raise PluginFetchFailed(f"GDELT answered non-JSON for {query!r}") from error
 
-    async def fetch(self, context: FetchContext, client: CrawlHttpClient) -> list[RawItem]:
+    async def _collect(
+        self,
+        client: CrawlHttpClient,
+        queries: Sequence[str],
+        *,
+        since: datetime,
+        until: datetime,
+        max_items: int,
+    ) -> list[RawItem]:
+        """Every query's articles, newest first, capped at `max_items`, each fetched as HTML:
+        shared by [`fetch`](#fetch) (`API-68`) and [`search`](#search) (`API-69`, no
+        `sourcecountry` filter for discovery, G5)."""
         seen_urls: set[str] = set()
         articles: list[tuple[str, str | None, datetime | None]] = []
-        for query in context.queries or [context.account.name]:
-            payload = await self._search(client, query, context)
+        for query in queries:
+            payload = await self._search_query(client, query, since, until)
             for article in (payload.get("articles") or []) if isinstance(payload, dict) else []:
                 url = article.get("url")
                 if not isinstance(url, str) or url in seen_urls:
@@ -89,8 +104,8 @@ class GdeltPlugin:
 
         items: list[RawItem] = []
         for url, title, published_at in sorted(
-            articles, key=lambda entry: entry[2] or context.since, reverse=True
-        )[: context.max_items]:
+            articles, key=lambda entry: entry[2] or since, reverse=True
+        )[:max_items]:
             try:
                 response = await client.get(url)
             except (RobotsDisallowed, PluginFetchFailed) as error:
@@ -111,3 +126,26 @@ class GdeltPlugin:
                 )
             )
         return items
+
+    async def fetch(self, context: FetchContext, client: CrawlHttpClient) -> list[RawItem]:
+        return await self._collect(
+            client,
+            context.queries or [context.account.name],
+            since=context.since,
+            until=context.until,
+            max_items=context.max_items,
+        )
+
+    async def search(
+        self,
+        query: str,
+        *,
+        since: datetime,
+        until: datetime,
+        max_items: int,
+        client: CrawlHttpClient,
+    ) -> list[RawItem]:
+        """`API-69` for `GDELT`: [Discovery](/architecture/rules.md#discovery) step 2's own
+        search, over one query and window, with no `sourcecountry` filter (G5: no ISO-to-GDELT
+        code table exists)."""
+        return await self._collect(client, [query], since=since, until=until, max_items=max_items)

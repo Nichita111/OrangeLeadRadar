@@ -16,7 +16,7 @@ from datetime import datetime
 
 from leadradar.core.enums import AccountScoreBand, AccountScoreStanding
 from leadradar.core.scoring.disqualification import disqualify
-from leadradar.core.scoring.fit import fit
+from leadradar.core.scoring.fit import augment_icp_match, fit
 from leadradar.core.scoring.intent import intent
 from leadradar.core.scoring.priority import priority_standing_band
 from leadradar.core.scoring.settings import ScoringSettings
@@ -92,9 +92,7 @@ def score_account(
     )
 
     # Augment attributes with per-criterion match label so disqualification can see ICP mismatches
-    augmented_attributes: dict[str, object] = dict(inputs.attributes)
-    for cr in fit_result.criteria:
-        augmented_attributes[f"_icp_match_{cr.key}"] = cr.match
+    augmented_attributes = augment_icp_match(inputs.attributes, fit_result.criteria)
 
     # --- Intent ---
     # Build question settings list with polarity

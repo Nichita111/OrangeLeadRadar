@@ -124,6 +124,18 @@ def _map_choice(probs: dict[str, float], options: Sequence[Mapping[str, object]]
     )
 
 
+def choice_option_strength(
+    options: Sequence[Mapping[str, object]], option_key: str | None
+) -> FindingStrength | None:
+    """The strength of the option with that key; None when the key is not an option of the
+    question or the option's strength is `NONE`."""
+    for option in options:
+        if str(option["key"]) == option_key:
+            strength = FindingStrength(str(option["strength"]))
+            return None if strength is FindingStrength.NONE else strength
+    return None
+
+
 # The suffix a `YES_NO` question's strength-scale sub-question is asked under, in the same
 # classifier call, so its answer can be merged back with the main question's.
 SCALE_SUFFIX = "__SCALE"

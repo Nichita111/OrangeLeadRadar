@@ -8,6 +8,7 @@ Pure functions of their inputs."""
 
 from __future__ import annotations
 
+import math
 import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -162,3 +163,40 @@ def select_passages[QuestionId](
         best_rank, key=lambda ordinal: (best_rank[ordinal], -best_score[ordinal], ordinal)
     )
     return ordered[:max_passages_per_document]
+
+
+def cosine_similarity(a: Sequence[float], b: Sequence[float]) -> float:
+    """The cosine of the angle between two embeddings; `0.0` when either has no length."""
+    norm = math.sqrt(sum(x * x for x in a)) * math.sqrt(sum(y * y for y in b))
+    if norm == 0.0:
+        return 0.0
+    return sum(x * y for x, y in zip(a, b, strict=True)) / norm
+
+
+def rank_by_meaning(
+    passages: Sequence[tuple[int, Sequence[float]]], query: Sequence[float]
+) -> list[int]:
+    """The `ordinal`s of `passages` ordered by cosine similarity to `query`, highest first, ties
+    by `ordinal`."""
+    scored = [(ordinal, cosine_similarity(vector, query)) for ordinal, vector in passages]
+    return [ordinal for ordinal, _ in sorted(scored, key=lambda pair: (-pair[1], pair[0]))]
+
+
+def select_for_questions[QuestionId](
+    keyword: Mapping[QuestionId, Sequence[int]],
+    meaning: Mapping[QuestionId, Sequence[int]],
+    *,
+    passages_per_question: int,
+    candidates: int,
+    rrf_k: int,
+    max_passages_per_document: int,
+) -> list[int]:
+    """Question-scoped retrieval and passage selection: each question's keyword and meaning
+    rankings are fused, its first `passages_per_question` kept, and the union capped."""
+    per_question = {
+        question: fuse_rankings(
+            [keyword[question], meaning[question]], candidates=candidates, rrf_k=rrf_k
+        )[:passages_per_question]
+        for question in meaning
+    }
+    return select_passages(per_question, max_passages_per_document=max_passages_per_document)

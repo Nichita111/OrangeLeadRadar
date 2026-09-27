@@ -3,16 +3,23 @@
 
 from __future__ import annotations
 
+import json
+import uuid
+from datetime import UTC, datetime, timedelta
+
 import pytest
 from pypdf import PdfWriter
 
 from leadradar.core.document_normalisation import (
+    DatedVector,
     canonicalize_url,
     content_hash,
     detect_language,
     extract_html,
     extract_pdf,
     is_near_duplicate,
+    near_duplicate_of,
+    normalise_item,
     normalise_text,
 )
 
@@ -116,3 +123,164 @@ def _write_to_bytes(writer: PdfWriter) -> bytes:
     stream = io.BytesIO()
     writer.write(stream)
     return stream.getvalue()
+
+
+_ARTICLE = (
+    "<html><head><link rel='canonical' href='https://www.example.com/news/story/'></head>"
+    "<body><nav>Menu</nav><article><h1>Big news</h1>"
+    "<p>The company announced a new cargo hub near the airport this week.</p></article>"
+    "</body></html>"
+)
+_MIN_CHARS = 20
+
+
+def _pdf_with_text(text: str) -> bytes:
+    """A one-page PDF whose only content is `text`."""
+    stream = f"BT /F1 12 Tf 20 100 Td ({text}) Tj ET".encode()
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 200] /Contents 4 0 R "
+        b"/Resources << /Font << /F1 5 0 R >> >> >>",
+        b"<< /Length %d >>\nstream\n" % len(stream) + stream + b"\nendstream",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    ]
+    out = b"%PDF-1.4\n"
+    offsets = []
+    for number, body in enumerate(objects, start=1):
+        offsets.append(len(out))
+        out += b"%d 0 obj\n" % number + body + b"\nendobj\n"
+    xref_at = len(out)
+    out += b"xref\n0 %d\n0000000000 65535 f \n" % (len(objects) + 1)
+    for offset in offsets:
+        out += b"%010d 00000 n \n" % offset
+    out += b"trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF" % (
+        len(objects) + 1,
+        xref_at,
+    )
+    return out
+
+
+def test_normalise_item_of_html_gives_text_sections_canonical_url_language_and_hash() -> None:
+    item = normalise_item(
+        url="https://www.example.com/news/story?utm_source=x#top",
+        content_type="HTML",
+        body=_ARTICLE.encode(),
+        title=None,
+        min_document_chars=_MIN_CHARS,
+    )
+
+    assert item is not None
+    assert (
+        item.text == "Big news\n\nThe company announced a new cargo hub near the airport this week."
+    )
+    assert item.sections == ((0, "Big news"),)
+    assert item.canonical_url == "https://www.example.com/news/story"
+    assert item.language == "en"
+    assert item.content_hash == content_hash(item.text)
+
+
+def test_normalise_item_of_a_pdf_gives_its_text() -> None:
+    item = normalise_item(
+        url="https://example.com/report.pdf",
+        content_type="PDF",
+        body=_pdf_with_text("Annual report of the company on its cargo network."),
+        title=None,
+        min_document_chars=_MIN_CHARS,
+    )
+
+    assert item is not None
+    assert "Annual report of the company" in item.text
+    assert item.sections == ((0, "page 1"),)
+
+
+def test_normalise_item_of_a_json_record_joins_title_description_and_content() -> None:
+    body = json.dumps({"title": "Ops manager", "content": "Runs the hub and its shifts."})
+    item = normalise_item(
+        url="https://jobs.example.com/1",
+        content_type="JSON",
+        body=body.encode(),
+        title="Ops manager",
+        min_document_chars=_MIN_CHARS,
+    )
+
+    assert item is not None
+    assert item.text == "Ops manager\n\nRuns the hub and its shifts."
+    assert item.sections == ()
+
+
+def test_normalise_item_below_the_minimum_length_gives_nothing() -> None:
+    assert (
+        normalise_item(
+            url="https://example.com/a",
+            content_type="HTML",
+            body=b"<p>Too short.</p>",
+            title=None,
+            min_document_chars=_MIN_CHARS,
+        )
+        is None
+    )
+
+
+def test_normalise_item_gives_the_same_hash_for_the_same_text() -> None:
+    first, second = (
+        normalise_item(
+            url=url,
+            content_type="HTML",
+            body=_ARTICLE.encode(),
+            title=None,
+            min_document_chars=_MIN_CHARS,
+        )
+        for url in ("https://a.example.com/x", "https://b.example.com/y")
+    )
+
+    assert first is not None and second is not None
+    assert first.content_hash == second.content_hash
+
+
+_DAY0 = datetime(2026, 9, 20, tzinfo=UTC)
+_THRESHOLD = 0.95
+_WINDOW_DAYS = 7
+
+
+def _doc(days: float, vector: list[float], content_hash: str = "h") -> DatedVector:
+    return DatedVector(uuid.uuid4(), _DAY0 + timedelta(days=days), content_hash, vector)
+
+
+def _original_of(document: DatedVector, candidates: list[DatedVector]) -> uuid.UUID | None:
+    return near_duplicate_of(document, candidates, similarity=_THRESHOLD, window_days=_WINDOW_DAYS)
+
+
+def test_a_first_passage_at_the_threshold_within_the_window_is_a_near_duplicate() -> None:
+    original = _doc(0, [1.0, 0.0])
+    at_threshold = [_THRESHOLD, (1 - _THRESHOLD**2) ** 0.5]
+    assert _original_of(_doc(1, at_threshold), [original]) == original.id
+
+
+def test_below_the_threshold_or_beyond_the_window_is_not_a_near_duplicate() -> None:
+    original = _doc(0, [1.0, 0.0])
+    below = [0.94, (1 - 0.94**2) ** 0.5]
+    assert _original_of(_doc(1, below), [original]) is None
+    assert _original_of(_doc(_WINDOW_DAYS, [1.0, 0.0]), [original]) == original.id
+    assert _original_of(_doc(_WINDOW_DAYS + 1, [1.0, 0.0]), [original]) is None
+
+
+def test_the_earliest_qualifying_document_is_the_original() -> None:
+    first, second = _doc(0, [1.0, 0.0]), _doc(1, [1.0, 0.0])
+    assert _original_of(_doc(2, [1.0, 0.0]), [second, first]) == first.id
+
+
+def test_a_later_document_is_never_the_original_of_an_earlier_one() -> None:
+    later = _doc(2, [1.0, 0.0])
+    assert _original_of(_doc(0, [1.0, 0.0]), [later]) is None
+
+
+def test_the_document_is_not_its_own_original() -> None:
+    document = _doc(0, [1.0, 0.0])
+    assert _original_of(document, [document]) is None
+
+
+def test_equal_dates_order_by_content_hash() -> None:
+    a, b = _doc(0, [1.0, 0.0], "a"), _doc(0, [1.0, 0.0], "b")
+    assert _original_of(b, [a]) == a.id
+    assert _original_of(a, [b]) is None

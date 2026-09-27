@@ -17,10 +17,13 @@ from leadradar.auth.errors import EmailTaken, PasswordTooShort
 from leadradar.db.models.accounts import Account
 from leadradar.db.models.configuration import Service
 from leadradar.db.models.identity import AppUser
+from leadradar.db.models.ingestion import Document
 from leadradar.seed.demo import (
     DemoAccountFileMissing,
+    DemoSeedMismatch,
     SeedSettings,
     seed_demo_accounts,
+    seed_demo_dataset,
     seed_demo_industries,
     seed_demo_markets,
     seed_demo_services,
@@ -138,29 +141,67 @@ async def test_seed_demo_populates_services_and_accounts_once(
     assert set(by_domain) == {"lufthansagroup.com", "swiss.com"}
     assert by_domain["swiss.com"] is not None
     assert by_domain["lufthansagroup.com"] is None
+    assert (await db_session.execute(select(func.count()).select_from(Document))).scalar_one() == 0
 
 
-async def test_seed_demo_run_twice_fails_without_duplicating_services(
+async def test_seed_demo_run_twice_succeeds_without_writes(
     db_session: AsyncSession, database_url: str, tmp_path: Path
 ) -> None:
     fixture_dir = tmp_path / "fixtures"
     fixture_dir.mkdir()
     (fixture_dir / "demo_accounts.csv").write_text(_DEMO_CSV, encoding="utf-8")
     settings = _seed_settings(database_url, fixture_dir=fixture_dir)
-    now = datetime.now(tz=UTC)
 
-    await _seed_full_dataset(db_session, settings, now)
+    await seed_demo_dataset(db_session, settings)
     service_count_before = (
         await db_session.execute(select(func.count()).select_from(Service))
     ).scalar_one()
+    audit_count_before: int = (
+        await db_session.execute(text("SELECT count(*) FROM audit_event"))
+    ).scalar_one()
 
-    with pytest.raises((EmailTaken, IntegrityError)):
-        await _seed_full_dataset(db_session, settings, now)
+    await seed_demo_dataset(db_session, settings)
 
     service_count_after = (
         await db_session.execute(select(func.count()).select_from(Service))
     ).scalar_one()
     assert service_count_after == service_count_before
+    assert (await db_session.execute(text("SELECT count(*) FROM audit_event"))).scalar_one() == (
+        audit_count_before
+    )
+
+
+async def test_seed_demo_rejects_partial_seed_before_writing(
+    db_session: AsyncSession, database_url: str, tmp_path: Path
+) -> None:
+    fixture_dir = tmp_path / "fixtures"
+    fixture_dir.mkdir()
+    (fixture_dir / "demo_accounts.csv").write_text(_DEMO_CSV, encoding="utf-8")
+    settings = _seed_settings(database_url, fixture_dir=fixture_dir)
+    await seed_demo_users(db_session, settings)
+
+    with pytest.raises(DemoSeedMismatch, match="industry"):
+        await seed_demo_dataset(db_session, settings)
+
+    assert (await db_session.execute(select(func.count()).select_from(Service))).scalar_one() == 0
+
+
+async def test_seed_demo_rejects_a_changed_account(
+    db_session: AsyncSession, database_url: str, tmp_path: Path
+) -> None:
+    fixture_dir = tmp_path / "fixtures"
+    fixture_dir.mkdir()
+    (fixture_dir / "demo_accounts.csv").write_text(_DEMO_CSV, encoding="utf-8")
+    settings = _seed_settings(database_url, fixture_dir=fixture_dir)
+    await seed_demo_dataset(db_session, settings)
+    account = (
+        await db_session.execute(select(Account).where(Account.domain == "swiss.com"))
+    ).scalar_one()
+    account.name = "Changed"
+    await db_session.commit()
+
+    with pytest.raises(DemoSeedMismatch, match="account swiss.com"):
+        await seed_demo_dataset(db_session, settings)
 
 
 async def test_seed_demo_accounts_fails_clearly_without_the_demo_account_file(

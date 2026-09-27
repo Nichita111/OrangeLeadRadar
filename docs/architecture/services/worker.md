@@ -31,7 +31,7 @@ The rules are pure functions in the product package's core module; the api impor
 
 ### Job queue
 
-A worker process runs `WORKER_CONCURRENCY` job loops. A loop claims the next job with one statement — `status = 'READY' AND not_before <= now()`, ordered by `priority` then `not_before`, `FOR UPDATE SKIP LOCKED LIMIT 1` — sets it `RUNNING` with `locked_by` and `locked_at`, runs its step, and sets it `DONE` or schedules a retry. Several worker containers can share the queue safely ([ADR-04](/architecture/adrs/adr-04-postgres-job-queue-and-a-worker.md)). A loop that finds no job waits `JOB_POLL_INTERVAL_S` before it tries again. A job whose step the worker has no code for is `FAILED` at once, without retries, and its run records the error: no job is ever set `DONE` without its step having run.
+A worker process runs `WORKER_CONCURRENCY` job loops. A loop claims the next job with one statement — `status = 'READY' AND not_before <= now()`, ordered by `priority` then `not_before`, `FOR UPDATE SKIP LOCKED LIMIT 1` — sets it `RUNNING` with `locked_by` and `locked_at`, runs its step, and sets it `DONE` or schedules a retry. Each claim writes one log line with the job's `job_id` and `step` and the claiming loop's `worker_id`, the instance id it sets as `locked_by`, so that the logs show which worker ran each job. Several worker containers can share the queue safely ([ADR-04](/architecture/adrs/adr-04-postgres-job-queue-and-a-worker.md)). A loop that finds no job waits `JOB_POLL_INTERVAL_S` before it tries again. A job whose step the worker has no code for is `FAILED` at once, without retries, and its run records the error: no job is ever set `DONE` without its step having run.
 
 | Priority | Jobs |
 |---|---|
@@ -43,7 +43,7 @@ A worker process runs `WORKER_CONCURRENCY` job loops. A loop claims the next job
 
 **Retries.** A step that raises is retried with `not_before` = now + `JOB_RETRY_BACKOFF_S × 2^(attempts − 1)`, up to `JOB_MAX_ATTEMPTS` attempts, after which the job is `FAILED` and its run records the error: an entry of `errors` with the stage the step was in, the `plugin_code` of a `FETCH` job, and the code the step raised, else `INTERNAL`. A `RUNNING` job whose `locked_at` is older than `JOB_LOCK_TIMEOUT_S` is returned to `READY`; this is safe because every step is idempotent: it writes through the unique constraints of the [SQL store](/architecture/sql-store.md#constraints-and-indexes) and skips work already recorded ([N-05](/requirements/system.md)).
 
-**Fan-out.** A step that finishes a stage enqueues the next stage's jobs in the same transaction as its own results. When every job of an `ACCOUNT_REFRESH` or `RECLASSIFY` run is final and none is a `SCORE` job, the job loop enqueues the run's `SCORE` job, so a refresh whose fetches all failed is still scored. Otherwise the last job of a run to finish sets the run's final status.
+**Fan-out.** A step that finishes a stage enqueues the next stage's jobs in the same transaction as its own results. When every job of an `ACCOUNT_REFRESH` run is final, it has `FETCH` jobs and none is a `PROCESS` job, the job loop enqueues the run's `PROCESS` job, so the documents of the plug-ins that succeeded are processed whichever `FETCH` job finishes last. When every job of an `ACCOUNT_REFRESH` or `RECLASSIFY` run is final and none is a `SCORE` job, the job loop enqueues the run's `SCORE` job, so a refresh whose fetches all failed is still scored. Otherwise the last job of a run to finish sets the run's final status.
 
 ### Run lifecycle
 
@@ -60,19 +60,19 @@ stateDiagram-v2
 
 | Kind | Stages, in order | Jobs |
 |---|---|---|
-| `ACCOUNT_REFRESH` | `FETCH` → `PROCESS` → `TRIAGE` → `CLASSIFY` → `EVIDENCE` → `SCORE` | one `FETCH` per available plug-in; `PROCESS` per batch of fetched documents; `SIGNAL` per batch of the account's documents with pending work — newly processed documents, kept documents whose selected passages lack a classification at a current revision, `PENDING_LLM` pairs, and `EVIDENCE_FAILED` pairs whose `evidence_retried` is false — covering triage, classification and evidence; one `SCORE` for all active services |
-| `RECLASSIFY` | `TRIAGE` → `CLASSIFY` → `EVIDENCE` → `SCORE` | `SIGNAL` per batch of the service's documents; one `SCORE` for the service |
+| `ACCOUNT_REFRESH` | `FETCH` → `PROCESS` → `TRIAGE` → `CLASSIFY` → `EVIDENCE` → `SCORE` | one `FETCH` per available plug-in; `PROCESS` per batch of fetched documents, which also classifies the account's operational complexity ([Account attributes](/architecture/rules.md#account-attributes)); `SIGNAL` per batch of the account's documents with pending work — processed documents not yet triaged — non-duplicate, not purged, every passage embedded —, kept documents whose selected passages lack a classification at a current revision, `PENDING_LLM` pairs, and `EVIDENCE_FAILED` pairs whose `evidence_retried` is false — covering triage, classification and evidence; one `SCORE` for all active services |
+| `RECLASSIFY` | `TRIAGE` → `CLASSIFY` → `EVIDENCE` → `SCORE` | one `SIGNAL` per active account, over its stored documents; one `SCORE` for the service, the first job when no account is active |
 | `RESCORE` | `SCORE` | one `SCORE` |
-| `DISCOVERY` | `FETCH` → `TRIAGE` → `SCORE` | one `DISCOVER` per available discovery source; the last one ranks and caps candidates |
+| `DISCOVERY` | `FETCH` → `TRIAGE` → `SCORE` | one `DISCOVER` that searches every available discovery source in turn, then ranks and caps the candidates |
 | `EVALUATION` | `CLASSIFY` | one `EVALUATE` over every active item of an active question; it writes the [`evaluation_result`](/architecture/sql-store.md#evaluation_result) |
 
-A `SCORE` job's `payload` is `{}`: its scope is its run's `account_id` and `service_id`, as the Jobs column states. A `FETCH` job's `payload` is `{plugin_code}`: its account is its run's `account_id`. A refresh requested when no plug-in is available starts with its `SCORE` job.
+A `SCORE` job's `payload` is `{}`: its scope is its run's `account_id` and `service_id`, as the Jobs column states. A `FETCH` job's `payload` is `{plugin_code}`: its account is its run's `account_id`. A `PROCESS` job's `payload` is `{}`: it covers the documents its run fetched; when it fails after its retries, those documents stay stored without embeddings and are not triaged or classified. A `SIGNAL` job's `payload` is `{}` in a refresh, whose account is its run's `account_id`, and `{account_id}` in a `RECLASSIFY` run, whose question is its run's `question_id`. A refresh requested when no plug-in is available starts with its `SCORE` job. A `DISCOVER` job's `payload` is `{}`: its service is its run's `service_id`.
 
 The first job claimed sets its run `RUNNING` with `started_at`. Claiming a job moves its run's `stage` to the first stage its step covers — `FETCH` for `FETCH` and `DISCOVER`, `PROCESS` for `PROCESS`, `TRIAGE` for `SIGNAL`, `CLASSIFY` for `EVALUATE`, `SCORE` for `SCORE` — never back to an earlier stage; the `SIGNAL` step moves it on through `CLASSIFY` and `EVIDENCE` itself.
 
 Cancelling a run sets it `CANCELLED` with `finished_at` and its `READY` jobs `CANCELLED`; a running job finishes its step, and any job that step enqueues is `CANCELLED` with it. A cancelled run writes a `RUN_CANCELLED` audit row and no `RUN_FINISHED` row, and sets no refresh times.
 
-A run is `FAILED` when its final stage — `SCORE`, the last `DISCOVER` or the last `EVALUATE` — fails after its retries; a failed earlier job makes it `PARTIAL`. The `SCORE` stage of a refresh runs even when every fetch failed, so decay is applied every interval. On finish a `RUN_FINISHED` audit row is written and, for `ACCOUNT_REFRESH`, the account's refresh times are set by [Refresh scheduling](/architecture/rules.md#refresh-scheduling).
+A run is `FAILED` when its final stage — `SCORE`, the `DISCOVER` job or the last `EVALUATE` — fails after its retries; a failed earlier job makes it `PARTIAL`. The `SCORE` stage of a refresh runs even when every fetch failed, so decay is applied every interval. On finish a `RUN_FINISHED` audit row is written and, for `ACCOUNT_REFRESH`, the account's refresh times are set by [Refresh scheduling](/architecture/rules.md#refresh-scheduling). A classifier call of the `PROCESS` step that fails adds one entry `{stage PROCESS, code}` to its run's `errors`, and the step continues, so the run ends `PARTIAL`.
 
 ### Signal graph
 
@@ -104,6 +104,8 @@ flowchart TD
 
 The graph's state holds identifiers and passage texts of one batch. Each node writes its results before the next runs, so an interrupted job resumes from what is recorded; the graph keeps no checkpoint of its own. Classification and escalation of different passages run concurrently up to `AI_CONCURRENCY`.
 
+An escalation or evidence call that fails with `UPSTREAM_UNAVAILABLE` leaves its pair `PENDING_LLM`, and the job adds one entry `{stage EVIDENCE, code UPSTREAM_UNAVAILABLE}` to its run's `errors`, so the run ends `PARTIAL`; an unavailable classifier or a missing recording fails the job.
+
 ### AI gateway
 
 One module owns every classifier and LLM call, for the worker and the api. For each call it:
@@ -128,7 +130,7 @@ Each plug-in is one adapter implementing `API-68` and, where it searches, `API-6
 
 | Plug-in | Adapter |
 |---|---|
-| `GDELT` | GDELT DOC 2.0 API, `mode=ArtList`, JSON, query and date range from [Fetch window](/architecture/rules.md#fetch-window), at most `GDELT_MAX_RECORDS` results per request; the API searches a rolling three months only. Requests are spaced at least `GDELT_MIN_INTERVAL_S` apart, and a `429` pauses the plug-in for `GDELT_BACKOFF_S`. Each listed article is then fetched as HTML, because GDELT returns metadata only. Documents it finds are credited to the GDELT Project, whose terms require it ([ADR-19](/architecture/adrs/adr-19-source-provider-terms-and-limits.md)). Discovery adds `sourcecountry` filters |
+| `GDELT` | GDELT DOC 2.0 API, `mode=ArtList`, JSON, query and date range from [Fetch window](/architecture/rules.md#fetch-window), at most `GDELT_MAX_RECORDS` results per request; the API searches a rolling three months only. Requests are spaced at least `GDELT_MIN_INTERVAL_S` apart, and a `429` pauses the plug-in for `GDELT_BACKOFF_S`. Each listed article is then fetched as HTML, because GDELT returns metadata only. Documents it finds are credited to the GDELT Project, whose terms require it ([ADR-19](/architecture/adrs/adr-19-source-provider-terms-and-limits.md)) |
 | `RSS` | Parses the feed; each item's link is fetched as HTML when the item carries no full text. Never reads a feed on `news.google.com`, whose terms allow personal use only |
 | `WEBSITE` | HTML over HTTP; when `WEBSITE_RENDER_JS` is true and the extracted text is shorter than `MIN_DOCUMENT_CHARS`, the page is rendered with headless Chromium through Playwright; linked PDFs are downloaded; runs [Source detection](/architecture/rules.md#source-detection) |
 | `CAREERS` | Public applicant-tracking APIs where the careers source is on their host (Greenhouse boards API, Lever postings API, SmartRecruiters postings API); otherwise the career page's listing is crawled like `WEBSITE` and each posting page fetched |
@@ -174,7 +176,7 @@ One worker at a time runs the scheduler: each loop takes a PostgreSQL advisory l
 | `SCHEDULER_MAX_ENQUEUE` | `20` | Refreshes enqueued per tick |
 | `REFRESH_INTERVAL_HOURS` | `24` | Time between refreshes of an account |
 | `HOUSEKEEPING_HOUR_UTC` | `3` | Hour of the daily housekeeping |
-| `CLOCK_FILE` | unset | For the acceptance tests and the demo, honoured only when `FIXTURE_MODE` is `replay`: a file holding the current time as ISO-8601, read on every use of the clock; unset uses the system clock |
+| `CLOCK_FILE` | unset | For recording, the acceptance tests and the demo, honoured when `FIXTURE_MODE` is `record` or `replay`: a file holding the current time as ISO-8601, read on every use of the clock; unset uses the system clock. Pacing always measures real time |
 | `REFRESH_TARGET_MINUTES` | `10` | Target duration of one account refresh in replay mode ([N-02](/requirements/system.md)) |
 
 **Fetching and processing.**
@@ -259,4 +261,4 @@ The worker also reads `DATABASE_URL` and `LOG_LEVEL` of the [api runtime](/archi
 
 ## Examples
 
-A Sales user presses Refresh on DHL Group with only the free core available. The run gets four `FETCH` jobs (`GDELT`, `RSS`, `WEBSITE`, `CAREERS`); `GDELT` returns 25 articles, of which 4 are duplicates. `PROCESS` stores 21 documents and their passages. The signal graph keeps 9 for Intelligent Automation, classifies 60 passages, escalates 7 and creates 5 findings. `SCORE` writes a new current score for each active service whose result changed, and one `STRONG_SIGNAL` alert. The run ends `SUCCEEDED`.
+A Sales user presses Refresh on DHL Group with only the free core available. The run gets four `FETCH` jobs (`GDELT`, `RSS`, `WEBSITE`, `CAREERS`); `GDELT` returns 25 articles, of which 4 are duplicates, so the `FETCH` jobs store 21 documents and their passages, and `PROCESS` embeds them. The signal graph keeps 9 for Intelligent Automation, classifies 60 passages, escalates 7 and creates 5 findings. `SCORE` writes a new current score for each active service whose result changed, and one `STRONG_SIGNAL` alert. The run ends `SUCCEEDED`.

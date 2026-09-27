@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import uuid
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -17,7 +18,8 @@ from leadradar.core.enums import (
 )
 from leadradar.core.job_queue import next_attempt_at
 from leadradar.core.run_lifecycle import (
-    owed_final_job,
+    owed_job,
+    reclassify_first_jobs,
     refresh_first_jobs,
     run_outcome,
     stage_after_claim,
@@ -52,8 +54,14 @@ def test_stage_after_claim(
 @pytest.mark.parametrize(
     ("kind", "steps", "expected"),
     [
-        (PipelineRunKind.ACCOUNT_REFRESH, {JobStep.FETCH}, JobStep.SCORE),
-        (PipelineRunKind.ACCOUNT_REFRESH, {JobStep.FETCH, JobStep.SCORE}, None),
+        (PipelineRunKind.ACCOUNT_REFRESH, {JobStep.FETCH}, JobStep.PROCESS),
+        (PipelineRunKind.ACCOUNT_REFRESH, {JobStep.FETCH, JobStep.PROCESS}, JobStep.SCORE),
+        (
+            PipelineRunKind.ACCOUNT_REFRESH,
+            {JobStep.FETCH, JobStep.PROCESS, JobStep.SCORE},
+            None,
+        ),
+        (PipelineRunKind.ACCOUNT_REFRESH, {JobStep.SCORE}, None),
         (PipelineRunKind.RECLASSIFY, {JobStep.SIGNAL}, JobStep.SCORE),
         (PipelineRunKind.RECLASSIFY, set(), JobStep.SCORE),
         (PipelineRunKind.RESCORE, {JobStep.SCORE}, None),
@@ -61,8 +69,17 @@ def test_stage_after_claim(
         (PipelineRunKind.EVALUATION, {JobStep.EVALUATE}, None),
     ],
 )
-def test_owed_final_job(kind: PipelineRunKind, steps: set[JobStep], expected: JobStep) -> None:
-    assert owed_final_job(kind, steps) == expected
+def test_owed_job(kind: PipelineRunKind, steps: set[JobStep], expected: JobStep | None) -> None:
+    assert owed_job(kind, steps) == expected
+
+
+def test_reclassify_first_jobs_fans_out_in_account_order_or_scores_when_empty() -> None:
+    first, second = uuid.uuid4(), uuid.uuid4()
+    assert reclassify_first_jobs([first, second]) == [
+        (JobStep.SIGNAL, {"account_id": str(first)}),
+        (JobStep.SIGNAL, {"account_id": str(second)}),
+    ]
+    assert reclassify_first_jobs([]) == [(JobStep.SCORE, {})]
 
 
 @pytest.mark.parametrize(
