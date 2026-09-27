@@ -1,6 +1,6 @@
 ---
 name: implement
-description: Run the LeadRadar coding chain on one task - Architect, a human design approval, Coder, QA and Critic, looping until the Critic passes - on its own branch, then commit. Use when the user asks to implement requirement rows, flows or screens of the LeadRadar specification.
+description: Run the LeadRadar coding chain on one task - Architect, a human design approval, Coder and Critic, looping until the Critic passes - on its own branch, then commit. Use when the user asks to implement requirement rows, flows or screens of the LeadRadar specification.
 argument-hint: "<S-/N-/FR-/FL- ids and/or a short task description>"
 disable-model-invocation: true
 ---
@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 Arguments: $ARGUMENTS
 
-You are the orchestrator of the chain in `AGENTS.md`. You do not write code, tests, designs or reviews yourself: you prepare the task, call the agents `architect`, `coder`, `qa` and `critic` with the Agent tool one at a time (`run_in_background: false`), relay their results, ask the human where this procedure says so, and commit. Each agent starts with no memory of this conversation: everything it needs is in the task directory and in `docs/`, so prompts carry paths, never content.
+You are the orchestrator of the chain in `AGENTS.md`. You do not write code, tests, designs or reviews yourself: you prepare the task, call the agents `architect`, `coder` and `critic` with the Agent tool one at a time (`run_in_background: false`), relay their results, ask the human where this procedure says so, and commit. Each agent starts with no memory of this conversation: everything it needs is in the task directory and in `docs/`, so prompts carry paths, never content.
 
 Templates for the task directory are in `.claude/skills/implement/templates/`.
 
@@ -51,36 +51,27 @@ The guard holds the coder to the phase in `.work/gate.json`, which only you writ
 
 **4b. Code.** Write the gate with phase `code`, then call the `coder` with: "Task directory: `.work/<slug>/`. Code phase: implement the approved `design.md` against the approved documents and write `coder-notes.md`."
 
-Read `coder-notes.md`. Disputes and gaps go to the human as in step 2. Whenever a decision — here, or later from QA or the Critic — needs a document change, go through 4a again for that change, then back to 4b with "Decisions were added to `task.md`; continue." Code never proceeds on documents a human has not approved.
+Read `coder-notes.md`. Disputes and gaps go to the human as in step 2. Whenever a decision — here, or later from the Critic — needs a document change, go through 4a again for that change, then back to 4b with "Decisions were added to `task.md`; continue." Code never proceeds on documents a human has not approved.
 
-## 5. Verify — qa
-
-Call the `qa` agent with: "Task directory: `.work/<slug>/`. Write and run the acceptance and end-to-end tests for the criteria in scope in `task.md`, and write `qa-report.md`." Never mention the design, the code or the coder's notes in QA's prompt.
-
-Read `qa-report.md`:
-
-- **Specification findings** or `UNTESTABLE` criteria go to the human; record the decisions. A decision that changes a document goes through step 4a before QA runs again.
-- `NOT RUN` for a surface the design deferred: record the deferral under **Deferred** in `task.md`. Any other `NOT RUN` counts as a failure.
-
-## 6. Review — critic
+## 5. Review — critic
 
 Call the `critic` agent with: "Task directory: `.work/<slug>/`. Base commit: `<sha>`. Review the change and write `review.md`."
 
-- `PASS`, and every criterion in scope `PASS` or recorded as deferred: go to step 8.
-- `CHANGES REQUIRED`, or any QA failure: go to step 7.
+- `PASS`: go to step 7.
+- `CHANGES REQUIRED`: go to step 6.
 - `SPEC FINDING`: ask the human, record the decision, and route it as in step 5.
 
-## 7. Fix rounds
+## 6. Fix rounds
 
-A round is: `coder`, with the gate in phase `code`, with "Round <n>: fix the failures in `qa-report.md` and the blocking findings in `review.md`; update `coder-notes.md`", then `qa` with "Round <n>: rerun every test for the criteria in scope and update `qa-report.md`", then `critic` as in step 6. Log each round under **Status** in `task.md`.
+A round is: `coder`, with the gate in phase `code`, with "Round <n>: fix the blocking findings in `review.md`; update `coder-notes.md`", then `critic` as in step 5. Log each round under **Status** in `task.md`.
 
-When `coder-notes.md` records a dispute over a QA test, show the human the criterion's words, the test's assertion and the coder's argument, ask who is right, record the answer, and tell the losing agent in its next prompt to follow the decision in `task.md`.
+When `coder-notes.md` records a dispute over a validation result or requirement interpretation, show the human the criterion's words, the failing evidence and the coder's argument, ask who is right, record the answer, and tell the losing agent in its next prompt to follow the decision in `task.md`.
 
 After 3 fix rounds, stop and show the human what still fails, asking whether to continue for another round, narrow the scope, or stop.
 
-## 8. Finish
+## 7. Finish
 
-1. Run `uv run --project scripts python scripts/check_docs.py` and the validation commands `coder-notes.md` lists; all must pass. A failure goes back to step 7. Run `git add --intent-to-add -- docs/` and compare `git diff -- docs/ | shasum` with the last approved value in `task.md`; if it differs, the documents changed after approval — go back to step 4a before committing.
+1. Run `uv run --project scripts python scripts/check_docs.py` and the validation commands `coder-notes.md` lists; all must pass. A failure goes back to step 6. Run `git add --intent-to-add -- docs/` and compare `git diff -- docs/ | shasum` with the last approved value in `task.md`; if it differs, the documents changed after approval — go back to step 4a before committing.
 2. Commit, never including `.work/`:
    - if requirements registers changed (`docs/requirements/business.md`, `system.md`, `acceptance.md`, `glossary.md`), commit them and their generated files first as `docs(<feature-slug>): <what changed>`, naming the rows in the body;
    - then everything else as one commit `<type>(<feature-slug>): <what changed in the system>`, whose body lists the requirement rows implemented and the criteria that verify them.
@@ -90,6 +81,6 @@ After 3 fix rounds, stop and show the human what still fails, asking whether to 
 ## Rules
 
 - One agent at a time, and always wait for its result.
-- You write only `task.md` and `.work/gate.json`; you open the `code` phase only after a human approved the documents, or when the design lists no document change. `design.md` belongs to the architect, `coder-notes.md` to the coder, `qa-report.md` to QA and `review.md` to the critic.
+- You write only `task.md` and `.work/gate.json`; you open the `code` phase only after a human approved the documents, or when the design lists no document change. `design.md` belongs to the architect, `coder-notes.md` to the coder and `review.md` to the critic.
 - If an agent is blocked by the guard hook, never work around it; if you believe the block is wrong, tell the human.
 - Every human decision goes into `task.md` under **Decisions**, dated, so that later agents and later rounds see it.

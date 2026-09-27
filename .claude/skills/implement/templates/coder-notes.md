@@ -18,8 +18,8 @@ These are the validation commands the orchestrator and the critic re-run.
 
 ## Disputes and gaps
 
-Where the design was wrong or silent, or where a QA test seems to contradict its criterion — quoting the criterion. "None" when there are none.
+Where the design was wrong or silent, or where a validation result seems to contradict a requirement or the design — quoting the relevant criterion or rule. "None" when there are none.
 
 ## Rounds
 
-One entry per fix round: each QA failure and blocking finding addressed, and how.
+One entry per fix round: each blocking finding addressed, and how.
