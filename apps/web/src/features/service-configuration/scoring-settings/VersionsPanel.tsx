@@ -15,21 +15,13 @@ interface VersionsPanelProps {
   /** The version being viewed read-only, or null while editing the draft. */
   viewingId: string | null;
   onSelect: (id: string) => void;
-  onBackToDraft: () => void;
 }
 
 /** FR-037: every version with its status, activation and change note; opens a read-only view. */
-export function VersionsPanel({ versions, viewingId, onSelect, onBackToDraft }: VersionsPanelProps) {
+export function VersionsPanel({ versions, viewingId, onSelect }: VersionsPanelProps) {
   return (
     <div className="flex flex-col gap-3 rounded-card border border-border bg-surface p-4">
-      <div className="flex items-center justify-between">
-        <h2 className="m-0 text-section font-semibold">Versions</h2>
-        {viewingId !== null && (
-          <button type="button" className="text-hint hover:underline" onClick={onBackToDraft}>
-            Back to draft
-          </button>
-        )}
-      </div>
+      <h2 className="m-0 text-section font-semibold">Versions</h2>
       <ul className="m-0 flex list-none flex-col gap-2 p-0">
         {versions.map((version) => {
           const clickable = version.status !== "DRAFT";

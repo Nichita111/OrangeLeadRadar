@@ -40,7 +40,8 @@ export function SignalsSection({ settings, onChange, questions, errors }: Signal
           .filter((question) => question.status === "ACTIVE")
           .map((question, index) => {
             const setting = settingFor(question.key);
-            const PolarityIcon = question.polarity === "POSITIVE" ? PlusCircleIcon : MinusCircleIcon;
+            const PolarityIcon =
+              question.polarity === "POSITIVE" ? PlusCircleIcon : MinusCircleIcon;
             const pointer = `/questions/${String(index)}`;
             return (
               <li key={question.key} className="flex items-center gap-2 py-1">
@@ -69,12 +70,14 @@ export function SignalsSection({ settings, onChange, questions, errors }: Signal
                   type="number"
                   aria-label={`${question.key} half-life days`}
                   className="w-24"
-                  placeholder={halfLifePlaceholder(question.source_types, settings.default_half_life_days)}
+                  placeholder={halfLifePlaceholder(
+                    question.source_types,
+                    settings.default_half_life_days,
+                  )}
                   value={setting?.half_life_days ?? ""}
                   onChange={(event) => {
                     update(question.key, {
-                      half_life_days:
-                        event.target.value === "" ? null : Number(event.target.value),
+                      half_life_days: event.target.value === "" ? null : Number(event.target.value),
                     });
                   }}
                 />

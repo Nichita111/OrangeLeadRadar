@@ -25,6 +25,8 @@ interface ExclusionsProps {
 /** FR-032, G5: lists the exclusion rules and adds or edits one. */
 export function Exclusions({ settings, onChange, questions, errors }: ExclusionsProps) {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const editingDisqualifier =
+    editingIndex === null ? undefined : settings.disqualifiers[editingIndex];
 
   function save(index: number | null, disqualifier: Disqualifier) {
     const disqualifiers =
@@ -84,7 +86,7 @@ export function Exclusions({ settings, onChange, questions, errors }: Exclusions
           );
         })}
       </ul>
-      {editingIndex !== null && (
+      {editingDisqualifier !== undefined && (
         <DisqualifierDialog
           open
           onOpenChange={(next) => {
@@ -92,7 +94,7 @@ export function Exclusions({ settings, onChange, questions, errors }: Exclusions
               setEditingIndex(null);
             }
           }}
-          disqualifier={settings.disqualifiers[editingIndex]}
+          disqualifier={editingDisqualifier}
           criteria={settings.icp_criteria}
           questions={questions}
           onSave={(disqualifier) => {

@@ -141,14 +141,7 @@ function ScoringBody({
           )
         }
       </DataView>
-      <VersionsPanel
-        versions={versions}
-        viewingId={viewingId}
-        onSelect={setViewingId}
-        onBackToDraft={() => {
-          setViewingId(null);
-        }}
-      />
+      <VersionsPanel versions={versions} viewingId={viewingId} onSelect={setViewingId} />
     </div>
   );
 }
@@ -185,7 +178,12 @@ function ReadOnlyVersion({
           markets={markets}
           errors={{}}
         />
-        <SignalsSection settings={config.settings} onChange={noop} questions={questions} errors={{}} />
+        <SignalsSection
+          settings={config.settings}
+          onChange={noop}
+          questions={questions}
+          errors={{}}
+        />
         <Exclusions settings={config.settings} onChange={noop} questions={questions} errors={{}} />
         <Advanced settings={config.settings} onChange={noop} errors={{}} hasError={false} />
       </fieldset>

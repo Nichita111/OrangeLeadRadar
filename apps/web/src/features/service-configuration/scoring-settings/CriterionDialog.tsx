@@ -154,7 +154,9 @@ export function CriterionDialog({
               </FormField>
             )}
             <CheckboxGroup
-              label={kind === "INDUSTRY" ? "Industries" : kind === "GEOGRAPHY" ? "Countries" : "Levels"}
+              label={
+                kind === "INDUSTRY" ? "Industries" : kind === "GEOGRAPHY" ? "Countries" : "Levels"
+              }
               options={listOptions}
               selected={values}
               onChange={setValues}

@@ -32,6 +32,7 @@ interface IcpCriteriaProps {
 /** FR-030: lists the ICP criteria and adds or edits one; marks a retired industry. */
 export function IcpCriteria({ settings, onChange, industries, markets, errors }: IcpCriteriaProps) {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const editingCriterion = editingIndex === null ? undefined : settings.icp_criteria[editingIndex];
   const retired = retiredIndustryCodes(settings.icp_criteria, industries);
 
   function save(index: number | null, criterion: ICPCriterion) {
@@ -67,7 +68,9 @@ export function IcpCriteria({ settings, onChange, industries, markets, errors }:
                 <Chip tone="caution">Retired</Chip>
               )}
             </span>
-            <span className="shrink-0 text-hint text-text-tertiary">{enumLabel(criterion.weight)}</span>
+            <span className="shrink-0 text-hint text-text-tertiary">
+              {enumLabel(criterion.weight)}
+            </span>
             <Button
               type="button"
               variant="ghost"
@@ -92,7 +95,7 @@ export function IcpCriteria({ settings, onChange, industries, markets, errors }:
           </li>
         ))}
       </ul>
-      {editingIndex !== null && (
+      {editingCriterion !== undefined && (
         <CriterionDialog
           open
           onOpenChange={(next) => {
@@ -100,7 +103,7 @@ export function IcpCriteria({ settings, onChange, industries, markets, errors }:
               setEditingIndex(null);
             }
           }}
-          criterion={settings.icp_criteria[editingIndex]}
+          criterion={editingCriterion}
           industries={industries}
           markets={markets}
           onSave={(criterion) => {
