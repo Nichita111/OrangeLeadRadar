@@ -90,7 +90,7 @@ function parseCsv(text: string): Record<string, string>[] {
 
 function toRow(account: Account): AccountRow {
   const { id, name, domain, country_code, industry, status, origin } = account;
-  const { last_refreshed_at, active_run_id } = account;
+  const { last_refreshed_at, active_run_id, relationship_status } = account;
   return {
     id,
     name,
@@ -99,6 +99,7 @@ function toRow(account: Account): AccountRow {
     industry,
     status,
     origin,
+    relationship_status,
     last_refreshed_at,
     active_run_id,
   };
@@ -141,6 +142,7 @@ export function createAccountsAndRunsHandlers(store: MockStore) {
       country_code: null,
       industry: null,
       status: "ACTIVE",
+      relationship_status: "PROSPECT",
       last_refreshed_at: null,
       active_run_id: null,
       employee_count: null,

@@ -21,7 +21,9 @@ depends_on: Sequence[str] | str | None = None
 
 
 def upgrade() -> None:
-    provider_status = postgresql.ENUM("ACTIVE", "INACTIVE", name="provider_fact_status")
+    provider_status = postgresql.ENUM(
+        "ACTIVE", "INACTIVE", name="provider_fact_status", create_type=False
+    )
     engagement_status = postgresql.ENUM(
         "NOT_CONTACTED",
         "CONTACTED",
@@ -29,8 +31,11 @@ def upgrade() -> None:
         "MEETING_BOOKED",
         "REJECTED",
         name="engagement_status_status",
+        create_type=False,
     )
-    engagement_origin = postgresql.ENUM("MANUAL", "HUBSPOT", name="engagement_status_origin")
+    engagement_origin = postgresql.ENUM(
+        "MANUAL", "HUBSPOT", name="engagement_status_origin", create_type=False
+    )
     provider_status.create(op.get_bind(), checkfirst=True)
     engagement_status.create(op.get_bind(), checkfirst=True)
     engagement_origin.create(op.get_bind(), checkfirst=True)
