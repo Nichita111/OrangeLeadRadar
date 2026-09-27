@@ -4,6 +4,7 @@ import { AuditLogScreen } from "./features/audit-trail/AuditLogScreen";
 import { SuggestedAccountsScreen } from "./features/accounts-and-discovery/suggested-accounts/SuggestedAccountsScreen";
 import { LabellingScreen } from "./features/evaluation-and-feedback/labelling/LabellingScreen";
 import { QualityReportScreen } from "./features/evaluation-and-feedback/quality-report/QualityReportScreen";
+import { OutreachComposerScreen } from "./features/outreach-and-crm/OutreachComposerScreen";
 import { AccountDetailScreen } from "./features/prospect-dashboard/account-detail/AccountDetailScreen";
 import { ProspectsScreen } from "./features/prospect-dashboard/prospects/ProspectsScreen";
 import { SourcePluginsScreen } from "./features/signal-pipeline/source-plug-ins/SourcePluginsScreen";
@@ -50,6 +51,11 @@ export const routes: RouteObject[] = [
             path: "/suggested-accounts",
             element: <SuggestedAccountsScreen />,
             handle: handle({ title: "Suggested accounts" }),
+          },
+          {
+            path: "/accounts/:id/outreach",
+            element: <OutreachComposerScreen />,
+            handle: handle({ title: "Outreach composer" }),
           },
           {
             path: "/labelling",

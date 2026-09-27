@@ -42,7 +42,6 @@ class WorkerSettings(AiGatewaySettings):
 
     #: Alert window ([Alerts](/architecture/rules.md#alerts))
     alert_max_age_days: int = 14
-    attribute_min_p: float = 0.6
     discovery_max_candidates: int = 50
     discovery_lookback_days: int = 30
     discovery_max_documents: int = 100

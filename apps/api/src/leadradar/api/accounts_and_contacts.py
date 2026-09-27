@@ -1,17 +1,25 @@
 """Router of the [Accounts and contacts](/architecture/interfaces.md#accounts-and-contacts)
 family, its contacts half: `API-25` to `API-28`. The accounts half (`API-20` to `API-24`) is
-built in `leadradar.api.accounts`. Every route here is a declared stub answering
-`501 NOT_IMPLEMENTED`."""
+built in `leadradar.api.accounts`; the capability is `leadradar.accounts.contacts`."""
 
 from __future__ import annotations
 
+import uuid
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, ConfigDict
 from pydantic.json_schema import SkipJsonSchema
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from leadradar.api.router_utils import stub_router
+from leadradar.accounts import contacts as contact_commands
+from leadradar.accounts.contacts import ContactFields
+from leadradar.api.authentication import CurrentUser
 from leadradar.core.enums import ContactPersona, ContactPersonaOrigin
+from leadradar.db.models.accounts import Contact as ContactModel
+from leadradar.db.session import get_session
 
-router = stub_router("accounts-and-contacts")
+router = APIRouter(tags=["accounts-and-contacts"])
 
 
 class Contact(BaseModel):
@@ -51,25 +59,89 @@ class ContactUpdate(BaseModel):
     persona: ContactPersona | SkipJsonSchema[None] = None
 
 
+def _to_contact(contact: ContactModel) -> Contact:
+    return Contact(
+        id=str(contact.id),
+        account_id=str(contact.account_id),
+        full_name=contact.full_name,
+        job_title=contact.job_title,
+        source_url=contact.source_url,
+        persona=contact.persona,
+        persona_origin=contact.persona_origin,
+        retain_until=contact.retain_until.isoformat(),
+    )
+
+
 @router.get("/accounts/{id}/contacts", response_model=list[Contact])
-async def list_contacts(id: str) -> list[Contact]:
+async def list_contacts(
+    id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _principal: CurrentUser,
+) -> list[Contact]:
     """`API-25`."""
-    raise AssertionError("unreachable: contract_not_built already raised")
+    return [_to_contact(contact) for contact in await contact_commands.list_contacts(session, id)]
 
 
 @router.post("/accounts/{id}/contacts", response_model=Contact)
-async def create_contact(id: str, payload: ContactCreate) -> Contact:
+async def create_contact(
+    id: uuid.UUID,
+    payload: ContactCreate,
+    request: Request,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    principal: CurrentUser,
+) -> Contact:
     """`API-26`."""
-    raise AssertionError("unreachable: contract_not_built already raised")
+    settings = request.app.state.settings
+    contact = await contact_commands.create_contact(
+        session,
+        account_id=id,
+        full_name=payload.full_name,
+        job_title=payload.job_title,
+        source_url=payload.source_url,
+        persona=payload.persona,
+        gateway=request.app.state.ai_gateway,
+        min_p=settings.attribute_min_p,
+        retention_days=settings.contact_retention_days,
+        actor_id=principal.id,
+        now=request.app.state.clock(),
+    )
+    return _to_contact(contact)
 
 
 @router.patch("/contacts/{id}", response_model=Contact)
-async def update_contact(id: str, payload: ContactUpdate) -> Contact:
+async def update_contact(
+    id: uuid.UUID,
+    payload: ContactUpdate,
+    request: Request,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    principal: CurrentUser,
+) -> Contact:
     """`API-27`."""
-    raise AssertionError("unreachable: contract_not_built already raised")
+    contact = await contact_commands.update_contact(
+        session,
+        contact_id=id,
+        fields=ContactFields(
+            full_name=payload.full_name,
+            job_title=payload.job_title,
+            source_url=payload.source_url,
+            persona=payload.persona,
+        ),
+        gateway=request.app.state.ai_gateway,
+        min_p=request.app.state.settings.attribute_min_p,
+        actor_id=principal.id,
+        now=request.app.state.clock(),
+    )
+    return _to_contact(contact)
 
 
 @router.delete("/contacts/{id}", status_code=204)
-async def delete_contact(id: str) -> None:
+async def delete_contact(
+    id: uuid.UUID,
+    request: Request,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    principal: CurrentUser,
+) -> None:
     """`API-28`."""
-    raise AssertionError("unreachable: contract_not_built already raised")
+    await contact_commands.erase_contact(
+        session, contact_id=id, actor_id=principal.id, now=request.app.state.clock()
+    )

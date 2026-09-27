@@ -61,3 +61,8 @@ class AiGatewaySettings(BaseSettings):
     escalation_upper: float = 0.65
     triage_relevance_min_p: float = 0.3
     eval_min_items: int = 200
+
+    #: `ATTRIBUTE_MIN_P` ([worker Runtime](/architecture/services/worker.md#runtime)), read by
+    #: the api as well for the [Persona mapping](/architecture/rules.md#persona-mapping) of
+    #: `API-26` and `API-27`, so it is declared once here.
+    attribute_min_p: float = 0.6

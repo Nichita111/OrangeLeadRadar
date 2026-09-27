@@ -251,7 +251,8 @@ export interface paths {
         put?: never;
         /**
          * Create Outreach Draft
-         * @description `API-56`.
+         * @description `API-56`: follows [Outreach grounding](/architecture/rules.md#outreach-grounding); nothing
+         *     is sent.
          */
         post: operations["create_outreach_draft_api_v1_accounts__id__scores__service_id__outreach_drafts_post"];
         delete?: never;
@@ -793,7 +794,8 @@ export interface paths {
         head?: never;
         /**
          * Update Outreach Draft
-         * @description `API-58`.
+         * @description `API-58`: changing `subject` or `body` sets `edited`; `status` may only move to
+         *     `EXPORTED`.
          */
         patch: operations["update_outreach_draft_api_v1_outreach_drafts__id__patch"];
         trace?: never;
@@ -3880,7 +3882,9 @@ export interface operations {
             path: {
                 id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -3911,7 +3915,9 @@ export interface operations {
             path: {
                 id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -3983,7 +3989,9 @@ export interface operations {
             path: {
                 id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -4195,7 +4203,9 @@ export interface operations {
                 id: string;
                 service_id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -4502,7 +4512,9 @@ export interface operations {
             path: {
                 id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -4531,7 +4543,9 @@ export interface operations {
             path: {
                 id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -5232,7 +5246,9 @@ export interface operations {
             path: {
                 id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody: {
             content: {
