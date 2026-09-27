@@ -19,6 +19,7 @@ import {
   scoringSummaries,
   services,
 } from "./prospectsAndEvidence.fixtures";
+import type { MockStore } from "./store";
 
 type Band = Schemas["AccountScoreBand"];
 type Override = Schemas["Override"];
@@ -70,7 +71,8 @@ function validation(field: string, message: string): Response {
   );
 }
 
-export function createProspectsHandlers() {
+/** With `store`, a row's unread alerts are counted from the store's alerts, as acknowledged there. */
+export function createProspectsHandlers(store?: MockStore) {
   const http = createOpenApiHttp<paths>({ baseUrl: window.location.origin });
   const overrideRows: Override[] = [];
   let nextId = 1;
@@ -129,6 +131,13 @@ export function createProspectsHandlers() {
         .map((rule) => rule.label);
       return {
         ...row,
+        ...(store === undefined
+          ? {}
+          : {
+              unread_alerts: store.alerts.filter(
+                (alert) => alert.account.id === row.account.id && alert.acknowledged_at === null,
+              ).length,
+            }),
         standing: score.standing,
         band: score.band,
         reason:
@@ -150,10 +159,6 @@ export function createProspectsHandlers() {
     http.get("/api/v1/services", ({ response }) => response(200).json(services)),
     http.get("/api/v1/industries", ({ response }) => response(200).json(industries)),
     http.get("/api/v1/markets", ({ response }) => response(200).json(markets)),
-    http.get("/api/v1/accounts/{id}", ({ params, response }) => {
-      const found = accounts.find((candidate) => candidate.id === params.id);
-      return found === undefined ? errorResponse(notFound, 404) : response(200).json(found);
-    }),
     http.get("/api/v1/services/{id}/scoring-configs", ({ response }) =>
       response(200).json(scoringSummaries),
     ),

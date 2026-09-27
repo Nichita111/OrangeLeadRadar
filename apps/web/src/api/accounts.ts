@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { useConfig } from "../configContext";
 import { client, requireData } from "./client";
 import type { Schemas } from "./contract";
 import { referenceDataKeys } from "./referenceData";
@@ -16,8 +17,12 @@ export interface AccountFilters {
   page: number;
 }
 
-/** `API-20` (`FR-038`). */
+/**
+ * `API-20` (`FR-038`). Polls every `RUN_POLL_INTERVAL_MS` while a listed account's refresh is
+ * running, so its Refreshing mark clears when the run ends (`FR-137`).
+ */
 export function useAccounts(filters: AccountFilters) {
+  const { RUN_POLL_INTERVAL_MS } = useConfig();
   return useQuery({
     queryKey: [...accountsKeys, "list", filters],
     queryFn: async () =>
@@ -35,6 +40,10 @@ export function useAccounts(filters: AccountFilters) {
           })
         ).data,
       ),
+    refetchInterval: (query) =>
+      (query.state.data?.items ?? []).some((account) => account.active_run_id !== null)
+        ? RUN_POLL_INTERVAL_MS
+        : false,
   });
 }
 

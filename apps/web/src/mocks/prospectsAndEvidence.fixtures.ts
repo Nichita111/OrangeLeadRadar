@@ -30,7 +30,11 @@ function service(id: string, name: string, status: Service["status"]): Service {
 }
 
 export const services: Service[] = [
-  service("svc-1", "Intelligent Automation", "ACTIVE"),
+  {
+    ...service("svc-1", "Intelligent Automation", "ACTIVE"),
+    value_proposition:
+      "We automate high-volume back-office processes end to end, with AI where rules stop, and hand them back to your team to run.",
+  },
   service("svc-2", "Legacy Migration", "INACTIVE"),
   service("svc-3", "Cloud Cost Control", "ACTIVE"),
 ];
@@ -121,7 +125,7 @@ function account(
 
 export const accounts: Account[] = [
   account("acc-dhl", "DHL Group", "dhl.com", "DE", "LOGISTICS_TRANSPORT"),
-  account("acc-lh", "Lufthansa Group", "lufthansa.com", "DE", "AEROSPACE_AVIATION", {
+  account("acc-lh", "Lufthansa Group", "lufthansagroup.com", "DE", "AEROSPACE_AVIATION", {
     id: "acc-holding",
     name: "Lufthansa Holding",
   }),
@@ -362,7 +366,75 @@ function scoreView(accountId: string, disqualified: boolean): ScoreView {
 export const rankedScore = scoreView("acc-lh", false);
 /** Example 2: `DISQUALIFIED` by `OUTSIDE_REGION`. */
 export const excludedScore = scoreView("acc-fr", true);
-export const scoreViews: ScoreView[] = [rankedScore, excludedScore];
+/** SC-A's DHL Group: ranked `HOT` on AI signals, with its in-house capability counting against it. */
+export const dhlScore: ScoreView = (() => {
+  const base = scoreView("acc-dhl", false);
+  const criteria = base.breakdown.fit.criteria.map((criterion) =>
+    criterion.key === "SECTOR"
+      ? { ...criterion, attribute: "LOGISTICS_TRANSPORT" }
+      : criterion.key === "SIZE"
+        ? { ...criterion, attribute: "596305", match: "MATCH" as const, credit: 1, points: 12.5 }
+        : criterion.key === "COMPLEXITY"
+          ? { ...criterion, attribute: null, match: "UNKNOWN" as const, credit: 0.5, points: 12.5 }
+          : criterion,
+  );
+  const signal = (
+    key: string,
+    findingId: string | null,
+    strength: ScoreView["breakdown"]["intent"]["questions"][number]["strength"],
+    observedAt: string | null,
+    value: number,
+    points: number,
+  ) => {
+    const question = base.breakdown.intent.questions.find((row) => row.question_key === key);
+    if (question === undefined) {
+      throw new Error(`unknown fixture question ${key}`);
+    }
+    return {
+      ...question,
+      finding_id: findingId,
+      strength,
+      observed_at: observedAt,
+      decay: findingId === null ? null : 0.93,
+      value,
+      points,
+    };
+  };
+  return {
+    ...base,
+    fit: 88,
+    intent: 72,
+    priority: 78,
+    band: "HOT",
+    rank: 1,
+    breakdown: {
+      ...base.breakdown,
+      fit: { value: 88, criteria },
+      intent: {
+        value: 72,
+        positive_sum: 6.14,
+        negative_sum: 0.93,
+        max_positive: 8,
+        questions: [
+          signal("AI_INITIATIVE", "fnd-dhl-ai", "STRONG", "2026-09-04T00:00:00Z", 0.93, 60.1),
+          signal("COST_PROGRAM", "fnd-dhl-cost", "MEDIUM", "2026-07-25T00:00:00Z", 0.62, 30.4),
+          signal("AUTOMATION_HIRING", "fnd-dhl-hire", "MEDIUM", "2026-08-30T00:00:00Z", 0.68, 22.9),
+          signal(
+            "IN_HOUSE_AUTOMATION",
+            "fnd-dhl-inhouse",
+            "MEDIUM",
+            "2026-05-20T00:00:00Z",
+            0.47,
+            -23.3,
+          ),
+        ],
+      },
+      priority: 78,
+      band: "HOT",
+    },
+  };
+})();
+export const scoreViews: ScoreView[] = [dhlScore, rankedScore, excludedScore];
 
 function finding(
   id: string,
@@ -452,11 +524,103 @@ export const findings: FindingView[] = [
     "WEBSITE",
     -41.352,
   ),
+  ...dhlFindings(),
 ];
 
-const EXCERPTS: Record<string, string> = {
-  "fnd-cost":
-    "Im Rahmen der Strategie 2030: Wir senken die Kosten um 500 Millionen Euro. Weiter so.",
+/** DHL Group's findings: German quotes with English translations; the AI one is a press release. */
+function dhlFindings(): FindingView[] {
+  const dhl = (
+    id: string,
+    key: string,
+    text: string,
+    polarity: FindingView["question"]["polarity"],
+    strength: FindingView["strength"],
+    quote: string,
+    quoteEn: string,
+    plugin: FindingView["document"]["plugin_code"],
+    points: number,
+    observedAt: string,
+    document: Partial<FindingView["document"]> = {},
+  ): FindingView => {
+    const base = finding(id, key, text, polarity, strength, quote, quoteEn, plugin, points);
+    return {
+      ...base,
+      account_id: "acc-dhl",
+      observed_at: observedAt,
+      document: { ...base.document, ...document },
+    };
+  };
+  return [
+    dhl(
+      "fnd-dhl-ai",
+      "AI_INITIATIVE",
+      "AI and automation projects",
+      "POSITIVE",
+      "STRONG",
+      "Wir führen KI-gestützte Automatisierung in allen Paketzentren ein.",
+      "We are rolling out AI-powered automation across all parcel centres.",
+      "RSS",
+      60.1,
+      "2026-09-04T00:00:00Z",
+      {
+        title: "Mock press release: AI across the parcel network",
+        source_type: "COMPANY_PUBLICATION",
+        url: "https://newsroom.example/dhl-ai-parcel-network",
+        published_at: "2026-09-04T08:00:00Z",
+      },
+    ),
+    dhl(
+      "fnd-dhl-cost",
+      "COST_PROGRAM",
+      "Cost programme",
+      "POSITIVE",
+      "MEDIUM",
+      "Das Programm Fit for Growth soll die Kosten bis 2027 deutlich senken.",
+      "The Fit for Growth programme is meant to cut costs markedly by 2027.",
+      "GDELT",
+      30.4,
+      "2026-07-25T00:00:00Z",
+    ),
+    dhl(
+      "fnd-dhl-hire",
+      "AUTOMATION_HIRING",
+      "Automation hiring",
+      "POSITIVE",
+      "MEDIUM",
+      "Wir suchen Ingenieure für Prozessautomatisierung (m/w/d).",
+      "We are hiring process automation engineers (m/f/d).",
+      "CAREERS",
+      22.9,
+      "2026-08-30T00:00:00Z",
+      { source_type: "JOB_POSTING" },
+    ),
+    dhl(
+      "fnd-dhl-inhouse",
+      "IN_HOUSE_AUTOMATION",
+      "In-house automation capability",
+      "NEGATIVE",
+      "MEDIUM",
+      "Unser internes Robotik-Team entwickelt eigene Lösungen.",
+      "Our internal robotics team builds its own solutions.",
+      "WEBSITE",
+      -23.3,
+      "2026-05-20T00:00:00Z",
+      { source_type: "COMPANY_PROFILE" },
+    ),
+  ];
+}
+
+const EXCERPTS: Record<string, { section: string; excerpt: string }> = {
+  "fnd-cost": {
+    section: "Strategy 2030",
+    excerpt:
+      "Im Rahmen der Strategie 2030: Wir senken die Kosten um 500 Millionen Euro. Weiter so.",
+  },
+  "fnd-dhl-ai": {
+    section: "Press release",
+    excerpt:
+      "Bonn, 4. September 2026. Wir führen KI-gestützte Automatisierung in allen Paketzentren ein. Die ersten Standorte starten noch in diesem Jahr.",
+  },
 };
 
 export function evidenceFor(findingId: string): EvidenceView | undefined {
@@ -464,8 +628,8 @@ export function evidenceFor(findingId: string): EvidenceView | undefined {
   if (found === undefined) {
     return undefined;
   }
-  const excerpt = EXCERPTS[findingId];
-  if (excerpt === undefined) {
+  const stored = EXCERPTS[findingId];
+  if (stored === undefined) {
     return {
       finding_id: findingId,
       document: found.document,
@@ -476,11 +640,12 @@ export function evidenceFor(findingId: string): EvidenceView | undefined {
       quote_end: null,
     };
   }
+  const { section, excerpt } = stored;
   const start = excerpt.indexOf(found.quote);
   return {
     finding_id: findingId,
     document: found.document,
-    section: "Strategy 2030",
+    section,
     purged: false,
     excerpt,
     quote_start: start,

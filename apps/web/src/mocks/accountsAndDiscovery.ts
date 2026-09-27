@@ -1,24 +1,23 @@
 // The development mock of the contacts (`API-25` to `API-28`) and Discovery (`API-29` to
 // `API-32`) contracts (TypeScript Mock layer). Temporary: the persona is suggested from a few
 // job-title words instead of the classifier, a domain is normalised by stripping the scheme, `www.`
-// and the path, the candidate list ignores `service_id`, and a run advances one status per read.
-// The accounts and runs the mock creates are answered here too, so a new account opens and its
-// refresh finishes; every other account and run goes on to the api.
+// and the path, and the candidate list ignores `service_id`. An accepted candidate's account and
+// the runs live in the shared store, which the Accounts and Runs mock answers.
 import { createOpenApiHttp } from "openapi-msw";
 
 import { errorEnvelope, errorResponse } from "../api/authenticationAndUsers.fixtures";
 import type { Schemas, paths } from "../api/contract";
-import { contacts, discoveredLater, discoveryCandidates } from "./accountsAndDiscovery.fixtures";
-import { accounts, services } from "./prospectsAndEvidence.fixtures";
+import { discoveredLater, discoveryCandidates } from "./accountsAndDiscovery.fixtures";
+import { mockSessionUser } from "./authentication";
+import { services } from "./prospectsAndEvidence.fixtures";
+import type { MockStore } from "./store";
 
 type Account = Schemas["Account"];
 type Contact = Schemas["Contact"];
 type Persona = Schemas["ContactPersona"];
-type Run = Schemas["Run"];
 
 const CONTACT_FIELDS = ["full_name", "job_title", "source_url", "persona"];
 const RETAIN_UNTIL = "2027-09-27";
-const NOW = "2026-09-27T09:00:00Z";
 
 const personaWords: [RegExp, Persona][] = [
   [/\b(cio|chief information officer)\b/i, "CIO"],
@@ -65,70 +64,18 @@ function contactErrors(body: Record<string, unknown>, required: boolean): Respon
     : validation(blank.map((field) => ({ field, message: "Required." })));
 }
 
-export function createAccountsAndDiscoveryHandlers() {
+export function createAccountsAndDiscoveryHandlers(store: MockStore) {
   const http = createOpenApiHttp<paths>({ baseUrl: window.location.origin });
-  const contactRows = contacts.map((row) => ({ ...row }));
+  const contactRows = store.contacts;
   const candidateRows = discoveryCandidates.map((row) => ({ ...row }));
-  const createdAccounts: Account[] = [];
-  const runs: Run[] = [];
-  let nextId = 1;
   const notFound = errorEnvelope("NOT_FOUND", "Not found.");
 
   function newId(prefix: string): string {
-    return `${prefix}-${String(nextId++)}`;
-  }
-
-  function newRun(kind: Run["kind"], refs: Pick<Run, "account" | "service">): Run {
-    const run: Run = {
-      id: `00000000-0000-4000-8000-${String(nextId++).padStart(12, "0")}`,
-      kind,
-      trigger: "USER",
-      status: "QUEUED",
-      stage: null,
-      progress: {},
-      errors: [],
-      account: refs.account,
-      service: refs.service,
-      question: null,
-      requested_by_name: "Olga Admin",
-      created_at: NOW,
-      started_at: null,
-      finished_at: null,
-      ai_cost_eur: 0,
-    };
-    runs.push(run);
-    return run;
-  }
-
-  /** Moves a run one status on; a finished run applies its effect. */
-  function advance(run: Run): void {
-    if (run.status === "QUEUED") {
-      run.status = "RUNNING";
-      run.started_at = NOW;
-      run.stage = run.kind === "DISCOVERY" ? "TRIAGE" : "FETCH";
-      return;
-    }
-    if (run.status !== "RUNNING") {
-      return;
-    }
-    run.status = "SUCCEEDED";
-    run.stage = null;
-    run.finished_at = NOW;
-    if (run.kind === "DISCOVERY" && run.service !== null) {
-      const serviceId = run.service.id;
-      if (!candidateRows.some((row) => row.id === discoveredLater.id)) {
-        candidateRows.push({ ...discoveredLater, service_id: serviceId });
-      }
-    }
-    const refreshed = createdAccounts.find((row) => row.active_run_id === run.id);
-    if (refreshed !== undefined) {
-      refreshed.active_run_id = null;
-      refreshed.last_refreshed_at = NOW;
-    }
+    return `${prefix}-${store.newId()}`;
   }
 
   function accountWithDomain(domain: string): { id: string } | undefined {
-    return [...accounts, ...createdAccounts].find((row) => row.domain === domain);
+    return store.accounts.find((row) => row.domain === domain);
   }
 
   return [
@@ -181,16 +128,31 @@ export function createAccountsAndDiscoveryHandlers() {
       return response(204).empty();
     }),
     http.post("/api/v1/services/{id}/discovery-runs", ({ params, response }) => {
-      const running = runs.find(
+      const running = store.runs.find(
         (run) =>
           run.kind === "DISCOVERY" &&
           run.service?.id === params.id &&
-          (run.status === "QUEUED" || run.status === "RUNNING"),
+          ["QUEUED", "RUNNING"].includes(store.settle(run).status),
       );
+      if (running !== undefined) {
+        return response(202).json(running);
+      }
       const name = services.find((row) => row.id === params.id)?.name ?? "";
-      return response(202).json(
-        running ?? newRun("DISCOVERY", { account: null, service: { id: params.id, name } }),
+      const run = store.startRun(
+        "DISCOVERY",
+        {
+          account: null,
+          service: { id: params.id, name },
+          trigger: "USER",
+          requested_by_name: mockSessionUser().display_name,
+        },
+        () => {
+          if (!candidateRows.some((row) => row.id === discoveredLater.id)) {
+            candidateRows.push({ ...discoveredLater, service_id: params.id });
+          }
+        },
       );
+      return response(202).json(run);
     }),
     http.get("/api/v1/discovery-candidates", ({ request, response }) => {
       const status = new URL(request.url).searchParams.get("status");
@@ -222,10 +184,12 @@ export function createAccountsAndDiscoveryHandlers() {
           409,
         );
       }
-      const id = newId("acc");
-      const refresh = newRun("ACCOUNT_REFRESH", {
+      const id = store.newId();
+      const refresh = store.startRun("ACCOUNT_REFRESH", {
         account: { id, name: current.name },
         service: null,
+        trigger: "USER",
+        requested_by_name: mockSessionUser().display_name,
       });
       const created: Account = {
         id,
@@ -251,7 +215,7 @@ export function createAccountsAndDiscoveryHandlers() {
         ],
         next_refresh_at: null,
       };
-      createdAccounts.push(created);
+      store.accounts.push(created);
       Object.assign(current, { status: "ACCEPTED", domain, account_id: id });
       return response(200).json(created);
     }),
@@ -266,19 +230,6 @@ export function createAccountsAndDiscoveryHandlers() {
       const body = await request.json();
       Object.assign(current, { status: "REJECTED", reject_reason: body.reason ?? null });
       return response(200).json(current);
-    }),
-    // Only what the mock created; anything else falls through to the api.
-    http.get("/api/v1/accounts/{id}", ({ params, response }) => {
-      const found = createdAccounts.find((row) => row.id === params.id);
-      return found === undefined ? undefined : response(200).json(found);
-    }),
-    http.get("/api/v1/runs/{id}", ({ params, response }) => {
-      const found = runs.find((run) => run.id === params.id);
-      if (found === undefined) {
-        return undefined;
-      }
-      advance(found);
-      return response(200).json(found);
     }),
   ];
 }

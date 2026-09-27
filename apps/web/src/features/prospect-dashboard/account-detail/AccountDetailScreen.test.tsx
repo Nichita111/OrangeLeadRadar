@@ -17,9 +17,9 @@ describe("AccountDetailScreen", () => {
     renderAt("/accounts/acc-lh");
 
     expect(await screen.findByRole("heading", { name: "Lufthansa Group" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "lufthansa.com" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "lufthansagroup.com" })).toHaveAttribute(
       "href",
-      "https://lufthansa.com",
+      "https://lufthansagroup.com",
     );
     expect(await screen.findByText("Germany, Aerospace and aviation")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Lufthansa Holding" })).toHaveAttribute(

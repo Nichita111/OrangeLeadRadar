@@ -9,6 +9,7 @@ import {
   type OutreachDraft,
   type OutreachDraftChannel,
 } from "../../api/contactsAndOutreach";
+import { useFindings, type FindingView } from "../../api/prospectsAndEvidence";
 import { useAccount } from "../../api/referenceData";
 import { Button } from "../../components/Button";
 import { Callout } from "../../components/Callout";
@@ -39,6 +40,7 @@ function Composer({ accountId, service }: { accountId: string; service: Schemas[
   const account = useAccount(accountId);
   const contacts = useContacts(accountId);
   const drafts = useOutreachDrafts(accountId, service.id);
+  const findings = useFindings(accountId, service.id, "ACTIVE");
   const { generate, update } = useOutreachMutations(accountId, service.id);
 
   const [channel, setChannel] = useState<OutreachDraftChannel>("EMAIL");
@@ -98,6 +100,10 @@ function Composer({ accountId, service }: { accountId: string; service: Schemas[
   }
 
   const error = generate.error ?? update.error;
+  // FR-086, FR-090: the counted positive signals, most points first; none disables Generate.
+  const signals = countedPositive(findings.data ?? []);
+  const noSignal = findings.isSuccess && signals.length === 0;
+  const cited = new Set((draft?.findings ?? []).map((finding) => finding.id));
 
   return (
     <div className="flex flex-col gap-6">
@@ -112,6 +118,31 @@ function Composer({ accountId, service }: { accountId: string; service: Schemas[
 
       <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
         <aside className="flex flex-col gap-6">
+          <section className="flex flex-col gap-3">
+            <h2 className="m-0 text-section font-semibold">Signals the draft can use</h2>
+            <DataView
+              query={findings}
+              isEmpty={(items) => countedPositive(items).length === 0}
+              skeleton={<Skeleton className="h-16 w-full" />}
+              empty={{ message: "No positive signal counts for this service yet.", action: null }}
+            >
+              {(items) => (
+                <ol className="m-0 flex flex-col gap-2 pl-5">
+                  {countedPositive(items).map((finding) => (
+                    <li key={finding.id}>
+                      <span className="font-medium">{finding.question.text}</span>
+                      {cited.has(finding.id) && (
+                        <span className="ml-2 text-hint text-accent-ink">Cited</span>
+                      )}
+                      <blockquote className="m-0 mt-0.5 text-text-secondary">
+                        “{finding.quote}”
+                      </blockquote>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </DataView>
+          </section>
           <ContactsSection accountId={accountId} />
           <section className="flex flex-col gap-3">
             <h2 className="m-0 text-section font-semibold">Earlier drafts</h2>
@@ -181,10 +212,10 @@ function Composer({ accountId, service }: { accountId: string; service: Schemas[
               </Select>
             )}
           </FormField>
-          <div>
+          <div className="flex flex-col items-start gap-2">
             <Button
               variant="primary"
-              disabled={generate.isPending}
+              disabled={generate.isPending || noSignal}
               onClick={() => {
                 generate.mutate(
                   { channel, ...(contactId === "" ? {} : { contact_id: contactId }) },
@@ -194,6 +225,11 @@ function Composer({ accountId, service }: { accountId: string; service: Schemas[
             >
               {generate.isPending ? "Generating…" : "Generate"}
             </Button>
+            {noSignal && (
+              <p className="m-0 text-hint text-text-tertiary">
+                Generate needs at least one in-force positive signal for {service.name}.
+              </p>
+            )}
           </div>
 
           {error !== null && <Callout kind="error">{error.message}</Callout>}
@@ -277,4 +313,14 @@ function Composer({ accountId, service }: { accountId: string; service: Schemas[
       </div>
     </div>
   );
+}
+
+/** The findings that count positively in the current score, most points first (`FR-086`). */
+function countedPositive(items: readonly FindingView[]): FindingView[] {
+  return items
+    .filter(
+      (finding) =>
+        finding.question.polarity === "POSITIVE" && finding.points !== null && finding.points > 0,
+    )
+    .sort((left, right) => (right.points ?? 0) - (left.points ?? 0));
 }

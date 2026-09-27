@@ -39,14 +39,14 @@ apps/web/src/
 ├── features/<slug>/      one folder per feature file, one component folder per screen
 ├── components/           shared primitives on Radix
 ├── components/motion/    animated components copied from React Bits, owned like the primitives
-└── mocks/                MSW handlers of the contracts not yet built, development only
+└── mocks/                MSW handlers of the contracts the client does not yet run against the api for, development only
 ```
 
 A screen's folder is named after its heading; its components carry the `FR-` identifiers they implement in their test names.
 
 ## Mock layer
 
-In development (`npm run dev`), Mock Service Worker answers the contracts the api has not built yet, from the handlers in `src/mocks/`, one module per interface family, typed with the generated client through `openapi-msw`, so a path, status or body the contract does not declare fails to compile. The production build carries no mock, which `npm run check:build` verifies. When the api builds a family, its handlers are deleted.
+In development (`npm run dev`), Mock Service Worker answers the contracts the client is not yet run against the api for, from the handlers in `src/mocks/`, one module per interface family, typed with the generated client through `openapi-msw`, so a path, status or body the contract does not declare fails to compile. The mock covers sign-in, every contract of [`SC-A`](/requirements/business.md#scenarios), outreach drafts and alerts, so the primary flow can be walked with no api; the families share one in-memory store, kept for the browser tab, so an account imported or refreshed is the same everywhere. The production build carries no mock, which `npm run check:build` verifies. When the client is switched to the api's implementation of a family, its handlers are deleted.
 
 ## Routing
 
