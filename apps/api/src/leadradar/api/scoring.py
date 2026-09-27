@@ -1,7 +1,7 @@
 """Router for the [Scoring](/architecture/interfaces.md#scoring) interface family.
 
-`API-15` to `API-17` are built in `leadradar.api.configuration`. This module implements `API-18`;
-`API-19` is a declared stub answering `501 NOT_IMPLEMENTED`.
+`API-15` to `API-17` are built in `leadradar.api.configuration`. This module implements `API-18`
+and `API-19`.
 
 `API-18` `POST /scoring-configs/{id}/activate` — Admin only; activates a DRAFT scoring config,
 retires the previous ACTIVE version, creates a RESCORE run and returns `ScoringConfig`.
@@ -21,15 +21,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from leadradar.api.authentication import require_admin
 from leadradar.api.configuration import ScoringConfig
 from leadradar.api.errors import envelope
-from leadradar.api.router_utils import stub_router
 from leadradar.core.enums import AccountScoreBand, AccountScoreStanding
 from leadradar.db.models.identity import AppUser
 from leadradar.db.session import get_session
 from leadradar.scoring.activate import activate_scoring_config
-from leadradar.scoring.errors import NotADraft, ScoringConfigNotFound
+from leadradar.scoring.errors import NoActiveVersion, NotADraft, ScoringConfigNotFound
+from leadradar.scoring.preview import PreviewScore, preview_scoring_config
 
 router = APIRouter(tags=["scoring"])
-scoring_stub_router = stub_router("scoring")
 
 
 # ---------------------------------------------------------------------------
@@ -155,7 +154,54 @@ async def activate_scoring_config_route(
     return JSONResponse(status_code=200, content=response.model_dump(mode="json"))
 
 
-@scoring_stub_router.post("/scoring-configs/{id}/preview", response_model=ScoringPreview)
-async def preview_scoring_config(id: str) -> ScoringPreview:
-    """`API-19`."""
-    raise AssertionError("unreachable: contract_not_built already raised")
+@router.post(
+    "/scoring-configs/{id}/preview",
+    response_model=ScoringPreview,
+    summary="API-19: Preview the impact of a DRAFT scoring config",
+)
+async def preview_scoring_config_route(
+    id: uuid.UUID,
+    admin: Annotated[AppUser, Depends(require_admin)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> JSONResponse:
+    """[`API-19`](/architecture/interfaces.md#scoring): Admin only. Computes, without writing,
+    every current score of the draft's service under the draft. `404` for an unknown config,
+    `409 CONFLICT` when it is not a DRAFT or its service has no ACTIVE version."""
+    try:
+        result = await preview_scoring_config(session, config_id=id)
+    except ScoringConfigNotFound:
+        return JSONResponse(
+            status_code=404, content=envelope("NOT_FOUND", "Scoring config not found.")
+        )
+    except NotADraft as exc:
+        return JSONResponse(
+            status_code=409,
+            content=envelope(
+                "CONFLICT", f"Only a DRAFT config can be previewed; current: {exc.status!r}."
+            ),
+        )
+    except NoActiveVersion:
+        return JSONResponse(
+            status_code=409,
+            content=envelope("CONFLICT", "The service has no active scoring version to compare."),
+        )
+
+    def shape(score: PreviewScore) -> ScoringPreviewScore:
+        return ScoringPreviewScore(
+            priority=score.priority, standing=score.standing, band=score.band, rank=score.rank
+        )
+
+    response = ScoringPreview(
+        draft_version=result.draft_version,
+        active_version=result.active_version,
+        changes=[
+            ScoringPreviewChange(
+                account=ScoringPreviewAccount(id=str(change.account_id), name=change.account_name),
+                current=shape(change.current),
+                proposed=shape(change.proposed),
+            )
+            for change in result.changes
+        ],
+        unchanged_count=result.unchanged_count,
+    )
+    return JSONResponse(status_code=200, content=response.model_dump(mode="json"))

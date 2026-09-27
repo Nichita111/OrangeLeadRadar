@@ -27,3 +27,8 @@ class ScoringConfigNotFound(ScoringError):
     def __init__(self, config_id: str) -> None:
         self.config_id = config_id
         super().__init__(f"Scoring config {config_id!r} not found.")
+
+
+class NoActiveVersion(ScoringError):
+    """Raised by the preview when the draft's service has no ACTIVE version, hence no current
+    score to compare with."""

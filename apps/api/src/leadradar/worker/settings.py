@@ -48,13 +48,10 @@ class WorkerSettings(AiGatewaySettings):
 
     # SIGNAL step ([worker Configuration](/architecture/services/worker.md#runtime));
     # `escalation_lower`, `escalation_upper` and `triage_relevance_min_p` come from
-    # `AiGatewaySettings`, read by the api as well (D7).
+    # `AiGatewaySettings`, read by the api as well (D7), as are the evidence, chunking and
+    # retrieval keys the api's question preview (`API-14`) reads.
     triage_chars: int = 2000
     triage_about_min_p: float = 0.5
-    evidence_max_attempts: int = 2
-    evidence_min_quote_chars: int = 20
-    evidence_max_quote_chars: int = 400
-    evidence_max_rationale_chars: int = 300
     #: Fetching and processing ([worker Runtime](/architecture/services/worker.md#runtime)).
     fetch_lookback_days: int = 365
     max_documents_per_refresh: int = 100
@@ -68,13 +65,8 @@ class WorkerSettings(AiGatewaySettings):
     gdelt_min_interval_s: float = 6.0
     gdelt_backoff_s: int = 60
     min_document_chars: int = 200
-    whole_document_max_chars: int = 8000
-    chunk_target_chars: int = 1600
-    chunk_overlap_chars: int = 200
     passages_per_question: int = 3
     max_passages_per_document: int = 20
-    retrieval_candidates: int = 50
-    retrieval_rrf_k: int = 60
     near_duplicate_similarity: float = 0.95
     near_duplicate_window_days: int = 7
     document_retention_days: int = 730

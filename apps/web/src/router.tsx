@@ -6,11 +6,13 @@ import { QualityReportScreen } from "./features/evaluation-and-feedback/quality-
 import { AccountDetailScreen } from "./features/prospect-dashboard/account-detail/AccountDetailScreen";
 import { ProspectsScreen } from "./features/prospect-dashboard/prospects/ProspectsScreen";
 import { SignIn } from "./features/identity-and-access/sign-in/SignIn";
+import { TuneServiceScreen } from "./features/service-configuration/TuneServiceScreen";
 import { Users } from "./features/identity-and-access/users/Users";
 import { DocumentTitle } from "./shell/DocumentTitle";
 import { RequireAdmin } from "./shell/RequireAdmin";
 import { RequireSession } from "./shell/RequireSession";
 import type { RouteHandle } from "./shell/routeHandle";
+import { WithService } from "./shell/WithService";
 import { NotFound } from "./shell/states/NotFound";
 
 function handle(value: RouteHandle): RouteHandle {
@@ -53,6 +55,26 @@ export const routes: RouteObject[] = [
               </RequireAdmin>
             ),
             handle: handle({ title: "Quality report", adminOnly: true }),
+          },
+          {
+            path: "/services",
+            element: (
+              <RequireAdmin>
+                <WithService>
+                  {(service) => <Navigate to={`/services/${service.id}/tune`} replace />}
+                </WithService>
+              </RequireAdmin>
+            ),
+            handle: handle({ title: "Services", adminOnly: true }),
+          },
+          {
+            path: "/services/:id/tune",
+            element: (
+              <RequireAdmin>
+                <TuneServiceScreen />
+              </RequireAdmin>
+            ),
+            handle: handle({ title: "Try it and preview impact", adminOnly: true }),
           },
           {
             path: "/users",
