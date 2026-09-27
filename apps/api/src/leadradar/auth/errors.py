@@ -59,3 +59,16 @@ class PasswordTooShort(Exception):
     def __init__(self, minimum: int) -> None:
         super().__init__(f"password must be at least {minimum} characters")
         self.minimum = minimum
+
+
+class InviteNotFound(Exception):
+    """`API-80` on an unknown invite, or `API-81` and `API-82` with a token of no pending invite,
+    whether unknown, used, revoked or expired; `404 NOT_FOUND`."""
+
+
+class InviteNotPending(Exception):
+    """`API-80` on an invite already accepted, revoked or expired; `409 CONFLICT`."""
+
+
+class InviteAlreadyPending(Exception):
+    """`API-79` for an email that has a pending invite; `409 CONFLICT`."""

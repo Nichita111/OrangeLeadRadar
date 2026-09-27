@@ -32,7 +32,10 @@ const disabledUser: Schemas["User"] = {
 /** Arranges `API-04` with a list the test can change, and returns it. */
 function arrangeUsers(initial: Schemas["User"][]): Schemas["User"][] {
   const users = [...initial];
-  server.use(http.get("/api/v1/users", ({ response }) => response(200).json(users)));
+  server.use(
+    http.get("/api/v1/users", ({ response }) => response(200).json(users)),
+    http.get("/api/v1/invites", ({ response }) => response(200).json([])),
+  );
   return users;
 }
 
@@ -375,5 +378,82 @@ describe("Users by keyboard (FR-016, FR-008)", () => {
     });
     expect(button).toHaveFocus();
     expect(document.body).not.toHaveTextContent(/p_positive|escalation|triage/i);
+  });
+});
+
+const invite: Schemas["Invite"] = {
+  id: "7d1b1c9e-2f3a-4b5c-8d6e-9f0a1b2c3d4e",
+  email: "joiner@leadradar.local",
+  role: "SALES",
+  invited_by: "Olga Admin",
+  created_at: "2026-09-27T10:00:00Z",
+  expires_at: "2026-09-30T10:00:00Z",
+};
+
+describe("Invites on Users (FR-174, FR-175)", () => {
+  it("FR-174: Invite user sends email and role and shows the link once, to hand over", async () => {
+    const user = userEvent.setup();
+    arrangeUsers([olgaAdmin]);
+    const sent: Schemas["InviteCreate"][] = [];
+    server.use(
+      http.post("/api/v1/invites", async ({ request, response }) => {
+        sent.push(await request.json());
+        return response(200).json({
+          invite,
+          link: "http://localhost:8080/invite#abcd",
+        });
+      }),
+    );
+    await openUsers();
+    await user.click(screen.getByRole("button", { name: "Invite user" }));
+    const dialog = await screen.findByRole("dialog", { name: "Invite user" });
+    await user.type(within(dialog).getByLabelText("Email"), "joiner@leadradar.local");
+    await user.selectOptions(within(dialog).getByLabelText("Role"), "ADMIN");
+    await user.click(within(dialog).getByRole("button", { name: "Create invite link" }));
+
+    expect(
+      await within(dialog).findByDisplayValue("http://localhost:8080/invite#abcd"),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(
+        "Send this link yourself; LeadRadar sends no message. It works once, for 72 hours.",
+      ),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Copy link" })).toBeInTheDocument();
+    expect(sent).toEqual([{ email: "joiner@leadradar.local", role: "ADMIN" }]);
+  });
+
+  it("FR-175: lists pending invites and revokes one after confirming", async () => {
+    const user = userEvent.setup();
+    arrangeUsers([olgaAdmin]);
+    const pending = [invite];
+    const revoked: string[] = [];
+    server.use(
+      http.get("/api/v1/invites", ({ response }) => response(200).json([...pending])),
+      http.post("/api/v1/invites/{id}/revoke", ({ params, response }) => {
+        revoked.push(params.id);
+        pending.length = 0;
+        return response(204).empty();
+      }),
+    );
+    await openUsers();
+    const section = await screen.findByRole("region", { name: "Pending invites" });
+    const row = within(section).getByRole("row", { name: /joiner@leadradar.local/ });
+    expect(within(row).getByText("Sales")).toBeInTheDocument();
+    expect(within(row).getByText("Olga Admin")).toBeInTheDocument();
+
+    await user.click(within(row).getByRole("button", { name: "Revoke" }));
+    await user.click(await screen.findByRole("button", { name: "Revoke invite" }));
+    await waitFor(() => {
+      expect(screen.queryByRole("region", { name: "Pending invites" })).not.toBeInTheDocument();
+    });
+    expect(revoked).toEqual([invite.id]);
+  });
+
+  it("shows no Pending invites section when there are none", async () => {
+    arrangeUsers([olgaAdmin]);
+    await openUsers();
+    await screen.findByRole("row", { name: /Olga Admin/ });
+    expect(screen.queryByRole("region", { name: "Pending invites" })).not.toBeInTheDocument();
   });
 });

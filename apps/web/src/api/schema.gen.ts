@@ -341,7 +341,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/demo-login": {
+    "/api/v1/auth/invite": {
         parameters: {
             query?: never;
             header?: never;
@@ -350,11 +350,25 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /**
-         * Demo Login
-         * @description `API-78`.
-         */
-        post: operations["demo_login_api_v1_auth_demo_login_post"];
+        /** Preview Invite Route */
+        post: operations["preview_invite_route_api_v1_auth_invite_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/invite/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept Invite Route */
+        post: operations["accept_invite_route_api_v1_auth_invite_accept_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -726,6 +740,41 @@ export interface paths {
          * @description `API-73`.
          */
         patch: operations["update_industry_route_api_v1_industries__code__patch"];
+        trace?: never;
+    };
+    "/api/v1/invites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Invites */
+        get: operations["get_invites_api_v1_invites_get"];
+        put?: never;
+        /** Create Invite Route */
+        post: operations["create_invite_route_api_v1_invites_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invites/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke Invite Route */
+        post: operations["revoke_invite_route_api_v1_invites__id__revoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/markets": {
@@ -1543,7 +1592,7 @@ export interface components {
          *     later task) writes from this one set.
          * @enum {string}
          */
-        AuditAction: "LOGIN_SUCCEEDED" | "LOGIN_FAILED" | "LOGOUT" | "USER_CREATED" | "USER_UPDATED" | "SERVICE_CREATED" | "SERVICE_UPDATED" | "INDUSTRY_CREATED" | "INDUSTRY_UPDATED" | "MARKET_CREATED" | "MARKET_UPDATED" | "QUESTION_CREATED" | "QUESTION_UPDATED" | "SCORING_DRAFT_SAVED" | "SCORING_ACTIVATED" | "PLUGIN_UPDATED" | "ACCOUNT_CREATED" | "ACCOUNT_UPDATED" | "ACCOUNTS_IMPORTED" | "CANDIDATE_ACCEPTED" | "CANDIDATE_REJECTED" | "CONTACT_CREATED" | "CONTACT_UPDATED" | "CONTACT_ERASED" | "RUN_REQUESTED" | "RUN_FINISHED" | "RUN_CANCELLED" | "OVERRIDE_CREATED" | "OVERRIDE_REVOKED" | "LEAD_FEEDBACK_GIVEN" | "FINDING_FEEDBACK_GIVEN" | "ITEM_LABELLED" | "DRAFT_CREATED" | "DRAFT_UPDATED" | "DRAFT_EXPORTED" | "CRM_PUSHED" | "AI_CALL";
+        AuditAction: "LOGIN_SUCCEEDED" | "LOGIN_FAILED" | "LOGOUT" | "USER_CREATED" | "USER_UPDATED" | "INVITE_CREATED" | "INVITE_REVOKED" | "SERVICE_CREATED" | "SERVICE_UPDATED" | "INDUSTRY_CREATED" | "INDUSTRY_UPDATED" | "MARKET_CREATED" | "MARKET_UPDATED" | "QUESTION_CREATED" | "QUESTION_UPDATED" | "SCORING_DRAFT_SAVED" | "SCORING_ACTIVATED" | "PLUGIN_UPDATED" | "ACCOUNT_CREATED" | "ACCOUNT_UPDATED" | "ACCOUNTS_IMPORTED" | "CANDIDATE_ACCEPTED" | "CANDIDATE_REJECTED" | "CONTACT_CREATED" | "CONTACT_UPDATED" | "CONTACT_ERASED" | "RUN_REQUESTED" | "RUN_FINISHED" | "RUN_CANCELLED" | "OVERRIDE_CREATED" | "OVERRIDE_REVOKED" | "LEAD_FEEDBACK_GIVEN" | "FINDING_FEEDBACK_GIVEN" | "ITEM_LABELLED" | "DRAFT_CREATED" | "DRAFT_UPDATED" | "DRAFT_EXPORTED" | "CRM_PUSHED" | "AI_CALL";
         /**
          * AuditEntry
          * @description [`AuditEntry`](/architecture/interfaces.md#auditentry), one item of `API-60`'s page.
@@ -1709,13 +1758,6 @@ export interface components {
             id: string;
             status: components["schemas"]["CrmSyncStatus"];
             target: components["schemas"]["CrmSyncTarget"];
-        };
-        /**
-         * DemoLoginRequest
-         * @description [`DemoLoginRequest`](/architecture/interfaces.md#demologinrequest).
-         */
-        DemoLoginRequest: {
-            role: components["schemas"]["AppUserRole"];
         };
         /**
          * Dependency
@@ -2398,6 +2440,103 @@ export interface components {
             /** Label */
             label?: string | null;
             status?: components["schemas"]["IndustryStatus"] | null;
+        };
+        /**
+         * Invite
+         * @description [`Invite`](/architecture/interfaces.md#invite).
+         */
+        Invite: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Email */
+            email: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Invited By */
+            invited_by: string;
+            role: components["schemas"]["AppUserRole"];
+        };
+        /**
+         * InviteAccept
+         * @description [`InviteAccept`](/architecture/interfaces.md#inviteaccept). `password`'s minimum is
+         *     enforced once, by `auth.users.add_user` (`UserCreate`'s note).
+         */
+        InviteAccept: {
+            /** Display Name */
+            display_name: string;
+            /**
+             * Password
+             * Format: password
+             */
+            password: string;
+            /**
+             * Token
+             * Format: password
+             */
+            token: string;
+        };
+        /**
+         * InviteCreate
+         * @description [`InviteCreate`](/architecture/interfaces.md#invitecreate).
+         */
+        InviteCreate: {
+            /** Email */
+            email: string;
+            role: components["schemas"]["AppUserRole"];
+        };
+        /**
+         * InviteCreated
+         * @description [`InviteCreated`](/architecture/interfaces.md#invitecreated).
+         */
+        InviteCreated: {
+            invite: components["schemas"]["Invite"];
+            /** Link */
+            link: string;
+        };
+        /**
+         * InvitePreview
+         * @description [`InvitePreview`](/architecture/interfaces.md#invitepreview).
+         */
+        InvitePreview: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Email */
+            email: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Invited By */
+            invited_by: string;
+            /** Password Min Length */
+            password_min_length: number;
+            role: components["schemas"]["AppUserRole"];
+        };
+        /**
+         * InviteToken
+         * @description [`InviteToken`](/architecture/interfaces.md#invitetoken).
+         */
+        InviteToken: {
+            /**
+             * Token
+             * Format: password
+             */
+            token: string;
         };
         /**
          * LabelCreate
@@ -4348,7 +4487,7 @@ export interface operations {
             };
         };
     };
-    demo_login_api_v1_auth_demo_login_post: {
+    preview_invite_route_api_v1_auth_invite_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -4357,7 +4496,40 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["DemoLoginRequest"];
+                "application/json": components["schemas"]["InviteToken"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitePreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    accept_invite_route_api_v1_auth_invite_accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InviteAccept"];
             };
         };
         responses: {
@@ -5081,6 +5253,103 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Industry"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_invites_api_v1_invites_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Invite"][];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_invite_route_api_v1_invites_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InviteCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteCreated"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    revoke_invite_route_api_v1_invites__id__revoke_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {

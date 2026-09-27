@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: ADR-20 Landing scene, mock layer and demo sign-in
-description: The live demo opens on a three.js landing page animated with Anime.js, every REST contract is declared from the start and answers 501 until built while a development-only mock answers the contracts not yet built, and demo shortcuts sign in without a password in replay mode only.
+description: The live demo opens on a three.js landing page animated with Anime.js, every REST contract is declared from the start and answers 501 until built while a development-only mock answers the contracts not yet built; its demo sign-in is withdrawn by ADR-21.
 status: draft
 tags: [identity-and-access]
 ---
@@ -16,11 +16,11 @@ The jury meets LeadRadar through the live demo. [ADR-17](/architecture/adrs/adr-
 
 1. `/` is a Landing page whose one scene is built with three.js and animated by one Anime.js timeline scrubbed by scroll. It is loaded lazily, and it is the only screen outside ADR-17's pattern list and the only other WebGL screen; React Bits remains the only source of animated components on app screens.
 2. Every REST contract is declared in the api from the start and answers `501 NOT_IMPLEMENTED` until built, so the OpenAPI document and the client generated from it are complete, and the client holds no hand-written copy of a shape. In development only, Mock Service Worker answers the contracts not yet built, from handlers typed with that client; the production build carries no mock. A family's handlers are deleted when the api builds the family.
-3. `API-78` signs in as a demo dataset user without a password, only in `FIXTURE_MODE` `replay`; the client shows the shortcuts, on Sign in only, only when `DEMO_SIGN_IN` is true.
+3. Withdrawn by [ADR-21](/architecture/adrs/adr-21-invite-links-and-the-invite-scene.md): there is no demo sign-in; the presenter signs in with the demo users' credentials.
 
 ## Consequences
 
-three.js and Anime.js weigh only on the Landing chunk. Reduced motion shows still end frames; without WebGL the steps show their words alone. Screens switch from mocks to the api with no change, and a contract change regenerates the client and breaks the mocks at type-check. In replay, anyone who reaches the stack can sign in as Admin, the demo cloud machine included, which is accepted because it holds only the demo dataset. `AC-53` cannot pass for a stubbed contract until its feature is built.
+three.js and Anime.js weigh only on the Landing chunk. Reduced motion shows still end frames; without WebGL the steps show their words alone. Screens switch from mocks to the api with no change, and a contract change regenerates the client and breaks the mocks at type-check. `AC-53` cannot pass for a stubbed contract until its feature is built.
 
 ## Alternatives considered
 

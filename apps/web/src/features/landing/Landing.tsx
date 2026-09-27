@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { ButtonLink } from "../../components/Button";
 import { usePrefersReducedMotion } from "../../components/motion/usePrefersReducedMotion";
+import { Mark, useDarkScheme } from "./darkStage";
 import "./landing.css";
 
 /** The steps of WF-27, in order (FR-161). */
@@ -54,16 +55,6 @@ function progressOf(scroll: HTMLElement): number {
   return range > 0 ? Math.min(1, Math.max(0, -rect.top / range)) : 0;
 }
 
-function Mark() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="size-5">
-      <circle cx="12" cy="12" r="9.5" className="stroke-text-tertiary" />
-      <circle cx="12" cy="12" r="5" className="stroke-text-tertiary" />
-      <circle cx="15.6" cy="8.4" r="2.2" className="fill-accent" />
-    </svg>
-  );
-}
-
 /**
  * Landing (WF-27, FR-161 to FR-166): eight steps over one pinned scene, dark in both schemes. The words
  * render at once; the scene loads after them and, without WebGL, is left out.
@@ -77,14 +68,7 @@ export function Landing() {
   const [step, setStep] = useState(0);
   const [webgl, setWebgl] = useState(true);
 
-  // FR-106: Landing is dark in both schemes.
-  useEffect(() => {
-    const root = document.documentElement;
-    root.dataset["scheme"] = "dark";
-    return () => {
-      delete root.dataset["scheme"];
-    };
-  }, []);
+  useDarkScheme();
 
   useEffect(() => {
     const scroll = scrollRef.current;

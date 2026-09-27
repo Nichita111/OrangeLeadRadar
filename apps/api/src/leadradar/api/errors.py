@@ -32,6 +32,9 @@ from leadradar.auth.errors import (
     EmailTaken,
     Forbidden,
     InvalidCredentials,
+    InviteAlreadyPending,
+    InviteNotFound,
+    InviteNotPending,
     PasswordTooShort,
     SelfChangeRefused,
     Unauthenticated,
@@ -232,6 +235,27 @@ def register_error_handlers(app: FastAPI) -> None:
             content=envelope(
                 "LOCKED", "Too many failed sign-ins.", {"retry_after_min": exc.retry_after_min}
             ),
+        )
+
+    @app.exception_handler(InviteNotFound)
+    async def handle_invite_not_found(request: Request, exc: InviteNotFound) -> Response:
+        return JSONResponse(
+            status_code=404, content=envelope("NOT_FOUND", "The invite does not exist.")
+        )
+
+    @app.exception_handler(InviteNotPending)
+    async def handle_invite_not_pending(request: Request, exc: InviteNotPending) -> Response:
+        return JSONResponse(
+            status_code=409, content=envelope("CONFLICT", "The invite is no longer pending.")
+        )
+
+    @app.exception_handler(InviteAlreadyPending)
+    async def handle_invite_already_pending(
+        request: Request, exc: InviteAlreadyPending
+    ) -> Response:
+        return JSONResponse(
+            status_code=409,
+            content=envelope("CONFLICT", "This email already has a pending invite."),
         )
 
     @app.exception_handler(PasswordTooShort)

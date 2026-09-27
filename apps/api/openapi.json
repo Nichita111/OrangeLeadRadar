@@ -801,6 +801,8 @@
           "LOGOUT",
           "USER_CREATED",
           "USER_UPDATED",
+          "INVITE_CREATED",
+          "INVITE_REVOKED",
           "SERVICE_CREATED",
           "SERVICE_UPDATED",
           "INDUSTRY_CREATED",
@@ -1215,20 +1217,6 @@
           "status"
         ],
         "title": "CrmSyncView",
-        "type": "object"
-      },
-      "DemoLoginRequest": {
-        "additionalProperties": false,
-        "description": "[`DemoLoginRequest`](/architecture/interfaces.md#demologinrequest).",
-        "properties": {
-          "role": {
-            "$ref": "#/components/schemas/AppUserRole"
-          }
-        },
-        "required": [
-          "role"
-        ],
-        "title": "DemoLoginRequest",
         "type": "object"
       },
       "Dependency": {
@@ -2915,6 +2903,173 @@
           }
         },
         "title": "IndustryUpdate",
+        "type": "object"
+      },
+      "Invite": {
+        "additionalProperties": false,
+        "description": "[`Invite`](/architecture/interfaces.md#invite).",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "invited_by": {
+            "title": "Invited By",
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/AppUserRole"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "role",
+          "invited_by",
+          "created_at",
+          "expires_at"
+        ],
+        "title": "Invite",
+        "type": "object"
+      },
+      "InviteAccept": {
+        "additionalProperties": false,
+        "description": "[`InviteAccept`](/architecture/interfaces.md#inviteaccept). `password`'s minimum is\nenforced once, by `auth.users.add_user` (`UserCreate`'s note).",
+        "properties": {
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "password": {
+            "format": "password",
+            "title": "Password",
+            "type": "string",
+            "writeOnly": true
+          },
+          "token": {
+            "format": "password",
+            "title": "Token",
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "token",
+          "display_name",
+          "password"
+        ],
+        "title": "InviteAccept",
+        "type": "object"
+      },
+      "InviteCreate": {
+        "additionalProperties": false,
+        "description": "[`InviteCreate`](/architecture/interfaces.md#invitecreate).",
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/AppUserRole"
+          }
+        },
+        "required": [
+          "email",
+          "role"
+        ],
+        "title": "InviteCreate",
+        "type": "object"
+      },
+      "InviteCreated": {
+        "additionalProperties": false,
+        "description": "[`InviteCreated`](/architecture/interfaces.md#invitecreated).",
+        "properties": {
+          "invite": {
+            "$ref": "#/components/schemas/Invite"
+          },
+          "link": {
+            "title": "Link",
+            "type": "string"
+          }
+        },
+        "required": [
+          "invite",
+          "link"
+        ],
+        "title": "InviteCreated",
+        "type": "object"
+      },
+      "InvitePreview": {
+        "additionalProperties": false,
+        "description": "[`InvitePreview`](/architecture/interfaces.md#invitepreview).",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "invited_by": {
+            "title": "Invited By",
+            "type": "string"
+          },
+          "password_min_length": {
+            "title": "Password Min Length",
+            "type": "integer"
+          },
+          "role": {
+            "$ref": "#/components/schemas/AppUserRole"
+          }
+        },
+        "required": [
+          "email",
+          "role",
+          "invited_by",
+          "created_at",
+          "expires_at",
+          "password_min_length"
+        ],
+        "title": "InvitePreview",
+        "type": "object"
+      },
+      "InviteToken": {
+        "additionalProperties": false,
+        "description": "[`InviteToken`](/architecture/interfaces.md#invitetoken).",
+        "properties": {
+          "token": {
+            "format": "password",
+            "title": "Token",
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "title": "InviteToken",
         "type": "object"
       },
       "LabelCreate": {
@@ -7608,15 +7763,55 @@
         ]
       }
     },
-    "/api/v1/auth/demo-login": {
+    "/api/v1/auth/invite": {
       "post": {
-        "description": "`API-78`.",
-        "operationId": "demo_login_api_v1_auth_demo_login_post",
+        "operationId": "preview_invite_route_api_v1_auth_invite_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/DemoLoginRequest"
+                "$ref": "#/components/schemas/InviteToken"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitePreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Preview Invite Route",
+        "tags": [
+          "authentication-and-users"
+        ]
+      }
+    },
+    "/api/v1/auth/invite/accept": {
+      "post": {
+        "operationId": "accept_invite_route_api_v1_auth_invite_accept_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteAccept"
               }
             }
           },
@@ -7644,7 +7839,7 @@
             "description": "Error"
           }
         },
-        "summary": "Demo Login",
+        "summary": "Accept Invite Route",
         "tags": [
           "authentication-and-users"
         ]
@@ -8871,6 +9066,168 @@
         "summary": "Update Industry Route",
         "tags": [
           "configuration"
+        ]
+      }
+    },
+    "/api/v1/invites": {
+      "get": {
+        "operationId": "get_invites_api_v1_invites_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Invite"
+                  },
+                  "title": "Response Get Invites Api V1 Invites Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get Invites",
+        "tags": [
+          "authentication-and-users"
+        ]
+      },
+      "post": {
+        "operationId": "create_invite_route_api_v1_invites_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InviteCreated"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Create Invite Route",
+        "tags": [
+          "authentication-and-users"
+        ]
+      }
+    },
+    "/api/v1/invites/{id}/revoke": {
+      "post": {
+        "operationId": "revoke_invite_route_api_v1_invites__id__revoke_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Revoke Invite Route",
+        "tags": [
+          "authentication-and-users"
         ]
       }
     },

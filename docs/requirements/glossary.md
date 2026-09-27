@@ -31,7 +31,6 @@ A term is the one name of its concept in prose. **Identifier** is the name code,
 | Classifier | The fast model that returns probabilities over fixed answers: Jev, or the LLM classifier adapter. | `CLASSIFIER` | [Classifier](/architecture/interfaces.md#classifier) |
 | Confidence | How sure the deciding model was of a finding, from 0 to 1. | `confidence` | [`finding`](/architecture/sql-store.md#finding) |
 | Contact | A decision-maker at an account, kept to the minimum. | `contact` | [`contact`](/architecture/sql-store.md#contact) |
-| Demo sign-in | Signing in without a password as the demo dataset's Sales or Admin user, offered only in replay fixture mode. | `demo-login` | `API-78` in [Authentication and users](/architecture/interfaces.md#authentication-and-users) |
 | Discovery | A run that proposes companies not yet accounts for a service. | `DISCOVERY` | [Discovery](/architecture/rules.md#discovery) |
 | Discovery candidate | A company proposed by discovery that a person accepts or rejects. | `discovery_candidate` | [`discovery_candidate`](/architecture/sql-store.md#discovery_candidate) |
 | Disqualifier | A rule of the scoring settings that excludes an account from the ranking. | `disqualifiers` | [scoring settings document](/architecture/sql-store.md#scoring-settings-document) |
@@ -102,3 +101,9 @@ Evidence quotes are shown as written, with their translation beside them, never 
 |---|---|---|
 | `B-38` | Jev became available through OpenRouter, so keeping it classifying under an exhausted budget no longer needed its own should-have row | `B-33` through `S-SIG-08` |
 | `S-SIG-10` | The same obligation belongs to the budget guard, as first specified | `S-SIG-08` |
+| `S-SEC-04` | Everyone signs in with credentials; there is no demo sign-in | `S-SEC-01`, `S-SEC-05` |
+| `AC-76` | Its requirement `S-SEC-04` is retired | `AC-52`, `AC-78` |
+| `AC-77` | Its requirement `S-SEC-04` is retired | `AC-52`, `AC-78` |
+| `API-78` | The demo sign-in is withdrawn; users sign in with `API-01` or by accepting an invite | `API-01`, `API-82` |
+| `FR-167` | Sign in offers no demo shortcuts | `FR-093` |
+| `FR-168` | Sign in offers no demo shortcuts | `FR-093` |

@@ -2,7 +2,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { olgaAdmin } from "../../api/authenticationAndUsers.fixtures";
-import { anonymous, renderApp, signedInAs, testConfig } from "../../testRender";
+import { anonymous, renderApp, signedInAs } from "../../testRender";
 import { STEPS } from "./Landing";
 
 describe("Landing (WF-27)", () => {
@@ -35,7 +35,7 @@ describe("Landing (WF-27)", () => {
 
   it("FR-162: the header and the last step each have a Sign in that opens Sign in, and nothing else signs in", async () => {
     anonymous();
-    renderApp("/", { ...testConfig, DEMO_SIGN_IN: true });
+    renderApp("/");
     await screen.findByRole("heading", { level: 1 });
     const links = screen.getAllByRole("link", { name: "Sign in" });
     expect(links).toHaveLength(2);

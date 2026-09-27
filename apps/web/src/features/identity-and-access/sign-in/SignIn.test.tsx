@@ -10,7 +10,7 @@ import {
 } from "../../../api/authenticationAndUsers.fixtures";
 import type { Schemas } from "../../../api/contract";
 import { setReducedMotion } from "../../../testEnvironment";
-import { anonymous, renderApp, signedInAs, testConfig } from "../../../testRender";
+import { anonymous, renderApp, signedInAs } from "../../../testRender";
 import { http, server } from "../../../testServer";
 
 function arrangeLogin(
@@ -186,51 +186,5 @@ describe("Sign in submit (FR-093, FR-094, FR-007)", () => {
     renderApp("/login");
     await screen.findByLabelText("Email");
     expect(document.body).not.toHaveTextContent(/p_positive|escalation|triage/i);
-  });
-});
-
-describe("Demo shortcuts (FR-167, FR-168)", () => {
-  it("DEMO_SIGN_IN false shows neither shortcut", async () => {
-    anonymous();
-    renderApp("/login");
-    await screen.findByLabelText("Email");
-    expect(screen.queryByRole("button", { name: "Enter as Sales" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Enter as Admin" })).not.toBeInTheDocument();
-  });
-
-  it("Enter as Sales calls API-78 with SALES and goes to the return path", async () => {
-    const user = userEvent.setup();
-    anonymous();
-    const seen: Schemas["DemoLoginRequest"][] = [];
-    server.use(
-      http.post("/api/v1/auth/demo-login", async ({ request, response }) => {
-        seen.push(await request.json());
-        signedInAs(anaSales);
-        return response(200).json(authenticatedUser(anaSales));
-      }),
-    );
-    const { router } = renderApp("/login?return=%2Flabelling", {
-      ...testConfig,
-      DEMO_SIGN_IN: true,
-    });
-    expect(await screen.findByRole("button", { name: "Enter as Admin" })).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Enter as Sales" }));
-    await waitFor(() => {
-      expect(router.state.location.pathname).toBe("/labelling");
-    });
-    expect(seen).toEqual([{ role: "SALES" }]);
-  });
-
-  it("a failure shows the api's message", async () => {
-    const user = userEvent.setup();
-    anonymous();
-    server.use(
-      http.post("/api/v1/auth/demo-login", () =>
-        errorResponse(errorEnvelope("NOT_FOUND", "Demo sign-in is not available."), 404),
-      ),
-    );
-    renderApp("/login", { ...testConfig, DEMO_SIGN_IN: true });
-    await user.click(await screen.findByRole("button", { name: "Enter as Admin" }));
-    expect(await screen.findByText("Demo sign-in is not available.")).toBeInTheDocument();
   });
 });

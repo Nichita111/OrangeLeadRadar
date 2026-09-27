@@ -24,7 +24,7 @@ tags: [accounts-and-discovery, audit-trail, evaluation-and-feedback, identity-an
 
 Authorisation is enforced by the api on every route ([S-SEC-02](/requirements/system.md)); a signed-in user without the role gets `403 FORBIDDEN`.
 
-**Authentication.** `API-01` and `API-78` set an HTTP-only, `Secure`, `SameSite=Lax` session cookie, named `leadradar_session`, with `Path=/api/v1` and `Max-Age` of `SESSION_TTL_HOURS`; `API-02` clears it. Its token is recorded as a hash in [`auth_session`](/architecture/sql-store.md#auth_session) and expires after `SESSION_TTL_HOURS`. Every other route except `API-61` requires it and accepts no other credential. `API-02` revokes it.
+**Authentication.** `API-01` and `API-82` set an HTTP-only, `Secure`, `SameSite=Lax` session cookie, named `leadradar_session`, with `Path=/api/v1` and `Max-Age` of `SESSION_TTL_HOURS`; `API-02` clears it. Its token is recorded as a hash in [`auth_session`](/architecture/sql-store.md#auth_session) and expires after `SESSION_TTL_HOURS`. Every other route except `API-61` requires it and accepts no other credential. `API-02` revokes it.
 
 **CSRF.** A `POST`, `PUT`, `PATCH` or `DELETE` without an `X-Requested-With` header is refused `403 FORBIDDEN`. The browser reaches the api only through the frontend's proxy on the same origin.
 
@@ -76,13 +76,20 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 | `API-04` | GET | `/users` | `A` | — → [`User`](#user)`[]` |
 | `API-05` | POST | `/users` | `A` | [`UserCreate`](#usercreate) → [`User`](#user) |
 | `API-06` | PATCH | `/users/{id}` | `A` | [`UserUpdate`](#userupdate) → [`User`](#user) |
-| `API-78` | POST | `/auth/demo-login` | `-` | [`DemoLoginRequest`](#demologinrequest) → [`AuthenticatedUser`](#authenticateduser) |
+| `API-79` | POST | `/invites` | `A` | [`InviteCreate`](#invitecreate) → [`InviteCreated`](#invitecreated) |
+| `API-80` | POST | `/invites/{id}/revoke` | `A` | — → `204` |
+| `API-81` | POST | `/auth/invite` | `-` | [`InviteToken`](#invitetoken) → [`InvitePreview`](#invitepreview) |
+| `API-82` | POST | `/auth/invite/accept` | `-` | [`InviteAccept`](#inviteaccept) → [`AuthenticatedUser`](#authenticateduser) |
+| `API-83` | GET | `/invites` | `A` | — → [`Invite`](#invite)`[]` |
 
 - `API-01` — wrong email or password answers `401` with one message that does not reveal which was wrong. The failure that reaches `LOGIN_MAX_FAILURES` locks the account for `LOGIN_LOCK_MINUTES`; while locked every attempt answers `423 LOCKED`. A disabled account answers `403 FORBIDDEN` only when the password is correct.
 - `API-04` — ordered by `display_name`.
 - `API-05` — answers `200` with the created user.
 - `API-06` — an Admin cannot change their own role or disable themselves (`409 CONFLICT`). Disabling a user revokes their sessions. A password reset changes only the hash. A request that changes nothing writes no audit row.
-- `API-78` — answers only while the api runs with `FIXTURE_MODE` `replay`, and `404 NOT_FOUND` in any other mode. It signs in as the [demo dataset](/architecture/overview.md#demo-dataset) user of the requested role and answers exactly as `API-01` with that user's correct password would: the same session cookie and `LOGIN_SUCCEEDED` row, `403 FORBIDDEN` for a disabled user and `423 LOCKED` for a locked one. It answers `404 NOT_FOUND` when that user does not exist.
+- `API-79` — answers `409 CONFLICT` when the email belongs to a user or to a pending invite. The token is 32 random bytes, returned once in `link` as `APP_BASE_URL/invite#<token>` and never again; the database holds its SHA-256.
+- `API-80` — answers `409 CONFLICT` for an invite that is no longer pending.
+- `API-81`, `API-82` — the token travels in the body, never in a path or query, so it reaches no log. A token of no pending invite answers `404 NOT_FOUND`, whether it is unknown, used, revoked or expired. `API-82` creates the active user with the invite's email and role, marks the invite accepted and answers exactly as `API-01` with that user's password would: the same session cookie and `LOGIN_SUCCEEDED` row.
+- `API-83` — the pending invites, newest first.
 
 ### Authentication and users shapes
 
@@ -93,11 +100,52 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 | `email` | string | [`app_user`](/architecture/sql-store.md#app_user) `email` |
 | `password` | string | checked against `password_hash`; never stored or logged |
 
-#### DemoLoginRequest
+#### InviteCreate
 
 | Field | Type | Source of truth |
 |---|---|---|
+| `email` | string | [`user_invite`](/architecture/sql-store.md#user_invite) |
 | `role` | enum | [`app_user`](/architecture/sql-store.md#app_user) `role` |
+
+#### Invite
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `id`, `email` | string | [`user_invite`](/architecture/sql-store.md#user_invite) |
+| `role` | enum | [`app_user`](/architecture/sql-store.md#app_user) `role` |
+| `invited_by` | string | the inviting user's `display_name` |
+| `created_at`, `expires_at` | string | [`user_invite`](/architecture/sql-store.md#user_invite) |
+
+#### InviteCreated
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `invite` | [`Invite`](#invite) | |
+| `link` | string | `APP_BASE_URL/invite#<token>`, returned only here |
+
+#### InviteToken
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `token` | string | the fragment of the invite link |
+
+#### InvitePreview
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `email` | string | [`user_invite`](/architecture/sql-store.md#user_invite) |
+| `role` | enum | [`app_user`](/architecture/sql-store.md#app_user) `role` |
+| `invited_by` | string | the inviting user's `display_name` |
+| `created_at`, `expires_at` | string | [`user_invite`](/architecture/sql-store.md#user_invite) |
+| `password_min_length` | integer | `PASSWORD_MIN_LENGTH` |
+
+#### InviteAccept
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `token` | string | the fragment of the invite link |
+| `display_name` | string | [`app_user`](/architecture/sql-store.md#app_user) |
+| `password` | string, at least `PASSWORD_MIN_LENGTH` characters | hashed into `password_hash` |
 
 #### AuthenticatedUser
 

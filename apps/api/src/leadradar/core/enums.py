@@ -411,6 +411,8 @@ class AuditAction(StrEnum):
     LOGOUT = "LOGOUT"
     USER_CREATED = "USER_CREATED"
     USER_UPDATED = "USER_UPDATED"
+    INVITE_CREATED = "INVITE_CREATED"
+    INVITE_REVOKED = "INVITE_REVOKED"
     SERVICE_CREATED = "SERVICE_CREATED"
     SERVICE_UPDATED = "SERVICE_UPDATED"
     INDUSTRY_CREATED = "INDUSTRY_CREATED"
@@ -451,6 +453,8 @@ AUDIT_ACTION_KIND: Mapping[AuditAction, AuditEventKind] = {
     AuditAction.LOGOUT: AuditEventKind.AUTH,
     AuditAction.USER_CREATED: AuditEventKind.USER,
     AuditAction.USER_UPDATED: AuditEventKind.USER,
+    AuditAction.INVITE_CREATED: AuditEventKind.USER,
+    AuditAction.INVITE_REVOKED: AuditEventKind.USER,
     AuditAction.SERVICE_CREATED: AuditEventKind.CONFIG,
     AuditAction.SERVICE_UPDATED: AuditEventKind.CONFIG,
     AuditAction.INDUSTRY_CREATED: AuditEventKind.CONFIG,

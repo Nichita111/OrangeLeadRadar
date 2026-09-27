@@ -1,4 +1,4 @@
-"""[Identity](/architecture/sql-store.md#identity): `app_user`, `auth_session`."""
+"""[Identity](/architecture/sql-store.md#identity): `app_user`, `auth_session`, `user_invite`."""
 
 from __future__ import annotations
 
@@ -36,4 +36,19 @@ class AuthSession(TimestampedBase):
     user_id: Mapped[uuid.UUID] = fk_uuid("app_user.id")
     token_hash: Mapped[str] = mapped_column(unique=True)
     expires_at: Mapped[datetime]
+    revoked_at: Mapped[datetime | None]
+
+
+class UserInvite(TimestampedBase):
+    """[`user_invite`](/architecture/sql-store.md#user_invite)."""
+
+    __tablename__ = "user_invite"
+
+    email: Mapped[str] = mapped_column(CITEXT)
+    role: Mapped[AppUserRole] = mapped_column(pg_enum(AppUserRole, "app_user_role"))
+    token_hash: Mapped[str] = mapped_column(unique=True)
+    invited_by: Mapped[uuid.UUID] = fk_uuid("app_user.id")
+    expires_at: Mapped[datetime]
+    accepted_at: Mapped[datetime | None]
+    user_id: Mapped[uuid.UUID | None] = fk_uuid("app_user.id", nullable=True)
     revoked_at: Mapped[datetime | None]

@@ -30,6 +30,13 @@ OVERRIDE_COMPOSE = os.path.join(ROOT, "tests", "acceptance", "docker", "compose.
 WEB_PORT = 8080
 API_BASE_URL = f"http://localhost:{WEB_PORT}/api/v1"
 
+# A second override, for modules (AC-78, AC-79) that need a fresh stack reachable on its own
+# port and a clock file they may advance, without disturbing a stack already running on 8080
+# or the shared clock/now.txt other acceptance modules read (see the file's own docstring).
+INVITES_OVERRIDE_COMPOSE = os.path.join(
+    ROOT, "tests", "acceptance", "docker", "compose.override.invites.yml"
+)
+
 
 def _compose_env() -> dict[str, str]:
     env = dict(os.environ)
@@ -50,12 +57,13 @@ def _compose_env() -> dict[str, str]:
 
 
 def compose(project: str, *args: str, env: dict[str, str] | None = None,
-            check: bool = True, capture: bool = False) -> subprocess.CompletedProcess:
+            check: bool = True, capture: bool = False,
+            overlay: str = OVERRIDE_COMPOSE) -> subprocess.CompletedProcess:
     cmd = [
         "docker", "compose",
         "-p", project,
         "-f", BASE_COMPOSE,
-        "-f", OVERRIDE_COMPOSE,
+        "-f", overlay,
         *args,
     ]
     return subprocess.run(
@@ -110,6 +118,50 @@ def stack(request) -> Iterator[dict]:
         compose(project, "down", "-v", env=env, check=False)
 
 
+INVITES_CLOCK_START = "2026-01-01T00:00:00Z"
+
+
+def set_clock(clock_dir: str, iso_instant: str) -> None:
+    """Advances the clock a module-scoped invites stack reads on every use
+    (docs/architecture/services/worker.md#runtime: `CLOCK_FILE`), so a test can move past
+    `INVITE_TTL_HOURS` without waiting or touching the shared clock/now.txt other acceptance
+    modules read."""
+    with open(os.path.join(clock_dir, "now.txt"), "w", encoding="utf-8") as fh:
+        fh.write(iso_instant + "\n")
+
+
+def _invites_stack(request, api_port: int) -> Iterator[dict]:
+    """A fresh db/api/worker (no `web`: the api implements every route "under /api/v1" itself,
+    docs/architecture/interfaces.md#conventions, so this reaches it directly on `api_port`),
+    `FIXTURE_MODE=replay` with a clock file this module owns and may advance
+    (tests/acceptance/docker/compose.override.invites.yml). A fresh database per test module
+    (docs/guidelines/testing.md#test-independence)."""
+    import tempfile
+
+    project = "lr-qa-" + request.module.__name__.rsplit(".", 1)[-1].replace("_", "-")
+    base_url = f"http://localhost:{api_port}/api/v1"
+    env = _compose_env()
+    with tempfile.TemporaryDirectory(prefix="lr-qa-clock-") as clock_dir:
+        set_clock(clock_dir, INVITES_CLOCK_START)
+        env["INVITES_API_PORT"] = str(api_port)
+        env["INVITES_CLOCK_DIR"] = clock_dir
+        try:
+            compose(
+                project, "up", "-d", "--build", "db", "api", "worker",
+                env=env, overlay=INVITES_OVERRIDE_COMPOSE,
+            )
+            wait_for(
+                lambda: requests.get(f"{base_url}/health", timeout=5).status_code in (200, 503),
+                timeout_s=180,
+                description="the api to answer /health",
+            )
+            yield {
+                "project": project, "base_url": base_url, "env": env, "clock_dir": clock_dir,
+            }
+        finally:
+            compose(project, "down", "-v", env=env, check=False, overlay=INVITES_OVERRIDE_COMPOSE)
+
+
 def db_tables(project: str, env: dict[str, str]) -> set[str]:
     """The base tables of the `public` schema of the running `db` container, queried through
     `psql` (the credentials of compose.yaml's `db` service: user and database `leadradar`) -
@@ -158,15 +210,17 @@ class AuthedClient:
         return requests.patch(url, timeout=kwargs.pop("timeout", 10), headers=headers, **kwargs)
 
 
-def api_get(path: str, client: AuthedClient | None = None, **kwargs) -> requests.Response:
+def api_get(path: str, client: AuthedClient | None = None, base_url: str = API_BASE_URL,
+            **kwargs) -> requests.Response:
     caller = client.get if client is not None else requests.get
-    return caller(f"{API_BASE_URL}{path}", timeout=10, **kwargs)
+    return caller(f"{base_url}{path}", timeout=10, **kwargs)
 
 
 CSRF_HEADER = {"X-Requested-With": "XMLHttpRequest"}
 
 
-def api_post(path: str, client: AuthedClient | None = None, csrf: bool = True, **kwargs) -> requests.Response:
+def api_post(path: str, client: AuthedClient | None = None, csrf: bool = True,
+             base_url: str = API_BASE_URL, **kwargs) -> requests.Response:
     """A POST against the composed stack; carries the `X-Requested-With` CSRF header
     (docs/architecture/interfaces.md#conventions) unless `csrf=False`, so a test that means to
     omit it does so explicitly."""
@@ -174,21 +228,22 @@ def api_post(path: str, client: AuthedClient | None = None, csrf: bool = True, *
     headers = dict(kwargs.pop("headers", {}) or {})
     if csrf:
         headers.update(CSRF_HEADER)
-    return caller(f"{API_BASE_URL}{path}", timeout=10, headers=headers, **kwargs)
+    return caller(f"{base_url}{path}", timeout=10, headers=headers, **kwargs)
 
 
-def api_patch(path: str, client: AuthedClient | None = None, csrf: bool = True, **kwargs) -> requests.Response:
+def api_patch(path: str, client: AuthedClient | None = None, csrf: bool = True,
+              base_url: str = API_BASE_URL, **kwargs) -> requests.Response:
     caller = client.patch if client is not None else requests.patch
     headers = dict(kwargs.pop("headers", {}) or {})
     if csrf:
         headers.update(CSRF_HEADER)
-    return caller(f"{API_BASE_URL}{path}", timeout=10, headers=headers, **kwargs)
+    return caller(f"{base_url}{path}", timeout=10, headers=headers, **kwargs)
 
 
-def login(email: str, password: str) -> tuple[requests.Response, AuthedClient | None]:
+def login(email: str, password: str, base_url: str = API_BASE_URL) -> tuple[requests.Response, AuthedClient | None]:
     """Signs in through `API-01`, without a header the CSRF convention requires, and returns
     the raw response alongside an `AuthedClient` of the cookie it set (`None` on failure)."""
-    response = api_post("/auth/login", json={"email": email, "password": password})
+    response = api_post("/auth/login", json={"email": email, "password": password}, base_url=base_url)
     if response.status_code != 200:
         return response, None
     set_cookie = response.headers.get("Set-Cookie", "")
@@ -206,6 +261,34 @@ def seeded(stack) -> dict:
     calls) is used; nothing here reads how it is implemented."""
     compose(stack["project"], "exec", "-T", "api", "leadradar-seed-demo", env=stack["env"])
     return stack
+
+
+@pytest.fixture(scope="module")
+def invites_stack_78(request) -> Iterator[dict]:
+    """The AC-78 module's own fresh stack, reachable on its own port
+    (tests/acceptance/docker/compose.override.invites.yml)."""
+    yield from _invites_stack(request, api_port=18078)
+
+
+@pytest.fixture(scope="module")
+def invites_stack_79(request) -> Iterator[dict]:
+    """The AC-79 module's own fresh stack, on a different port from AC-78's so both may run at
+    once."""
+    yield from _invites_stack(request, api_port=18079)
+
+
+@pytest.fixture(scope="module")
+def invites_seeded_78(invites_stack_78) -> dict:
+    compose(invites_stack_78["project"], "exec", "-T", "api", "leadradar-seed-demo",
+            env=invites_stack_78["env"], overlay=INVITES_OVERRIDE_COMPOSE)
+    return invites_stack_78
+
+
+@pytest.fixture(scope="module")
+def invites_seeded_79(invites_stack_79) -> dict:
+    compose(invites_stack_79["project"], "exec", "-T", "api", "leadradar-seed-demo",
+            env=invites_stack_79["env"], overlay=INVITES_OVERRIDE_COMPOSE)
+    return invites_stack_79
 
 
 def psql(project: str, env: dict[str, str], user: str, password: str, sql: str) -> subprocess.CompletedProcess:

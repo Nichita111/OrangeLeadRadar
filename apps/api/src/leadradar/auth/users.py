@@ -72,6 +72,24 @@ async def create_user(
 ) -> AppUser:
     """`API-05`. `actor_id` is null when seeding ([Demo dataset](
     /architecture/overview.md#demo-dataset), G4)."""
+    user = await add_user(
+        db, actor_id=actor_id, data=data, now=now, password_min_length=password_min_length
+    )
+    await db.commit()
+    return user
+
+
+async def add_user(
+    db: AsyncSession,
+    *,
+    actor_id: uuid.UUID | None,
+    data: UserCreateData,
+    now: datetime,
+    password_min_length: int,
+    invite_id: uuid.UUID | None = None,
+) -> AppUser:
+    """Adds an active user and its `USER_CREATED` row in the caller's transaction, uncommitted;
+    `invite_id` names the accepted invite (`API-82`)."""
     _require_password_min_length(data.password, password_min_length)
     user = AppUser(
         email=data.email,
@@ -100,9 +118,12 @@ async def create_user(
         actor_id=actor_id,
         entity_type="app_user",
         entity_id=user.id,
-        payload={"role": data.role.value},
+        payload=(
+            {"role": data.role.value}
+            if invite_id is None
+            else {"role": data.role.value, "invite_id": str(invite_id)}
+        ),
     )
-    await db.commit()
     return user
 
 
