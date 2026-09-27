@@ -7,7 +7,6 @@ No I/O.
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 
 # Typographic-to-ASCII character mapping applied before the substring check.
@@ -45,9 +44,37 @@ _TYPOGRAPHIC_MAP: dict[int, str] = {
 
 def _normalise(text: str) -> str:
     """Collapse whitespace and map typographic characters to ASCII equivalents."""
-    text = text.translate(_TYPOGRAPHIC_MAP)
-    text = re.sub(r"\s+", " ", text).strip()
-    return text
+    return _normalise_with_offsets(text)[0]
+
+
+def _normalise_with_offsets(text: str) -> tuple[str, list[int], list[int]]:
+    """The normalised text, and for each of its characters the offset of the original
+    character it comes from and the offset just after it."""
+    chars: list[str] = []
+    starts: list[int] = []
+    ends: list[int] = []
+    for offset, char in enumerate(text):
+        if char.isspace():
+            if chars and chars[-1] == " ":
+                ends[-1] = offset + 1
+            else:
+                chars.append(" ")
+                starts.append(offset)
+                ends.append(offset + 1)
+            continue
+        for mapped in _TYPOGRAPHIC_MAP.get(ord(char), char):
+            chars.append(mapped)
+            starts.append(offset)
+            ends.append(offset + 1)
+    while chars and chars[-1] == " ":
+        chars.pop()
+        starts.pop()
+        ends.pop()
+    while chars and chars[0] == " ":
+        chars.pop(0)
+        starts.pop(0)
+        ends.pop(0)
+    return "".join(chars), starts, ends
 
 
 @dataclass(frozen=True)
@@ -56,6 +83,8 @@ class QuoteValidationResult:
 
     valid: bool
     reason: str | None  # None when valid
+    #: The passage's own text at the matched place; None unless valid.
+    span: str | None = None
 
 
 def validate_quote(
@@ -80,7 +109,7 @@ def validate_quote(
     - ``rationale`` must be at most ``EVIDENCE_MAX_RATIONALE_CHARS`` characters.
     """
     norm_quote = _normalise(quote)
-    norm_passage = _normalise(passage)
+    norm_passage, starts, ends = _normalise_with_offsets(passage)
 
     if len(norm_quote) < evidence_min_quote_chars:
         return QuoteValidationResult(
@@ -92,7 +121,8 @@ def validate_quote(
             valid=False,
             reason=f"quote too long: {len(norm_quote)} > {evidence_max_quote_chars}",
         )
-    if norm_quote not in norm_passage:
+    match = norm_passage.find(norm_quote)
+    if match < 0:
         return QuoteValidationResult(
             valid=False,
             reason="quote is not a substring of the passage after normalisation",
@@ -116,4 +146,5 @@ def validate_quote(
             reason=(f"rationale too long: {len(rationale)} > {evidence_max_rationale_chars}"),
         )
 
-    return QuoteValidationResult(valid=True, reason=None)
+    span = passage[starts[match] : ends[match + len(norm_quote) - 1]]
+    return QuoteValidationResult(valid=True, reason=None, span=span)

@@ -1,11 +1,10 @@
-"""SCORE worker step: recompute account scores for a service.
+"""SCORE worker step: recompute account scores.
 
 [Rescoring](/architecture/rules.md#rescoring),
 [Run lifecycle](/architecture/services/worker.md#run-lifecycle).
 
-For each active account of the run's service: loads in-force findings, feedback and overrides,
+For each account and service in the run's scope: loads in-force findings, feedback and overrides,
 calls `score_account`, applies `rescore_decision`, inserts the new row and fires alerts on change.
-Updates `pipeline_run` stage/progress and writes `RUN_FINISHED` at the end.
 """
 
 from __future__ import annotations
@@ -16,59 +15,72 @@ from datetime import datetime
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from leadradar.audit.events import append_audit_event
 from leadradar.core.enums import (
     AccountScoreBand,
     AccountStatus,
     AlertKind,
-    AuditAction,
     DisqualifierOverrideStatus,
     FindingStatus,
-    PipelineRunStage,
-    PipelineRunStatus,
     ScoringConfigStatus,
+    ServiceStatus,
 )
 from leadradar.core.scoring.alerts import alerts
 from leadradar.core.scoring.breakdown import ScoreInputs, ScoreResult, score_account
 from leadradar.core.scoring.rescore import WriteNewRow, rescore_decision
 from leadradar.core.scoring.settings import ScoringSettings
 from leadradar.db.models.accounts import Account
-from leadradar.db.models.configuration import ScoringConfig
+from leadradar.db.models.configuration import ScoringConfig, Service
 from leadradar.db.models.feedback import LeadFeedback
-from leadradar.db.models.ingestion import Job, PipelineRun
+from leadradar.db.models.ingestion import PipelineRun
 from leadradar.db.models.signals import AccountScore, Alert, DisqualifierOverride, Finding
 
 
 async def run_score_step(
     session: AsyncSession,
     *,
-    job: Job,
     run: PipelineRun,
-    worker_instance_id: str,
     alert_max_age_days: int,
     now: datetime,
 ) -> None:
     """Execute the SCORE step for `run`.
 
-    Loads the ACTIVE scoring config for the run's service; for each active account
-    calls `score_account`, applies `rescore_decision`, and on a change inserts the new
-    score row and creates alerts.
+    Its scope is its run's `account_id` and `service_id` ([Run lifecycle]
+    (/architecture/services/worker.md#run-lifecycle)): the run's account, else every active
+    account, for the run's service, else every active service. Each pair whose service has an
+    `ACTIVE` scoring config is scored with `score_account`, `rescore_decision` is applied, and on
+    a change the new row is inserted and alerts are created. The run's status is settled by the
+    job loop, not here.
     """
-    raw_service_id = run.service_id
-    if raw_service_id is None:
-        raise ValueError(f"SCORE step: run {run.id} has no service_id")
-    service_id: uuid.UUID = raw_service_id
     as_of: datetime = run.started_at or now
-
-    # Load ACTIVE scoring config
-    config = await _load_active_config(session, service_id)
-    if config is None:
-        # No active scoring config — nothing to score
-        await _finish_run(
-            session, run_id=run.id, status=PipelineRunStatus.SUCCEEDED, progress={}, now=now
+    accounts = await _load_active_accounts(session, run.account_id)
+    service_ids = (
+        [run.service_id] if run.service_id is not None else await _load_active_service_ids(session)
+    )
+    for service_id in service_ids:
+        config = await _load_active_config(session, service_id)
+        if config is None:
+            continue
+        await _score_service(
+            session,
+            run_id=run.id,
+            service_id=service_id,
+            config=config,
+            accounts=accounts,
+            as_of=as_of,
+            alert_max_age_days=alert_max_age_days,
         )
-        return
 
+
+async def _score_service(
+    session: AsyncSession,
+    *,
+    run_id: uuid.UUID,
+    service_id: uuid.UUID,
+    config: ScoringConfig,
+    accounts: list[Account],
+    as_of: datetime,
+    alert_max_age_days: int,
+) -> None:
     settings = ScoringSettings.model_validate(config.settings)
     scoring_config_id = str(config.id)
     settings_version = config.version
@@ -76,15 +88,6 @@ async def run_score_step(
 
     # Load question polarity from the question_settings_with_polarity form
     q_polarity_map = await _load_question_polarity(session, service_id, settings)
-
-    # Update run stage
-    await session.execute(
-        update(PipelineRun).where(PipelineRun.id == run.id).values(stage=PipelineRunStage.SCORE)
-    )
-
-    accounts = await _load_active_accounts(session, service_id)
-    scored = 0
-    changed = 0
 
     for account in accounts:
         account_id = account.id
@@ -124,7 +127,7 @@ async def run_score_step(
                 session,
                 account_id=account_id,
                 service_id=service_id,
-                run_id=run.id,
+                run_id=run_id,
                 as_of=as_of,
                 result=decision.result,
                 current_row=current_row,
@@ -154,18 +157,6 @@ async def run_score_step(
                         acknowledged_at=None,
                     )
                 )
-            changed += 1
-
-        scored += 1
-
-    progress: dict[str, object] = {"scored": scored, "changed": changed}
-    await _finish_run(
-        session,
-        run_id=run.id,
-        status=PipelineRunStatus.SUCCEEDED,
-        progress=progress,
-        now=now,
-    )
 
 
 async def _load_active_config(session: AsyncSession, service_id: uuid.UUID) -> ScoringConfig | None:
@@ -209,11 +200,20 @@ async def _load_question_polarity(
     return result_list
 
 
-async def _load_active_accounts(session: AsyncSession, service_id: uuid.UUID) -> list[Account]:
-    """Load all ACTIVE accounts. (For RESCORE, service_id scoping is via the scoring config.)"""
+async def _load_active_accounts(
+    session: AsyncSession, account_id: uuid.UUID | None
+) -> list[Account]:
+    """The ACTIVE account of the run, or every ACTIVE account when the run names none."""
     stmt = select(Account).where(Account.status == AccountStatus.ACTIVE)
+    if account_id is not None:
+        stmt = stmt.where(Account.id == account_id)
     result = await session.execute(stmt)
     return list(result.scalars().all())
+
+
+async def _load_active_service_ids(session: AsyncSession) -> list[uuid.UUID]:
+    stmt = select(Service.id).where(Service.status == ServiceStatus.ACTIVE)
+    return list((await session.execute(stmt)).scalars())
 
 
 async def _load_inforce_findings(
@@ -391,34 +391,3 @@ def _get_band(current_row: dict[str, object] | None) -> AccountScoreBand | None:
         return AccountScoreBand(str(band_str))
     except ValueError:
         return None
-
-
-async def _finish_run(
-    session: AsyncSession,
-    *,
-    run_id: uuid.UUID,
-    status: PipelineRunStatus,
-    progress: dict[str, object],
-    now: datetime,
-) -> None:
-    """Set the pipeline_run finished status and write RUN_FINISHED audit."""
-    await session.execute(
-        update(PipelineRun)
-        .where(PipelineRun.id == run_id)
-        .values(
-            status=status,
-            finished_at=now,
-            progress=progress,
-        )
-    )
-    await append_audit_event(
-        session,
-        action=AuditAction.RUN_FINISHED,
-        occurred_at=now,
-        actor_id=None,
-        entity_type="pipeline_run",
-        entity_id=run_id,
-        run_id=run_id,
-        payload={"status": status.value, "progress": progress},
-    )
-    await session.flush()

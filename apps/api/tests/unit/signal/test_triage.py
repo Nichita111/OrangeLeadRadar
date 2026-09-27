@@ -162,3 +162,11 @@ class TestRelevance:
             triage_relevance_min_p=RELEVANCE_MIN,
         )
         assert result.outcome is DocumentTriageOutcome.IRRELEVANT
+
+
+def test_own_sources_are_the_account_s_pages_and_crunchbase() -> None:
+    from leadradar.core.signal.triage import is_own_source
+
+    own = {"WEBSITE", "RSS", "CAREERS", "CRUNCHBASE"}
+    assert {code for code in own if is_own_source(code)} == own
+    assert not any(is_own_source(code) for code in ("GDELT", "NEWSAPI", "SERPAPI"))

@@ -60,7 +60,7 @@ stateDiagram-v2
 
 | Kind | Stages, in order | Jobs |
 |---|---|---|
-| `ACCOUNT_REFRESH` | `FETCH` → `PROCESS` → `TRIAGE` → `CLASSIFY` → `EVIDENCE` → `SCORE` | one `FETCH` per available plug-in; `PROCESS` per batch of fetched documents; `SIGNAL` per batch of the account's documents with pending work — newly processed documents, kept documents whose selected passages lack a classification at a current revision, `PENDING_LLM` pairs, and `EVIDENCE_FAILED` pairs whose `evidence_retried` is false — covering triage, classification and evidence; one `SCORE` for all active services |
+| `ACCOUNT_REFRESH` | `FETCH` → `PROCESS` → `TRIAGE` → `CLASSIFY` → `EVIDENCE` → `SCORE` | one `FETCH` per available plug-in; `PROCESS` per batch of fetched documents; `SIGNAL` per batch of the account's documents with pending work — processed documents not yet triaged — non-duplicate, not purged, every passage embedded —, kept documents whose selected passages lack a classification at a current revision, `PENDING_LLM` pairs, and `EVIDENCE_FAILED` pairs whose `evidence_retried` is false — covering triage, classification and evidence; one `SCORE` for all active services |
 | `RECLASSIFY` | `TRIAGE` → `CLASSIFY` → `EVIDENCE` → `SCORE` | `SIGNAL` per batch of the service's documents; one `SCORE` for the service |
 | `RESCORE` | `SCORE` | one `SCORE` |
 | `DISCOVERY` | `FETCH` → `TRIAGE` → `SCORE` | one `DISCOVER` per available discovery source; the last one ranks and caps candidates |
@@ -103,6 +103,8 @@ flowchart TD
 ```
 
 The graph's state holds identifiers and passage texts of one batch. Each node writes its results before the next runs, so an interrupted job resumes from what is recorded; the graph keeps no checkpoint of its own. Classification and escalation of different passages run concurrently up to `AI_CONCURRENCY`.
+
+An escalation or evidence call that fails with `UPSTREAM_UNAVAILABLE` leaves its pair `PENDING_LLM`, and the job adds one entry `{stage EVIDENCE, code UPSTREAM_UNAVAILABLE}` to its run's `errors`, so the run ends `PARTIAL`; an unavailable classifier or a missing recording fails the job.
 
 ### AI gateway
 

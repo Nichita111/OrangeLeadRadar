@@ -8,19 +8,18 @@ the end, and the step's own transactions are savepoints inside it."""
 
 from __future__ import annotations
 
-import json
 import uuid
-from collections.abc import AsyncIterator, Callable
-from datetime import UTC, datetime, timedelta
+from collections.abc import AsyncIterator
+from datetime import timedelta
 from typing import Any, cast
 
-import httpx
 import pytest
 from pydantic import SecretStr
 from sqlalchemy import Connection, select, update
-from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncConnection
 
 from leadradar.core.enums import (
+    ClassificationStatus,
     JobStatus,
     JobStep,
     PipelineRunKind,
@@ -29,55 +28,15 @@ from leadradar.core.enums import (
 )
 from leadradar.core.job_queue import job_priority
 from leadradar.db.models.ingestion import Chunk, Document, Job, PipelineRun
+from leadradar.db.models.signals import Classification
 from leadradar.worker.loop import process_next_job
 from leadradar.worker.settings import WorkerSettings
 from leadradar.worker.steps import STEP_HANDLERS, StepContext, StepHandler
 from leadradar.worker.steps.passage_selection import keyword_ranking
 from tests.integration import factories as f
+from tests.integration.pipeline_doubles import T0, Clock, Embedder, session_factory, vec
 
 pytestmark = pytest.mark.integration
-
-T0 = datetime(2026, 9, 26, 12, 0, tzinfo=UTC)
-DIM = 1024
-
-
-def vec(*head: float) -> list[float]:
-    return [*head, *([0.0] * (DIM - len(head)))]
-
-
-class Clock:
-    def __init__(self) -> None:
-        self.now = T0
-
-    def __call__(self) -> datetime:
-        return self.now
-
-
-class Embedder:
-    """`API-67`: a vector per text from `known`, else a one-hot vector unique to the text;
-    answers `503` once `fail_from_call` calls were made."""
-
-    def __init__(self, known: dict[str, list[float]] | None = None) -> None:
-        self.known = known or {}
-        self.calls: list[list[str]] = []
-        self.fail_from_call: int | None = None
-        self._unique: dict[str, int] = {}
-
-    def __call__(self, request: httpx.Request) -> httpx.Response:
-        texts: list[str] = json.loads(request.content)["inputs"]
-        if self.fail_from_call is not None and len(self.calls) >= self.fail_from_call:
-            return httpx.Response(503)
-        self.calls.append(texts)
-        vectors = []
-        for text in texts:
-            if text not in self.known:
-                index = self._unique.setdefault(text, len(self._unique))
-                self.known[text] = vec(*([0.0] * (10 + index)), 1.0)
-            vectors.append(self.known[text])
-        return httpx.Response(200, json=vectors)
-
-    def client(self) -> httpx.AsyncClient:
-        return httpx.AsyncClient(transport=httpx.MockTransport(self))
 
 
 def settings(**overrides: Any) -> WorkerSettings:
@@ -99,15 +58,6 @@ async def connection(async_connection: AsyncConnection) -> AsyncIterator[AsyncCo
         .values(status=JobStatus.CANCELLED)
     )
     yield async_connection
-
-
-def session_factory(connection: AsyncConnection) -> Callable[[], AsyncSession]:
-    def make() -> AsyncSession:
-        return AsyncSession(
-            bind=connection, join_transaction_mode="create_savepoint", expire_on_commit=False
-        )
-
-    return make
 
 
 async def _succeed(context: StepContext) -> None:
@@ -385,6 +335,7 @@ async def test_a_run_of_only_duplicates_enqueues_no_signal_and_the_loop_owes_sco
     await connection.execute(
         update(Chunk).where(Chunk.document_id == original).values(embedding=vec(1.0))
     )
+    await connection.run_sync(lambda c: f.make_document_triage(c, original))
     await add_document(
         connection, account_id, run_id, ["same"], published_at=T0 - timedelta(days=1)
     )
@@ -420,3 +371,62 @@ async def test_the_keyword_ranking_orders_phrase_matches_by_rank_and_is_empty_wi
 
     assert ranking == [2, 1]
     assert empty == []
+
+
+async def test_signal_is_enqueued_for_an_untriaged_document_of_an_earlier_run_and_not_once_triaged(
+    connection: AsyncConnection,
+) -> None:
+    account_id, run_id = await account_with_run(connection)
+    earlier_run = await connection.run_sync(
+        lambda c: f.make_pipeline_run(c, account_id=account_id, status=PipelineRunStatus.SUCCEEDED)
+    )
+    document = await add_document(connection, account_id, earlier_run, ["waiting"])
+    await connection.execute(
+        update(Chunk).where(Chunk.document_id == document).values(embedding=vec(1.0))
+    )
+
+    await drain(connection, Embedder(), settings(), Clock())
+    assert JobStep.SIGNAL in [s for s, _ in await steps_of(connection, run_id)]
+
+    # The document is now triaged: nothing is left to do.
+    def settle(conn: Connection) -> uuid.UUID:
+        f.make_document_triage(conn, document)
+        return f.make_pipeline_run(conn, account_id=account_id)
+
+    second_run = await connection.run_sync(settle)
+    await connection.run_sync(
+        lambda c: f.make_job(c, second_run, step=JobStep.PROCESS, not_before=T0, priority=7)
+    )
+    await drain(connection, Embedder(), settings(), Clock())
+    assert JobStep.SIGNAL not in [s for s, _ in await steps_of(connection, second_run)]
+
+
+async def test_signal_is_enqueued_for_a_pair_waiting_for_the_llm_and_not_for_a_retried_one(
+    connection: AsyncConnection,
+) -> None:
+    account_id, run_id = await account_with_run(connection)
+
+    def arrange(conn: Connection) -> None:
+        earlier = f.make_pipeline_run(
+            conn, account_id=account_id, status=PipelineRunStatus.SUCCEEDED
+        )
+        document = f.make_document(conn, earlier, account_id=account_id)
+        f.make_document_triage(conn, document)
+        chunk = f.make_chunk(conn, document, embedding=vec(1.0))
+        question = f.make_signal_question(conn, f.make_service(conn))
+        f.make_classification(
+            conn, chunk, question, earlier, status=ClassificationStatus.EVIDENCE_FAILED
+        )
+
+    await connection.run_sync(arrange)
+
+    await drain(connection, Embedder(), settings(), Clock())
+    assert JobStep.SIGNAL in [s for s, _ in await steps_of(connection, run_id)]
+
+    await connection.execute(update(Classification).values(evidence_retried=True))
+    second_run = await connection.run_sync(lambda c: f.make_pipeline_run(c, account_id=account_id))
+    await connection.run_sync(
+        lambda c: f.make_job(c, second_run, step=JobStep.PROCESS, not_before=T0, priority=7)
+    )
+    await drain(connection, Embedder(), settings(), Clock())
+    assert JobStep.SIGNAL not in [s for s, _ in await steps_of(connection, second_run)]

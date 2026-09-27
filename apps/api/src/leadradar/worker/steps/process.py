@@ -20,6 +20,7 @@ from leadradar.core.job_queue import job_priority
 from leadradar.db.models.ingestion import Chunk, Document, Job
 from leadradar.runs.enqueue import add_job
 from leadradar.worker.steps import StepContext, StepFailed
+from leadradar.worker.steps.signal import has_pending_signal_work
 
 _FIRST_PASSAGE = 0
 
@@ -131,9 +132,10 @@ async def _mark_near_duplicates(context: StepContext) -> None:
 async def _enqueue_signal(context: StepContext) -> None:
     session = context.session
     run_id = context.job.run_id
-    has_work = await session.scalar(
-        select(exists().where(Document.run_id == run_id, Document.duplicate_of_id.is_(None)))
-    )
+    account_id = context.job.account_id
+    if account_id is None:
+        raise ValueError(f"PROCESS step: run {run_id} has no account_id")
+    has_work = await has_pending_signal_work(session, account_id)
     already = await session.scalar(
         select(exists().where(Job.run_id == run_id, Job.step == JobStep.SIGNAL))
     )
@@ -149,8 +151,8 @@ async def _enqueue_signal(context: StepContext) -> None:
 
 
 async def run_process_step(context: StepContext) -> None:
-    """Embeds the passages of the job's run, marks its near duplicates and, when a document
-    is left to triage, enqueues its `SIGNAL` job."""
+    """Embeds the passages of the job's run, marks its near duplicates and, when the account has a
+    document to triage or a pair waiting for the LLM, enqueues its `SIGNAL` job."""
     await _embed_passages(context)
     await _mark_near_duplicates(context)
     await _enqueue_signal(context)

@@ -100,12 +100,9 @@ async def _run_signal(context: StepContext) -> None:
         context.session,
         job=job,
         run=run,
-        worker_instance_id=str(context.job.id),
-        alert_max_age_days=context.settings.alert_max_age_days,
         settings=context.settings,
         gateway=context.gateway,
         embedder=context.embedder,
-        now=context.now,
     )
 
 
@@ -113,12 +110,10 @@ async def _run_score(context: StepContext) -> None:
     """Adapts `run_score_step`, which takes the job and run rows, to the handler shape."""
     from leadradar.worker.steps.score import run_score_step
 
-    job, run = await _load_job_and_run(context)
+    _, run = await _load_job_and_run(context)
     await run_score_step(
         context.session,
-        job=job,
         run=run,
-        worker_instance_id=str(context.job.id),
         alert_max_age_days=context.settings.alert_max_age_days,
         now=context.now,
     )

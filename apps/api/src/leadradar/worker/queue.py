@@ -146,6 +146,17 @@ async def add_run_progress(
     await session.flush()
 
 
+async def add_run_error(
+    session: AsyncSession, *, job_id: uuid.UUID, run_id: uuid.UUID, error: Mapping[str, object]
+) -> None:
+    """Appends `error` to the run's `errors`. Locks the job row before the run row, as this
+    module requires; does not commit."""
+    await session.get(Job, job_id, with_for_update=True)
+    run = await _lock_run(session, run_id)
+    run.errors = [*run.errors, dict(error)]
+    await session.flush()
+
+
 async def _finish_job(
     session: AsyncSession, job: ClaimedJob, *, worker_id: str, values: dict[str, object]
 ) -> None:

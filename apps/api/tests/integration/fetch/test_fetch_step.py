@@ -9,21 +9,17 @@ the step's own transactions are savepoints inside it."""
 
 from __future__ import annotations
 
-import json
 import uuid
-from collections.abc import AsyncIterator, Callable, Sequence
+from collections.abc import AsyncIterator, Sequence
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, urlsplit
 
-import httpx
 import pytest
 from pydantic import SecretStr
 from sqlalchemy import Connection, delete, insert, select, update
-from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncConnection
 
-from leadradar.ai.settings import FixtureMode
 from leadradar.core.enums import (
     AccountSourceKind,
     AccountSourceOrigin,
@@ -45,16 +41,24 @@ from leadradar.db.models.ingestion import (
     PluginUsage,
     SourcePlugin,
 )
-from leadradar.plugins.http import CrawlHttpClient
 from leadradar.worker.loop import process_next_job
 from leadradar.worker.settings import WorkerSettings
 from leadradar.worker.steps import STEP_HANDLERS, StepContext, StepHandler
 from tests.integration import factories as f
+from tests.integration.pipeline_doubles import (
+    GDELT_SEARCH,
+    T0,
+    Clock,
+    Web,
+    feed,
+    gdelt_articles,
+    html,
+    install_web,
+    session_factory,
+)
 
 pytestmark = pytest.mark.integration
 
-T0 = datetime(2026, 9, 26, 12, 0, tzinfo=UTC)
-GDELT_SEARCH = "https://api.gdeltproject.org/api/v2/doc/doc"
 FREE_PLUGINS = (
     SourcePluginCode.GDELT,
     SourcePluginCode.RSS,
@@ -63,118 +67,9 @@ FREE_PLUGINS = (
 )
 
 
-class Clock:
-    def __init__(self) -> None:
-        self.now = T0
-
-    def __call__(self) -> datetime:
-        return self.now
-
-
-class Web:
-    """The provider side: routes by URL prefix, and every request it received."""
-
-    def __init__(self) -> None:
-        self.routes: list[tuple[str, int, str, bytes]] = []
-        self.requests: list[httpx.Request] = []
-
-    def add(
-        self, prefix: str, content: str | bytes | object, *, status: int = 200, kind: str = "html"
-    ) -> None:
-        content_type = {"html": "text/html", "json": "application/json", "xml": "text/xml"}[kind]
-        body = (
-            content
-            if isinstance(content, bytes)
-            else content.encode()
-            if isinstance(content, str)
-            else json.dumps(content).encode()
-        )
-        self.routes.append((prefix, status, content_type, body))
-
-    def __call__(self, request: httpx.Request) -> httpx.Response:
-        self.requests.append(request)
-        if request.url.path == "/robots.txt":
-            return httpx.Response(200, text="")
-        for prefix, status, content_type, body in self.routes:
-            if str(request.url).startswith(prefix):
-                return httpx.Response(status, headers={"content-type": content_type}, content=body)
-        return httpx.Response(404, text="not found")
-
-    @property
-    def pages(self) -> list[httpx.Request]:
-        return [request for request in self.requests if request.url.path != "/robots.txt"]
-
-    def searches(self) -> list[dict[str, list[str]]]:
-        return [
-            parse_qs(urlsplit(str(request.url)).query)
-            for request in self.pages
-            if str(request.url).startswith(GDELT_SEARCH)
-        ]
-
-
-def html(topic: str, links: Sequence[str] = ()) -> str:
-    sentence = f"{topic} announced a new logistics hub this quarter and hired more staff. "
-    paragraphs = "".join(f"<p>{sentence}Detail {index} about {topic}.</p>" for index in range(6))
-    anchors = "".join(f'<a href="{link}">more</a>' for link in links)
-    return (
-        f"<html><head><title>{topic}</title></head><body><article><h1>{topic}</h1>"
-        f"{paragraphs}{anchors}</article></body></html>"
-    )
-
-
-def gdelt_articles(urls: Sequence[str]) -> dict[str, Any]:
-    return {
-        "articles": [
-            {"url": url, "title": f"Article {index}", "seendate": f"202609{20 - index:02d}T100000Z"}
-            for index, url in enumerate(urls)
-        ]
-    }
-
-
-def feed(entries: Sequence[tuple[str, str | None]]) -> str:
-    items = "".join(
-        f"<item><title>{link}</title><link>{link}</link>"
-        "<pubDate>Sun, 20 Sep 2026 10:00:00 GMT</pubDate>"
-        + (f"<description><![CDATA[{text}]]></description>" if text else "")
-        + "</item>"
-        for link, text in entries
-    )
-    return (
-        '<?xml version="1.0"?><rss version="2.0"><channel><title>Feed</title>'
-        f"{items}</channel></rss>"
-    )
-
-
 @pytest.fixture
 def web(monkeypatch: pytest.MonkeyPatch) -> Web:
-    server = Web()
-
-    def build(
-        *,
-        adapter: str,
-        user_agent: str,
-        host_delay_ms: int,
-        min_interval_ms: int,
-        requests_allowed: int | None,
-        timeout_s: float,
-        clock: Callable[[], datetime],
-        fixture_mode: FixtureMode,
-        fixture_dir: Path,
-    ) -> CrawlHttpClient:
-        return CrawlHttpClient(
-            adapter=adapter,
-            user_agent=user_agent,
-            host_delay_ms=host_delay_ms,
-            min_interval_ms=min_interval_ms,
-            requests_allowed=requests_allowed,
-            timeout_s=timeout_s,
-            clock=clock,
-            http=httpx.AsyncClient(transport=httpx.MockTransport(server)),
-            skip_pacing=True,
-        )
-
-    monkeypatch.setattr("leadradar.worker.steps.fetch.build_crawl_client", build)
-    return server
+    return install_web(monkeypatch)
 
 
 def settings(**overrides: Any) -> WorkerSettings:
@@ -197,15 +92,6 @@ async def connection(async_connection: AsyncConnection) -> AsyncIterator[AsyncCo
     )
     await async_connection.execute(delete(SourcePlugin))
     yield async_connection
-
-
-def session_factory(connection: AsyncConnection) -> Callable[[], AsyncSession]:
-    def make() -> AsyncSession:
-        return AsyncSession(
-            bind=connection, join_transaction_mode="create_savepoint", expire_on_commit=False
-        )
-
-    return make
 
 
 async def _succeed(context: StepContext) -> None:

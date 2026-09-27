@@ -121,3 +121,37 @@ class TestQuoteEn:
     def test_lang_en_gb_is_treated_as_english(self) -> None:
         """lang starting with 'en' (e.g. 'en-GB') is treated as English."""
         assert _valid(lang="en-GB", quote_en=None)
+
+
+class TestSpan:
+    def _result(self, **overrides: object) -> Any:
+        kwargs: dict[str, Any] = dict(
+            quote=QUOTE,
+            passage=PASSAGE,
+            lang="en",
+            quote_en=None,
+            rationale=RATIONALE,
+            evidence_min_quote_chars=MIN_Q,
+            evidence_max_quote_chars=MAX_Q,
+            evidence_max_rationale_chars=MAX_R,
+        )
+        kwargs.update(overrides)
+        return validate_quote(**kwargs)
+
+    def test_span_is_the_passage_text_at_the_match(self) -> None:
+        passage = "Intro. The company’s\n  programme — EUR 500m… goes on."
+        result = self._result(
+            quote="The company's programme - EUR 500m...", passage=passage, rationale="ok"
+        )
+        assert result.valid
+        assert result.span == "The company’s\n  programme — EUR 500m…"
+
+    def test_span_of_a_quote_at_the_minimum_and_maximum_length(self) -> None:
+        low = self._result(quote="A" * MIN_Q, passage="x " + "A" * MIN_Q + " y", rationale="ok")
+        high = self._result(quote="Y" * MAX_Q, passage="Y" * MAX_Q + " Z", rationale="ok")
+        assert low.span == "A" * MIN_Q
+        assert high.span == "Y" * MAX_Q
+
+    def test_an_invalid_result_has_no_span(self) -> None:
+        assert self._result(quote="This text does not appear in the passage at all").span is None
+        assert self._result(lang="de", quote_en=None).span is None

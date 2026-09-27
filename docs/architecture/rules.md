@@ -169,7 +169,7 @@ flowchart LR
 
 - `p_positive ≥ ESCALATION_UPPER`: the classifier's answer is accepted as positive with its candidate strength, `decided_by = CLASSIFIER` and `confidence = p_positive`; go to [Evidence extraction](#evidence-extraction).
 - `p_positive ≤ ESCALATION_LOWER`: `NEGATIVE`, strength `NONE`.
-- Otherwise `escalated = true`: the [LLM escalate](/architecture/interfaces.md#llm) call answers the same question on the same passage with a strength (including `NONE`), a confidence and, when positive, the quote, translation and rationale in the same call. Strength `NONE` → `NEGATIVE`. Otherwise the quote is validated as in [Evidence extraction](#evidence-extraction) and the finding carries `decided_by = LLM` and the LLM's confidence.
+- Otherwise `escalated = true`: the [LLM escalate](/architecture/interfaces.md#llm) call answers the same question on the same passage with a strength (including `NONE`), a confidence and, when positive, the quote, translation and rationale in the same call. Strength `NONE` → `NEGATIVE`. Otherwise the output is validated, and an invalid one requested again, as in [Evidence extraction](#evidence-extraction) and the finding carries `decided_by = LLM` and the LLM's confidence.
 - An LLM step that the [Budget guard](#budget-guard) stops, or whose provider is unavailable, leaves the classification `PENDING_LLM`; the next refresh of the account resumes it.
 
 The same band applies whichever classifier adapter is configured ([ADR-02](/architecture/adrs/adr-02-classification-cascade.md)).
@@ -186,7 +186,7 @@ The same band applies whichever classifier adapter is configured ([ADR-02](/arch
 - `quote_en` is present when the document language is not `en`, and absent otherwise;
 - `rationale` is one sentence of at most `EVIDENCE_MAX_RATIONALE_CHARS` characters.
 
-An invalid output is requested again, up to `EVIDENCE_MAX_ATTEMPTS` attempts in total; after that the classification is `EVIDENCE_FAILED` and no finding is created. The account's next refresh retries an `EVIDENCE_FAILED` pair once more and sets its `evidence_retried`; a pair that fails again is not retried.
+An invalid output is requested again, up to `EVIDENCE_MAX_ATTEMPTS` attempts in total; after that the classification is `EVIDENCE_FAILED` and no finding is created. The account's next refresh retries an `EVIDENCE_FAILED` pair once more — by escalation when it was escalated, else by evidence extraction at its candidate strength, again up to `EVIDENCE_MAX_ATTEMPTS` attempts — and sets its `evidence_retried`; a pair that fails again is not retried.
 
 **After.** One [`finding`](/architecture/sql-store.md#finding) with the strength, confidence, `decided_by`, the quote as the passage writes it at the matched span, translation, rationale, `observed_at` = the document's `published_at`, else its `fetched_at`, and status `ACTIVE`.
 
