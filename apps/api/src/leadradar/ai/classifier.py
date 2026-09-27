@@ -87,10 +87,14 @@ def _jev_probabilities(question: ClassifierQuestion, answer: object) -> dict[str
         positions = {str(index): key for index, key in enumerate(keys)}
         if set(raw) == set(positions):
             raw = {positions[position]: value for position, value in raw.items()}
-    return {
+    probabilities = {
         key: as_probability(value, f"probability of {key} for {question.id}")
         for key, value in raw.items()
     }
+    if set(probabilities) != set(keys):
+        return probabilities  # over other answer values: `validate_answers` rejects it
+    # Jev rounds each probability to two decimals, so their sum may miss 1 by a few hundredths.
+    return _normalised(question, probabilities)
 
 
 @dataclass(frozen=True)

@@ -1,19 +1,19 @@
 """The `PROCESS` step ([Chunking and passage selection]
 (/architecture/rules.md#chunking-and-passage-selection), [Document normalisation]
 (/architecture/rules.md#document-normalisation) step 6): embeds every passage of the run's
-documents, marks near duplicates by first-passage similarity, classifies the account's
-operational complexity when it is still unknown ([Account attributes]
-(/architecture/rules.md#account-attributes)), and enqueues the run's `SIGNAL` job. Embeddings are
-committed batch by batch outside the step's transaction, so a retry or a reclaimed job resumes
-with the passages still without one. A failed classification does not fail the step: it adds one
-entry to the run's `errors` and the step continues (G2), so the run ends `PARTIAL`; there is no
-retry of that call and no `RESCORE` is enqueued for it."""
+documents and of the account's earlier documents left without embeddings, marks near duplicates
+by first-passage similarity, classifies the account's operational complexity when it is still
+unknown ([Account attributes](/architecture/rules.md#account-attributes)), and enqueues the run's
+`SIGNAL` job. Embeddings are committed batch by batch outside the step's transaction, so a retry
+or a reclaimed job resumes with the passages still without one. A failed classification does not
+fail the step: it adds one entry to the run's `errors` and the step continues (G2), so the run
+ends `PARTIAL`; there is no retry of that call and no `RESCORE` is enqueued for it."""
 
 from __future__ import annotations
 
 from datetime import timedelta
 
-from sqlalchemy import ColumnElement, exists, func, select, update
+from sqlalchemy import ColumnElement, and_, exists, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from leadradar.accounts.attributes import (
@@ -30,6 +30,7 @@ from leadradar.core.enums import AccountSourceKind, AccountSourceStatus, JobStep
 from leadradar.core.job_queue import job_priority
 from leadradar.db.models.accounts import Account, AccountSource
 from leadradar.db.models.ingestion import Chunk, Document, Job
+from leadradar.db.models.signals import DocumentTriage
 from leadradar.runs.enqueue import add_job
 from leadradar.worker.queue import add_run_error
 from leadradar.worker.steps import StepContext, StepFailed
@@ -37,6 +38,21 @@ from leadradar.worker.steps.signal import has_pending_signal_work
 
 _FIRST_PASSAGE = 0
 _ComplexityError = UpstreamUnavailable | BudgetExhausted | FixtureMissing
+
+
+def _processed_documents(context: StepContext) -> ColumnElement[bool]:
+    """The documents a `PROCESS` job covers ([Run lifecycle]
+    (/architecture/services/worker.md#run-lifecycle)): its run's, and the account's earlier
+    documents, not purged, not yet triaged - so those whose own `PROCESS` failed and whose
+    passages still lack an embedding. A triaged document has every passage embedded already."""
+    return or_(
+        Document.run_id == context.job.run_id,
+        and_(
+            Document.account_id == context.job.account_id,
+            Document.purged_at.is_(None),
+            ~exists().where(DocumentTriage.document_id == Document.id),
+        ),
+    )
 
 
 async def _embed_passages(context: StepContext) -> None:
@@ -51,7 +67,7 @@ async def _embed_passages(context: StepContext) -> None:
                     select(Chunk.id, Chunk.text)
                     .join(Document, Document.id == Chunk.document_id)
                     .where(
-                        Document.run_id == context.job.run_id,
+                        _processed_documents(context),
                         Chunk.embedding.is_(None),
                         Chunk.text.is_not(None),
                     )
@@ -114,7 +130,7 @@ async def _mark_near_duplicates(context: StepContext) -> None:
     session = context.session
     account_id = context.job.account_id
     settings = context.settings
-    run_documents = await _first_passages(session, Document.run_id == context.job.run_id)
+    run_documents = await _first_passages(session, _processed_documents(context))
     if not run_documents:
         return
     window = timedelta(days=settings.near_duplicate_window_days)
@@ -245,9 +261,9 @@ async def _enqueue_signal(context: StepContext) -> None:
 
 
 async def run_process_step(context: StepContext) -> None:
-    """Embeds the passages of the job's run, marks its near duplicates, classifies the account's
-    operational complexity when it is still unknown, and, when the account has a document to
-    triage or a pair waiting for the LLM, enqueues its `SIGNAL` job."""
+    """Embeds the passages of the documents the job covers, marks their near duplicates,
+    classifies the account's operational complexity when it is still unknown, and, when the
+    account has a document to triage or a pair waiting for the LLM, enqueues its `SIGNAL` job."""
     await _embed_passages(context)
     await _mark_near_duplicates(context)
     await _classify_operational_complexity(context)

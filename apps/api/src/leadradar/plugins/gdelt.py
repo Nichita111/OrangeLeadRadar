@@ -14,10 +14,9 @@ from datetime import UTC, datetime
 from urllib.parse import urlencode
 
 from leadradar.core.crawl_pacing import seconds_to_wait
-from leadradar.core.document_normalisation import ContentType
 from leadradar.core.enums import DocumentSourceType, SourcePluginCode
 from leadradar.plugins.errors import PluginFetchFailed
-from leadradar.plugins.http import CrawlHttpClient, RobotsDisallowed
+from leadradar.plugins.http import CrawlHttpClient, RobotsDisallowed, fetched_content_type
 from leadradar.plugins.shapes import FetchContext, RawItem
 
 logger = logging.getLogger(__name__)
@@ -111,9 +110,9 @@ class GdeltPlugin:
             except (RobotsDisallowed, PluginFetchFailed) as error:
                 logger.info("GDELT article skipped: %s", error)
                 continue
-            if not response.is_success:
+            content_type = fetched_content_type(response)
+            if not response.is_success or content_type is None:
                 continue
-            content_type: ContentType = "PDF" if url.lower().endswith(".pdf") else "HTML"
             items.append(
                 RawItem(
                     url=url,

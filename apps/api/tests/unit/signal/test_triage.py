@@ -3,17 +3,20 @@
 Covers the unit test row in the design:
   - Keeps a document only for services at or above ``TRIAGE_RELEVANCE_MIN_P``
   - ``NOT_ABOUT_ACCOUNT`` below ``TRIAGE_ABOUT_MIN_P``
-  - ``ABOUT_ACCOUNT`` skipped for own-source/CAREERS/CRUNCHBASE (no ``about_account_p``)
+  - ``ABOUT_ACCOUNT`` skipped for own-source/CRUNCHBASE (no ``about_account_p``); a CAREERS
+    document is asked whether it is a job posting instead
 """
 
 from __future__ import annotations
 
 import pytest
 
-from leadradar.core.enums import DocumentTriageOutcome
+from leadradar.core.enums import DocumentTriageOutcome, SourcePluginCode
 from leadradar.core.signal.triage import (
     ABOUT_ACCOUNT_QUESTION_ID,
     RELEVANT_QUESTION_PREFIX,
+    about_account_question,
+    is_own_source,
     kept_for_service,
     triage,
 )
@@ -186,6 +189,45 @@ class TestRelevance:
 def test_own_sources_are_the_account_s_pages_and_crunchbase() -> None:
     from leadradar.core.signal.triage import is_own_source
 
-    own = {"WEBSITE", "RSS", "CAREERS", "CRUNCHBASE"}
+    own = {"WEBSITE", "RSS", "CRUNCHBASE"}
     assert {code for code in own if is_own_source(code)} == own
-    assert not any(is_own_source(code) for code in ("GDELT", "NEWSAPI", "SERPAPI"))
+    assert not any(is_own_source(code) for code in ("CAREERS", "GDELT", "NEWSAPI", "SERPAPI"))
+
+
+class TestAboutAccountQuestion:
+    """The `ABOUT_ACCOUNT` question each source gets."""
+
+    def _question(self, plugin_code: SourcePluginCode) -> str | None:
+        return about_account_question(
+            plugin_code, name="Siemens", domain="siemens.com", country="DE"
+        )
+
+    def test_a_third_party_document_is_asked_whether_it_is_mainly_about_the_account(self) -> None:
+        assert self._question(SourcePluginCode.GDELT) == (
+            "Is this text mainly about Siemens (siemens.com, DE), not a different company with a"
+            " similar name and not a passing mention?"
+        )
+
+    @pytest.mark.parametrize("plugin_code", [SourcePluginCode.WEBSITE, SourcePluginCode.CRUNCHBASE])
+    def test_an_own_source_or_crunchbase_document_is_not_asked(
+        self, plugin_code: SourcePluginCode
+    ) -> None:
+        assert self._question(plugin_code) is None
+        assert is_own_source(plugin_code)
+
+    def test_a_careers_document_is_asked_whether_it_is_a_job_posting(self) -> None:
+        assert self._question(SourcePluginCode.CAREERS) == (
+            "Is this text one or more job postings of Siemens (siemens.com, DE), not a sign-in,"
+            " account or other page of the careers site?"
+        )
+        assert not is_own_source(SourcePluginCode.CAREERS)
+
+    def test_a_careers_page_that_is_not_a_posting_is_not_about_the_account(self) -> None:
+        result = triage(
+            is_own_source=is_own_source(SourcePluginCode.CAREERS),
+            service_ids=[SVC_A],
+            answers=_answers(about_p=0.05, svc_a_p=0.9),
+            triage_about_min_p=ABOUT_MIN,
+            triage_relevance_min_p=RELEVANCE_MIN,
+        )
+        assert result.outcome is DocumentTriageOutcome.NOT_ABOUT_ACCOUNT

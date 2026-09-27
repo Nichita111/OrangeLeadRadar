@@ -89,7 +89,12 @@ class Web:
         kind: str = "html",
         headers: dict[str, str] | None = None,
     ) -> None:
-        content_type = {"html": "text/html", "json": "application/json", "xml": "text/xml"}[kind]
+        content_type = {
+            "html": "text/html",
+            "json": "application/json",
+            "xml": "text/xml",
+            "png": "image/png",
+        }[kind]
         body = (
             content
             if isinstance(content, bytes)

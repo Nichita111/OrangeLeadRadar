@@ -141,11 +141,16 @@ async def test_process_embeds_every_passage_of_its_run_in_batches_and_enqueues_s
     connection: AsyncConnection,
 ) -> None:
     account_id, run_id = await account_with_run(connection)
-    other_run = await connection.run_sync(
-        lambda c: f.make_pipeline_run(c, account_id=account_id, status=PipelineRunStatus.SUCCEEDED)
-    )
+
+    def other_account_run(conn: Connection) -> tuple[uuid.UUID, uuid.UUID]:
+        other_account = f.make_account(conn, name="Other", domain=f"{uuid.uuid4().hex}.test")
+        return other_account, f.make_pipeline_run(
+            conn, account_id=other_account, status=PipelineRunStatus.SUCCEEDED
+        )
+
+    other_account, other_run = await connection.run_sync(other_account_run)
     document = await add_document(connection, account_id, run_id, ["a", "b", "c", "d", "e"])
-    other = await add_document(connection, account_id, other_run, ["z"])
+    other = await add_document(connection, other_account, other_run, ["z"])
     embedder = Embedder()
 
     await drain(connection, embedder, settings(), Clock())
@@ -157,6 +162,33 @@ async def test_process_embeds_every_passage_of_its_run_in_batches_and_enqueues_s
     assert signal_jobs == [
         (JobStep.SIGNAL, job_priority(PipelineRunKind.ACCOUNT_REFRESH, PipelineRunTrigger.USER))
     ]
+
+
+async def test_an_earlier_documents_passages_left_without_embeddings_are_embedded_and_checked(
+    connection: AsyncConnection,
+) -> None:
+    """A document whose own `PROCESS` failed is processed by the account's next refresh."""
+    account_id, run_id = await account_with_run(connection)
+    failed_run = await connection.run_sync(
+        lambda c: f.make_pipeline_run(c, account_id=account_id, status=PipelineRunStatus.PARTIAL)
+    )
+    orphan = await add_document(
+        connection, account_id, failed_run, ["Orphan text"], published_at=T0 - timedelta(days=2)
+    )
+    purged = await add_document(
+        connection, account_id, failed_run, ["Purged text"], purged_at=T0 - timedelta(days=1)
+    )
+    copy = await add_document(
+        connection, account_id, run_id, ["Orphan copy"], published_at=T0 - timedelta(days=1)
+    )
+    embedder = Embedder({"Orphan text": vec(1.0, 0.0), "Orphan copy": vec(1.0, 0.01)})
+
+    await drain(connection, embedder, settings(), Clock())
+
+    assert await embedded(connection, orphan) == [True]
+    assert await embedded(connection, purged) == [False]
+    assert await duplicate_of(connection, copy) == orphan
+    assert JobStep.SIGNAL in [step for step, _ in await steps_of(connection, run_id)]
 
 
 async def test_a_translation_a_day_later_is_marked_a_duplicate_of_the_article(

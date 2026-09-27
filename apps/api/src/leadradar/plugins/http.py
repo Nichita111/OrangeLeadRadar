@@ -23,9 +23,12 @@ import httpx
 from leadradar.ai.fixtures import ADAPTER_EXTENSION, build_fixture_client
 from leadradar.ai.settings import FixtureMode
 from leadradar.core.crawl_pacing import seconds_to_wait
+from leadradar.core.document_normalisation import ContentType
 from leadradar.plugins.errors import PluginFetchFailed
 
 _LINKEDIN_HOST = "linkedin.com"
+_HTML_MEDIA_TYPES = frozenset({"text/html", "application/xhtml+xml"})
+_UNTYPED_MEDIA_TYPES = frozenset({"", "application/octet-stream"})
 
 
 @dataclass
@@ -45,6 +48,21 @@ class RobotsDisallowed(Exception):
 
     def __init__(self, url: str) -> None:
         super().__init__(f"robots.txt disallows {url}")
+
+
+def fetched_content_type(response: httpx.Response) -> ContentType | None:
+    """What a fetched page is by its `Content-Type`, or by its URL when the header names no type:
+    `HTML`, `PDF`, or `None` for anything else - an image, a script - which is not an item
+    [Document normalisation](/architecture/rules.md#document-normalisation) takes, so the
+    plug-in skips it."""
+    media_type = response.headers.get("content-type", "").split(";", 1)[0].strip().lower()
+    if media_type in _UNTYPED_MEDIA_TYPES:
+        return "PDF" if response.url.path.lower().endswith(".pdf") else "HTML"
+    if media_type in _HTML_MEDIA_TYPES:
+        return "HTML"
+    if media_type == "application/pdf":
+        return "PDF"
+    return None
 
 
 def _is_linkedin(host: str) -> bool:

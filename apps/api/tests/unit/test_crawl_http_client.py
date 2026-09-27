@@ -13,7 +13,12 @@ import pytest
 
 from leadradar.ai.fixtures import ADAPTER_EXTENSION
 from leadradar.plugins.errors import PluginFetchFailed
-from leadradar.plugins.http import _PROVIDER_PACES, CrawlHttpClient, RobotsDisallowed
+from leadradar.plugins.http import (
+    _PROVIDER_PACES,
+    CrawlHttpClient,
+    RobotsDisallowed,
+    fetched_content_type,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -231,3 +236,25 @@ async def test_a_successful_request_is_remembered(fake_time: FakeTime) -> None:
 
     assert client.succeeded is True
     assert client.last_failure is None
+
+
+@pytest.mark.parametrize(
+    ("url", "content_type", "expected"),
+    [
+        ("https://example.com/a", "text/html; charset=utf-8", "HTML"),
+        ("https://example.com/a", "application/xhtml+xml", "HTML"),
+        ("https://example.com/report", "application/pdf", "PDF"),
+        ("https://example.com/report.pdf", "application/octet-stream", "PDF"),
+        ("https://example.com/a", None, "HTML"),
+        ("https://example.com/report.pdf", None, "PDF"),
+        ("https://example.com/share", "image/png", None),
+        ("https://example.com/app.js", "application/javascript", None),
+    ],
+)
+def test_a_fetched_page_is_html_pdf_or_skipped_by_its_content_type(
+    url: str, content_type: str | None, expected: str | None
+) -> None:
+    headers = {"content-type": content_type} if content_type else {}
+    response = httpx.Response(200, headers=headers, request=httpx.Request("GET", url))
+
+    assert fetched_content_type(response) == expected

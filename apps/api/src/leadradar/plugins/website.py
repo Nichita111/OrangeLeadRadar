@@ -20,7 +20,7 @@ from leadradar.core.crawl_redirects import redirect_target
 from leadradar.core.enums import AccountSourceKind, DocumentSourceType, SourcePluginCode
 from leadradar.core.source_detection import LinkCandidate
 from leadradar.plugins.errors import PluginFetchFailed
-from leadradar.plugins.http import CrawlHttpClient, RobotsDisallowed
+from leadradar.plugins.http import CrawlHttpClient, RobotsDisallowed, fetched_content_type
 from leadradar.plugins.shapes import FetchContext, RawItem
 
 logger = logging.getLogger(__name__)
@@ -150,7 +150,7 @@ class WebsitePlugin:
                 final_url, response = result
                 if host is None:
                     host = urlsplit(final_url).hostname
-                if not response.is_success:
+                if not response.is_success or fetched_content_type(response) != "HTML":
                     continue
                 text = response.text
                 if (
@@ -191,7 +191,7 @@ class WebsitePlugin:
             if result is None:
                 continue
             final_url, response = result
-            if not response.is_success:
+            if not response.is_success or fetched_content_type(response) != "PDF":
                 continue
             items.append(
                 RawItem(
