@@ -1,12 +1,12 @@
 ---
 type: Decision
-title: ADR-20 ICP criteria weigh, never exclude
+title: ADR-22 ICP criteria weigh, never exclude
 description: An ICP criterion only lowers Fit; the ICP_MISMATCH disqualifier, the minimum fit and the Below fit standing are removed, so an account outside the profile ranks lower and stays in the ranking.
 status: draft
 tags: [accounts-and-discovery, prospect-dashboard, service-configuration]
 ---
 
-# ADR-20 ICP criteria weigh, never exclude
+# ADR-22 ICP criteria weigh, never exclude
 
 ## Context
 

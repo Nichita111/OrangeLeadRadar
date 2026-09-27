@@ -71,9 +71,9 @@ sequenceDiagram
 4. Rules: [Account identity](/architecture/rules.md#account-identity), [Account attributes](/architecture/rules.md#account-attributes), [Persona mapping](/architecture/rules.md#persona-mapping), [Discovery](/architecture/rules.md#discovery), [Scheduling](/architecture/rules.md#scheduling), [Fit score](/architecture/rules.md#fit-score), [Retention and erasure](/architecture/rules.md#retention-and-erasure).
 5. Interfaces: [Accounts and contacts](/architecture/interfaces.md#accounts-and-contacts) (`API-20` to `API-28`, [`AccountImportRow`](/architecture/interfaces.md#accountimportrow)) and [Discovery](/architecture/interfaces.md#discovery) (`API-29` to `API-32`).
 6. Services: the [api](/architecture/services/api.md) and its [runtime](/architecture/services/api.md#runtime) (`IMPORT_MAX_ROWS`, `CONTACT_RETENTION_DAYS`); the [worker](/architecture/services/worker.md) for discovery; the [frontend](/architecture/services/frontend.md) shell; the accounts of the [demo dataset](/architecture/overview.md#demo-dataset) and the account columns of [store ownership](/architecture/overview.md#store-ownership).
-7. Decisions: [ADR-10](/architecture/adrs/adr-10-minimal-contact-data.md), [ADR-12](/architecture/adrs/adr-12-suggested-accounts-need-acceptance.md), [ADR-07](/architecture/adrs/adr-07-source-plug-ins-with-a-free-core.md), [ADR-20](/architecture/adrs/adr-20-icp-criteria-weigh-never-exclude.md), [ADR-24](/architecture/adrs/adr-24-daily-cycle.md).
+7. Decisions: [ADR-10](/architecture/adrs/adr-10-minimal-contact-data.md), [ADR-12](/architecture/adrs/adr-12-suggested-accounts-need-acceptance.md), [ADR-07](/architecture/adrs/adr-07-source-plug-ins-with-a-free-core.md), [ADR-22](/architecture/adrs/adr-22-icp-criteria-weigh-never-exclude.md), [ADR-26](/architecture/adrs/adr-26-daily-cycle.md).
 8. Screens: [Accounts](#accounts), [Account import](#account-import), [Account profile](#account-profile), [Suggested accounts](#suggested-accounts).
-9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-09` to `AC-15`, `AC-59`, `AC-63`, `AC-69`, `AC-87`.
+9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-09` to `AC-15`, `AC-59`, `AC-63`, `AC-69`, `AC-89`.
 
 ## Accounts
 
@@ -218,7 +218,7 @@ WF-09 — Suggested accounts
 | `FR-053` | Reject shall take an optional reason and remove the candidate from the pending list for good. |
 | `FR-141` | While a discovery run is active a callout shall show the news searched, the articles read and the companies found so far; the fit estimate of a candidate shall be shown as a score, and when no candidate is pending the empty state shall say how to find new ones. |
 | `FR-142` | Accepting a candidate shall mark it in place as Accepted with its refresh queued, and a candidate without a website shall say that the domain will be asked for. |
-| `FR-170` | A candidate proposed by the daily cycle shall carry a Found by the daily search chip with when it was proposed. |
+| `FR-181` | A candidate proposed by the daily cycle shall carry a Found by the daily search chip with when it was proposed. |
 
 Obligations: `S-DSC-01`, `S-DSC-02`, `S-DSC-03`.
 

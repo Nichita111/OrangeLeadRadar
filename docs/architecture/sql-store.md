@@ -190,7 +190,7 @@ The `settings` column of [`scoring_config`](#scoring_config) is one JSON object 
 
 **Question setting** — `{question_key, weight, half_life_days}`: `question_key` names a [`signal_question`](#signal_question) `key` of the same service; `weight` is a weight level; `half_life_days` is an integer > 0 or null for the source-type default.
 
-**Disqualifier** — `{key, label, question_key, min_strength}`: `key` is UPPER_SNAKE, unique within the service and stable across versions, because [`disqualifier_override`](#disqualifier_override) rows name it; `label` is the reason shown to users; `question_key` names a question of the service; `min_strength` is `WEAK`, `MEDIUM` or `STRONG`. It excludes an account that has an in-force finding of that question with strength ≥ `min_strength` and a decay factor ≥ `min_decay`. An ICP criterion never excludes an account: it only weighs in Fit ([ADR-20](/architecture/adrs/adr-20-icp-criteria-weigh-never-exclude.md)).
+**Disqualifier** — `{key, label, question_key, min_strength}`: `key` is UPPER_SNAKE, unique within the service and stable across versions, because [`disqualifier_override`](#disqualifier_override) rows name it; `label` is the reason shown to users; `question_key` names a question of the service; `min_strength` is `WEAK`, `MEDIUM` or `STRONG`. It excludes an account that has an in-force finding of that question with strength ≥ `min_strength` and a decay factor ≥ `min_decay`. An ICP criterion never excludes an account: it only weighs in Fit ([ADR-22](/architecture/adrs/adr-22-icp-criteria-weigh-never-exclude.md)).
 
 ## Accounts
 
@@ -556,7 +556,7 @@ A positive answer to a signal question, backed by a verbatim quote ([RULE-02](/r
 
 ### open_signal
 
-A buying signal the LLM noticed in a kept document that no active question of the service asks about ([Open signals](/architecture/rules.md#open-signals), [ADR-22](/architecture/adrs/adr-22-open-signals-shown-never-scored.md)). It is shown with its quote and never counted in a score.
+A buying signal the LLM noticed in a kept document that no active question of the service asks about ([Open signals](/architecture/rules.md#open-signals), [ADR-24](/architecture/adrs/adr-24-open-signals-shown-never-scored.md)). It is shown with its quote and never counted in a score.
 
 | Column | Type | Notes |
 |---|---|---|
@@ -596,7 +596,7 @@ The score of one account for one service, as of one time. Rows are appended; exa
 
 ### score_interpretation
 
-The LLM's written reading of one score row ([Interpretation](/architecture/rules.md#interpretation), [ADR-21](/architecture/adrs/adr-21-written-interpretation-after-scoring.md)). It explains a score and never sets one.
+The LLM's written reading of one score row ([Interpretation](/architecture/rules.md#interpretation), [ADR-23](/architecture/adrs/adr-23-written-interpretation-after-scoring.md)). It explains a score and never sets one.
 
 | Column | Type | Notes |
 |---|---|---|
@@ -781,7 +781,7 @@ One push of an account to a CRM.
 
 ### engagement_status
 
-Where the team stands with an account for a service. Rows are appended; the latest row of an account and service is **in force**, and an account without one is not contacted ([ADR-23](/architecture/adrs/adr-23-engagement-status-synced-from-hubspot.md)).
+Where the team stands with an account for a service. Rows are appended; the latest row of an account and service is **in force**, and an account without one is not contacted ([ADR-25](/architecture/adrs/adr-25-engagement-status-synced-from-hubspot.md)).
 
 | Column | Type | Notes |
 |---|---|---|

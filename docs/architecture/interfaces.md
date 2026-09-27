@@ -340,12 +340,12 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 
 | ID | Method | Path | Roles | Request → response |
 |---|---|---|---|---|
-| `API-78` | GET | `/provider-facts` | `*` | query `status`, `service_id` → [`ProviderFact`](#providerfact)`[]` |
-| `API-79` | POST | `/provider-facts` | `A` | [`ProviderFactCreate`](#providerfactcreate) → [`ProviderFact`](#providerfact) |
-| `API-80` | PATCH | `/provider-facts/{id}` | `A` | [`ProviderFactUpdate`](#providerfactupdate) → [`ProviderFact`](#providerfact) |
+| `API-79` | GET | `/provider-facts` | `*` | query `status`, `service_id` → [`ProviderFact`](#providerfact)`[]` |
+| `API-80` | POST | `/provider-facts` | `A` | [`ProviderFactCreate`](#providerfactcreate) → [`ProviderFact`](#providerfact) |
+| `API-81` | PATCH | `/provider-facts/{id}` | `A` | [`ProviderFactUpdate`](#providerfactupdate) → [`ProviderFact`](#providerfact) |
 
-- `API-78` — `service_id` lists the facts that apply to that service: those naming it and those naming none, in the order [Outreach grounding](/architecture/rules.md#outreach-grounding) selects them.
-- `API-79`, `API-80` — an empty text, a text longer than `PROVIDER_FACT_MAX_CHARS`, an unknown service id or a `source_url` that is not an absolute `https` URL answers `422`. Setting `status` to `INACTIVE` retires the fact; no fact is deleted.
+- `API-79` — `service_id` lists the facts that apply to that service: those naming it and those naming none, in the order [Outreach grounding](/architecture/rules.md#outreach-grounding) selects them.
+- `API-80`, `API-81` — an empty text, a text longer than `PROVIDER_FACT_MAX_CHARS`, an unknown service id or a `source_url` that is not an absolute `https` URL answers `422`. Setting `status` to `INACTIVE` retires the fact; no fact is deleted.
 
 ### Provider facts shapes
 
@@ -379,11 +379,11 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 
 | ID | Method | Path | Roles | Request → response |
 |---|---|---|---|---|
-| `API-81` | GET | `/open-signals` | `*` | query `service_id`, `account_id`, `status` → `Page<`[`OpenSignalView`](#opensignalview)`>` |
-| `API-82` | POST | `/open-signals/{id}/decide` | `A` | [`OpenSignalDecision`](#opensignaldecision) → [`OpenSignalView`](#opensignalview) |
+| `API-82` | GET | `/open-signals` | `*` | query `service_id`, `account_id`, `status` → `Page<`[`OpenSignalView`](#opensignalview)`>` |
+| `API-83` | POST | `/open-signals/{id}/decide` | `A` | [`OpenSignalDecision`](#opensignaldecision) → [`OpenSignalView`](#opensignalview) |
 
-- `API-81` — default `status` is `ACTIVE`; newest `observed_at` first.
-- `API-82` — only an `ACTIVE` open signal is decided (`409` otherwise). `PROMOTE` creates the question as `API-12` does, with its audit row and `RECLASSIFY` run, in the same transaction as the decision; a question the rules of `API-12` refuse answers as `API-12` would.
+- `API-82` — default `status` is `ACTIVE`; newest `observed_at` first.
+- `API-83` — only an `ACTIVE` open signal is decided (`409` otherwise). `PROMOTE` creates the question as `API-12` does, with its audit row and `RECLASSIFY` run, in the same transaction as the decision; a question the rules of `API-12` refuse answers as `API-12` would.
 
 ### Open signals shapes
 
@@ -744,13 +744,13 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `API-47` | POST | `/findings/{id}/feedback` | `*` | [`FeedbackCreate`](#feedbackcreate) → [`FindingView`](#findingview) |
 | `API-48` | GET | `/alerts` | `*` | query `service_id`, `unread` → `Page<`[`AlertView`](#alertview)`>` |
 | `API-49` | POST | `/alerts/{id}/acknowledge` | `*` | — → [`AlertView`](#alertview) |
-| `API-89` | GET | `/services/{id}/daily-summary` | `*` | — → [`DailySummary`](#dailysummary) |
+| `API-90` | GET | `/services/{id}/daily-summary` | `*` | — → [`DailySummary`](#dailysummary) |
 
 - `API-46`, `API-47` — apply [Feedback effects](/architecture/rules.md#feedback-effects). The verdict must be a [`lead_feedback`](/architecture/sql-store.md#lead_feedback) or [`finding_feedback`](/architecture/sql-store.md#finding_feedback) `verdict` value respectively.
 - `API-46` — `404 NOT_FOUND` when the account has no score for the service yet, as `API-40`: the verdict records the score it was given on.
 - `API-48` — newest first; `unread` true lists unacknowledged alerts only.
 - `API-49` — acknowledging an acknowledged alert returns it unchanged.
-- `API-89` — computes [Daily summary](/architecture/rules.md#daily-summary) for the service at the time of the request.
+- `API-90` — computes [Daily summary](/architecture/rules.md#daily-summary) for the service at the time of the request.
 
 ### Feedback and alerts shapes
 
@@ -932,13 +932,13 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 
 | ID | Method | Path | Roles | Request → response |
 |---|---|---|---|---|
-| `API-85` | POST | `/accounts/{id}/engagement` | `*` | [`EngagementCreate`](#engagementcreate) → [`EngagementStatusView`](#engagementstatusview) |
-| `API-86` | GET | `/accounts/{id}/engagement` | `*` | query `service_id` → [`EngagementStatusView`](#engagementstatusview)`[]` |
-| `API-87` | GET | `/services/{id}/engagement-stats` | `*` | — → [`EngagementStats`](#engagementstats) |
+| `API-86` | POST | `/accounts/{id}/engagement` | `*` | [`EngagementCreate`](#engagementcreate) → [`EngagementStatusView`](#engagementstatusview) |
+| `API-87` | GET | `/accounts/{id}/engagement` | `*` | query `service_id` → [`EngagementStatusView`](#engagementstatusview)`[]` |
+| `API-88` | GET | `/services/{id}/engagement-stats` | `*` | — → [`EngagementStats`](#engagementstats) |
 
-- `API-85` — appends an [`engagement_status`](/architecture/sql-store.md#engagement_status) row with origin `MANUAL` and an `ENGAGEMENT_SET` audit row, and enqueues a `RESCORE` of the account and service with trigger `ENGAGEMENT`, in one transaction; a status equal to the one in force answers the row in force and writes nothing. An inactive service answers `422`.
-- `API-86` — the account's statuses, newest first; the first of each service is in force.
-- `API-87` — computes [Engagement statistics](/architecture/rules.md#engagement-statistics) for the service.
+- `API-86` — appends an [`engagement_status`](/architecture/sql-store.md#engagement_status) row with origin `MANUAL` and an `ENGAGEMENT_SET` audit row, and enqueues a `RESCORE` of the account and service with trigger `ENGAGEMENT`, in one transaction; a status equal to the one in force answers the row in force and writes nothing. An inactive service answers `422`.
+- `API-87` — the account's statuses, newest first; the first of each service is in force.
+- `API-88` — computes [Engagement statistics](/architecture/rules.md#engagement-statistics) for the service.
 
 ### Engagement shapes
 
@@ -1038,8 +1038,8 @@ The in-process port for the six generation roles, all calling OpenRouter's chat 
 | `API-64` | `extract_evidence(input)` | AI gateway, `LLM_EVIDENCE_MODEL` | none | [`EvidenceOutput`](#evidenceoutput) |
 | `API-65` | `extract_organisations(input)` | AI gateway, `LLM_EVIDENCE_MODEL` | none | [`Organisation`](#organisation)`[]` |
 | `API-66` | `draft_outreach(input)` | AI gateway, `LLM_OUTREACH_MODEL` | none | [`OutreachOutput`](#outreachoutput) |
-| `API-83` | `extract_open_signals(input)` | AI gateway, `LLM_EVIDENCE_MODEL` | none | [`OpenSignalOutput`](#opensignaloutput)`[]` |
-| `API-84` | `interpret(input)` | AI gateway, `LLM_INTERPRETATION_MODEL` | none | [`InterpretationOutput`](#interpretationoutput) |
+| `API-84` | `extract_open_signals(input)` | AI gateway, `LLM_EVIDENCE_MODEL` | none | [`OpenSignalOutput`](#opensignaloutput)`[]` |
+| `API-85` | `interpret(input)` | AI gateway, `LLM_INTERPRETATION_MODEL` | none | [`InterpretationOutput`](#interpretationoutput) |
 
 - Every call passes the [Budget guard](/architecture/rules.md#budget-guard) first, times out after `AI_CALL_TIMEOUT_S`, writes one `AI_CALL` audit row and returns output that its rule has validated, or fails with `UPSTREAM_UNAVAILABLE` or `BUDGET_EXHAUSTED`.
 
@@ -1213,9 +1213,9 @@ The in-process port each [source plug-in](/architecture/services/worker.md#sourc
 | ID | Operation | Module | Transaction | Returns |
 |---|---|---|---|---|
 | `API-70` | `upsert_company(push)` | HubSpot adapter: CRM v3 companies API, search by `domain`, then update or create | none | the HubSpot company id, or `UPSTREAM_UNAVAILABLE` |
-| `API-88` | `read_company_engagement(domain)` | HubSpot adapter: CRM v3 companies search by `domain`, the company's contact associations, then a batch read of those contacts' `hs_sales_email_last_replied`, `hs_last_booked_meeting_date` and `hs_lead_status` only | none | [`CompanyEngagement`](#companyengagement), or `UPSTREAM_UNAVAILABLE` |
+| `API-89` | `read_company_engagement(domain)` | HubSpot adapter: CRM v3 companies search by `domain`, the company's contact associations, then a batch read of those contacts' `hs_sales_email_last_replied`, `hs_last_booked_meeting_date` and `hs_lead_status` only | none | [`CompanyEngagement`](#companyengagement), or `UPSTREAM_UNAVAILABLE` |
 
-The api calls `API-70`; the worker calls `API-88` for [Engagement sync](/architecture/rules.md#engagement-sync). Both honour fixture mode as the AI gateway does, so HubSpot exchanges are recorded and replayed ([ADR-11](/architecture/adrs/adr-11-recorded-fixtures.md)).
+The api calls `API-70`; the worker calls `API-89` for [Engagement sync](/architecture/rules.md#engagement-sync). Both honour fixture mode as the AI gateway does, so HubSpot exchanges are recorded and replayed ([ADR-11](/architecture/adrs/adr-11-recorded-fixtures.md)).
 
 ### CRM shapes
 

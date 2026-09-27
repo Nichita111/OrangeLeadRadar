@@ -22,7 +22,7 @@ It never fetches from a source, never classifies in batch, never writes a score,
 
 ## Provides and consumes
 
-- Provides every REST family of [interfaces](/architecture/interfaces.md), `API-01` to `API-61`, `API-71` to `API-82`, `API-85` to `API-87` and `API-89`.
+- Provides every REST family of [interfaces](/architecture/interfaces.md), `API-01` to `API-61`, `API-71` to `API-83`, `API-86` to `API-88` and `API-90`.
 - Consumes the [Classifier](/architecture/interfaces.md#classifier) and [LLM](/architecture/interfaces.md#llm) ports through the worker's [AI gateway](/architecture/services/worker.md#ai-gateway) module, the [Embedder](/architecture/interfaces.md#embedder) and `API-70` of the [CRM](/architecture/interfaces.md#crm) port.
 
 ## Design

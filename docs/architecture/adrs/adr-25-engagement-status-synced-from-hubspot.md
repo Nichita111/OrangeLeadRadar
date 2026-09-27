@@ -1,12 +1,12 @@
 ---
 type: Decision
-title: ADR-23 Engagement status synced from HubSpot
+title: ADR-25 Engagement status synced from HubSpot
 description: Each account has an engagement status per service that Sales and Admins set and that a daily sync advances from HubSpot's sales-email reply, meeting and lead-status data, storing nothing about the people; a rejection takes the account out of that service's ranking.
 status: draft
 tags: [outreach-and-crm, prospect-dashboard]
 ---
 
-# ADR-23 Engagement status synced from HubSpot
+# ADR-25 Engagement status synced from HubSpot
 
 ## Context
 

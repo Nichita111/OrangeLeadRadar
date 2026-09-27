@@ -1,12 +1,12 @@
 ---
 type: Decision
-title: ADR-24 Daily cycle
+title: ADR-26 Daily cycle
 description: Every day the scheduler refreshes every account, runs discovery for every active service and syncs engagement from HubSpot; new candidates and replies raise alerts, and Alerts opens with a summary of the day, while suggested companies still wait for a person's acceptance.
 status: draft
 tags: [accounts-and-discovery, outreach-and-crm, prospect-dashboard, signal-pipeline]
 ---
 
-# ADR-24 Daily cycle
+# ADR-26 Daily cycle
 
 ## Context
 

@@ -1,12 +1,12 @@
 ---
 type: Decision
-title: ADR-21 Written interpretation after scoring
+title: ADR-23 Written interpretation after scoring
 description: After scoring, the worker has the LLM write for each ranked score why the company is worth approaching and why each counted signal matters, citing only its findings, open signals and provider facts; it explains the score and never sets one.
 status: draft
 tags: [prospect-dashboard, signal-pipeline]
 ---
 
-# ADR-21 Written interpretation after scoring
+# ADR-23 Written interpretation after scoring
 
 ## Context
 

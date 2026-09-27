@@ -28,7 +28,7 @@ sequenceDiagram
   participant Web as Account detail
   participant API as api
   Sales->>Web: open account for the service
-  Web->>API: score view (API-40), findings (API-42), open signals (API-81)
+  Web->>API: score view (API-40), findings (API-42), open signals (API-82)
   API-->>Web: Fit, Intent, Priority, standing, band, breakdown, interpretation, findings, open signals
   Web-->>Sales: interpretation, plain-language summary, criteria, counted signals with quotes, other signals
   Sales->>Web: Evidence on a signal
@@ -38,7 +38,7 @@ sequenceDiagram
   Web->>API: score history (API-41)
   API-->>Web: each change with its cause
   Sales->>Web: set the engagement status
-  Web->>API: engagement (API-85)
+  Web->>API: engagement (API-86)
   API-->>Web: status in force; a rescore is queued
 ```
 
@@ -60,11 +60,11 @@ sequenceDiagram
 2. Requirement rows: `S-PRO-01` to `S-PRO-07`, `S-INT-03`, `S-ENG-01`, `S-ENG-02`, `S-SCO-04` to `S-SCO-06`, `S-PIP-01`, `S-SIG-09` in [system requirements](/requirements/system.md); `N-01`, `N-10`, `N-13`; `B-14`, `B-16` to `B-23`, `B-41`, `B-43`, `B-44`, `B-47`, `RULE-02`, `RULE-10`, `RULE-11` in [business requirements](/requirements/business.md).
 3. Stores: [`account_score`](/architecture/sql-store.md#account_score), [`score_interpretation`](/architecture/sql-store.md#score_interpretation), [`finding`](/architecture/sql-store.md#finding), [`open_signal`](/architecture/sql-store.md#open_signal), [`engagement_status`](/architecture/sql-store.md#engagement_status), [`document`](/architecture/sql-store.md#document), [`chunk`](/architecture/sql-store.md#chunk), [`disqualifier_override`](/architecture/sql-store.md#disqualifier_override), [`alert`](/architecture/sql-store.md#alert), [`lead_feedback`](/architecture/sql-store.md#lead_feedback), [`finding_feedback`](/architecture/sql-store.md#finding_feedback), [`pipeline_run`](/architecture/sql-store.md#pipeline_run).
 4. Rules: [Score breakdown](/architecture/rules.md#score-breakdown), [Fit score](/architecture/rules.md#fit-score), [Intent score](/architecture/rules.md#intent-score), [Recency decay](/architecture/rules.md#recency-decay), [Disqualification](/architecture/rules.md#disqualification), [Priority, standing and band](/architecture/rules.md#priority-standing-and-band), [Interpretation](/architecture/rules.md#interpretation), [Alerts](/architecture/rules.md#alerts), [Daily summary](/architecture/rules.md#daily-summary), [Engagement statistics](/architecture/rules.md#engagement-statistics), [Rescoring](/architecture/rules.md#rescoring).
-5. Interfaces: [Prospects and evidence](/architecture/interfaces.md#prospects-and-evidence) (`API-39` to `API-45`), [Feedback and alerts](/architecture/interfaces.md#feedback-and-alerts) (`API-46` to `API-49`, `API-89`), [Open signals](/architecture/interfaces.md#open-signals) (`API-81`), [Engagement](/architecture/interfaces.md#engagement) (`API-85` to `API-87`), `API-33` and `API-35` of [Runs and source plug-ins](/architecture/interfaces.md#runs-and-source-plug-ins).
+5. Interfaces: [Prospects and evidence](/architecture/interfaces.md#prospects-and-evidence) (`API-39` to `API-45`), [Feedback and alerts](/architecture/interfaces.md#feedback-and-alerts) (`API-46` to `API-49`, `API-90`), [Open signals](/architecture/interfaces.md#open-signals) (`API-82`), [Engagement](/architecture/interfaces.md#engagement) (`API-86` to `API-88`), `API-33` and `API-35` of [Runs and source plug-ins](/architecture/interfaces.md#runs-and-source-plug-ins).
 6. Services: the [api](/architecture/services/api.md) with `EVIDENCE_CONTEXT_CHARS` and `INTERACTIVE_P95_TARGET_MS` in its [runtime](/architecture/services/api.md#runtime); the [frontend](/architecture/services/frontend.md) — [screen labels](/architecture/services/frontend.md#screen-labels), [Formatting](/architecture/services/frontend.md#formatting), [Polling](/architecture/services/frontend.md#polling), [Accessibility](/architecture/services/frontend.md#accessibility); [Degradation](/architecture/overview.md#degradation) for what these screens still show when a dependency is down.
-7. Decisions: [ADR-03](/architecture/adrs/adr-03-models-answer-rules-score.md), [ADR-06](/architecture/adrs/adr-06-rule-based-scoring-with-versioned-settings.md), [ADR-13](/architecture/adrs/adr-13-run-progress-by-polling.md), [ADR-20](/architecture/adrs/adr-20-icp-criteria-weigh-never-exclude.md), [ADR-21](/architecture/adrs/adr-21-written-interpretation-after-scoring.md), [ADR-22](/architecture/adrs/adr-22-open-signals-shown-never-scored.md), [ADR-23](/architecture/adrs/adr-23-engagement-status-synced-from-hubspot.md), [ADR-24](/architecture/adrs/adr-24-daily-cycle.md).
+7. Decisions: [ADR-03](/architecture/adrs/adr-03-models-answer-rules-score.md), [ADR-06](/architecture/adrs/adr-06-rule-based-scoring-with-versioned-settings.md), [ADR-13](/architecture/adrs/adr-13-run-progress-by-polling.md), [ADR-22](/architecture/adrs/adr-22-icp-criteria-weigh-never-exclude.md), [ADR-23](/architecture/adrs/adr-23-written-interpretation-after-scoring.md), [ADR-24](/architecture/adrs/adr-24-open-signals-shown-never-scored.md), [ADR-25](/architecture/adrs/adr-25-engagement-status-synced-from-hubspot.md), [ADR-26](/architecture/adrs/adr-26-daily-cycle.md).
 8. Screens: [Prospects](#prospects), [Account detail](#account-detail), [Alerts](#alerts); the Profile tab is [Account profile](/features/accounts-and-discovery.md#account-profile), the Outreach tab is [Outreach composer](/features/outreach-and-crm.md#outreach-composer).
-9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-24`, `AC-28`, `AC-36` to `AC-38`, `AC-41` to `AC-45`, `AC-60`, `AC-65`, `AC-68`, `AC-78`, `AC-79`, `AC-84`, `AC-85`, `AC-88`.
+9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-24`, `AC-28`, `AC-36` to `AC-38`, `AC-41` to `AC-45`, `AC-60`, `AC-65`, `AC-68`, `AC-80`, `AC-81`, `AC-86`, `AC-87`, `AC-90`.
 
 ## Prospects
 
@@ -115,12 +115,12 @@ WF-25 — Prospects, account drawer
 | `FR-065` | When the service has no scores yet, the empty state shall explain that accounts appear after their first refresh and link to [Accounts](/features/accounts-and-discovery.md#accounts). |
 | `FR-129` | The band filter shall show the number of ranked accounts in each band beside its label, with All first, and a legend under the list shall explain Hot, Warm and Cold, reading their thresholds as [FR-117](/architecture/services/frontend.md#score-presentation) states. |
 | `FR-130` | Selecting a row shall open a drawer over the right side of the list, without moving the rows, showing the account's name and band, Priority, Fit and Intent each with its meaning in words, the first sentence of its interpretation under Our read when one exists, its top signals from the list row with strength and age, and Open full explanation to [Account detail](#account-detail); Escape or a close button shall dismiss it and return focus to the row. |
-| `FR-158` | Each row shall show the account's engagement status in force as a chip with its label, and an Engagement filter shall narrow the list by one or more statuses. |
-| `FR-159` | A strip above the filters shall show the service's engagement statistics: the accounts contacted, answered with its share of contacted, meeting booked with its share, rejected and not contacted, each a link that sets the Engagement filter. |
+| `FR-169` | Each row shall show the account's engagement status in force as a chip with its label, and an Engagement filter shall narrow the list by one or more statuses. |
+| `FR-170` | A strip above the filters shall show the service's engagement statistics: the accounts contacted, answered with its share of contacted, meeting booked with its share, rejected and not contacted, each a link that sets the Engagement filter. |
 
 Obligations: `S-PRO-01`, `S-SCO-05`, `S-INT-03`, `S-ENG-01`, `S-ENG-02`, `N-01`, `N-10`, `N-13`.
 
-**Data**: `API-39`, `API-71`, `API-87`. **States**: [States](/architecture/services/frontend.md#states).
+**Data**: `API-39`, `API-71`, `API-88`. **States**: [States](/architecture/services/frontend.md#states).
 
 ## Account detail
 
@@ -205,13 +205,13 @@ WF-15 — Account detail, History tab
 | `FR-132` | The running state of [FR-067](#account-detail) shall be a callout below the header that lists the run's stages with done, current and pending marks and the current stage's counter, while the Refresh now button reads Refreshing. |
 | `FR-133` | The lead verdict shall be a segmented control; the note beside it shall say who recorded the verdict and when, and Already a customer shall say that the account leaves the ranking for this service. |
 | `FR-134` | Each History row shall carry an icon for its cause and, when the band changed, a chip for the band before and after. |
-| `FR-160` | The header shall carry the engagement status for the service as a menu of its five labels with an optional note, showing who set the status in force and when, or that it was synced from HubSpot; choosing Rejected shall say that the account leaves the ranking for this service. |
-| `FR-161` | The Why tab shall open with Our read: the interpretation's summary, one line per counted positive signal saying why it matters with Read the evidence, what holds the account back, and the Orange Systems facts it cites with their source links; when the account is not ranked, or its interpretation is not written yet, the panel shall say so in one sentence and the rest of the tab shall show as usual. |
-| `FR-162` | Below Exclusions, Other signals shall list the account's active open signals for the service with their label, polarity mark, quote, English translation, source and age, and say that they do not count in the score. |
+| `FR-171` | The header shall carry the engagement status for the service as a menu of its five labels with an optional note, showing who set the status in force and when, or that it was synced from HubSpot; choosing Rejected shall say that the account leaves the ranking for this service. |
+| `FR-172` | The Why tab shall open with Our read: the interpretation's summary, one line per counted positive signal saying why it matters with Read the evidence, what holds the account back, and the Orange Systems facts it cites with their source links; when the account is not ranked, or its interpretation is not written yet, the panel shall say so in one sentence and the rest of the tab shall show as usual. |
+| `FR-173` | Below Exclusions, Other signals shall list the account's active open signals for the service with their label, polarity mark, quote, English translation, source and age, and say that they do not count in the score. |
 
 Obligations: `S-PRO-02`, `S-PRO-03`, `S-PRO-04`, `S-PRO-05`, `S-INT-03`, `S-ENG-01`, `S-SIG-11`, `S-PIP-01`, `S-SCO-04`, `S-SCO-06`, `S-SIG-09`, `S-EVL-01`, `S-EVL-02`, `N-13`.
 
-**Data**: `API-23`, `API-33`, `API-35`, `API-40` to `API-47`, `API-71`, `API-81`, `API-85`, `API-86`. **States**: [States](/architecture/services/frontend.md#states); an account never scored for the service shows its profile and Refresh now.
+**Data**: `API-23`, `API-33`, `API-35`, `API-40` to `API-47`, `API-71`, `API-82`, `API-86`, `API-87`. **States**: [States](/architecture/services/frontend.md#states); an account never scored for the service shows its profile and Refresh now.
 
 ## Alerts
 
@@ -243,9 +243,9 @@ WF-16 — Alerts
 | `FR-077` | Open shall go to the account's [Account detail](#account-detail), and Review on new suggested companies to [Suggested accounts](/features/accounts-and-discovery.md#suggested-accounts); Mark read shall acknowledge the alert for the whole team and show who read it. |
 | `FR-135` | Alerts shall offer a segmented control for Unread and All, showing the number of unread alerts, and when no alert is unread the empty state shall say that the user is all caught up and when new alerts appear. |
 | `FR-136` | An unread alert shall carry an accent edge; a read alert shall be dimmed and say who read it and when. |
-| `FR-163` | Above the list, Since yesterday shall show the service's daily summary — new signals, accounts moved up and down, suggested companies, other signals and engagement changes by status — each count in words, and a zero count left out. |
+| `FR-174` | Above the list, Since yesterday shall show the service's daily summary — new signals, accounts moved up and down, suggested companies, other signals and engagement changes by status — each count in words, and a zero count left out. |
 
 Obligations: `S-PRO-06`, `S-PRO-07`.
 
-**Data**: `API-48`, `API-49`, `API-89`. **States**: [States](/architecture/services/frontend.md#states).
+**Data**: `API-48`, `API-49`, `API-90`. **States**: [States](/architecture/services/frontend.md#states).
 

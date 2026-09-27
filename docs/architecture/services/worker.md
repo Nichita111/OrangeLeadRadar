@@ -25,7 +25,7 @@ The rules are pure functions in the product package's core module; the api impor
 ## Provides and consumes
 
 - Provides the [AI gateway](#ai-gateway) module that implements the [Classifier](/architecture/interfaces.md#classifier) and [LLM](/architecture/interfaces.md#llm) ports for both processes, and the [Source plug-ins](/architecture/interfaces.md#source-plug-ins) port.
-- Consumes the [Embedder](/architecture/interfaces.md#embedder), OpenRouter's chat completions API and, for Jev, its Decisions API, the providers of the [source plug-ins](#source-plug-ins), and `API-88` of the [CRM](/architecture/interfaces.md#crm) port for [Engagement sync](/architecture/rules.md#engagement-sync).
+- Consumes the [Embedder](/architecture/interfaces.md#embedder), OpenRouter's chat completions API and, for Jev, its Decisions API, the providers of the [source plug-ins](#source-plug-ins), and `API-89` of the [CRM](/architecture/interfaces.md#crm) port for [Engagement sync](/architecture/rules.md#engagement-sync).
 
 ## Design
 

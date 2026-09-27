@@ -208,7 +208,7 @@ An invalid output is requested again, up to `EVIDENCE_MAX_ATTEMPTS` attempts in 
 
 ## Open signals
 
-**Inputs.** The documents an `ACCOUNT_REFRESH` run kept for a service whose [`document_triage`](/architecture/sql-store.md#document_triage) `open_signal_services` does not hold the service, and their selected passages ([Chunking and passage selection](#chunking-and-passage-selection)); the service's description and the texts of its active questions; `OPEN_SIGNAL_MAX_DOCUMENTS_PER_REFRESH`, `OPEN_SIGNAL_MAX_PER_DOCUMENT` ([ADR-22](/architecture/adrs/adr-22-open-signals-shown-never-scored.md)).
+**Inputs.** The documents an `ACCOUNT_REFRESH` run kept for a service whose [`document_triage`](/architecture/sql-store.md#document_triage) `open_signal_services` does not hold the service, and their selected passages ([Chunking and passage selection](#chunking-and-passage-selection)); the service's description and the texts of its active questions; `OPEN_SIGNAL_MAX_DOCUMENTS_PER_REFRESH`, `OPEN_SIGNAL_MAX_PER_DOCUMENT` ([ADR-24](/architecture/adrs/adr-24-open-signals-shown-never-scored.md)).
 
 **Algorithm.** After the run's `SIGNAL` jobs, for each active service:
 
@@ -246,7 +246,7 @@ The cost of a call is the `usage.cost` OpenRouter returns with it, in US dollars
 
 **Algorithm.** For each criterion `c`: `w_c` = `weight_values[c.weight]`; `m_c` = 1 when the account's attribute matches ([ICP criterion](/architecture/sql-store.md#scoring-settings-document)), 0 when it is known and does not match, `unknown_match` when it is unknown. `Fit` = rounded `100 × Σ w_c·m_c / Σ w_c`. With no criteria, or every weight `NONE`, `Fit` = 100: the service restricts nothing.
 
-**Invariants.** A criterion an account misses lowers its Fit and never excludes it ([RULE-11](/requirements/business.md#business-rules), [ADR-20](/architecture/adrs/adr-20-icp-criteria-weigh-never-exclude.md)).
+**Invariants.** A criterion an account misses lowers its Fit and never excludes it ([RULE-11](/requirements/business.md#business-rules), [ADR-22](/architecture/adrs/adr-22-icp-criteria-weigh-never-exclude.md)).
 
 ## Intent score
 
@@ -315,7 +315,7 @@ The cost of a call is the `usage.cost` OpenRouter returns with it, in US dollars
 
 ## Interpretation
 
-**Inputs.** The current scores of the run's accounts and services whose standing is `RANKED` and that have no [`score_interpretation`](/architecture/sql-store.md#score_interpretation); for each, its breakdown with the labels of its criteria, the counted findings — the breakdown's question entries with non-zero points — with their question text, strength, age, quote, translation and rationale, the account's newest `INTERPRETATION_MAX_OPEN_SIGNALS` `ACTIVE` [open signals](/architecture/sql-store.md#open_signal) for the service, the service's name and `value_proposition`, and at most `PROVIDER_FACTS_PER_CALL` `ACTIVE` [provider facts](/architecture/sql-store.md#provider_fact) that apply to the service, those naming it first, then the newest ([ADR-21](/architecture/adrs/adr-21-written-interpretation-after-scoring.md)).
+**Inputs.** The current scores of the run's accounts and services whose standing is `RANKED` and that have no [`score_interpretation`](/architecture/sql-store.md#score_interpretation); for each, its breakdown with the labels of its criteria, the counted findings — the breakdown's question entries with non-zero points — with their question text, strength, age, quote, translation and rationale, the account's newest `INTERPRETATION_MAX_OPEN_SIGNALS` `ACTIVE` [open signals](/architecture/sql-store.md#open_signal) for the service, the service's name and `value_proposition`, and at most `PROVIDER_FACTS_PER_CALL` `ACTIVE` [provider facts](/architecture/sql-store.md#provider_fact) that apply to the service, those naming it first, then the newest ([ADR-23](/architecture/adrs/adr-23-written-interpretation-after-scoring.md)).
 
 **Algorithm.** One [LLM interpret](/architecture/interfaces.md#llm) call per score returns `summary`, `holding_back`, `finding_notes`, `open_signal_ids` and `provider_fact_ids`. The output is valid when:
 
@@ -340,7 +340,7 @@ An invalid output is requested once more; a second invalid output stores nothing
 - `default_half_life_days` has all four source types, each > 0; `min_decay` in 0–1; `negative_factor ≥ 0`; `intent_saturation` in (0, 1]; `unknown_match` in 0–1;
 - criterion, question and disqualifier keys are unique; every operand is valid for its kind (a non-empty list of `ACTIVE` [`industry`](/architecture/sql-store.md#industry) codes, ISO country codes or enum values; `min ≤ max`);
 - `questions` names every `ACTIVE` question of the service exactly once and no other;
-- every disqualifier names a `question_key` of `questions` and a `min_strength`, and carries no other operand: a `min_fit` key or a disqualifier on an ICP criterion is refused ([ADR-20](/architecture/adrs/adr-20-icp-criteria-weigh-never-exclude.md)).
+- every disqualifier names a `question_key` of `questions` and a `min_strength`, and carries no other operand: a `min_fit` key or a disqualifier on an ICP criterion is refused ([ADR-22](/architecture/adrs/adr-22-icp-criteria-weigh-never-exclude.md)).
 
 ## Alerts
 
@@ -477,7 +477,7 @@ Shares are rounded to two decimals.
 
 ## Engagement sync
 
-**Inputs.** The pairs of an active account and a service whose in-force [`engagement_status`](/architecture/sql-store.md#engagement_status) is `CONTACTED`, `ANSWERED` or `MEETING_BOOKED`; each pair's `contacted_at`, the `occurred_at` of its latest `CONTACTED` row; `HUBSPOT_REJECTED_LEAD_STATUSES`; the clock ([ADR-23](/architecture/adrs/adr-23-engagement-status-synced-from-hubspot.md)).
+**Inputs.** The pairs of an active account and a service whose in-force [`engagement_status`](/architecture/sql-store.md#engagement_status) is `CONTACTED`, `ANSWERED` or `MEETING_BOOKED`; each pair's `contacted_at`, the `occurred_at` of its latest `CONTACTED` row; `HUBSPOT_REJECTED_LEAD_STATUSES`; the clock ([ADR-25](/architecture/adrs/adr-25-engagement-status-synced-from-hubspot.md)).
 
 **Algorithm.** An `ENGAGEMENT_SYNC` run started by [Scheduling](#scheduling):
 
@@ -490,7 +490,7 @@ Shares are rounded to two decimals.
 
 ## Scheduling
 
-The daily cycle: every account is refreshed, every service searched for new companies and every contacted company's engagement read from HubSpot, each on its interval ([ADR-24](/architecture/adrs/adr-24-daily-cycle.md)).
+The daily cycle: every account is refreshed, every service searched for new companies and every contacted company's engagement read from HubSpot, each on its interval ([ADR-26](/architecture/adrs/adr-26-daily-cycle.md)).
 
 **Inputs.** Active accounts' `next_refresh_at`; active services; queued and running runs and the start times of the last `DISCOVERY` run of each service and of the last `ENGAGEMENT_SYNC` run; `SCHEDULER_TICK_S`, `SCHEDULER_MAX_ENQUEUE`, `REFRESH_INTERVAL_HOURS`, `DISCOVERY_INTERVAL_HOURS`, `ENGAGEMENT_SYNC_INTERVAL_HOURS`, `HUBSPOT_ACCESS_TOKEN`; the clock.
 

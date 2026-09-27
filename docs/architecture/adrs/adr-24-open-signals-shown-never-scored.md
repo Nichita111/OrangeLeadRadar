@@ -1,12 +1,12 @@
 ---
 type: Decision
-title: ADR-22 Open signals shown, never scored
+title: ADR-24 Open signals shown, never scored
 description: The LLM notes buying signals that no configured question asks about, each with a verbatim quote; they are shown and fed to the interpretation but never counted in a score, and an Admin can turn one into a question.
 status: draft
 tags: [signal-pipeline, service-configuration, prospect-dashboard]
 ---
 
-# ADR-22 Open signals shown, never scored
+# ADR-24 Open signals shown, never scored
 
 ## Context
 
