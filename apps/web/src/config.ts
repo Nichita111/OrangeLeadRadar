@@ -3,6 +3,7 @@ export interface Config {
   CONFIDENCE_HIGH_MIN: number;
   CONFIDENCE_MEDIUM_MIN: number;
   RUN_POLL_INTERVAL_MS: number;
+  DEMO_SIGN_IN: boolean;
 }
 
 function rawNumber(record: Record<string, unknown>, key: keyof Config): number {
@@ -30,6 +31,21 @@ function positiveInteger(record: Record<string, unknown>, key: keyof Config): nu
   return value;
 }
 
+/** `true` or `false`, with no client default (P-10): `DEMO_SIGN_IN`. */
+function flag(record: Record<string, unknown>, key: keyof Config): boolean {
+  const raw = record[key];
+  if (raw === undefined) {
+    throw new Error(`config.json has no ${key}.`);
+  }
+  if (raw === true || raw === "true") {
+    return true;
+  }
+  if (raw === false || raw === "false") {
+    return false;
+  }
+  throw new Error(`config.json: ${key} must be true or false.`);
+}
+
 /** Parses the body of `/config.json`; a missing key or a bad value throws, and there is no default. */
 export function parseConfig(body: unknown): Config {
   if (typeof body !== "object" || body === null || Array.isArray(body)) {
@@ -40,6 +56,7 @@ export function parseConfig(body: unknown): Config {
     CONFIDENCE_HIGH_MIN: unitInterval(record, "CONFIDENCE_HIGH_MIN"),
     CONFIDENCE_MEDIUM_MIN: unitInterval(record, "CONFIDENCE_MEDIUM_MIN"),
     RUN_POLL_INTERVAL_MS: positiveInteger(record, "RUN_POLL_INTERVAL_MS"),
+    DEMO_SIGN_IN: flag(record, "DEMO_SIGN_IN"),
   };
 }
 

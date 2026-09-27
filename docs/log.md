@@ -1,5 +1,11 @@
 # Update Log
 
+## 2026-09-27
+
+* **Update**: The [Landing](/architecture/services/frontend.md#landing) scene stands the accounts on a floor grid that fades toward its edges and gives way to the Sift wafer and the Prospects list (`FR-164`).
+* **Update**: [Landing](/architecture/services/frontend.md#landing) offers only Sign in (`FR-162`, `WF-27`); the demo shortcuts stay on [Sign in](/features/identity-and-access.md#sign-in) alone ([ADR-20](/architecture/adrs/adr-20-landing-scene-mock-layer-and-demo-sign-in.md)).
+* **Update**: [Landing](/architecture/services/frontend.md#landing) follows the approved prototype: eight steps (`WF-27`, `FR-161`, `FR-164`) with step dots, the demo shortcuts on its last step when `DEMO_SIGN_IN` is true (`FR-162`), words alone without WebGL (`FR-165`), and a scene built with three.js and Anime.js without the React three.js libraries ([ADR-20](/architecture/adrs/adr-20-landing-scene-mock-layer-and-demo-sign-in.md)).
+
 ## 2026-09-26
 
 * **Update**: [ProspectRow](/architecture/interfaces.md#prospectrow), [ScoreView](/architecture/interfaces.md#scoreview) and [ScoreChange](/architecture/interfaces.md#scorechange) state that `band` is null unless `RANKED`; [Override](/architecture/interfaces.md#override) separates required creation provenance from nullable revocation provenance.
