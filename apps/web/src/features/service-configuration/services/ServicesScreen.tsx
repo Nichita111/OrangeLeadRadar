@@ -24,8 +24,7 @@ function SkeletonRows() {
   );
 }
 
-const DEACTIVATE_NOTE =
-  "will stop being refreshed, scored and listed; its data is kept.";
+const DEACTIVATE_NOTE = "will stop being refreshed, scored and listed; its data is kept.";
 
 /** FL-01, FR-018 to FR-020, FR-149, S-CFG-01: list, create, deactivate and reactivate services. */
 export function ServicesScreen() {
@@ -122,13 +121,22 @@ function ServiceRow({ service }: { service: Schemas["Service"] }) {
           label={`Actions for ${service.name}`}
           items={[
             isActive
-              ? { label: "Deactivate", onSelect: () => { setConfirmOpen(true); } }
+              ? {
+                  label: "Deactivate",
+                  onSelect: () => {
+                    setConfirmOpen(true);
+                  },
+                }
               : {
                   label: "Reactivate",
                   onSelect: () => {
                     update.mutate(
                       { id: service.id, body: { status: "ACTIVE" } },
-                      { onSuccess: () => { notify("Service reactivated"); } },
+                      {
+                        onSuccess: () => {
+                          notify("Service reactivated");
+                        },
+                      },
                     );
                   },
                 },
@@ -143,7 +151,11 @@ function ServiceRow({ service }: { service: Schemas["Service"] }) {
           onConfirm={() => {
             update.mutate(
               { id: service.id, body: { status: "INACTIVE" } },
-              { onSuccess: () => { notify("Service deactivated"); } },
+              {
+                onSuccess: () => {
+                  notify("Service deactivated");
+                },
+              },
             );
           }}
         />

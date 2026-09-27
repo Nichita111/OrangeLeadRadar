@@ -34,9 +34,9 @@ describe("willIncrementRevision (FR-024)", () => {
   });
 
   it("is true when the source types change", () => {
-    expect(
-      willIncrementRevision(shape(), shape({ source_types: ["NEWS", "JOB_POSTING"] })),
-    ).toBe(true);
+    expect(willIncrementRevision(shape(), shape({ source_types: ["NEWS", "JOB_POSTING"] }))).toBe(
+      true,
+    );
   });
 
   it("is false when nothing in the shape changed", () => {

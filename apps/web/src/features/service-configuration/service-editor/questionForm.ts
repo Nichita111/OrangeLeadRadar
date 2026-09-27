@@ -19,12 +19,15 @@ function sameOptions(
   }
   return (
     a.length === b.length &&
-    a.every(
-      (option, index) =>
-        option.key === b[index]?.key &&
-        option.label === b[index]?.label &&
-        option.strength === b[index]?.strength,
-    )
+    a.every((option, index) => {
+      const other = b[index];
+      return (
+        other !== undefined &&
+        option.key === other.key &&
+        option.label === other.label &&
+        option.strength === other.strength
+      );
+    })
   );
 }
 

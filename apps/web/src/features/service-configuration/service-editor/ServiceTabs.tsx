@@ -12,9 +12,7 @@ function tabRoute(serviceId: string, tab: ServiceTab): string {
   if (tab === "scoring") {
     return `/services/${serviceId}/scoring`;
   }
-  return tab === "questions"
-    ? `/services/${serviceId}?tab=questions`
-    : `/services/${serviceId}`;
+  return tab === "questions" ? `/services/${serviceId}?tab=questions` : `/services/${serviceId}`;
 }
 
 /**

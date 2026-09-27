@@ -8,6 +8,7 @@ import { ProspectsScreen } from "./features/prospect-dashboard/prospects/Prospec
 import { SignIn } from "./features/identity-and-access/sign-in/SignIn";
 import { Users } from "./features/identity-and-access/users/Users";
 import { IndustriesAndMarketsScreen } from "./features/service-configuration/industries-and-markets/IndustriesAndMarketsScreen";
+import { ServiceEditorScreen } from "./features/service-configuration/service-editor/ServiceEditorScreen";
 import { ServicesScreen } from "./features/service-configuration/services/ServicesScreen";
 import { DocumentTitle } from "./shell/DocumentTitle";
 import { RequireAdmin } from "./shell/RequireAdmin";
@@ -82,6 +83,19 @@ export const routes: RouteObject[] = [
               </RequireAdmin>
             ),
             handle: handle({ title: "Services", adminOnly: true }),
+          },
+          {
+            path: "/services/:id",
+            element: (
+              <RequireAdmin>
+                <ServiceEditorScreen />
+              </RequireAdmin>
+            ),
+            handle: handle({
+              title: "Service editor",
+              adminOnly: true,
+              parent: { title: "Services", route: "/services" },
+            }),
           },
           {
             path: "/settings/industries-markets",

@@ -22,7 +22,12 @@ type SourceType = Schemas["DocumentSourceType"];
 type Option = Schemas["QuestionOption"];
 
 const ANSWER_TYPES: AnswerType[] = ["YES_NO", "SCALE", "CHOICE"];
-const SOURCE_TYPES: SourceType[] = ["NEWS", "COMPANY_PUBLICATION", "JOB_POSTING", "COMPANY_PROFILE"];
+const SOURCE_TYPES: SourceType[] = [
+  "NEWS",
+  "COMPANY_PUBLICATION",
+  "JOB_POSTING",
+  "COMPANY_PROFILE",
+];
 const STRENGTHS: Schemas["FindingStrength"][] = ["NONE", "WEAK", "MEDIUM", "STRONG"];
 const MIN_CHOICE_OPTIONS = 2;
 const FIELDS = ["key", "text", "answer_type", "options", "polarity", "source_types"] as const;
@@ -74,9 +79,19 @@ export function QuestionForm({ serviceId, question, onSaved }: QuestionFormProps
   const [sourceTypes, setSourceTypes] = useState<SourceType[]>(question?.source_types ?? []);
   const [hintTerms, setHintTerms] = useState<string[]>(question?.hint_terms ?? []);
   const [hintDraft, setHintDraft] = useState("");
+  const [queuedRunId, setQueuedRunId] = useState<string | null>(null);
 
   const revisionWarning =
-    editing && willIncrementRevision(shapeOf(question), shapeOf({ text, answer_type: answerType, options: answerType === "CHOICE" ? options : null, source_types: sourceTypes }));
+    editing &&
+    willIncrementRevision(
+      shapeOf(question),
+      shapeOf({
+        text,
+        answer_type: answerType,
+        options: answerType === "CHOICE" ? options : null,
+        source_types: sourceTypes,
+      }),
+    );
 
   function setAnswer(next: AnswerType) {
     setAnswerType(next);
@@ -109,7 +124,13 @@ export function QuestionForm({ serviceId, question, onSaved }: QuestionFormProps
           source_types: sourceTypes,
           hint_terms: hintTerms,
         },
-        { onSuccess: onSaved },
+        {
+          onSuccess: (saved) => {
+            notify(`Revision ${String(saved.revision)} saved`);
+            setQueuedRunId(saved.run_id);
+            onSaved(saved);
+          },
+        },
       );
       return;
     }
@@ -135,6 +156,7 @@ export function QuestionForm({ serviceId, question, onSaved }: QuestionFormProps
       {
         onSuccess: (saved) => {
           notify(`Revision ${String(saved.revision)} saved`);
+          setQueuedRunId(saved.run_id);
           onSaved(saved);
         },
       },
@@ -144,11 +166,17 @@ export function QuestionForm({ serviceId, question, onSaved }: QuestionFormProps
   return (
     <form onSubmit={submit} className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h3 className="num m-0 text-section font-semibold">{editing ? question.key : "New question"}</h3>
+        <h3 className="num m-0 text-section font-semibold">
+          {editing ? question.key : "New question"}
+        </h3>
         {editing && <Chip tone="neutral">{`Revision ${String(question.revision)}`}</Chip>}
       </div>
       {!editing && (
-        <FormField label="Key" hint="UPPER_SNAKE. Cannot be changed later." error={errors.fields["key"]}>
+        <FormField
+          label="Key"
+          hint="UPPER_SNAKE. Cannot be changed later."
+          error={errors.fields["key"]}
+        >
           {(field) => (
             <Input
               {...field}
@@ -260,9 +288,18 @@ export function QuestionForm({ serviceId, question, onSaved }: QuestionFormProps
           Hint terms only steer searching; they do not change the revision.
         </span>
       </div>
-      {revisionWarning === true && (
+      {revisionWarning && (
         <Callout kind="caution">
           Saving will increment the revision and re-check stored data.
+        </Callout>
+      )}
+      {queuedRunId !== null && (
+        <Callout kind="neutral">
+          Reclassification queued.{" "}
+          <Link to={`/runs?run=${queuedRunId}`} className="underline">
+            View the run
+          </Link>
+          .
         </Callout>
       )}
       {errors.callout !== undefined && <Callout kind="error">{errors.callout}</Callout>}
@@ -356,5 +393,3 @@ function OptionsEditor({
     </div>
   );
 }
-
-export { Link as _unusedLinkImportGuard };
