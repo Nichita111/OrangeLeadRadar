@@ -2,7 +2,24 @@ import anime from "animejs";
 import * as THREE from "three";
 
 import {
-  ACCOUNTS,
+  R,
+  TAU,
+  buildDisc,
+  buildFloor,
+  clamp,
+  disposeScene,
+  dotPoints,
+  ease,
+  hex,
+  layoutAccounts,
+  lerp,
+  lineMat,
+  need,
+  readTones,
+  seededRandom,
+  spriteTextures,
+} from "./radar";
+import {
   DHL,
   DHL_SCORES,
   FLOWS,
@@ -28,18 +45,6 @@ export interface SceneTargets {
   overlay: HTMLElement;
   steps: number;
   reduced: boolean;
-}
-
-const TAU = Math.PI * 2;
-const clamp = (v: number, a = 0, b = 1) => Math.min(b, Math.max(a, v));
-const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-const ease = (t: number) => t * t * (3 - 2 * t);
-
-function need<T>(value: T | null | undefined, what: string): T {
-  if (value === null || value === undefined) {
-    throw new Error(`Landing scene: ${what} is missing.`);
-  }
-  return value;
 }
 
 // Phosphor icons (FR-111): flame fill, sun, snowflake.
@@ -137,28 +142,7 @@ export function mountScene(targets: SceneTargets): (() => void) | null {
   }
 
   // Colours are the tokens of Visual language; Landing forces the dark ones (FR-106, FR-164).
-  const style = getComputedStyle(document.documentElement);
-  const css = (name: string) => style.getPropertyValue(`--${name}`).trim();
-  const tone = (name: string) => new THREE.Color(css(name));
-  const mixed = (a: string, b: string, t: number) => tone(a).lerp(tone(b), t);
-  const C = {
-    page: tone("page"),
-    line: tone("border"),
-    line2: mixed("border", "control-border", 0.35),
-    grey: tone("text-tertiary"),
-    text2: tone("text-secondary"),
-    text: tone("text"),
-    accent: tone("accent"),
-    ink: tone("accent-ink"),
-    fill: tone("surface"),
-    fill2: tone("border"),
-  };
-  const hex = (color: THREE.Color) => `#${color.getHexString()}`;
-  // Sprite masks are drawn in Text and tinted by their material.
-  const mask = (alpha: number) =>
-    `${hex(C.text)}${Math.round(alpha * 255)
-      .toString(16)
-      .padStart(2, "0")}`;
+  const C = readTones();
 
   overlay.innerHTML = OVERLAY;
   const part = (name: string) =>
@@ -169,45 +153,13 @@ export function mountScene(targets: SceneTargets): (() => void) | null {
   renderer.setClearColor(C.page, 1);
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 120);
-  // Lines write no depth: a line faded to nothing would still cut a hole through what is drawn after it.
-  const lineMat = (color: THREE.Color, opacity = 1) =>
-    new THREE.LineBasicMaterial({ color, transparent: true, opacity, depthWrite: false });
   const basic = (color: THREE.Color, opacity = 1) =>
     new THREE.MeshBasicMaterial({ color, transparent: true, opacity });
 
-  let seed = 5;
-  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const rnd = seededRandom(5);
 
   // The accounts on a disc of six sectors
-  const R = 5.6;
-  const SEC = TAU / 6;
-  const A = ACCOUNTS.map(([n, s, prio, band, docs, rel], i) => ({
-    n,
-    s,
-    prio,
-    band,
-    docs,
-    rel,
-    i,
-    ang: 0,
-    r: 0,
-    x: 0,
-    z: 0,
-    rankIdx: 0,
-    skyX: 0,
-    sx: 0,
-    sy: 0,
-  }));
-  for (let s = 0; s < 6; s++) {
-    const members = A.filter((a) => a.s === s);
-    members.forEach((a, j) => {
-      a.ang = s * SEC + ((j + 0.5) / members.length) * SEC * 0.8 + SEC * 0.1;
-      const r = 2.1 + rnd() * 3.0;
-      a.r = a.i === DHL ? 2.6 : r;
-      a.x = Math.cos(a.ang) * a.r;
-      a.z = Math.sin(a.ang) * a.r;
-    });
-  }
+  const A = layoutAccounts(rnd).map((a) => ({ ...a, rankIdx: 0, skyX: 0, sx: 0, sy: 0 }));
   [...A].sort((a, b) => b.prio - a.prio).forEach((a, k) => (a.rankIdx = k));
   const dA = need(A[DHL], "DHL Group");
   const PORTS = SOURCES.map((p) => ({
@@ -246,96 +198,13 @@ export function mountScene(targets: SceneTargets): (() => void) | null {
   at("fly", 6500, 450);
   const TOTAL = (steps - 1) * 1000;
 
-  // The floor: a grid under the disc, fading into the Page toward its edges
-  const FLOOR = 14;
-  const CELL = 0.7;
-  const floorPos: number[] = [];
-  const floorCol: number[] = [];
-  const floorTone = (x: number, z: number) =>
-    C.line.clone().lerp(C.page, clamp((Math.hypot(x, z) - 4) / (FLOOR - 4)));
-  for (let v = -FLOOR; v <= FLOOR + 1e-6; v += CELL) {
-    for (let u = -FLOOR; u < FLOOR - 1e-6; u += CELL) {
-      for (const [x1, z1, x2, z2] of [
-        [u, v, u + CELL, v],
-        [v, u, v, u + CELL],
-      ] as const) {
-        floorPos.push(x1, -0.02, z1, x2, -0.02, z2);
-        const a = floorTone(x1, z1);
-        const b = floorTone(x2, z2);
-        floorCol.push(a.r, a.g, a.b, b.r, b.g, b.b);
-      }
-    }
-  }
-  const floorGeo = new THREE.BufferGeometry();
-  floorGeo.setAttribute("position", new THREE.Float32BufferAttribute(floorPos, 3));
-  floorGeo.setAttribute("color", new THREE.Float32BufferAttribute(floorCol, 3));
-  const floorMat = new THREE.LineBasicMaterial({
-    vertexColors: true,
-    transparent: true,
-    opacity: 1,
-    depthWrite: false,
-  });
-  const floor = new THREE.LineSegments(floorGeo, floorMat);
+  const { floor, floorMat } = buildFloor(C);
   scene.add(floor);
-
-  // The disc: range rings and a sector tick at each boundary
-  const disc = new THREE.Group();
+  const { disc, discMats } = buildDisc(C);
   scene.add(disc);
-  [1.4, 2.8, 4.2, R].forEach((r, i) => {
-    const pts: THREE.Vector3[] = [];
-    for (let k = 0; k <= 160; k++) {
-      const a = (k / 160) * TAU;
-      pts.push(new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r));
-    }
-    disc.add(
-      new THREE.Line(
-        new THREE.BufferGeometry().setFromPoints(pts),
-        lineMat(i === 3 ? C.line2 : C.line),
-      ),
-    );
-  });
-  for (let s = 0; s < 6; s++) {
-    const a = s * SEC;
-    disc.add(
-      new THREE.Line(
-        new THREE.BufferGeometry().setFromPoints([
-          new THREE.Vector3(Math.cos(a) * 1.4, 0, Math.sin(a) * 1.4),
-          new THREE.Vector3(Math.cos(a) * R, 0, Math.sin(a) * R),
-        ]),
-        lineMat(C.line),
-      ),
-    );
-  }
-  const discMats: [THREE.Material, number][] = [];
-  disc.traverse((o) => {
-    if (o instanceof THREE.Line) {
-      const m = o.material as THREE.Material;
-      discMats.push([m, m.opacity]);
-    }
-  });
 
   // Account points
-  const spriteTexture = (paint: (g: CanvasRenderingContext2D) => void) => {
-    const c = document.createElement("canvas");
-    c.width = c.height = 64;
-    paint(need(c.getContext("2d"), "2D canvas"));
-    return new THREE.CanvasTexture(c);
-  };
-  const dotTex = spriteTexture((g) => {
-    g.beginPath();
-    g.arc(32, 32, 28, 0, TAU);
-    g.fillStyle = mask(1);
-    g.fill();
-  });
-  const glowTex = spriteTexture((g) => {
-    const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
-    gr.addColorStop(0, mask(1));
-    gr.addColorStop(0.18, mask(0.55));
-    gr.addColorStop(0.5, mask(0.12));
-    gr.addColorStop(1, mask(0));
-    g.fillStyle = gr;
-    g.fillRect(0, 0, 64, 64);
-  });
+  const { dotTex, glowTex } = spriteTextures(C);
   const glowMat = (color: THREE.Color, size: number) =>
     new THREE.PointsMaterial({
       size,
@@ -346,25 +215,13 @@ export function mountScene(targets: SceneTargets): (() => void) | null {
       blending: THREE.AdditiveBlending,
       opacity: 0,
     });
-  const ptGeo = new THREE.BufferGeometry();
   const ptPos = new Float32Array(A.length * 3);
   const ptCol = new Float32Array(A.length * 3);
   A.forEach((a, i) => {
     ptPos.set([a.x, 0.01, a.z], i * 3);
   });
-  ptGeo.setAttribute("position", new THREE.BufferAttribute(ptPos, 3));
-  ptGeo.setAttribute("color", new THREE.BufferAttribute(ptCol, 3));
-  const points = new THREE.Points(
-    ptGeo,
-    new THREE.PointsMaterial({
-      size: 0.19,
-      map: dotTex,
-      vertexColors: true,
-      transparent: true,
-      alphaTest: 0.4,
-      depthWrite: false,
-    }),
-  );
+  const points = dotPoints(ptPos, ptCol, dotTex);
+  const ptGeo = points.geometry;
   scene.add(points);
 
   // Sources: a curve from each source to each account it serves, and a packet travelling along it
@@ -806,8 +663,8 @@ export function mountScene(targets: SceneTargets): (() => void) | null {
   // One Priority column per account for the ranking
   const BAND: Record<SceneBand, [THREE.Color, THREE.Color]> = {
     hot: [C.accent, C.accent],
-    warm: [tone("accent-soft").lerp(C.accent, 0.12), C.ink],
-    cold: [tone("cool-soft").lerp(tone("cool"), 0.08), tone("cool")],
+    warm: [C.accentSoft.clone().lerp(C.accent, 0.12), C.ink],
+    cold: [C.coolSoft.clone().lerp(C.cool, 0.08), C.cool],
   };
   const columns = A.map((a) => {
     const [fc, ec] = a.band === null ? [C.fill2, C.line2] : BAND[a.band];
@@ -1142,15 +999,7 @@ export function mountScene(targets: SceneTargets): (() => void) | null {
     disposed = true;
     cancelAnimationFrame(raf);
     observer.disconnect();
-    scene.traverse((o) => {
-      if (o instanceof THREE.Mesh || o instanceof THREE.Line || o instanceof THREE.Points) {
-        (o.geometry as THREE.BufferGeometry).dispose();
-        const m = o.material as THREE.Material & { map?: THREE.Texture | null };
-        m.map?.dispose();
-        m.dispose();
-      }
-    });
-    renderer.dispose();
+    disposeScene(scene, renderer);
     overlay.innerHTML = "";
   };
 }

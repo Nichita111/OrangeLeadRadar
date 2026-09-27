@@ -73,6 +73,8 @@ const SUBJECT_BUILDERS: Record<AuditAction, (payload: Payload) => string> = {
   LOGOUT: () => "—",
   USER_CREATED: (payload) => titleCaseEnum(str(payload, "role") ?? "—"),
   USER_UPDATED: (payload) => changedFieldNames(payload),
+  INVITE_CREATED: (payload) => titleCaseEnum(str(payload, "role") ?? "—"),
+  INVITE_REVOKED: () => "—",
   SERVICE_CREATED: (payload) => str(payload, "code") ?? "—",
   SERVICE_UPDATED: (payload) => changedFieldNames(payload),
   INDUSTRY_CREATED: (payload) => str(payload, "code") ?? "—",

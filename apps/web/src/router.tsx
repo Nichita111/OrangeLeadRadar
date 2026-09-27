@@ -3,6 +3,7 @@ import { createBrowserRouter, type RouteObject } from "react-router";
 import { AuditLogScreen } from "./features/audit-trail/AuditLogScreen";
 import { LabellingScreen } from "./features/evaluation-and-feedback/labelling/LabellingScreen";
 import { QualityReportScreen } from "./features/evaluation-and-feedback/quality-report/QualityReportScreen";
+import { AcceptInviteRoute } from "./features/identity-and-access/accept-invite/AcceptInviteRoute";
 import { LandingRoute } from "./features/landing/LandingRoute";
 import { AccountDetailScreen } from "./features/prospect-dashboard/account-detail/AccountDetailScreen";
 import { ProspectsScreen } from "./features/prospect-dashboard/prospects/ProspectsScreen";
@@ -28,6 +29,11 @@ export const routes: RouteObject[] = [
     children: [
       { path: "/", element: <LandingRoute /> },
       { path: "/login", element: <SignIn />, handle: handle({ title: "Sign in" }) },
+      {
+        path: "/invite",
+        element: <AcceptInviteRoute />,
+        handle: handle({ title: "Accept invite" }),
+      },
       {
         element: <RequireSession />,
         children: [

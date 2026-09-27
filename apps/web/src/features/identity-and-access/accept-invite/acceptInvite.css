@@ -1,0 +1,147 @@
+/* Accept invite (WF-28): the form over the Landing radar, dark in both schemes (FR-106). */
+.ai-page {
+  --ai-gutter: clamp(16px, 4vw, 48px);
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.ai-stage {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+.ai-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.ai-scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--page) 94%, transparent) 0%,
+    color-mix(in srgb, var(--page) 75%, transparent) 34%,
+    transparent 55%
+  );
+}
+
+.ai-top {
+  position: relative;
+  z-index: 2;
+  padding: 14px var(--ai-gutter);
+}
+.ai-main {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  min-height: calc(100vh - 64px);
+  min-height: calc(100dvh - 64px);
+  padding: 24px var(--ai-gutter) 48px;
+}
+.ai-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 24rem) minmax(0, 26rem);
+  justify-content: space-between;
+  align-items: center;
+  gap: 48px;
+  width: 100%;
+}
+
+/* The invite as a quote card, as Landing's Quote step shows DHL Group's quote. */
+.ai-card {
+  margin: 0;
+  display: grid;
+  gap: 10px;
+  padding: 16px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--overlay-shadow);
+}
+.ai-q {
+  margin: 0;
+  min-height: 2.9em;
+  font-size: 15px;
+  line-height: 1.45;
+  border-left: 2px solid var(--accent);
+  padding-left: 12px;
+}
+.ai-caret {
+  display: inline-block;
+  width: 7px;
+  height: 1.05em;
+  vertical-align: -2px;
+  margin-left: 1px;
+  background: var(--accent);
+}
+.ai-src {
+  font: 400 12px/1.3 var(--font-mono);
+  color: var(--text-tertiary);
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+/* The password column: one segment per character up to the minimum line. */
+.ai-col-wrap {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding-bottom: 2px;
+}
+.ai-col {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+  width: 18px;
+  padding-top: 4px;
+  border-top: 2px solid var(--control-border);
+}
+.ai-col.ai-reached {
+  border-top-color: var(--accent);
+}
+.ai-seg {
+  height: 4px;
+  border-radius: 1px;
+  background: var(--border);
+}
+.ai-seg.ai-on {
+  background: var(--text-secondary);
+}
+.ai-reached .ai-seg.ai-on {
+  background: var(--accent);
+}
+.ai-col-count {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+/* Labels of the scene's points. */
+.ai-nm {
+  position: absolute;
+  transform: translate(9px, -50%);
+  font: 400 11px/1 var(--font-mono);
+  color: var(--text-tertiary);
+  opacity: 0.6;
+  white-space: nowrap;
+  text-shadow:
+    0 0 4px var(--page),
+    0 0 2px var(--page);
+}
+.ai-nm.ai-you {
+  color: var(--text);
+  opacity: 1;
+  font-weight: 500;
+}
+.ai-nm.ai-you.ai-lit {
+  color: var(--accent);
+}
+
+@media (max-width: 900px) {
+  .ai-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

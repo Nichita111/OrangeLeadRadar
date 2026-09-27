@@ -8,6 +8,8 @@ import { READS_OWN_UNAUTHENTICATED } from "./queryClient";
 export const authenticationAndUsersKeys = {
   me: ["authentication-and-users", "me"] as const,
   users: ["authentication-and-users", "users"] as const,
+  invites: ["authentication-and-users", "invites"] as const,
+  invitePreview: (token: string) => ["authentication-and-users", "invite-preview", token] as const,
 };
 
 /** `API-03`: the signed-in user; a `401` is read by the route guard and by Sign in (DC-3). */
@@ -97,6 +99,63 @@ export function useUpdateUser() {
       ),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: authenticationAndUsersKeys.users });
+    },
+  });
+}
+
+/** `API-83`: the pending invites, newest first. */
+export function useInvites() {
+  return useQuery({
+    queryKey: authenticationAndUsersKeys.invites,
+    queryFn: async () => requireData((await client.GET("/api/v1/invites")).data),
+  });
+}
+
+/** `API-79`: the answer carries the link, once. */
+export function useCreateInvite() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: Schemas["InviteCreate"]) =>
+      requireData((await client.POST("/api/v1/invites", { body })).data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: authenticationAndUsersKeys.invites });
+    },
+  });
+}
+
+/** `API-80`. */
+export function useRevokeInvite() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await client.POST("/api/v1/invites/{id}/revoke", { params: { path: { id } } });
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: authenticationAndUsersKeys.invites });
+    },
+  });
+}
+
+/** `API-81`: previews the invite whose token the link's fragment carries, anonymously. */
+export function useInvitePreview(token: string) {
+  return useQuery({
+    queryKey: authenticationAndUsersKeys.invitePreview(token),
+    meta: READS_OWN_UNAUTHENTICATED,
+    retry: false,
+    queryFn: async () =>
+      requireData((await client.POST("/api/v1/auth/invite", { body: { token } })).data),
+  });
+}
+
+/** `API-82`: accepts the invite and puts the new user in the `me` query. */
+export function useAcceptInvite() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: READS_OWN_UNAUTHENTICATED,
+    mutationFn: async (body: Schemas["InviteAccept"]) =>
+      requireData((await client.POST("/api/v1/auth/invite/accept", { body })).data),
+    onSuccess: (user) => {
+      queryClient.setQueryData(authenticationAndUsersKeys.me, user);
     },
   });
 }

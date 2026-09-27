@@ -1,4 +1,4 @@
-import { PlusIcon } from "@phosphor-icons/react";
+import { EnvelopeSimpleIcon, PlusIcon } from "@phosphor-icons/react";
 
 import { useUpdateUser, useUsers } from "../../../api/authenticationAndUsers";
 import type { Schemas } from "../../../api/contract";
@@ -13,6 +13,8 @@ import { enumLabel } from "../../../shell/format";
 import { PageHeader } from "../../../shell/PageHeader";
 import { RelativeTime } from "../../../shell/RelativeTime";
 import { DataView } from "../../../shell/states/DataView";
+import { InviteDialog } from "./InviteDialog";
+import { PendingInvites } from "./PendingInvites";
 import { UserDialog } from "./UserDialog";
 
 const COLUMNS = ["Name", "Email", "Role", "Status", "Last sign-in", "Actions"];
@@ -27,7 +29,8 @@ function SkeletonRows() {
   );
 }
 
-/** FL-20, FR-095 to FR-097, FR-158: the Admin's list of users and what can be done to each. */
+/** FL-20, FR-095 to FR-097, FR-158, FR-174, FR-175: the Admin's list of users and what can be
+ * done to each, and the pending invites. */
 export function Users() {
   const users = useUsers();
   const me = useCurrentUser();
@@ -51,14 +54,24 @@ export function Users() {
         title="Users"
         lead="Create the people who can sign in, choose their role, and disable anyone who should no longer have access."
         action={
-          <UserDialog
-            trigger={
-              <Button variant="primary">
-                <PlusIcon size={16} aria-hidden />
-                New user
-              </Button>
-            }
-          />
+          <div className="flex gap-2">
+            <InviteDialog
+              trigger={
+                <Button variant="secondary">
+                  <EnvelopeSimpleIcon size={16} aria-hidden />
+                  Invite user
+                </Button>
+              }
+            />
+            <UserDialog
+              trigger={
+                <Button variant="primary">
+                  <PlusIcon size={16} aria-hidden />
+                  New user
+                </Button>
+              }
+            />
+          </div>
         }
       />
       {update.isError && <Callout kind="error">{update.error.message}</Callout>}
@@ -153,6 +166,7 @@ export function Users() {
           </div>
         )}
       </DataView>
+      <PendingInvites />
     </>
   );
 }
