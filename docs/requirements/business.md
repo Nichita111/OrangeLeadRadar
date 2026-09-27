@@ -122,6 +122,7 @@ Each requirement states one business obligation and carries a priority. `P0` is 
 | ID | Requirement | Priority |
 |---|---|---|
 | `B-30` | Users shall sign in with the Sales or Admin role, and each role shall be enforced. | P0 |
+| `B-41` | An Admin shall invite people to join with a role, and they shall set up their own account. | P1 |
 | `B-31` | Configuration changes, exceptions, feedback, runs and AI calls shall be recorded in an audit trail. | P0 |
 | `B-32` | An Admin shall read and filter the audit trail. | P1 |
 | `B-33` | AI spend and source usage shall be capped by configuration. | P0 |
