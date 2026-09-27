@@ -426,6 +426,7 @@ An invalid output is requested once more; a second invalid output answers `503 U
 - A document past `purge_after` gets `text` = null and `purged_at` set; its passages get `text` and `embedding` = null, except a passage an active [`evaluation_item`](/architecture/sql-store.md#evaluation_item) references, which keeps its text. The document row, its URL and title, and its findings with their quotes remain.
 - A contact past `retain_until` is deleted, drafts addressed to it lose their `contact_id`, and a `CONTACT_ERASED` audit row with reason `RETENTION` and no personal data is written. An erasure on request does the same immediately with reason `REQUEST`.
 - Sessions that expired or were revoked more than `SESSION_TTL_HOURS` ago are deleted.
+- Invites that expired, were accepted or were revoked more than `INVITE_TTL_HOURS` ago are deleted.
 
 ## Examples
 

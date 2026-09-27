@@ -62,6 +62,7 @@ It never fetches from a source, never classifies in batch, never writes a score,
 | `LOGIN_MAX_FAILURES` | `5` | Consecutive failed sign-ins before a lock |
 | `LOGIN_LOCK_MINUTES` | `15` | Lock duration |
 | `PASSWORD_MIN_LENGTH` | `12` | Minimum password length |
+| `INVITE_TTL_HOURS` | `72` | How long an invite link stays usable |
 | `PAGE_SIZE_DEFAULT` | `50` | Default page size |
 | `PAGE_SIZE_MAX` | `200` | Maximum page size |
 | `IMPORT_MAX_ROWS` | `2000` | Maximum rows per CSV import |

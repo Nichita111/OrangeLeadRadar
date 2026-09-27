@@ -17,6 +17,7 @@ Every table has `id` (uuid), `created_at` and `updated_at` (timestamptz, UTC); t
 ```mermaid
 erDiagram
   app_user ||--o{ auth_session : "signs in with"
+  app_user ||--o{ user_invite : "invites"
   app_user {
     citext email UK
     enum role
@@ -26,6 +27,12 @@ erDiagram
     uuid user_id FK
     text token_hash UK
     timestamptz expires_at
+  }
+  user_invite {
+    citext email
+    enum role
+    text token_hash UK
+    uuid invited_by FK
   }
 ```
 
@@ -54,6 +61,21 @@ A signed-in browser session.
 | `token_hash` | text, unique | SHA-256 of the cookie token; the token itself is never stored. |
 | `expires_at` | timestamptz | Creation time + `SESSION_TTL_HOURS`. |
 | `revoked_at` | timestamptz, null | Set on sign-out or when the user is disabled. |
+
+### user_invite
+
+An Admin's invitation for one person to become a user. It is pending while `accepted_at` and `revoked_at` are null and now is before `expires_at`; at most one invite per email is pending.
+
+| Column | Type | Notes |
+|---|---|---|
+| `email` | citext | Becomes the user's `email` on acceptance; no user has it while the invite is pending. |
+| `role` | enum: `SALES`, `ADMIN` | Becomes the user's `role` ([`app_user`](#app_user)). |
+| `token_hash` | text, unique | SHA-256 of the invite token; the token itself is never stored or logged. |
+| `invited_by` | uuid FK → [`app_user`](#app_user) | The Admin who invited. |
+| `expires_at` | timestamptz | Creation time + `INVITE_TTL_HOURS`. |
+| `accepted_at` | timestamptz, null | Set when the invitee accepts; the invite is then used. |
+| `user_id` | uuid FK → [`app_user`](#app_user), null | The user the acceptance created. |
+| `revoked_at` | timestamptz, null | Set when an Admin revokes it. |
 
 ## Configuration
 
@@ -758,7 +780,9 @@ The closed vocabulary of `audit_event.action`. **AI call payload**: `ai_role` (a
 | `LOGIN_SUCCEEDED` | `AUTH` | `app_user` | — |
 | `LOGIN_FAILED` | `AUTH` | `app_user`, when the email matches one | `reason`: `BAD_CREDENTIALS` (the failure that sets a lock included), `LOCKED` (an attempt during a lock), `DISABLED` |
 | `LOGOUT` | `AUTH` | `app_user` | — |
-| `USER_CREATED` | `USER` | `app_user` | `role` |
+| `USER_CREATED` | `USER` | `app_user` | `role`; `invite_id` when an invite was accepted |
+| `INVITE_CREATED` | `USER` | `user_invite` | `role` |
+| `INVITE_REVOKED` | `USER` | `user_invite` | — |
 | `USER_UPDATED` | `USER` | `app_user` | changed fields, never the password |
 | `SERVICE_CREATED` | `CONFIG` | `service` | `code` |
 | `SERVICE_UPDATED` | `CONFIG` | `service` | changed fields |

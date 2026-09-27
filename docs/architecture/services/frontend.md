@@ -24,7 +24,7 @@ Consumes every REST family of [interfaces](/architecture/interfaces.md) through 
 
 ## Design
 
-React with TypeScript in strict mode, built by Vite; React Router for routes; TanStack Query for server state, caching and polling; a typed client generated with `openapi-typescript`; Tailwind CSS with Radix-based components for accessible primitives. Icons come from one family, Phosphor (`@phosphor-icons/react`), at the weights [Visual language](#visual-language) names. Type is Geist and Geist Mono, self-hosted by the `web` container. Animation uses `motion`, and the animated components of [Motion](#motion) are copied from React Bits ([ADR-17](/architecture/adrs/adr-17-animated-components-from-react-bits.md)). The [Landing](#landing) scene alone uses three.js, animated with Anime.js ([ADR-20](/architecture/adrs/adr-20-landing-scene-mock-layer-and-demo-sign-in.md)). The build is static files served by the `web` container, which proxies `/api/v1` to `API_UPSTREAM`. The other keys of [Runtime](#runtime) reach the client at run time: the `web` container writes them to `/config.json` when it starts, and the client reads that file before its first render, so changing one needs a restart, not a rebuild.
+React with TypeScript in strict mode, built by Vite; React Router for routes; TanStack Query for server state, caching and polling; a typed client generated with `openapi-typescript`; Tailwind CSS with Radix-based components for accessible primitives. Icons come from one family, Phosphor (`@phosphor-icons/react`), at the weights [Visual language](#visual-language) names. Type is Geist and Geist Mono, self-hosted by the `web` container. Animation uses `motion`, and the animated components of [Motion](#motion) are copied from React Bits ([ADR-17](/architecture/adrs/adr-17-animated-components-from-react-bits.md)). The [Landing](#landing) and [Accept invite](/features/identity-and-access.md#accept-invite) scenes alone use three.js, animated with Anime.js ([ADR-20](/architecture/adrs/adr-20-landing-scene-mock-layer-and-demo-sign-in.md)). The build is static files served by the `web` container, which proxies `/api/v1` to `API_UPSTREAM`. The other keys of [Runtime](#runtime) reach the client at run time: the `web` container writes them to `/config.json` when it starts, and the client reads that file before its first render, so changing one needs a restart, not a rebuild.
 
 ## Routes
 
@@ -32,6 +32,7 @@ React with TypeScript in strict mode, built by Vite; React Router for routes; Ta
 |---|---|---|---|
 | `/` | [Landing](#landing) | anonymous | — |
 | `/login` | [Sign in](/features/identity-and-access.md#sign-in) | anonymous | identity-and-access |
+| `/invite` | [Accept invite](/features/identity-and-access.md#accept-invite) | anonymous | identity-and-access |
 | `/prospects` | [Prospects](/features/prospect-dashboard.md#prospects) | any | prospect-dashboard |
 | `/accounts/:id` | [Account detail](/features/prospect-dashboard.md#account-detail) | any | prospect-dashboard |
 | `/alerts` | [Alerts](/features/prospect-dashboard.md#alerts) | any | prospect-dashboard |
@@ -116,7 +117,7 @@ WF-27 — Landing
 | `FR-163` | A signed-in user opening `/` shall be sent to `/prospects`. |
 | `FR-164` | The scene shall show the scenes of WF-27 with the [demo dataset](/architecture/overview.md#demo-dataset)'s twenty accounts; DHL Group's quote, rules and scores and Lufthansa Group's band and scores are those of [WF-24](#score-presentation) and the demo dataset, and every other account's position, documents and Priority are illustrative. The accounts stand on a floor grid in the Border colour that fades toward its edges, moves with the camera and gives way to the Sift wafer and the Prospects list. Band chips carry their band icon ([FR-111](#score-presentation)). Its colours are the tokens Accent for what the current step is about and for Hot, Accent soft for Warm and Cool for Cold, on the dark Page, in both colour schemes. |
 | `FR-165` | The words of each step shall render before the scene loads; under `prefers-reduced-motion` each step shall show the end frame of its scene still, and without WebGL the steps show their words on the dark Page with no scene. |
-| `FR-166` | Landing shall load lazily; three.js and Anime.js are imported by no other screen, and every font, script and texture it uses is served by the `web` container ([FR-109](#visual-language)). |
+| `FR-166` | Landing shall load lazily; three.js and Anime.js are imported by no screen but Landing and [Accept invite](/features/identity-and-access.md#accept-invite), and every font, script and texture it uses is served by the `web` container ([FR-109](#visual-language)). |
 
 **Data**: `API-03`. **States**: none; the page has no data view.
 

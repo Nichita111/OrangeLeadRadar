@@ -2,6 +2,7 @@
 
 ## 2026-09-27
 
+* **Update**: Invite links (`B-41`, P1, outside the release gate): an Admin invites a person by email with a role and hands over a single-use link; the invitee accepts on the new [Accept invite](/features/identity-and-access.md#accept-invite) screen over the Landing scene (`S-SEC-05`, `AC-78`, `AC-79`, [`user_invite`](/architecture/sql-store.md#user_invite), `API-79` to `API-83`, `INVITE_TTL_HOURS`, `WF-28`, `FR-169` to `FR-175`, [ADR-21](/architecture/adrs/adr-21-invite-links-and-the-invite-scene.md)).
 * **Update**: The [Landing](/architecture/services/frontend.md#landing) scene stands the accounts on a floor grid that fades toward its edges and gives way to the Sift wafer and the Prospects list (`FR-164`).
 * **Update**: [Landing](/architecture/services/frontend.md#landing) offers only Sign in (`FR-162`, `WF-27`); the demo shortcuts stay on [Sign in](/features/identity-and-access.md#sign-in) alone ([ADR-20](/architecture/adrs/adr-20-landing-scene-mock-layer-and-demo-sign-in.md)).
 * **Update**: [Landing](/architecture/services/frontend.md#landing) follows the approved prototype: eight steps (`WF-27`, `FR-161`, `FR-164`) with step dots, the demo shortcuts on its last step when `DEMO_SIGN_IN` is true (`FR-162`), words alone without WebGL (`FR-165`), and a scene built with three.js and Anime.js without the React three.js libraries ([ADR-20](/architecture/adrs/adr-20-landing-scene-mock-layer-and-demo-sign-in.md)).
