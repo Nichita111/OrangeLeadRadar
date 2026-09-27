@@ -68,6 +68,7 @@ A term is the one name of its concept in prose. **Identifier** is the name code,
 | Negative signal | A finding of a negative question, which lowers Intent. | `NEGATIVE` | [Intent score](/architecture/rules.md#intent-score) |
 | Open signal | A buying signal the LLM noticed in a kept document that no question of the service asks about, kept with its verbatim quote, shown but never scored. | `open_signal` | [Open signals](/architecture/rules.md#open-signals) |
 | Outreach draft | A message a person may send, drafted from findings; never sent by the product. | `outreach_draft` | [`outreach_draft`](/architecture/sql-store.md#outreach_draft) |
+| Outreach preferences | The six choices that control the evidence and style of one generated outreach draft. | `outreach_preferences` | [`OutreachPreferences`](/architecture/sql-store.md#outreachpreferences) |
 | Passage | A piece of a document: what the classifier reads and a finding quotes. | `chunk` | [`chunk`](/architecture/sql-store.md#chunk) |
 | Passage header | The line naming account, document, section and date that a passage is read with; never quoted. | — | [Chunking and passage selection](/architecture/rules.md#chunking-and-passage-selection) |
 | Persona | The role category of a contact, such as CIO or head of automation. | `persona` | [`contact`](/architecture/sql-store.md#contact) |
@@ -96,6 +97,9 @@ A term is the one name of its concept in prose. **Identifier** is the name code,
 | Standing | Whether an account is ranked, disqualified, a customer, or has rejected the service. | `standing` | [Priority, standing and band](/architecture/rules.md#priority-standing-and-band) |
 | Strength | How strongly a passage answers a question: none, weak, medium or strong. | `strength` | [`finding`](/architecture/sql-store.md#finding) |
 | Triage | Deciding whether a document is about its account and relevant to which services. | `document_triage` | [Triage](/architecture/rules.md#triage) |
+| Tone check | An advisory review of the current outreach editor text that is audited but not stored. | `tone_check` | [`ToneCheck`](/architecture/interfaces.md#tonecheck) |
+| Tone note | One tone issue identifying the phrase concerned and a suggested rewrite. | `{phrase, suggested_rewrite}` | [`ToneNote`](/architecture/interfaces.md#tonenote) |
+| Tone verdict | Whether a tone check found no issue or recommends review. | `GOOD`, `REVIEW` | [`ToneCheck`](/architecture/interfaces.md#tonecheck) |
 | Value proposition | What a service offers a prospect, used in outreach. | `value_proposition` | [`service`](/architecture/sql-store.md#service) |
 | Weight level | High, Medium, Low or None: how much an ICP criterion or question counts. | `weight` | [scoring settings document](/architecture/sql-store.md#scoring-settings-document) |
 

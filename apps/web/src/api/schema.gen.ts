@@ -800,6 +800,46 @@ export interface paths {
         patch: operations["update_outreach_draft_api_v1_outreach_drafts__id__patch"];
         trace?: never;
     };
+    "/api/v1/outreach-drafts/{id}/mark-contacted": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Mark Contacted
+         * @description `API-93`: atomically mark an exported draft contacted.
+         */
+        post: operations["post_mark_contacted_api_v1_outreach_drafts__id__mark_contacted_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/outreach-drafts/{id}/tone-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Tone Check
+         * @description `API-91`: advisory check of current editor text through the AI gateway.
+         */
+        post: operations["post_tone_check_api_v1_outreach_drafts__id__tone_check_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/overrides/{id}/revoke": {
         parameters: {
             query?: never;
@@ -814,6 +854,26 @@ export interface paths {
          * @description `API-45`: enqueues a `RESCORE` with trigger `OVERRIDE`.
          */
         post: operations["post_override_revoke_api_v1_overrides__id__revoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/provider-facts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Provider Facts
+         * @description `API-79`: active facts applicable to the selected service.
+         */
+        get: operations["get_provider_facts_api_v1_provider_facts_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1558,7 +1618,7 @@ export interface components {
          *     later task) writes from this one set.
          * @enum {string}
          */
-        AuditAction: "LOGIN_SUCCEEDED" | "LOGIN_FAILED" | "LOGOUT" | "USER_CREATED" | "USER_UPDATED" | "SERVICE_CREATED" | "SERVICE_UPDATED" | "INDUSTRY_CREATED" | "INDUSTRY_UPDATED" | "MARKET_CREATED" | "MARKET_UPDATED" | "QUESTION_CREATED" | "QUESTION_UPDATED" | "SCORING_DRAFT_SAVED" | "SCORING_ACTIVATED" | "PLUGIN_UPDATED" | "ACCOUNT_CREATED" | "ACCOUNT_UPDATED" | "ACCOUNTS_IMPORTED" | "CANDIDATE_ACCEPTED" | "CANDIDATE_REJECTED" | "CONTACT_CREATED" | "CONTACT_UPDATED" | "CONTACT_ERASED" | "RUN_REQUESTED" | "RUN_FINISHED" | "RUN_CANCELLED" | "OVERRIDE_CREATED" | "OVERRIDE_REVOKED" | "LEAD_FEEDBACK_GIVEN" | "FINDING_FEEDBACK_GIVEN" | "ITEM_LABELLED" | "DRAFT_CREATED" | "DRAFT_UPDATED" | "DRAFT_EXPORTED" | "CRM_PUSHED" | "AI_CALL";
+        AuditAction: "LOGIN_SUCCEEDED" | "LOGIN_FAILED" | "LOGOUT" | "USER_CREATED" | "USER_UPDATED" | "SERVICE_CREATED" | "SERVICE_UPDATED" | "INDUSTRY_CREATED" | "INDUSTRY_UPDATED" | "MARKET_CREATED" | "MARKET_UPDATED" | "QUESTION_CREATED" | "QUESTION_UPDATED" | "SCORING_DRAFT_SAVED" | "SCORING_ACTIVATED" | "PLUGIN_UPDATED" | "ACCOUNT_CREATED" | "ACCOUNT_UPDATED" | "ACCOUNTS_IMPORTED" | "CANDIDATE_ACCEPTED" | "CANDIDATE_REJECTED" | "CONTACT_CREATED" | "CONTACT_UPDATED" | "CONTACT_ERASED" | "RUN_REQUESTED" | "RUN_FINISHED" | "RUN_CANCELLED" | "OVERRIDE_CREATED" | "OVERRIDE_REVOKED" | "LEAD_FEEDBACK_GIVEN" | "FINDING_FEEDBACK_GIVEN" | "ITEM_LABELLED" | "DRAFT_CREATED" | "DRAFT_UPDATED" | "DRAFT_EXPORTED" | "ENGAGEMENT_SET" | "CRM_PUSHED" | "AI_CALL";
         /**
          * AuditEntry
          * @description [`AuditEntry`](/architecture/interfaces.md#auditentry), one item of `API-60`'s page.
@@ -1597,7 +1657,7 @@ export interface components {
          * @description `audit_event.kind`.
          * @enum {string}
          */
-        AuditEventKind: "AUTH" | "USER" | "CONFIG" | "ACCOUNT" | "CONTACT" | "RUN" | "OVERRIDE" | "FEEDBACK" | "OUTREACH" | "CRM" | "AI_CALL";
+        AuditEventKind: "AUTH" | "USER" | "CONFIG" | "ACCOUNT" | "CONTACT" | "RUN" | "OVERRIDE" | "FEEDBACK" | "OUTREACH" | "ENGAGEMENT" | "CRM" | "AI_CALL";
         /**
          * AuthenticatedUser
          * @description [`AuthenticatedUser`](/architecture/interfaces.md#authenticateduser).
@@ -1864,6 +1924,45 @@ export interface components {
          * @enum {string}
          */
         DocumentTriageClassifier: "JEV" | "LLM";
+        /**
+         * EngagementOrigin
+         * @enum {string}
+         */
+        EngagementOrigin: "MANUAL" | "HUBSPOT";
+        /**
+         * EngagementStatus
+         * @enum {string}
+         */
+        EngagementStatus: "NOT_CONTACTED" | "CONTACTED" | "ANSWERED" | "MEETING_BOOKED" | "REJECTED";
+        /** EngagementStatusView */
+        EngagementStatusView: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Note */
+            note: string | null;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            origin: components["schemas"]["EngagementOrigin"];
+            /**
+             * Service Id
+             * Format: uuid
+             */
+            service_id: string;
+            /** Set By Name */
+            set_by_name: string | null;
+            status: components["schemas"]["EngagementStatus"];
+        };
         /**
          * ErrorBody
          * @description `error` of [Conventions](/architecture/interfaces.md#conventions) `ErrorEnvelope`.
@@ -2593,6 +2692,11 @@ export interface components {
             status?: components["schemas"]["MarketStatus"] | null;
         };
         /**
+         * OutreachCallToAction
+         * @enum {string}
+         */
+        OutreachCallToAction: "MEETING" | "SHARE_RESOURCE" | "OPEN_QUESTION";
+        /**
          * OutreachDraft
          * @description [`OutreachDraft`](/architecture/interfaces.md#outreachdraft).
          */
@@ -2613,6 +2717,9 @@ export interface components {
             findings: components["schemas"]["OutreachDraftFinding"][];
             /** Id */
             id: string;
+            preferences: components["schemas"]["OutreachPreferences"] | null;
+            /** Provider Facts */
+            provider_facts: components["schemas"]["OutreachDraftProviderFact"][];
             /** Service Id */
             service_id: string;
             status: components["schemas"]["OutreachDraftStatus"];
@@ -2649,6 +2756,13 @@ export interface components {
             /** Quote */
             quote: string;
         };
+        /** OutreachDraftProviderFact */
+        OutreachDraftProviderFact: {
+            /** Id */
+            id: string;
+            /** Text */
+            text: string;
+        };
         /**
          * OutreachDraftStatus
          * @description `outreach_draft.status`.
@@ -2668,6 +2782,40 @@ export interface components {
             subject?: string;
         };
         /**
+         * OutreachFormality
+         * @enum {string}
+         */
+        OutreachFormality: "CASUAL" | "NEUTRAL" | "FORMAL";
+        /**
+         * OutreachLanguage
+         * @enum {string}
+         */
+        OutreachLanguage: "ENGLISH" | "GERMAN" | "QUOTE_LANGUAGE";
+        /**
+         * OutreachLength
+         * @enum {string}
+         */
+        OutreachLength: "SHORT" | "STANDARD" | "LONG";
+        /**
+         * OutreachOpening
+         * @enum {string}
+         */
+        OutreachOpening: "EVIDENCE" | "VALUE" | "QUESTION";
+        /**
+         * OutreachPersonalization
+         * @enum {string}
+         */
+        OutreachPersonalization: "STANDARD" | "TAILORED" | "BESPOKE";
+        /** OutreachPreferences */
+        OutreachPreferences: {
+            call_to_action: components["schemas"]["OutreachCallToAction"];
+            formality: components["schemas"]["OutreachFormality"];
+            language: components["schemas"]["OutreachLanguage"];
+            length: components["schemas"]["OutreachLength"];
+            opening: components["schemas"]["OutreachOpening"];
+            personalization: components["schemas"]["OutreachPersonalization"];
+        };
+        /**
          * OutreachRequest
          * @description [`OutreachRequest`](/architecture/interfaces.md#outreachrequest).
          */
@@ -2675,6 +2823,8 @@ export interface components {
             channel: components["schemas"]["OutreachDraftChannel"];
             /** Contact Id */
             contact_id?: string;
+            /** Preferences */
+            preferences?: components["schemas"]["OutreachPreferences"];
         };
         /**
          * Override
@@ -2894,6 +3044,47 @@ export interface components {
             question_text: string;
             strength: components["schemas"]["FindingStrength"];
         };
+        /** ProviderFact */
+        ProviderFact: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Services */
+            services: components["schemas"]["ProviderFactService"][];
+            /** Source Url */
+            source_url: string | null;
+            status: components["schemas"]["ProviderFactStatus"];
+            /** Text */
+            text: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** ProviderFactService */
+        ProviderFactService: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /**
+         * ProviderFactStatus
+         * @description `provider_fact.status`.
+         * @enum {string}
+         */
+        ProviderFactStatus: "ACTIVE" | "INACTIVE";
         /**
          * QuestionOption
          * @description One entry of [`SignalQuestion`](/architecture/interfaces.md#signalquestion) `options`.
@@ -3638,6 +3829,33 @@ export interface components {
             /** Rate Limit Per Minute */
             rate_limit_per_minute?: number | null;
         };
+        /** ToneCheck */
+        ToneCheck: {
+            /** Notes */
+            notes: components["schemas"]["ToneNote"][];
+            /** Summary */
+            summary: string;
+            verdict: components["schemas"]["ToneVerdict"];
+        };
+        /** ToneCheckRequest */
+        ToneCheckRequest: {
+            /** Body */
+            body: string;
+            /** Subject */
+            subject: string | null;
+        };
+        /** ToneNote */
+        ToneNote: {
+            /** Phrase */
+            phrase: string;
+            /** Suggested Rewrite */
+            suggested_rewrite: string;
+        };
+        /**
+         * ToneVerdict
+         * @enum {string}
+         */
+        ToneVerdict: "GOOD" | "REVIEW";
         /**
          * User
          * @description [`User`](/architecture/interfaces.md#user).
@@ -5302,6 +5520,76 @@ export interface operations {
             };
         };
     };
+    post_mark_contacted_api_v1_outreach_drafts__id__mark_contacted_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EngagementStatusView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    post_tone_check_api_v1_outreach_drafts__id__tone_check_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ToneCheckRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ToneCheck"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     post_override_revoke_api_v1_overrides__id__revoke_post: {
         parameters: {
             query?: never;
@@ -5322,6 +5610,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Override"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_provider_facts_api_v1_provider_facts_get: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["ProviderFactStatus"] | null;
+                service_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderFact"][];
                 };
             };
             /** @description Error */

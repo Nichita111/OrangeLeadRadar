@@ -49,6 +49,8 @@ from leadradar.ai.shapes import (
     Organisations,
     OutreachInput,
     OutreachOutput,
+    ToneCheckInput,
+    ToneCheckOutput,
 )
 from leadradar.clock import build_clock
 from leadradar.core.budget_guard import (
@@ -184,6 +186,19 @@ class AiGateway:
             context,
         )
 
+    async def check_outreach_tone(
+        self, role_input: ToneCheckInput, context: AiCallContext
+    ) -> ToneCheckOutput:
+        """`API-92`, on `LLM_OUTREACH_MODEL`."""
+        return await self._generate(
+            AiRole.TONE_CHECK,
+            self._settings.llm_outreach_model,
+            role_input,
+            ToneCheckOutput,
+            1,
+            context,
+        )
+
     # -- the per-call pipeline ---------------------------------------------------------------
 
     def _require_model(self, model: str | None, role: AiRole, key: str) -> str:
@@ -213,7 +228,11 @@ class AiGateway:
         items: int,
         context: AiCallContext,
     ) -> OutputT:
-        model_key = "LLM_OUTREACH_MODEL" if role == AiRole.OUTREACH else "LLM_EVIDENCE_MODEL"
+        model_key = (
+            "LLM_OUTREACH_MODEL"
+            if role in {AiRole.OUTREACH, AiRole.TONE_CHECK}
+            else "LLM_EVIDENCE_MODEL"
+        )
         chosen_model = self._require_model(model, role, model_key)
         prompt = self._prompts[role]
         provider_request = ProviderRequest(

@@ -50,7 +50,7 @@ empty Flows, Entities or Acceptance cell.
 | `S-DSC-01` | P1 | `B-10`, `RULE-08`, `RULE-11` | [FL-06](/features/accounts-and-discovery.md#fl-06-discover-and-accept-suggested-accounts) | [`discovery_candidate`](/architecture/sql-store.md#discovery_candidate), [`document`](/architecture/sql-store.md#document), [`pipeline_run`](/architecture/sql-store.md#pipeline_run) | `AC-14` |
 | `S-DSC-02` | P1 | `B-10` | [FL-06](/features/accounts-and-discovery.md#fl-06-discover-and-accept-suggested-accounts) | [`discovery_candidate`](/architecture/sql-store.md#discovery_candidate), [`account`](/architecture/sql-store.md#account) | `AC-15` |
 | `S-DSC-03` | P1 | `B-10`, `B-23` | [FL-06](/features/accounts-and-discovery.md#fl-06-discover-and-accept-suggested-accounts), [FL-08](/features/signal-pipeline.md#fl-08-daily-cycle) | [`pipeline_run`](/architecture/sql-store.md#pipeline_run), [`discovery_candidate`](/architecture/sql-store.md#discovery_candidate), [`alert`](/architecture/sql-store.md#alert) | `AC-89` |
-| `S-ENG-01` | P1 | `B-43`, `RULE-10` | [FL-25](/features/outreach-and-crm.md#fl-25-record-an-engagement-status) | [`engagement_status`](/architecture/sql-store.md#engagement_status), [`account_score`](/architecture/sql-store.md#account_score), [`audit_event`](/architecture/sql-store.md#audit_event) | `AC-86` |
+| `S-ENG-01` | P1 | `B-43`, `RULE-10` | [FL-25](/features/outreach-and-crm.md#fl-25-record-an-engagement-status) | [`engagement_status`](/architecture/sql-store.md#engagement_status), [`account_score`](/architecture/sql-store.md#account_score), [`audit_event`](/architecture/sql-store.md#audit_event) | `AC-86`, `AC-94` |
 | `S-ENG-02` | P1 | `B-44` | [FL-11](/features/prospect-dashboard.md#fl-11-work-the-prospect-list), [FL-25](/features/outreach-and-crm.md#fl-25-record-an-engagement-status) | [`engagement_status`](/architecture/sql-store.md#engagement_status), [`account_score`](/architecture/sql-store.md#account_score) | `AC-87` |
 | `S-ENG-03` | P1 | `B-45`, `RULE-07` | [FL-26](/features/outreach-and-crm.md#fl-26-sync-engagement-from-hubspot), [FL-08](/features/signal-pipeline.md#fl-08-daily-cycle) | [`engagement_status`](/architecture/sql-store.md#engagement_status), [`alert`](/architecture/sql-store.md#alert), [`pipeline_run`](/architecture/sql-store.md#pipeline_run), [`audit_event`](/architecture/sql-store.md#audit_event) | `AC-88` |
 | `S-EVL-01` | P1 | `B-24` | [FL-15](/features/evaluation-and-feedback.md#fl-15-give-feedback-on-a-lead-or-a-signal) | [`lead_feedback`](/architecture/sql-store.md#lead_feedback), [`account_score`](/architecture/sql-store.md#account_score) | `AC-46` |
@@ -67,7 +67,7 @@ empty Flows, Entities or Acceptance cell.
 | `S-INT-01` | P0 | `B-41`, `RULE-02`, `RULE-03` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account), [FL-10](/features/signal-pipeline.md#fl-10-rescore-after-a-scoring-or-data-change) | [`score_interpretation`](/architecture/sql-store.md#score_interpretation), [`account_score`](/architecture/sql-store.md#account_score), [`finding`](/architecture/sql-store.md#finding) | `AC-78` |
 | `S-INT-02` | P0 | `B-41`, `RULE-03`, `B-33` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account), [FL-10](/features/signal-pipeline.md#fl-10-rescore-after-a-scoring-or-data-change) | [`score_interpretation`](/architecture/sql-store.md#score_interpretation), [`pipeline_run`](/architecture/sql-store.md#pipeline_run) | `AC-79` |
 | `S-INT-03` | P0 | `B-41`, `B-22` | [FL-11](/features/prospect-dashboard.md#fl-11-work-the-prospect-list), [FL-12](/features/prospect-dashboard.md#fl-12-explain-a-lead) | [`score_interpretation`](/architecture/sql-store.md#score_interpretation) | `AC-80` |
-| `S-OUT-01` | P1 | `B-25`, `RULE-06`, `RULE-02` | [FL-17](/features/outreach-and-crm.md#fl-17-draft-outreach) | [`outreach_draft`](/architecture/sql-store.md#outreach_draft), [`finding`](/architecture/sql-store.md#finding), [`contact`](/architecture/sql-store.md#contact), [`provider_fact`](/architecture/sql-store.md#provider_fact) | `AC-50`, `AC-85` |
+| `S-OUT-01` | P1 | `B-25`, `RULE-06`, `RULE-02` | [FL-17](/features/outreach-and-crm.md#fl-17-draft-outreach) | [`outreach_draft`](/architecture/sql-store.md#outreach_draft), [`finding`](/architecture/sql-store.md#finding), [`contact`](/architecture/sql-store.md#contact), [`provider_fact`](/architecture/sql-store.md#provider_fact) | `AC-50`, `AC-85`, `AC-91`, `AC-92`, `AC-93` |
 | `S-OUT-02` | P2 | `B-26` | [FL-18](/features/outreach-and-crm.md#fl-18-push-to-hubspot) | [`crm_sync`](/architecture/sql-store.md#crm_sync) | `AC-51` |
 | `S-PIP-01` | P0 | `B-14` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account) | [`pipeline_run`](/architecture/sql-store.md#pipeline_run), [`job`](/architecture/sql-store.md#job) | `AC-28` |
 | `S-PIP-02` | P1 | `B-15` | [FL-08](/features/signal-pipeline.md#fl-08-daily-cycle) | [`account`](/architecture/sql-store.md#account), [`pipeline_run`](/architecture/sql-store.md#pipeline_run) | `AC-29` |
@@ -127,7 +127,7 @@ empty Flows, Entities or Acceptance cell.
 | [FL-14](/features/prospect-dashboard.md#fl-14-act-on-an-alert) | Act on an alert | `S-PRO-06`, `S-PRO-07` | `AC-45`, `AC-88`, `AC-89`, `AC-90` |
 | [FL-15](/features/evaluation-and-feedback.md#fl-15-give-feedback-on-a-lead-or-a-signal) | Give feedback on a lead or a signal | `S-EVL-01`, `S-EVL-02` | `AC-46`, `AC-47` |
 | [FL-16](/features/evaluation-and-feedback.md#fl-16-label-passages-and-run-a-quality-check) | Label passages and run a quality check | `N-03`, `S-EVL-03`, `S-EVL-04`, `S-EVL-05`, `S-RUN-02`, `S-SIG-04` | `AC-21`, `AC-23`, `AC-48`, `AC-49`, `AC-58`, `AC-75` |
-| [FL-17](/features/outreach-and-crm.md#fl-17-draft-outreach) | Draft outreach | `N-06`, `S-OUT-01`, `S-SIG-08` | `AC-27`, `AC-50`, `AC-62`, `AC-70`, `AC-85` |
+| [FL-17](/features/outreach-and-crm.md#fl-17-draft-outreach) | Draft outreach | `N-06`, `S-OUT-01`, `S-SIG-08` | `AC-27`, `AC-50`, `AC-62`, `AC-70`, `AC-85`, `AC-91`, `AC-92`, `AC-93` |
 | [FL-18](/features/outreach-and-crm.md#fl-18-push-to-hubspot) | Push to HubSpot | `N-06`, `S-OUT-02` | `AC-51`, `AC-62` |
 | [FL-19](/features/identity-and-access.md#fl-19-sign-in-and-sign-out) | Sign in and sign out | `N-07`, `S-SEC-01`, `S-SEC-04` | `AC-52`, `AC-67`, `AC-76`, `AC-77` |
 | [FL-20](/features/identity-and-access.md#fl-20-manage-users) | Manage users | `N-07`, `S-SEC-03` | `AC-52`, `AC-54`, `AC-67` |
@@ -135,7 +135,7 @@ empty Flows, Entities or Acceptance cell.
 | [FL-22](/features/service-configuration.md#fl-22-maintain-industries-and-markets) | Maintain industries and markets | `S-CFG-07` | `AC-74` |
 | [FL-23](/features/service-configuration.md#fl-23-maintain-the-orange-systems-profile) | Maintain the Orange Systems profile | `S-CFG-09` | `AC-84` |
 | [FL-24](/features/service-configuration.md#fl-24-promote-an-open-signal) | Promote an open signal | `S-CFG-08` | `AC-83` |
-| [FL-25](/features/outreach-and-crm.md#fl-25-record-an-engagement-status) | Record an engagement status | `S-ENG-01`, `S-ENG-02` | `AC-86`, `AC-87` |
+| [FL-25](/features/outreach-and-crm.md#fl-25-record-an-engagement-status) | Record an engagement status | `S-ENG-01`, `S-ENG-02` | `AC-86`, `AC-87`, `AC-94` |
 | [FL-26](/features/outreach-and-crm.md#fl-26-sync-engagement-from-hubspot) | Sync engagement from HubSpot | `S-ENG-03` | `AC-88` |
 
 ## Entity coverage
@@ -206,7 +206,7 @@ empty Flows, Entities or Acceptance cell.
 | `B-22` | `N-01`, `N-10`, `N-13`, `S-INT-03`, `S-PRO-02`, `S-PRO-03` | `AC-42`, `AC-43`, `AC-60`, `AC-65`, `AC-68`, `AC-80` |
 | `B-23` | `S-DSC-03`, `S-PRO-06` | `AC-45`, `AC-88`, `AC-89` |
 | `B-24` | `S-EVL-01`, `S-EVL-02` | `AC-46`, `AC-47` |
-| `B-25` | `S-OUT-01` | `AC-50`, `AC-85` |
+| `B-25` | `S-OUT-01` | `AC-50`, `AC-85`, `AC-91`, `AC-92`, `AC-93` |
 | `B-26` | `S-OUT-02` | `AC-51` |
 | `B-27` | `S-EVL-03`, `S-EVL-04` | `AC-48`, `AC-49` |
 | `B-28` | `S-EVL-02` | `AC-47` |
@@ -222,19 +222,19 @@ empty Flows, Entities or Acceptance cell.
 | `B-40` | `S-EVL-05` | `AC-75` |
 | `B-41` | `S-INT-01`, `S-INT-02`, `S-INT-03` | `AC-78`, `AC-79`, `AC-80` |
 | `B-42` | `S-CFG-08`, `S-SIG-11` | `AC-82`, `AC-83` |
-| `B-43` | `S-ENG-01` | `AC-86` |
+| `B-43` | `S-ENG-01` | `AC-86`, `AC-94` |
 | `B-44` | `S-ENG-02` | `AC-87` |
 | `B-45` | `S-ENG-03` | `AC-88` |
 | `B-46` | `S-CFG-09` | `AC-84` |
 | `B-47` | `S-PRO-07` | `AC-90` |
 | `RULE-01` | `N-09` | `AC-64` |
-| `RULE-02` | `N-06`, `S-INT-01`, `S-OUT-01`, `S-SIG-05`, `S-SIG-11` | `AC-24`, `AC-50`, `AC-62`, `AC-78`, `AC-82`, `AC-85` |
+| `RULE-02` | `N-06`, `S-INT-01`, `S-OUT-01`, `S-SIG-05`, `S-SIG-11` | `AC-24`, `AC-50`, `AC-62`, `AC-78`, `AC-82`, `AC-85`, `AC-91`, `AC-92`, `AC-93` |
 | `RULE-03` | `S-INT-01`, `S-INT-02`, `S-SCO-08`, `S-SIG-11` | `AC-40`, `AC-78`, `AC-79`, `AC-82` |
 | `RULE-04` | `N-11`, `S-CFG-01`, `S-CFG-02`, `S-CFG-07`, `S-CFG-08`, `S-CFG-09`, `S-SIG-04` | `AC-01`, `AC-02`, `AC-03`, `AC-04`, `AC-21`, `AC-23`, `AC-66`, `AC-74`, `AC-83`, `AC-84` |
 | `RULE-05` | `N-04`, `S-CFG-04`, `S-SCO-07` | `AC-06`, `AC-39` |
-| `RULE-06` | `S-OUT-01` | `AC-50`, `AC-85` |
+| `RULE-06` | `S-OUT-01` | `AC-50`, `AC-85`, `AC-91`, `AC-92`, `AC-93` |
 | `RULE-07` | `N-08`, `S-ACC-04`, `S-ENG-03` | `AC-13`, `AC-63`, `AC-88` |
 | `RULE-08` | `S-DSC-01`, `S-ING-01` | `AC-14`, `AC-16`, `AC-32` |
 | `RULE-09` | `S-AUD-01` | `AC-55` |
-| `RULE-10` | `S-ENG-01`, `S-PRO-01`, `S-SCO-04`, `S-SCO-05` | `AC-36`, `AC-37`, `AC-41`, `AC-81`, `AC-86` |
+| `RULE-10` | `S-ENG-01`, `S-PRO-01`, `S-SCO-04`, `S-SCO-05` | `AC-36`, `AC-37`, `AC-41`, `AC-81`, `AC-86`, `AC-94` |
 | `RULE-11` | `S-DSC-01`, `S-SCO-04`, `S-SCO-05` | `AC-14`, `AC-36`, `AC-37`, `AC-81` |

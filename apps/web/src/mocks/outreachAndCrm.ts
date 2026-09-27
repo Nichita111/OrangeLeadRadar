@@ -15,6 +15,29 @@ type Channel = Schemas["OutreachDraftChannel"];
 type Contact = Schemas["Contact"];
 type FindingView = Schemas["FindingView"];
 
+const PRIMARY_PROVIDER_FACT: Schemas["ProviderFact"] = {
+  id: "00000000-0000-4000-8000-000000009001",
+  text: "Orange Systems has automated more than 750 processes with RPA.",
+  source_url: "https://www.orange.md/",
+  services: [],
+  status: "ACTIVE",
+  created_at: "2026-09-01T00:00:00Z",
+  updated_at: "2026-09-01T00:00:00Z",
+};
+
+const PROVIDER_FACTS: Schemas["ProviderFact"][] = [
+  PRIMARY_PROVIDER_FACT,
+  {
+    id: "00000000-0000-4000-8000-000000009002",
+    text: "Orange Systems is a UiPath Platinum Partner.",
+    source_url: "https://www.orange.md/",
+    services: [],
+    status: "ACTIVE",
+    created_at: "2026-09-01T00:00:00Z",
+    updated_at: "2026-09-01T00:00:00Z",
+  },
+];
+
 /** `OUTREACH_MAX_FINDINGS`, `OUTREACH_EMAIL_MAX_CHARS` and `OUTREACH_INMAIL_MAX_CHARS`. */
 const OUTREACH_MAX_FINDINGS = 5;
 const MAX_CHARS: Record<Channel, number> = { EMAIL: 1200, LINKEDIN_INMAIL: 1900 };
@@ -114,7 +137,26 @@ export function createOutreachAndCrmHandlers(store: MockStore) {
             422,
           );
         }
-        const cited = given.slice(0, QUOTED_FINDINGS);
+        const preferences = body.preferences;
+        const citedCount =
+          preferences?.personalization === "STANDARD"
+            ? 1
+            : preferences?.personalization === "TAILORED"
+              ? 2
+              : OUTREACH_MAX_FINDINGS;
+        if (preferences?.personalization === "TAILORED" && given.length < 2) {
+          return errorResponse(
+            errorEnvelope("VALIDATION", "Tailored needs at least two eligible signals."),
+            422,
+          );
+        }
+        if (preferences?.personalization === "BESPOKE" && contact === undefined) {
+          return errorResponse(
+            errorEnvelope("VALIDATION", "Bespoke needs a selected contact."),
+            422,
+          );
+        }
+        const cited = given.slice(0, preferences === undefined ? QUOTED_FINDINGS : citedCount);
         const sender = mockSessionUser().display_name;
         const text = draftText(body.channel, account.name, service, cited, contact, sender);
         const draft: Schemas["OutreachDraft"] = {
@@ -126,6 +168,7 @@ export function createOutreachAndCrmHandlers(store: MockStore) {
           edited: false,
           created_at: new Date().toISOString(),
           created_by_name: sender,
+          preferences: preferences ?? null,
           contact:
             contact === undefined
               ? null
@@ -135,6 +178,7 @@ export function createOutreachAndCrmHandlers(store: MockStore) {
             question_text: finding.question.text,
             quote: finding.quote,
           })),
+          provider_facts: [{ id: PRIMARY_PROVIDER_FACT.id, text: PRIMARY_PROVIDER_FACT.text }],
           ...text,
         };
         store.drafts.unshift(draft);
@@ -171,6 +215,45 @@ export function createOutreachAndCrmHandlers(store: MockStore) {
       }
       Object.assign(draft, body);
       return response(200).json(draft);
+    }),
+    http.get("/api/v1/provider-facts", ({ response }) => response(200).json(PROVIDER_FACTS)),
+    http.post("/api/v1/outreach-drafts/{id}/tone-check", async ({ params, request, response }) => {
+      const draft = store.drafts.find((row) => row.id === params.id);
+      if (draft === undefined) {
+        return notFound();
+      }
+      const body = await request.json();
+      const tooGeneric = body.body.toLowerCase().includes("hope this finds you well");
+      return response(200).json({
+        verdict: tooGeneric ? "REVIEW" : "GOOD",
+        summary: tooGeneric
+          ? "Replace the generic opening with the selected evidence."
+          : "The message matches the selected tone.",
+        notes: tooGeneric
+          ? [
+              {
+                phrase: "hope this finds you well",
+                suggested_rewrite: "I noticed your recent automation announcement",
+              },
+            ]
+          : [],
+      });
+    }),
+    http.post("/api/v1/outreach-drafts/{id}/mark-contacted", ({ params, response }) => {
+      const draft = store.drafts.find((row) => row.id === params.id);
+      if (draft === undefined) {
+        return notFound();
+      }
+      return response(200).json({
+        id: store.newId(),
+        service_id: draft.service_id,
+        status: "CONTACTED",
+        origin: "MANUAL",
+        occurred_at: new Date().toISOString(),
+        note: null,
+        created_at: new Date().toISOString(),
+        set_by_name: mockSessionUser().display_name,
+      });
     }),
     http.post("/api/v1/accounts/{id}/scores/{service_id}/crm-push", ({ params, response }) => {
       const scored = scoreViews.some(
