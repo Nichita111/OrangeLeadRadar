@@ -33,7 +33,7 @@ from leadradar.worker.loop import process_next_job
 from leadradar.worker.settings import WorkerSettings
 from leadradar.worker.steps import STEP_HANDLERS, StepContext, StepHandler
 from tests.integration import factories as f
-from tests.integration.pipeline_doubles import Clock, Embedder, session_factory
+from tests.integration.pipeline_doubles import T0, Clock, Embedder, session_factory
 
 pytestmark = pytest.mark.integration
 
@@ -108,7 +108,7 @@ async def _account_with_website_document(
             url=HOME_URL,
             text=text,
         )
-        f.make_job(conn, run_id, step=JobStep.PROCESS, priority=7)
+        f.make_job(conn, run_id, step=JobStep.PROCESS, not_before=T0, priority=7)
         return account_id, run_id
 
     return await connection.run_sync(build)

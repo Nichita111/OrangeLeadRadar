@@ -74,7 +74,8 @@ function SuggestedAccountsList({ service }: { service: Schemas["Service"] }) {
 
   const runningOnLoad = latestRun.data?.items[0];
   const activeRunId =
-    requestedRunId ?? (runningOnLoad !== undefined && !isRunFinal(runningOnLoad) ? runningOnLoad.id : null);
+    requestedRunId ??
+    (runningOnLoad !== undefined && !isRunFinal(runningOnLoad) ? runningOnLoad.id : null);
   const activeRun = useRun(activeRunId ?? undefined);
   const isRunning = activeRun.data !== undefined && !isRunFinal(activeRun.data);
   const refetchedForRunRef = useRef<string | null>(null);
@@ -93,7 +94,8 @@ function SuggestedAccountsList({ service }: { service: Schemas["Service"] }) {
   }
 
   // G9: the latest finished run's own candidates decide the note, not the current status filter.
-  const latestFinishedRun = runningOnLoad !== undefined && isRunFinal(runningOnLoad) ? runningOnLoad : undefined;
+  const latestFinishedRun =
+    runningOnLoad !== undefined && isRunFinal(runningOnLoad) ? runningOnLoad : undefined;
   const latestRunCandidates = useDiscoveryCandidates(service.id, undefined, 1);
   const foundNoCrunchbaseMatch =
     latestFinishedRun !== undefined &&
@@ -124,11 +126,7 @@ function SuggestedAccountsList({ service }: { service: Schemas["Service"] }) {
             ))}
           </Select>
         </label>
-        <Button
-          variant="primary"
-          disabled={isRunning}
-          onClick={() => void handleFindNewAccounts()}
-        >
+        <Button variant="primary" disabled={isRunning} onClick={() => void handleFindNewAccounts()}>
           {isRunning ? "Finding…" : "Find new accounts"}
         </Button>
       </div>
@@ -165,7 +163,9 @@ function SuggestedAccountsList({ service }: { service: Schemas["Service"] }) {
       >
         {(result) => (
           <CandidatesTable
-            items={result.items.filter((item) => status !== "PENDING" || item.status !== "REJECTED")}
+            items={result.items.filter(
+              (item) => status !== "PENDING" || item.status !== "REJECTED",
+            )}
             serviceId={service.id}
           />
         )}
@@ -174,13 +174,7 @@ function SuggestedAccountsList({ service }: { service: Schemas["Service"] }) {
   );
 }
 
-function CandidatesTable({
-  items,
-  serviceId,
-}: {
-  items: DiscoveryCandidate[];
-  serviceId: string;
-}) {
+function CandidatesTable({ items, serviceId }: { items: DiscoveryCandidate[]; serviceId: string }) {
   const industries = useIndustries();
   const industryLabels = new Map((industries.data ?? []).map((item) => [item.code, item.label]));
   const [rejecting, setRejecting] = useState<DiscoveryCandidate | null>(null);
@@ -193,22 +187,32 @@ function CandidatesTable({
         <caption className="sr-only">Suggested accounts</caption>
         <thead>
           <tr className="border-b border-border text-hint text-text-tertiary">
-            {["Company", "Country", "Industry", "Employees", "Fit", "Why suggested", "Decision"].map(
-              (column) => (
-                <th key={column} scope="col" className="px-4 py-3 font-medium">
-                  {column}
-                </th>
-              ),
-            )}
+            {[
+              "Company",
+              "Country",
+              "Industry",
+              "Employees",
+              "Fit",
+              "Why suggested",
+              "Decision",
+            ].map((column) => (
+              <th key={column} scope="col" className="px-4 py-3 font-medium">
+                {column}
+              </th>
+            ))}
           </tr>
         </thead>
         <tbody>
           {items.map((item) => (
             <tr key={item.id} className="border-b border-border last:border-b-0 align-top">
               <td className="px-4 py-3 font-medium">{item.name}</td>
-              <td className="px-4 py-3">{item.country_code === null ? "—" : countryName(item.country_code)}</td>
               <td className="px-4 py-3">
-                {item.industry === null ? "—" : (industryLabels.get(item.industry) ?? item.industry)}
+                {item.country_code === null ? "—" : countryName(item.country_code)}
+              </td>
+              <td className="px-4 py-3">
+                {item.industry === null
+                  ? "—"
+                  : (industryLabels.get(item.industry) ?? item.industry)}
               </td>
               <td className="num px-4 py-3">{item.employee_count ?? "—"}</td>
               <td className="px-4 py-3">
