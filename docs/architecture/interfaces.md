@@ -436,7 +436,7 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 
 | ID | Method | Path | Roles | Request → response |
 |---|---|---|---|---|
-| `API-20` | GET | `/accounts` | `*` | query `q`, `status`, `country_code`, `industry`, `origin` → `Page<`[`AccountRow`](#accountrow)`>` |
+| `API-20` | GET | `/accounts` | `*` | query `q`, `status`, `relationship_status`, `country_code`, `industry`, `origin` → `Page<`[`AccountRow`](#accountrow)`>` |
 | `API-21` | POST | `/accounts` | `*` | [`AccountCreate`](#accountcreate) → [`Account`](#account) |
 | `API-22` | POST | `/accounts/import` | `*` | multipart: `file` ([`AccountImportRow`](#accountimportrow) CSV), `dry_run` → [`ImportResult`](#importresult) |
 | `API-23` | GET | `/accounts/{id}` | `*` | — → [`Account`](#account) |
@@ -445,15 +445,15 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 | `API-26` | POST | `/accounts/{id}/contacts` | `*` | [`ContactCreate`](#contactcreate) → [`Contact`](#contact) |
 | `API-27` | PATCH | `/contacts/{id}` | `*` | [`ContactUpdate`](#contactupdate) → [`Contact`](#contact) |
 | `API-28` | DELETE | `/contacts/{id}` | `*` | — → `204` |
-| `API-91` | POST | `/accounts/{id}/contact-suggestions` | `*` | — → [`ContactSuggestion`](#contactsuggestion)`[]` |
+| `API-94` | POST | `/accounts/{id}/contact-suggestions` | `*` | — → [`ContactSuggestion`](#contactsuggestion)`[]` |
 
 - `API-20` — `q` matches the name, any alias or the domain.
 - `API-21` — the domain is normalised by [Account identity](/architecture/rules.md#account-identity); an existing domain answers `409 CONFLICT` with `details.entity_id`. Creates the name alias, the `WEBSITE` source and any sources given; `next_refresh_at` stays null, so the scheduler treats the account as due ([Scheduling](/architecture/rules.md#scheduling)).
 - `API-22` — at most `IMPORT_MAX_ROWS` rows, else `422`. Each row is matched by [Account identity](/architecture/rules.md#account-identity): a new domain is created; an existing domain is updated with the columns the row fills, as `MANUAL` values, and an update that changes an attribute enqueues a `RESCORE` with trigger `ACCOUNT_CHANGE` for that account, as `API-24` does; a new domain whose name matches another account is reported `POSSIBLE_DUPLICATE` and skipped; an invalid row is reported with its errors. With `dry_run` true nothing is written.
-- `API-24` — `aliases` replaces the aliases (the name alias is kept); `sources` replaces the `MANUAL` sources and may set a `DETECTED` source's status. Any attribute change enqueues a `RESCORE` with trigger `ACCOUNT_CHANGE`.
+- `API-24` — `aliases` replaces the aliases (the name alias is kept); `sources` replaces the `MANUAL` sources and may set a `DETECTED` source's status. Any attribute change enqueues a `RESCORE` with trigger `ACCOUNT_CHANGE`. `relationship_status` is not an attribute: a change to it alone enqueues no run.
 - `API-26`, `API-27` — a contact without `source_url` answers `422`; a body field not in the shape, such as an email address, answers `422`. The persona is mapped by [Persona mapping](/architecture/rules.md#persona-mapping) unless one is given; when the classifier is unavailable the request answers `503`, or `429` when the [Budget guard](/architecture/rules.md#budget-guard) stops the LLM classifier adapter, and nothing is stored.
 - `API-28` — erases the contact as [Retention and erasure](/architecture/rules.md#retention-and-erasure) states, with reason `REQUEST`.
-- `API-91` — computes [Contact suggestion](/architecture/rules.md#contact-suggestion) and writes nothing but the call's `AI_CALL` audit row. An unknown account answers `404`; when the embedder or the LLM is unavailable the request answers `503`, and `429` when the [Budget guard](/architecture/rules.md#budget-guard) stops the call.
+- `API-94` — computes [Contact suggestion](/architecture/rules.md#contact-suggestion) and writes nothing but the call's `AI_CALL` audit row. An unknown account answers `404`; when the embedder or the LLM is unavailable the request answers `503`, and `429` when the [Budget guard](/architecture/rules.md#budget-guard) stops the call.
 
 ### Accounts and contacts shapes
 
@@ -464,6 +464,7 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 | `id`, `name`, `domain`, `country_code` | string | [`account`](/architecture/sql-store.md#account) |
 | `industry` | string, null | an [`industry`](/architecture/sql-store.md#industry) code |
 | `status` | enum | [`account`](/architecture/sql-store.md#account) `status` |
+| `relationship_status` | enum | [`account`](/architecture/sql-store.md#account) `relationship_status` |
 | `origin` | enum | [`account`](/architecture/sql-store.md#account) `origin` |
 | `last_refreshed_at` | string, null | [`account`](/architecture/sql-store.md#account) |
 | `active_run_id` | string, null | its `QUEUED` or `RUNNING` `ACCOUNT_REFRESH` [`pipeline_run`](/architecture/sql-store.md#pipeline_run) |
@@ -500,6 +501,7 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 | every field of [`AccountCreate`](#accountcreate) except `domain`, optional | | |
 | `sources` | array of `{kind, url, status}`, optional | [`account_source`](/architecture/sql-store.md#account_source) |
 | `status` | enum, optional | [`account`](/architecture/sql-store.md#account) `status` |
+| `relationship_status` | enum, optional | [`account`](/architecture/sql-store.md#account) `relationship_status` |
 
 #### AccountImportRow
 
@@ -684,7 +686,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | Field | Type | Source of truth |
 |---|---|---|
 | `rank` | integer, null | position in the ranking; null unless `RANKED` |
-| `account` | `{id, name, domain, country_code, industry}` | [`account`](/architecture/sql-store.md#account) |
+| `account` | `{id, name, domain, country_code, industry, relationship_status}` | [`account`](/architecture/sql-store.md#account) |
 | `fit`, `intent`, `priority` | integer | current [`account_score`](/architecture/sql-store.md#account_score) |
 | `standing` | enum | current [`account_score`](/architecture/sql-store.md#account_score) |
 | `band` | enum, null | current [`account_score`](/architecture/sql-store.md#account_score) band; null unless `RANKED` |
@@ -921,10 +923,14 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `API-57` | GET | `/accounts/{id}/outreach-drafts` | `*` | query `service_id` → [`OutreachDraft`](#outreachdraft)`[]` |
 | `API-58` | PATCH | `/outreach-drafts/{id}` | `*` | [`OutreachDraftUpdate`](#outreachdraftupdate) → [`OutreachDraft`](#outreachdraft) |
 | `API-59` | POST | `/accounts/{id}/scores/{service_id}/crm-push` | `*` | — → [`CrmSyncView`](#crmsyncview) |
+| `API-91` | POST | `/outreach-drafts/{id}/tone-check` | `*` | [`ToneCheckRequest`](#tonecheckrequest) → [`ToneCheck`](#tonecheck) |
+| `API-93` | POST | `/outreach-drafts/{id}/mark-contacted` | `*` | — → [`EngagementStatusView`](#engagementstatusview) |
 
 - `API-56` — follows [Outreach grounding](/architecture/rules.md#outreach-grounding); an account without an in-force positive finding for the service answers `422`. There is no contract that sends a message.
 - `API-58` — changing `subject` or `body` sets `edited`; `status` may only move to `EXPORTED`.
 - `API-59` — without `HUBSPOT_ACCESS_TOKEN` answers `409 NOT_CONFIGURED` and writes nothing, whatever the account's data; otherwise `404` when the account has no score for the service; otherwise calls `API-70` and records the outcome in [`crm_sync`](/architecture/sql-store.md#crm_sync), answering `503 UPSTREAM_UNAVAILABLE` with `details.dependency` `HUBSPOT` when the call fails, the `FAILED` row recorded.
+- `API-91` — supplies the draft's saved preferences and channel with the request's current, possibly unsaved text to `API-92`. It writes no draft or `DRAFT_UPDATED` audit row. A stopped budget answers `429`; an unavailable LLM answers `503` as `API-56` does.
+- `API-93` — atomically locks the exported draft and the account and service's engagement status in force. From no status or `CONTACTED`, it applies the `API-86` manual `CONTACTED` write; an in-force `ANSWERED`, `MEETING_BOOKED` or `REJECTED` is returned unchanged with no write.
 
 ### Outreach and CRM shapes
 
@@ -934,6 +940,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 |---|---|---|
 | `channel` | enum | [`outreach_draft`](/architecture/sql-store.md#outreach_draft) `channel` |
 | `contact_id` | string, optional | a [`contact`](/architecture/sql-store.md#contact) of the account |
+| `preferences` | [`OutreachPreferences`](/architecture/sql-store.md#outreachpreferences), optional | generation choices; omitted preserves legacy generation |
 
 #### OutreachDraft
 
@@ -941,6 +948,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 |---|---|---|
 | `id`, `account_id`, `service_id`, `subject`, `body`, `edited`, `created_at` | | [`outreach_draft`](/architecture/sql-store.md#outreach_draft) |
 | `channel`, `status` | enum | [`outreach_draft`](/architecture/sql-store.md#outreach_draft) |
+| `preferences` | [`OutreachPreferences`](/architecture/sql-store.md#outreachpreferences), null | [`outreach_draft`](/architecture/sql-store.md#outreach_draft) |
 | `contact` | `{id, full_name, job_title}`, null | [`contact`](/architecture/sql-store.md#contact) |
 | `findings` | array of `{id, question_text, quote}` | the [`finding`](/architecture/sql-store.md#finding) rows of `finding_ids` |
 | `provider_facts` | array of `{id, text}` | the [`provider_fact`](/architecture/sql-store.md#provider_fact) rows of `provider_fact_ids` |
@@ -952,6 +960,28 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 |---|---|---|
 | `subject`, `body` | string, optional | [`outreach_draft`](/architecture/sql-store.md#outreach_draft) |
 | `status` | enum, optional | [`outreach_draft`](/architecture/sql-store.md#outreach_draft) `status` |
+
+#### ToneCheckRequest
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `subject` | string, null | current editor subject; null for `LINKEDIN_INMAIL` |
+| `body` | string | current editor body |
+
+#### ToneCheck
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `verdict` | enum: `GOOD`, `REVIEW` | the advisory result |
+| `summary` | string | one-line summary |
+| `notes` | [`ToneNote`](#tonenote)`[]` | issues found; empty for `GOOD` |
+
+#### ToneNote
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `phrase` | string | phrase in the current text with the issue |
+| `suggested_rewrite` | string | suggested replacement |
 
 #### CrmSyncView
 
@@ -1062,7 +1092,7 @@ The in-process port every classification goes through ([ADR-02](/architecture/ad
 
 ## LLM
 
-The in-process port for the seven generation roles, all calling OpenRouter's chat completions API with a versioned prompt and structured output ([AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries)).
+The in-process port for the generation roles, all calling OpenRouter's chat completions API with a versioned prompt and structured output ([AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries)).
 
 ### LLM contracts
 
@@ -1074,7 +1104,8 @@ The in-process port for the seven generation roles, all calling OpenRouter's cha
 | `API-66` | `draft_outreach(input)` | AI gateway, `LLM_OUTREACH_MODEL` | none | [`OutreachOutput`](#outreachoutput) |
 | `API-84` | `extract_open_signals(input)` | AI gateway, `LLM_EVIDENCE_MODEL` | none | [`OpenSignalOutput`](#opensignaloutput)`[]` |
 | `API-85` | `interpret(input)` | AI gateway, `LLM_INTERPRETATION_MODEL` | none | [`InterpretationOutput`](#interpretationoutput) |
-| `API-92` | `extract_contacts(input)` | AI gateway, `LLM_EVIDENCE_MODEL` | none | [`ContactCandidate`](#contactcandidate)`[]` |
+| `API-92` | `check_outreach_tone(input)` | AI gateway, `LLM_OUTREACH_MODEL` | none | [`ToneCheckOutput`](#tonecheckoutput) |
+| `API-95` | `extract_contacts(input)` | AI gateway, `LLM_EVIDENCE_MODEL` | none | [`ContactCandidate`](#contactcandidate)`[]` |
 
 - Every call passes the [Budget guard](/architecture/rules.md#budget-guard) first, times out after `AI_CALL_TIMEOUT_S`, writes one `AI_CALL` audit row and returns output that its rule has validated, or fails with `UPSTREAM_UNAVAILABLE` or `BUDGET_EXHAUSTED`.
 
@@ -1152,6 +1183,7 @@ The in-process port for the seven generation roles, all calling OpenRouter's cha
 | `contact` | `{full_name, job_title, persona}`, null | [`contact`](/architecture/sql-store.md#contact) |
 | `channel` | enum | [`outreach_draft`](/architecture/sql-store.md#outreach_draft) `channel` |
 | `sender_name` | string | the user's `display_name` |
+| `preferences` | [`OutreachPreferences`](/architecture/sql-store.md#outreachpreferences), null | the generation choices |
 
 #### OutreachOutput
 
@@ -1161,6 +1193,25 @@ The in-process port for the seven generation roles, all calling OpenRouter's cha
 | `body` | string | validated by [Outreach grounding](/architecture/rules.md#outreach-grounding) |
 | `cited_finding_ids` | string[] | becomes [`outreach_draft`](/architecture/sql-store.md#outreach_draft) `finding_ids` |
 | `cited_provider_fact_ids` | string[] | becomes [`outreach_draft`](/architecture/sql-store.md#outreach_draft) `provider_fact_ids` |
+
+#### ToneCheckInput
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `channel` | enum | [`outreach_draft`](/architecture/sql-store.md#outreach_draft) `channel` |
+| `preferences` | [`OutreachPreferences`](/architecture/sql-store.md#outreachpreferences), null | [`outreach_draft`](/architecture/sql-store.md#outreach_draft) `preferences` |
+| `subject` | string, null | current editor subject; null for `LINKEDIN_INMAIL` |
+| `body` | string | current editor body |
+
+#### ToneCheckOutput
+
+The LLM output shape of [`ToneCheck`](#tonecheck).
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `verdict` | enum: `GOOD`, `REVIEW` | [`ToneCheck`](#tonecheck) |
+| `summary` | string | [`ToneCheck`](#tonecheck) |
+| `notes` | [`ToneNote`](#tonenote)`[]` | [`ToneCheck`](#tonecheck) |
 
 #### OpenSignalInput
 

@@ -33,8 +33,8 @@ const EMPTY: ContactFormValues = { full_name: "", job_title: "", source_url: "",
 /**
  * FR-048, FR-049: an account's contacts with name, job title, persona and its origin, and the
  * source page. Add and Edit take no email address or phone number; the persona is suggested from
- * the job title when left empty. FR-182: Suggest contacts lists the people the account's stored
- * documents name (`API-91`), each added with one click.
+ * the job title when left empty. FR-189: Suggest contacts lists the people the account's stored
+ * documents name (`API-94`), each added with one click.
  */
 export function ContactsSection({ accountId }: { accountId: string }) {
   const contacts = useContacts(accountId);
@@ -191,7 +191,7 @@ export function ContactsSection({ accountId }: { accountId: string }) {
   );
 }
 
-/** FR-182: the suggestions of one request; Add stores one as a contact and removes it here. */
+/** FR-189: the suggestions of one request; Add stores one as a contact and removes it here. */
 function SuggestedContacts({
   accountId,
   suggestions,

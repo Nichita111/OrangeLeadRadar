@@ -3,19 +3,19 @@ import { describe, expect, it, onTestFinished } from "vitest";
 
 import { errorEnvelope, errorResponse } from "../../api/authenticationAndUsers.fixtures";
 import { createAccountsAndDiscoveryHandlers } from "../../mocks/accountsAndDiscovery";
+import { createOutreachAndCrmHandlers } from "../../mocks/outreachAndCrm";
+import { createMockStore } from "../../mocks/store";
 import { http, server } from "../../testServer";
 import { renderAt } from "../prospect-dashboard/testSupport";
 
 function renderOutreach(accountId: string) {
-  server.use(
-    ...createAccountsAndDiscoveryHandlers(),
-    http.get("/api/v1/accounts/{id}/outreach-drafts", ({ response }) => response(200).json([])),
-  );
+  const store = createMockStore();
+  server.use(...createAccountsAndDiscoveryHandlers(store), ...createOutreachAndCrmHandlers(store));
   renderAt(`/accounts/${accountId}/outreach`);
 }
 
 describe("ContactsSection", () => {
-  it("FR-182: Suggest contacts lists people with their quote and source, and says nothing is stored until Add", async () => {
+  it("FR-189: Suggest contacts lists people with their quote and source, and says nothing is stored until Add", async () => {
     renderOutreach("acc-lh");
 
     fireEvent.click(await screen.findByRole("button", { name: "Suggest contacts" }));
@@ -34,7 +34,7 @@ describe("ContactsSection", () => {
     expect(within(list).queryByText("Mira Hoffmann")).not.toBeInTheDocument();
   });
 
-  it("FR-182, FR-048: Add adds the suggestion as a contact with its source page and removes it from the list", async () => {
+  it("FR-189, FR-048: Add adds the suggestion as a contact with its source page and removes it from the list", async () => {
     let created: unknown = null;
     const capture = ({ request }: { request: Request }) => {
       if (request.method === "POST" && request.url.endsWith("/accounts/acc-lh/contacts")) {
@@ -72,7 +72,7 @@ describe("ContactsSection", () => {
     ).toBeInTheDocument();
   });
 
-  it("FR-182: with no suggestion, the list says the stored documents name no one yet", async () => {
+  it("FR-189: with no suggestion, the list says the stored documents name no one yet", async () => {
     renderOutreach("acc-fr");
 
     fireEvent.click(await screen.findByRole("button", { name: "Suggest contacts" }));

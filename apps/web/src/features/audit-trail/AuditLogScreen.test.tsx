@@ -1,6 +1,12 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
+import {
+  expectFullKeyboardCoverage,
+  expectNoSeriousOrCriticalViolations,
+  tabOrderWithin,
+} from "../../accessibilityTestSupport";
 import { olgaAdmin } from "../../api/authenticationAndUsers.fixtures";
 import type { Schemas } from "../../api/contract";
 import { renderApp, signedInAs } from "../../testRender";
@@ -63,5 +69,27 @@ describe("Audit log (FR-098, FR-099)", () => {
     signedInAs(olgaAdmin);
     renderApp("/audit");
     expect(await screen.findByText("No audit entries match these filters.")).toBeInTheDocument();
+  });
+});
+
+describe("Accessibility (N-10, FR-016)", () => {
+  it("has no serious or critical axe violation as Admin", async () => {
+    arrangeAudit([entry]);
+    signedInAs(olgaAdmin);
+    const { container } = renderApp("/audit");
+    await screen.findByRole("row", { name: /User created/ });
+
+    await expectNoSeriousOrCriticalViolations(container);
+  });
+
+  it("tabs through every action with each one taking focus in turn", async () => {
+    arrangeAudit([entry]);
+    signedInAs(olgaAdmin);
+    const { container } = renderApp("/audit");
+    await screen.findByRole("row", { name: /User created/ });
+
+    const visited = await tabOrderWithin(userEvent.setup(), container);
+
+    expectFullKeyboardCoverage(container, visited);
   });
 });

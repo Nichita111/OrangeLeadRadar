@@ -325,6 +325,8 @@ async def get_evaluation_items(
     responses={
         http_status.HTTP_200_OK: {"model": Run, "description": "The evaluation already queued"}
     },
+    # `RunError.plugin_code` and `.dependency` stay unset, never `null`, on the wire (G1).
+    response_model_exclude_unset=True,
 )
 async def post_evaluation_run(
     request: Request,

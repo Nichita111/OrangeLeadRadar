@@ -22,7 +22,7 @@ It never fetches from a source, never classifies in batch, never writes a score,
 
 ## Provides and consumes
 
-- Provides every REST family of [interfaces](/architecture/interfaces.md), `API-01` to `API-42`, `API-44` to `API-61`, `API-71` to `API-83`, `API-86` to `API-88`, `API-90` and `API-91`.
+- Provides every REST family of [interfaces](/architecture/interfaces.md), `API-01` to `API-42`, `API-44` to `API-61`, `API-71` to `API-83`, `API-86` to `API-88`, `API-90`, `API-91`, `API-93` and `API-94`.
 - Consumes the [Classifier](/architecture/interfaces.md#classifier) and [LLM](/architecture/interfaces.md#llm) ports through the worker's [AI gateway](/architecture/services/worker.md#ai-gateway) module, the [Embedder](/architecture/interfaces.md#embedder) and `API-70` of the [CRM](/architecture/interfaces.md#crm) port.
 
 ## Design
@@ -37,7 +37,7 @@ It never fetches from a source, never classifies in batch, never writes a score,
 
 **Demo sign-in.** `API-78` signs in only while `FIXTURE_MODE` is `replay`, and answers `404 NOT_FOUND` otherwise. It stays in the OpenAPI document in every mode, so the client has its type.
 
-**Interactive AI calls.** Question preview (`API-14`), outreach drafting (`API-56`), contact suggestions (`API-91`) and persona mapping (`API-26`, `API-27`, when no persona is given) call the AI gateway in the request, bounded by `CLASSIFIER_TIMEOUT_S` or `AI_CALL_TIMEOUT_S`. Their LLM calls pass the [Budget guard](/architecture/rules.md#budget-guard), and every call writes its `AI_CALL` audit row. Preview and contact suggestions write nothing else.
+**Interactive AI calls.** Question preview (`API-14`), outreach drafting (`API-56`), tone check (`API-91`), contact suggestions (`API-94`) and persona mapping (`API-26`, `API-27`, when no persona is given) call the AI gateway in the request, bounded by `CLASSIFIER_TIMEOUT_S` or `AI_CALL_TIMEOUT_S`. Their LLM calls pass the [Budget guard](/architecture/rules.md#budget-guard), and every call writes its `AI_CALL` audit row. Preview, tone check and contact suggestions write nothing else.
 
 **Sessions and passwords.** Passwords are hashed with argon2id. The session token is 32 random bytes, sent only in the cookie; the database holds its SHA-256.
 

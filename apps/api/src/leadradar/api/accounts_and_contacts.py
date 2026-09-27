@@ -1,5 +1,5 @@
 """Router of the [Accounts and contacts](/architecture/interfaces.md#accounts-and-contacts)
-family, its contacts half: `API-25` to `API-28` and `API-91`. The accounts half (`API-20` to
+family, its contacts half: `API-25` to `API-28` and `API-94`. The accounts half (`API-20` to
 `API-24`) is built in `leadradar.api.accounts`; the capabilities are `leadradar.accounts.contacts`
 and `leadradar.accounts.contact_suggestions`."""
 
@@ -130,7 +130,7 @@ async def list_contact_suggestions(
     session: Annotated[AsyncSession, Depends(get_session)],
     principal: CurrentUser,
 ) -> list[ContactSuggestion]:
-    """`API-91`: computed on request and never stored."""
+    """`API-94`: computed on request and never stored."""
     state = request.app.state
     suggestions = await suggest_contacts(
         session,

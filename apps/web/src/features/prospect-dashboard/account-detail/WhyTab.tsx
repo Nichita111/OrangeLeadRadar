@@ -45,7 +45,7 @@ function signed(points: number): string {
 }
 
 /**
- * The Why tab (FR-069 to FR-071, FR-131): "In short", the Fit criteria, the counted signals, and
+ * The Why tab (FR-069 to FR-071): "In short", the Fit criteria, the counted signals, and
  * the exclusion rules with the Admin's exceptions. Everything is rendered from the score view and
  * the findings; the screen composes no score.
  */

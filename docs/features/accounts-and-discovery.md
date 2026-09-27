@@ -35,8 +35,8 @@ sequenceDiagram
 ### FL-05 Maintain an account and its contacts
 
 1. Sales adds an account on [Accounts](#accounts) with its domain and name (`API-21`), or opens an existing one's [Account profile](#account-profile).
-2. Sales edits attributes, aliases, source addresses, parent and status (`API-24`). A changed attribute is stored as a manual value, which no source overwrites, and the account is rescored.
-3. Sales adds a contact with name, job title and the public page that states them (`API-26`), typed or taken from the contact suggestions that the account's stored documents give (`API-91`); the persona is suggested from the job title and can be changed.
+2. Sales edits attributes, aliases, source addresses, parent and status on [Account profile](#account-profile), and sets the relationship status from the header of [Account detail](/features/prospect-dashboard.md#account-detail) (`API-24`). A changed attribute is stored as a manual value, which no source overwrites, and the account is rescored; a changed relationship status alone rescores nothing.
+3. Sales adds a contact with name, job title and the public page that states them (`API-26`), typed or taken from the contact suggestions that the account's stored documents give (`API-94`); the persona is suggested from the job title and can be changed.
 4. On request, Sales erases a contact (`API-28`); it is deleted and the audit keeps no personal data.
 
 ### FL-06 Discover and accept suggested accounts
@@ -65,15 +65,15 @@ sequenceDiagram
 
 ## Reading order
 
-1. Terms in the [glossary](/requirements/glossary.md): Account, Account alias, Account source, Contact, Contact suggestion, Persona, Discovery, Discovery candidate, Daily cycle, Fit score, Free core.
-2. Requirement rows: `S-ACC-01` to `S-ACC-06`, `S-DSC-01` to `S-DSC-03`, `S-ING-06` in [system requirements](/requirements/system.md); `B-07` to `B-10`, `B-37`, `RULE-01`, `RULE-07`, `RULE-11` in [business requirements](/requirements/business.md); `N-08`.
+1. Terms in the [glossary](/requirements/glossary.md): Account, Account alias, Account source, Contact, Contact suggestion, Persona, Discovery, Discovery candidate, Daily cycle, Fit score, Free core, Relationship status.
+2. Requirement rows: `S-ACC-01` to `S-ACC-07`, `S-DSC-01` to `S-DSC-03`, `S-ING-06` in [system requirements](/requirements/system.md); `B-07` to `B-10`, `B-37`, `B-48`, `RULE-01`, `RULE-07`, `RULE-11` in [business requirements](/requirements/business.md); `N-08`.
 3. Stores: [`account`](/architecture/sql-store.md#account), [`account_alias`](/architecture/sql-store.md#account_alias), [`account_source`](/architecture/sql-store.md#account_source), [`contact`](/architecture/sql-store.md#contact), [`discovery_candidate`](/architecture/sql-store.md#discovery_candidate).
 4. Rules: [Account identity](/architecture/rules.md#account-identity), [Account attributes](/architecture/rules.md#account-attributes), [Persona mapping](/architecture/rules.md#persona-mapping), [Contact suggestion](/architecture/rules.md#contact-suggestion), [Discovery](/architecture/rules.md#discovery), [Scheduling](/architecture/rules.md#scheduling), [Fit score](/architecture/rules.md#fit-score), [Retention and erasure](/architecture/rules.md#retention-and-erasure).
-5. Interfaces: [Accounts and contacts](/architecture/interfaces.md#accounts-and-contacts) (`API-20` to `API-28`, `API-91`, [`AccountImportRow`](/architecture/interfaces.md#accountimportrow)), [LLM](/architecture/interfaces.md#llm) (`API-92`) and [Discovery](/architecture/interfaces.md#discovery) (`API-29` to `API-32`).
+5. Interfaces: [Accounts and contacts](/architecture/interfaces.md#accounts-and-contacts) (`API-20` to `API-28`, `API-94`, [`AccountImportRow`](/architecture/interfaces.md#accountimportrow)), [LLM](/architecture/interfaces.md#llm) (`API-95`) and [Discovery](/architecture/interfaces.md#discovery) (`API-29` to `API-32`).
 6. Services: the [api](/architecture/services/api.md) and its [runtime](/architecture/services/api.md#runtime) (`IMPORT_MAX_ROWS`, `CONTACT_RETENTION_DAYS`, `CONTACT_SUGGESTION_MAX_PASSAGES`, `CONTACT_SUGGESTION_MAX`); the [worker](/architecture/services/worker.md) for discovery; the [frontend](/architecture/services/frontend.md) shell; the accounts of the [demo dataset](/architecture/overview.md#demo-dataset) and the account columns of [store ownership](/architecture/overview.md#store-ownership).
-7. Decisions: [ADR-10](/architecture/adrs/adr-10-minimal-contact-data.md), [ADR-27](/architecture/adrs/adr-27-contact-suggestions-added-by-a-person.md), [ADR-12](/architecture/adrs/adr-12-suggested-accounts-need-acceptance.md), [ADR-07](/architecture/adrs/adr-07-source-plug-ins-with-a-free-core.md), [ADR-22](/architecture/adrs/adr-22-icp-criteria-weigh-never-exclude.md), [ADR-26](/architecture/adrs/adr-26-daily-cycle.md).
+7. Decisions: [ADR-10](/architecture/adrs/adr-10-minimal-contact-data.md), [ADR-29](/architecture/adrs/adr-29-contact-suggestions-added-by-a-person.md), [ADR-12](/architecture/adrs/adr-12-suggested-accounts-need-acceptance.md), [ADR-07](/architecture/adrs/adr-07-source-plug-ins-with-a-free-core.md), [ADR-22](/architecture/adrs/adr-22-icp-criteria-weigh-never-exclude.md), [ADR-26](/architecture/adrs/adr-26-daily-cycle.md), [ADR-28](/architecture/adrs/adr-28-relationship-status-beside-lead-feedback.md).
 8. Screens: [Accounts](#accounts), [Account import](#account-import), [Account profile](#account-profile), [Suggested accounts](#suggested-accounts).
-9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-09` to `AC-15`, `AC-59`, `AC-63`, `AC-69`, `AC-89`, `AC-91`.
+9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-09` to `AC-15`, `AC-59`, `AC-63`, `AC-69`, `AC-89`, `AC-95`, `AC-96`.
 
 ## Accounts
 
@@ -82,16 +82,16 @@ Route `/accounts`. Any signed-in user.
 **Layout**
 
 ```text
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ Accounts   [ search name, alias, domain ]  Country ▾  Industry ▾  Status ▾   │
-│                                              [ Import CSV ]  [ New account ] │
-├───────────────────┬────────────────────┬─────────┬──────────────┬────────────┤
-│ Name              │ Domain             │ Country │ Industry     │ Refreshed  │
-├───────────────────┼────────────────────┼─────────┼──────────────┼────────────┤
-│ DHL Group         │ dhl.com            │ Germany │ Logistics    │ 2 hours ago│
-│ Lufthansa Group   │ lufthansagroup.com │ Germany │ Aviation     │ refreshing…│
-│ SWISS             │ swiss.com          │ Switzerland │ Aviation │ yesterday  │
-└───────────────────┴────────────────────┴─────────┴──────────────┴────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Accounts   [ search name, alias, domain ]  Country ▾  Industry ▾  Status ▾  Relationship ▾  │
+│                                                       [ Import CSV ]  [ New account ]       │
+├─────────────────┬────────────────────┬─────────────┬───────────┬─────────────┬──────────────┤
+│ Name            │ Domain             │ Country     │ Industry  │ Refreshed   │ Relationship │
+├─────────────────┼────────────────────┼─────────────┼───────────┼─────────────┼──────────────┤
+│ DHL Group       │ dhl.com            │ Germany     │ Logistics │ 2 hours ago │ In talks     │
+│ Lufthansa Group │ lufthansagroup.com │ Germany     │ Aviation  │ refreshing… │ Prospect     │
+│ SWISS           │ swiss.com          │ Switzerland │ Aviation  │ yesterday   │ Client       │
+└─────────────────┴────────────────────┴─────────────┴───────────┴─────────────┴──────────────┘
 ```
 
 WF-06 — Accounts
@@ -100,13 +100,14 @@ WF-06 — Accounts
 
 | ID | Requirement |
 |---|---|
-| `FR-038` | The screen shall list accounts with name, domain, country, industry, origin, status and last refresh, marking an account whose refresh is running, and search name, alias or domain. |
+| `FR-038` | The screen shall list accounts with name, domain, country, industry, origin, status, relationship status and last refresh, marking an account whose refresh is running, and search name, alias or domain. |
 | `FR-039` | New account shall open a dialog with domain or URL and name, required, and the optional profile fields; a domain already used shall show the existing account with a link to it. |
 | `FR-040` | A row shall open the account's [Account detail](/features/prospect-dashboard.md#account-detail) for the selected service. |
 | `FR-137` | The name cell shall show the parent account as Part of its name, an inactive account with an Inactive chip and an account whose refresh is running with a Refreshing chip. |
 | `FR-138` | In the New account dialog the domain field shall show, under the field, that the domain is already an account, naming it, and the confirming button shall then read Open existing account. |
+| `FR-186` | A Relationship filter shall narrow the list to the accounts of one relationship status. |
 
-Obligations: `S-ACC-01`, `S-ACC-05`.
+Obligations: `S-ACC-01`, `S-ACC-05`, `S-ACC-06`.
 
 **Data**: `API-20`, `API-21`, `API-71`. **States**: [States](/architecture/services/frontend.md#states); the empty state offers Import CSV and New account.
 
@@ -183,11 +184,11 @@ WF-08 — Account profile
 | `FR-047` | Save shall say that the account's scores will be recomputed when an attribute changed. |
 | `FR-048` | Contacts shall list name, job title, persona with its origin, and the source page; Add and Edit shall take name, job title, source page (required) and an optional persona, and offer no field for email address or phone number. |
 | `FR-049` | Erase shall confirm that the contact is deleted permanently and that drafts addressed to them keep no name. |
-| `FR-182` | Suggest contacts shall list the account's contact suggestions, each with name, job title, its quote and a link to its source page, and Add, which adds it as a contact as [FR-048](#account-profile) does and removes it from the list; the list shall say that nothing is stored until Add, and, when empty, that the account's stored documents name no one yet. |
+| `FR-189` | Suggest contacts shall list the account's contact suggestions, each with name, job title, its quote and a link to its source page, and Add, which adds it as a contact as [FR-048](#account-profile) does and removes it from the list; the list shall say that nothing is stored until Add, and, when empty, that the account's stored documents name no one yet. |
 
-Obligations: `S-ACC-03`, `S-ACC-04`, `S-ACC-06`, `S-ING-06`.
+Obligations: `S-ACC-03`, `S-ACC-04`, `S-ACC-07`, `S-ING-06`.
 
-**Data**: `API-23`, `API-24`, `API-25`, `API-26`, `API-27`, `API-28`, `API-71`, `API-91`. **States**: [States](/architecture/services/frontend.md#states).
+**Data**: `API-23`, `API-24`, `API-25`, `API-26`, `API-27`, `API-28`, `API-71`, `API-94`. **States**: [States](/architecture/services/frontend.md#states).
 
 ## Suggested accounts
 

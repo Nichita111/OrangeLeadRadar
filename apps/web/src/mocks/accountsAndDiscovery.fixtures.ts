@@ -8,7 +8,7 @@ type Contact = Schemas["Contact"];
 type ContactSuggestion = Schemas["ContactSuggestion"];
 type DiscoveryCandidate = Schemas["DiscoveryCandidate"];
 
-/** Contact suggestions (`API-91`) by account; the mock leaves out a name already a contact. */
+/** Contact suggestions (`API-94`) by account; the mock leaves out a name already a contact. */
 export const contactSuggestions: Record<string, ContactSuggestion[]> = {
   "acc-dhl": [
     {

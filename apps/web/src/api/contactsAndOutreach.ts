@@ -11,6 +11,8 @@ export type ContactSuggestion = Schemas["ContactSuggestion"];
 export type OutreachDraft = Schemas["OutreachDraft"];
 export type OutreachDraftChannel = Schemas["OutreachDraftChannel"];
 export type OutreachDraftUpdate = Schemas["OutreachDraftUpdate"];
+export type OutreachPreferences = Schemas["OutreachPreferences"];
+export type ToneCheck = Schemas["ToneCheck"];
 
 export const CONTACT_PERSONAS: readonly ContactPersona[] = [
   "CIO",
@@ -75,7 +77,7 @@ export function useContactMutations(accountId: string) {
   return { create, update, erase };
 }
 
-/** `API-91`: computed on request from the account's stored documents; nothing is stored. */
+/** `API-94`: computed on request from the account's stored documents; nothing is stored. */
 export function useContactSuggestions(accountId: string) {
   return useMutation({
     mutationFn: async () =>
@@ -104,6 +106,21 @@ export function useOutreachDrafts(accountId: string, serviceId: string) {
   });
 }
 
+/** `API-79`: active Orange Systems facts applicable to a service. */
+export function useProviderFacts(serviceId: string) {
+  return useQuery({
+    queryKey: [...contactsAndOutreachKeys, "provider-facts", serviceId],
+    queryFn: async () =>
+      requireData(
+        (
+          await client.GET("/api/v1/provider-facts", {
+            params: { query: { status: "ACTIVE", service_id: serviceId } },
+          })
+        ).data,
+      ),
+  });
+}
+
 /** `API-56` (generate) and `API-58` (save or export); each refreshes the drafts. */
 export function useOutreachMutations(accountId: string, serviceId: string) {
   const queryClient = useQueryClient();
@@ -112,7 +129,7 @@ export function useOutreachMutations(accountId: string, serviceId: string) {
       queryKey: [...contactsAndOutreachKeys, "drafts", accountId, serviceId],
     });
   const generate = useMutation({
-    mutationFn: async (body: { channel: OutreachDraftChannel; contact_id?: string }) =>
+    mutationFn: async (body: Schemas["OutreachRequest"]) =>
       requireData(
         (
           await client.POST("/api/v1/accounts/{id}/scores/{service_id}/outreach-drafts", {
@@ -131,5 +148,26 @@ export function useOutreachMutations(accountId: string, serviceId: string) {
       ),
     onSuccess,
   });
-  return { generate, update };
+  const toneCheck = useMutation({
+    mutationFn: async ({ id, body }: { id: string; body: Schemas["ToneCheckRequest"] }) =>
+      requireData(
+        (
+          await client.POST("/api/v1/outreach-drafts/{id}/tone-check", {
+            params: { path: { id } },
+            body,
+          })
+        ).data,
+      ),
+  });
+  const markContacted = useMutation({
+    mutationFn: async (id: string) =>
+      requireData(
+        (
+          await client.POST("/api/v1/outreach-drafts/{id}/mark-contacted", {
+            params: { path: { id } },
+          })
+        ).data,
+      ),
+  });
+  return { generate, update, toneCheck, markContacted };
 }

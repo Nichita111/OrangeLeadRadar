@@ -290,7 +290,7 @@ WF-24 — score anatomy
 
 | ID | Requirement |
 |---|---|
-| `FR-015` | Erasing a contact, disabling a user, revoking an exception, activating scoring and deactivating a service or question shall ask for confirmation in a dialog that says what will happen; every other change applies on Save and confirms with a short toast. |
+| `FR-015` | Erasing a contact, disabling a user, revoking an exception, activating scoring and deactivating a service or question shall ask for confirmation in a dialog that says what will happen; every other change applies on Save, or on selection for the lead verdict and the relationship status, and confirms with a short toast. |
 | `FR-123` | A dialog shall title itself with the action, say in one sentence what changes and what is kept, offer the cancel button first and the confirming button last, and name the confirming button after its verb, such as Disable user, never OK; Escape closes it and focus returns to the control that opened it. |
 
 ## Screen labels
@@ -323,7 +323,7 @@ The words the screens show for glossary terms. A label is a presentation of the 
 | ID | Requirement |
 |---|---|
 | `FR-008` | Screens shall use the labels above and shall never show internal names such as `p_positive`, escalation, triage or token counts, except on the Admin screens Quality report and Audit log and in the Admin-only details of Runs. |
-| `FR-009` | A confidence shall be shown as a word: High at `CONFIDENCE_HIGH_MIN` or above, Medium at `CONFIDENCE_MEDIUM_MIN` or above, Low below; the number is shown only in a tooltip. |
+| `FR-009` | A confidence shall be shown as a word: High at `CONFIDENCE_HIGH_MIN` or above, Medium at `CONFIDENCE_MEDIUM_MIN` or above, Low below; to an Admin the number is shown only in a tooltip, and to Sales never ([N-10](/requirements/system.md)). |
 
 ## Formatting
 

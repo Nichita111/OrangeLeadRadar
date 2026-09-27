@@ -262,6 +262,7 @@ async def list_prospects(
                     "domain": account.domain,
                     "country_code": account.country_code,
                     "industry": account.industry,
+                    "relationship_status": account.relationship_status.value,
                 },
                 "fit": score.fit,
                 "intent": score.intent,

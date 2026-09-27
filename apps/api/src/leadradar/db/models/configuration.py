@@ -7,12 +7,13 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import ARRAY, CheckConstraint, Index, Text, UniqueConstraint, text
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from leadradar.core.enums import (
     IndustryStatus,
     MarketStatus,
+    ProviderFactStatus,
     ScoringConfigStatus,
     ServiceStatus,
     SignalQuestionAnswerType,
@@ -121,3 +122,16 @@ class Market(TimestampedBase):
     name: Mapped[str] = mapped_column(unique=True)
     country_codes: Mapped[list[str]] = mapped_column(ARRAY(Text))
     status: Mapped[MarketStatus] = mapped_column(pg_enum(MarketStatus, "market_status"))
+
+
+class ProviderFact(TimestampedBase):
+    """[`provider_fact`](/architecture/sql-store.md#provider_fact)."""
+
+    __tablename__ = "provider_fact"
+
+    text: Mapped[str]
+    service_ids: Mapped[list[uuid.UUID]] = mapped_column(ARRAY(UUID(as_uuid=True)))
+    source_url: Mapped[str | None]
+    status: Mapped[ProviderFactStatus] = mapped_column(
+        pg_enum(ProviderFactStatus, "provider_fact_status")
+    )

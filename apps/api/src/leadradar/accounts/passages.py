@@ -1,7 +1,7 @@
 """The question-scoped retrieval of [Chunking and passage selection]
 (/architecture/rules.md#chunking-and-passage-selection) over an account's stored passages: a
 keyword and a meaning ranking fused by reciprocal rank. The api invokes it for question preview
-(`API-14`) and [Contact suggestion](/architecture/rules.md#contact-suggestion) (`API-91`); it
+(`API-14`) and [Contact suggestion](/architecture/rules.md#contact-suggestion) (`API-94`); it
 reads and never writes."""
 
 from __future__ import annotations

@@ -33,6 +33,11 @@ class WorkerSettings(AiGatewaySettings):
     housekeeping_hour_utc: int = 3
     refresh_target_minutes: int = 10
 
+    #: [api Runtime](/architecture/services/api.md#runtime), read by the worker too (DC5): the
+    #: housekeeping's session-deletion cutoff ([Retention and erasure]
+    #: (/architecture/rules.md#retention-and-erasure)).
+    session_ttl_hours: int = 12
+
     #: [Plug-in availability](/architecture/rules.md#plug-in-availability): unset by default;
     #: a plug-in whose key is unset is unavailable. Declared here too, as `DATABASE_URL` is,
     #: for the scheduler's own enqueueing of a refresh's first jobs.

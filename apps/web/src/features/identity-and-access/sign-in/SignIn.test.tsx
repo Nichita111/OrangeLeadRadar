@@ -2,6 +2,7 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
+import { expectNoSeriousOrCriticalViolations } from "../../../accessibilityTestSupport";
 import {
   anaSales,
   authenticatedUser,
@@ -232,5 +233,15 @@ describe("Demo shortcuts (FR-167, FR-168)", () => {
     renderApp("/login", { ...testConfig, DEMO_SIGN_IN: true });
     await user.click(await screen.findByRole("button", { name: "Enter as Admin" }));
     expect(await screen.findByText("Demo sign-in is not available.")).toBeInTheDocument();
+  });
+});
+
+describe("Accessibility (N-10, FR-016)", () => {
+  it("has no serious or critical axe violation", async () => {
+    anonymous();
+    const { container } = renderApp("/login");
+    await screen.findByLabelText("Email");
+
+    await expectNoSeriousOrCriticalViolations(container);
   });
 });

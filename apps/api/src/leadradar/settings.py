@@ -48,6 +48,7 @@ class ApiSettings(AiGatewaySettings):
     preview_max_passages: int = 5
     label_queue_size: int = 20
     outreach_max_findings: int = 5
+    provider_facts_per_call: int = 8
     prospect_top_signals: int = 2
     hubspot_top_signals: int = 3
     outreach_email_max_chars: int = 1200

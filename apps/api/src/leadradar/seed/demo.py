@@ -30,18 +30,27 @@ from leadradar.configuration.commands import (
     create_service,
     save_scoring_draft,
 )
+from leadradar.core.account_identity import normalise_name
 from leadradar.core.account_import import parse_csv_rows, parse_import_row
 from leadradar.core.enums import (
+    AccountRelationshipStatus,
     AccountSourceKind,
     AccountSourceOrigin,
     AccountStatus,
     AppUserRole,
     AppUserStatus,
     AuditAction,
+    DiscoveryCandidateOrigin,
+    DiscoveryCandidateStatus,
     DocumentSourceType,
     FindingStrength,
     IndustryStatus,
     MarketStatus,
+    PipelineRunKind,
+    PipelineRunStage,
+    PipelineRunStatus,
+    PipelineRunTrigger,
+    ProviderFactStatus,
     ScoringConfigStatus,
     ServiceStatus,
     SignalQuestionAnswerType,
@@ -49,28 +58,39 @@ from leadradar.core.enums import (
     SignalQuestionStatus,
     SourcePluginCode,
 )
+from leadradar.core.scoring.fit import fit
 from leadradar.core.scoring.settings import (
     Disqualifier,
     DisqualifierKind,
     ICPCriterion,
     ICPCriterionKind,
     QuestionSetting,
+    ScoringSettings,
     WeightLevel,
     default_scoring_settings,
 )
-from leadradar.db.models.accounts import Account, AccountAlias, AccountSource
+from leadradar.db.models.accounts import (
+    Account,
+    AccountAlias,
+    AccountSource,
+    DiscoveryCandidate,
+)
 from leadradar.db.models.configuration import (
     Industry,
     Market,
+    ProviderFact,
     ScoringConfig,
     Service,
     SignalQuestion,
 )
 from leadradar.db.models.identity import AppUser
-from leadradar.db.models.ingestion import SourcePlugin
+from leadradar.db.models.ingestion import PipelineRun, SourcePlugin
 from leadradar.db.session import build_engine
+from leadradar.discovery.commands import reject_candidate
 from leadradar.logs import configure_json_logging
+from leadradar.seed.demo_signals import seed_demo_signals_and_contacts
 from leadradar.settings import ApiSettings
+from leadradar.worker.settings import WorkerSettings
 
 logger = logging.getLogger(__name__)
 
@@ -97,12 +117,12 @@ DEMO_USER_EMAILS: dict[AppUserRole, str] = {
     AppUserRole.SALES: DEMO_SALES_EMAIL,
 }
 
-# Email, role, and the settings field holding its password. Display name is the email's local
-# part (G2). The admin comes first: every later step needs its id as the actor of a write the
-# seed makes on its behalf.
+# Email, display name, role, and the settings field holding its password. The Sales user has a
+# person's name, as it signs the outreach drafts of a demo. The admin comes first: every later
+# step needs its id as the actor of a write the seed makes on its behalf.
 _DEMO_USERS = (
-    (DEMO_ADMIN_EMAIL, AppUserRole.ADMIN, "seed_admin_password"),
-    (DEMO_SALES_EMAIL, AppUserRole.SALES, "seed_sales_password"),
+    (DEMO_ADMIN_EMAIL, "admin", AppUserRole.ADMIN, "seed_admin_password"),
+    (DEMO_SALES_EMAIL, "Ana", AppUserRole.SALES, "seed_sales_password"),
 )
 
 
@@ -111,9 +131,8 @@ async def seed_demo_users(db: AsyncSession, settings: SeedSettings) -> uuid.UUID
     G4). Returns the Admin's id, the actor every later seeding step writes as."""
     now = build_clock(settings)()
     admin_id: uuid.UUID | None = None
-    for email, role, password_field in _DEMO_USERS:
+    for email, display_name, role, password_field in _DEMO_USERS:
         password = getattr(settings, password_field).get_secret_value()
-        display_name = email.split("@", 1)[0]
         user = await create_user(
             db,
             actor_id=None,
@@ -575,7 +594,215 @@ _CYBERSECURITY = _ServiceSpec(
     disqualifiers=(_INSOLVENT_DISQUALIFIER,),
 )
 
-_DEMO_SERVICES = (_INTELLIGENT_AUTOMATION, _CYBERSECURITY)
+_SOFTWARE_DEVELOPMENT = _ServiceSpec(
+    code="SOFTWARE_DEVELOPMENT",
+    name="Software development",
+    description=(
+        "Custom business software, web and mobile applications, and the modernisation of legacy "
+        "systems, built by dedicated or project teams."
+    ),
+    value_proposition=(
+        "Orange Systems builds and modernises business software with nearshore teams that scale "
+        "up quickly and deliver to agreed quality and timelines."
+    ),
+    questions=(
+        _QuestionSpec(
+            key="LEGACY_MODERNISATION",
+            text="Does the company plan or run the replacement or modernisation of legacy "
+            "applications or core systems?",
+            answer_type=SignalQuestionAnswerType.YES_NO,
+            polarity=SignalQuestionPolarity.POSITIVE,
+            source_types=(DocumentSourceType.NEWS, DocumentSourceType.COMPANY_PUBLICATION),
+            weight=WeightLevel.HIGH,
+            hint_terms=("legacy", "modernisation", "core banking", "mainframe", "S/4HANA"),
+        ),
+        _QuestionSpec(
+            key="DIGITAL_PRODUCT",
+            text="Does the company build or launch new digital products, customer portals or "
+            "mobile apps?",
+            answer_type=SignalQuestionAnswerType.YES_NO,
+            polarity=SignalQuestionPolarity.POSITIVE,
+            source_types=(DocumentSourceType.NEWS, DocumentSourceType.COMPANY_PUBLICATION),
+            weight=WeightLevel.HIGH,
+            hint_terms=("app", "customer portal", "digital platform", "launch"),
+        ),
+        _QuestionSpec(
+            key="DEVELOPER_HIRING",
+            text="Is the company hiring software developers, software architects or engineering "
+            "managers?",
+            answer_type=SignalQuestionAnswerType.YES_NO,
+            polarity=SignalQuestionPolarity.POSITIVE,
+            source_types=(DocumentSourceType.JOB_POSTING,),
+            weight=WeightLevel.MEDIUM,
+        ),
+        _QuestionSpec(
+            key="NEW_TECH_LEADER",
+            text="Has the company appointed a new CTO, CIO or head of software engineering?",
+            answer_type=SignalQuestionAnswerType.YES_NO,
+            polarity=SignalQuestionPolarity.POSITIVE,
+            source_types=(
+                DocumentSourceType.NEWS,
+                DocumentSourceType.COMPANY_PUBLICATION,
+                DocumentSourceType.COMPANY_PROFILE,
+            ),
+            weight=WeightLevel.MEDIUM,
+            hint_terms=("appointed", "CTO", "head of engineering"),
+            half_life_days=180,
+        ),
+        _QuestionSpec(
+            key="EXTERNAL_DELIVERY",
+            text="Does the company describe outsourcing, nearshoring or an external delivery "
+            "centre for software development?",
+            answer_type=SignalQuestionAnswerType.YES_NO,
+            polarity=SignalQuestionPolarity.POSITIVE,
+            source_types=(DocumentSourceType.NEWS, DocumentSourceType.COMPANY_PUBLICATION),
+            weight=WeightLevel.MEDIUM,
+            hint_terms=("nearshore", "outsourcing", "delivery centre"),
+        ),
+        _QuestionSpec(
+            key="IN_HOUSE_ENGINEERING",
+            text="Does the company describe a large in-house software engineering organisation "
+            "that builds its own products?",
+            answer_type=SignalQuestionAnswerType.SCALE,
+            polarity=SignalQuestionPolarity.NEGATIVE,
+            source_types=(DocumentSourceType.NEWS, DocumentSourceType.COMPANY_PUBLICATION),
+            weight=WeightLevel.MEDIUM,
+            hint_terms=("software engineers", "in-house", "tech hub"),
+        ),
+        _INSOLVENCY_QUESTION,
+    ),
+    icp_criteria=(
+        ICPCriterion(
+            key="SECTOR",
+            kind=ICPCriterionKind.INDUSTRY,
+            weight=WeightLevel.HIGH,
+            values=[
+                "BANKING",
+                "INSURANCE",
+                "LOGISTICS_TRANSPORT",
+                "AEROSPACE_AVIATION",
+                "MANUFACTURING",
+                "AUTOMOTIVE",
+            ],
+        ),
+        ICPCriterion(
+            key="REGION",
+            kind=ICPCriterionKind.GEOGRAPHY,
+            weight=WeightLevel.MEDIUM,
+            values=list(_REGION_COUNTRIES),
+        ),
+        ICPCriterion(
+            key="SIZE", kind=ICPCriterionKind.EMPLOYEE_RANGE, weight=WeightLevel.MEDIUM, min=1000
+        ),
+    ),
+    disqualifiers=(_INSOLVENT_DISQUALIFIER,),
+)
+
+_QUALITY_ASSURANCE = _ServiceSpec(
+    code="QUALITY_ASSURANCE",
+    name="Quality assurance and testing",
+    description=(
+        "Test strategy, manual and automated testing, performance and resilience testing, and "
+        "test centres of excellence."
+    ),
+    value_proposition=(
+        "Orange Systems tests business software end to end and automates regression testing, so "
+        "releases go out faster and with fewer defects."
+    ),
+    questions=(
+        _QuestionSpec(
+            key="SOFTWARE_FAILURE",
+            text="Does the text report a software failure, faulty release or IT outage that "
+            "affected the company's customers or operations?",
+            answer_type=SignalQuestionAnswerType.SCALE,
+            polarity=SignalQuestionPolarity.POSITIVE,
+            source_types=(DocumentSourceType.NEWS,),
+            weight=WeightLevel.HIGH,
+            hint_terms=("outage", "glitch", "software error", "IT failure", "Störung"),
+            half_life_days=120,
+        ),
+        _QuestionSpec(
+            key="MAJOR_ROLLOUT",
+            text="Is the company rolling out a large new system, platform or ERP that needs "
+            "extensive testing?",
+            answer_type=SignalQuestionAnswerType.YES_NO,
+            polarity=SignalQuestionPolarity.POSITIVE,
+            source_types=(DocumentSourceType.NEWS, DocumentSourceType.COMPANY_PUBLICATION),
+            weight=WeightLevel.HIGH,
+            hint_terms=("go-live", "rollout", "S/4HANA", "migration"),
+        ),
+        _QuestionSpec(
+            key="TEST_AUTOMATION",
+            text="Does the company plan or run test automation, continuous testing or DevOps "
+            "quality initiatives?",
+            answer_type=SignalQuestionAnswerType.YES_NO,
+            polarity=SignalQuestionPolarity.POSITIVE,
+            source_types=(DocumentSourceType.NEWS, DocumentSourceType.COMPANY_PUBLICATION),
+            weight=WeightLevel.MEDIUM,
+            hint_terms=("test automation", "continuous testing", "DevOps"),
+        ),
+        _QuestionSpec(
+            key="QA_HIRING",
+            text="Is the company hiring QA engineers, test automation engineers or test managers?",
+            answer_type=SignalQuestionAnswerType.YES_NO,
+            polarity=SignalQuestionPolarity.POSITIVE,
+            source_types=(DocumentSourceType.JOB_POSTING,),
+            weight=WeightLevel.MEDIUM,
+        ),
+        _QuestionSpec(
+            key="COMPLIANCE_TESTING",
+            text="Must the company's software pass compliance or resilience testing, such as "
+            "DORA resilience testing, GxP validation or automotive safety standards?",
+            answer_type=SignalQuestionAnswerType.YES_NO,
+            polarity=SignalQuestionPolarity.POSITIVE,
+            source_types=(DocumentSourceType.NEWS, DocumentSourceType.COMPANY_PUBLICATION),
+            weight=WeightLevel.LOW,
+            hint_terms=("DORA", "GxP", "ISO 26262", "validation"),
+        ),
+        _QuestionSpec(
+            key="TESTING_PROVIDER_IN_PLACE",
+            text="Does the company name an existing external testing or QA service provider?",
+            answer_type=SignalQuestionAnswerType.YES_NO,
+            polarity=SignalQuestionPolarity.NEGATIVE,
+            source_types=(DocumentSourceType.NEWS, DocumentSourceType.COMPANY_PUBLICATION),
+            weight=WeightLevel.MEDIUM,
+            hint_terms=("testing partner", "managed testing"),
+        ),
+        _INSOLVENCY_QUESTION,
+    ),
+    icp_criteria=(
+        ICPCriterion(
+            key="SECTOR",
+            kind=ICPCriterionKind.INDUSTRY,
+            weight=WeightLevel.HIGH,
+            values=[
+                "BANKING",
+                "INSURANCE",
+                "AEROSPACE_AVIATION",
+                "AUTOMOTIVE",
+                "HEALTHCARE_PHARMA",
+                "LOGISTICS_TRANSPORT",
+            ],
+        ),
+        ICPCriterion(
+            key="REGION",
+            kind=ICPCriterionKind.GEOGRAPHY,
+            weight=WeightLevel.MEDIUM,
+            values=list(_REGION_COUNTRIES),
+        ),
+        ICPCriterion(
+            key="SIZE", kind=ICPCriterionKind.EMPLOYEE_RANGE, weight=WeightLevel.MEDIUM, min=1000
+        ),
+    ),
+    disqualifiers=(_INSOLVENT_DISQUALIFIER,),
+)
+
+_DEMO_SERVICES = (
+    _INTELLIGENT_AUTOMATION,
+    _CYBERSECURITY,
+    _SOFTWARE_DEVELOPMENT,
+    _QUALITY_ASSURANCE,
+)
 
 
 async def _activate_first_scoring_draft(
@@ -612,8 +839,12 @@ async def seed_demo_services(db: AsyncSession, *, actor_id: uuid.UUID, now: date
     """Creates each service of the [Demo dataset](/architecture/overview.md#demo-dataset) with
     its questions (`API-08`, `API-12`), then replaces the auto-created draft's settings with the
     service's ICP criteria, question weights and half-lives, and disqualifiers (`API-17`) before
-    activating it as version 1."""
+    activating it as version 1. A service whose code already exists is left as it is, so a
+    database seeded before a service joined the demo dataset gains only that service."""
+    existing = set((await db.execute(select(Service.code))).scalars())
     for spec in _DEMO_SERVICES:
+        if spec.code in existing:
+            continue
         service = await create_service(
             db,
             code=spec.code,
@@ -661,6 +892,97 @@ async def seed_demo_services(db: AsyncSession, *, actor_id: uuid.UUID, now: date
             now=now,
         )
         await _activate_first_scoring_draft(db, scoring_config_id=saved.summary.id, now=now)
+
+
+_DEMO_PROVIDER_FACTS = (
+    ("Orange Systems has more than 900 professionals.", None, "https://systems.orange.md/"),
+    (
+        "Orange Systems has more than 15 years of experience delivering IT solutions.",
+        None,
+        "https://systems.orange.md/",
+    ),
+    (
+        (
+            "Orange Systems delivers more than 500 projects a year for more than 50 clients "
+            "in 25 countries."
+        ),
+        None,
+        "https://systems.orange.md/",
+    ),
+    (
+        "Orange Systems is the leading IT hub of the Orange Group.",
+        None,
+        "https://systems.orange.md/about/",
+    ),
+    (
+        "Orange Systems is certified to ISO 9001, ISO 27001 and ISO 14001.",
+        None,
+        "https://systems.orange.md/about/",
+    ),
+    (
+        "Orange Systems has more than 50 experts in data and AI technologies.",
+        "INTELLIGENT_AUTOMATION",
+        "https://systems.orange.md/analytics/",
+    ),
+    (
+        "Orange Systems has delivered data analytics and AI solutions for more than 10 years.",
+        "INTELLIGENT_AUTOMATION",
+        "https://systems.orange.md/analytics/",
+    ),
+    (
+        "Orange Systems has automated more than 750 processes with RPA.",
+        "INTELLIGENT_AUTOMATION",
+        "https://systems.orange.md/rpa/",
+    ),
+    (
+        "Orange Systems' automation has saved its clients more than 17 million euros.",
+        "INTELLIGENT_AUTOMATION",
+        "https://systems.orange.md/rpa/",
+    ),
+    (
+        "Orange Systems' automation saved more than 2.5 million manual hours in 2024 and 2025.",
+        "INTELLIGENT_AUTOMATION",
+        "https://systems.orange.md/rpa/",
+    ),
+    (
+        "Orange Systems is a UiPath Platinum Partner for RPA and process mining.",
+        "INTELLIGENT_AUTOMATION",
+        "https://systems.orange.md/rpa/",
+    ),
+    (
+        "Orange Systems has more than 20 certified security professionals.",
+        "CYBERSECURITY",
+        "https://systems.orange.md/cybersec/",
+    ),
+    (
+        "Orange Systems' security team has more than 10 years of experience on average.",
+        "CYBERSECURITY",
+        "https://systems.orange.md/cybersec/",
+    ),
+    (
+        "Orange Systems' security operations automate 80% of threat detection.",
+        "CYBERSECURITY",
+        "https://systems.orange.md/cybersec/",
+    ),
+)
+
+
+async def seed_demo_provider_facts(db: AsyncSession) -> None:
+    """Idempotently seeds the Orange Systems facts used by outreach."""
+    existing = set((await db.execute(select(ProviderFact.text))).scalars())
+    services = {row.code: row.id for row in (await db.execute(select(Service))).scalars().all()}
+    for text, service_code, source_url in _DEMO_PROVIDER_FACTS:
+        if text in existing:
+            continue
+        db.add(
+            ProviderFact(
+                text=text,
+                service_ids=[] if service_code is None else [services[service_code]],
+                source_url=source_url,
+                status=ProviderFactStatus.ACTIVE,
+            )
+        )
+    await db.commit()
 
 
 # --- Accounts ------------------------------------------------------------------------------------
@@ -720,6 +1042,172 @@ async def seed_demo_accounts(
         )
 
 
+# --- Relationship statuses and suggested accounts ------------------------------------------------
+
+_DEMO_RELATIONSHIP_STATUSES: dict[str, AccountRelationshipStatus] = {
+    "siemens.com": AccountRelationshipStatus.CLIENT,
+    "allianz.com": AccountRelationshipStatus.CLIENT,
+    "munichre.com": AccountRelationshipStatus.CLIENT,
+    "continental.com": AccountRelationshipStatus.CLIENT,
+    "commerzbank.de": AccountRelationshipStatus.PAST_CLIENT,
+    "airfranceklm.com": AccountRelationshipStatus.PAST_CLIENT,
+    "schaeffler.com": AccountRelationshipStatus.PAST_CLIENT,
+    "bosch.com": AccountRelationshipStatus.IN_TALKS,
+    "ubs.com": AccountRelationshipStatus.IN_TALKS,
+    "kuehne-nagel.com": AccountRelationshipStatus.IN_TALKS,
+    "erstegroup.com": AccountRelationshipStatus.IN_TALKS,
+    "zf.com": AccountRelationshipStatus.IN_TALKS,
+    "generali.com": AccountRelationshipStatus.DO_NOT_CONTACT,
+    "rbinternational.com": AccountRelationshipStatus.DO_NOT_CONTACT,
+}
+
+
+@dataclass(frozen=True)
+class _CandidateSpec:
+    service_code: str
+    name: str
+    domain: str | None
+    country_code: str
+    industry: str
+    employee_count: int | None
+    reject_reason: str | None = None
+
+
+_DEMO_CANDIDATES = (
+    _CandidateSpec(
+        "INTELLIGENT_AUTOMATION", "Hapag-Lloyd", "hlag.com", "DE", "LOGISTICS_TRANSPORT", 14000
+    ),
+    _CandidateSpec("INTELLIGENT_AUTOMATION", "BASF", "basf.com", "DE", "MANUFACTURING", 112000),
+    _CandidateSpec("INTELLIGENT_AUTOMATION", "ING Group", "ing.com", "NL", "BANKING", 60000),
+    _CandidateSpec("INTELLIGENT_AUTOMATION", "Swiss Re", "swissre.com", "CH", "INSURANCE", 14000),
+    _CandidateSpec(
+        "INTELLIGENT_AUTOMATION", "Example Logistik", None, "DE", "LOGISTICS_TRANSPORT", None
+    ),
+    _CandidateSpec(
+        "INTELLIGENT_AUTOMATION",
+        "Mahle",
+        "mahle.com",
+        "DE",
+        "AUTOMOTIVE",
+        72000,
+        reject_reason="Already works with a strategic automation partner.",
+    ),
+    _CandidateSpec("CYBERSECURITY", "E.ON", "eon.com", "DE", "ENERGY_UTILITIES", 72000),
+    _CandidateSpec(
+        "CYBERSECURITY", "Fresenius", "fresenius.com", "DE", "HEALTHCARE_PHARMA", 190000
+    ),
+    _CandidateSpec("CYBERSECURITY", "Nordea", "nordea.com", "FI", "BANKING", 30000),
+)
+
+
+async def seed_demo_relationships_and_suggestions(
+    db: AsyncSession, *, actor_id: uuid.UUID, now: datetime
+) -> None:
+    """Sets the [demo dataset](/architecture/overview.md#demo-dataset)'s relationship statuses
+    (`API-24`) and adds its suggested accounts, one `SUCCEEDED` discovery run per seeded service.
+    Does nothing once a seeded service has a discovery candidate, so a user's later changes stay."""
+    service_codes = {spec.code for spec in _DEMO_SERVICES}
+    services = {
+        service.code: service
+        for service in (
+            await db.execute(select(Service).where(Service.code.in_(service_codes)))
+        ).scalars()
+    }
+    already_seeded = (
+        await db.execute(
+            select(DiscoveryCandidate.id)
+            .where(DiscoveryCandidate.service_id.in_([s.id for s in services.values()]))
+            .limit(1)
+        )
+    ).first()
+    if already_seeded is not None:
+        return
+
+    for domain, relationship_status in _DEMO_RELATIONSHIP_STATUSES.items():
+        await update_account(
+            db,
+            account_id=await _account_id_by_domain(db, domain),
+            data=AccountUpdateData(relationship_status=relationship_status),
+            actor_id=actor_id,
+            now=now,
+        )
+
+    admin = (await db.execute(select(AppUser).where(AppUser.id == actor_id))).scalar_one()
+    for code, service in services.items():
+        config = (
+            await db.execute(
+                select(ScoringConfig).where(
+                    ScoringConfig.service_id == service.id,
+                    ScoringConfig.status == ScoringConfigStatus.ACTIVE,
+                )
+            )
+        ).scalar_one()
+        settings = ScoringSettings.model_validate(config.settings)
+        icp_criteria = [criterion.model_dump() for criterion in settings.icp_criteria]
+        specs = [spec for spec in _DEMO_CANDIDATES if spec.service_code == code]
+        if not specs:
+            continue
+        run = PipelineRun(
+            kind=PipelineRunKind.DISCOVERY,
+            trigger=PipelineRunTrigger.USER,
+            service_id=service.id,
+            status=PipelineRunStatus.SUCCEEDED,
+            stage=PipelineRunStage.SCORE,
+            progress={
+                "documents_kept": 0,
+                "organisations_found": len(specs),
+                "candidates": len(specs),
+            },
+            errors=[],
+            requested_by=actor_id,
+            started_at=now,
+            finished_at=now,
+        )
+        db.add(run)
+        await db.flush()
+        rejected: list[tuple[DiscoveryCandidate, str]] = []
+        for spec in specs:
+            attributes: dict[str, object] = {
+                "country_code": spec.country_code,
+                "industry": spec.industry,
+                "employee_count": spec.employee_count,
+                "revenue_eur": None,
+                "operational_complexity": None,
+            }
+            candidate = DiscoveryCandidate(
+                service_id=service.id,
+                run_id=run.id,
+                name=spec.name,
+                normalised_name=normalise_name(spec.name),
+                domain=spec.domain,
+                country_code=spec.country_code,
+                industry=spec.industry,
+                employee_count=spec.employee_count,
+                origin=DiscoveryCandidateOrigin.CRUNCHBASE_SEARCH,
+                document_id=None,
+                quote=None,
+                fit_estimate=fit(
+                    attributes=attributes,
+                    icp_criteria=icp_criteria,
+                    weight_values=settings.weight_values,
+                    unknown_match=settings.unknown_match,
+                ).value,
+                status=DiscoveryCandidateStatus.PENDING,
+                decided_by=None,
+                decided_at=None,
+                reject_reason=None,
+                account_id=None,
+            )
+            db.add(candidate)
+            if spec.reject_reason is not None:
+                rejected.append((candidate, spec.reject_reason))
+        await db.commit()
+        for candidate, reason in rejected:
+            await reject_candidate(
+                db, candidate_id=candidate.id, reason=reason, principal=admin, now=now
+            )
+
+
 # --- Entry point ---------------------------------------------------------------------------------
 
 
@@ -774,11 +1262,12 @@ async def _existing_seed_matches(db: AsyncSession, settings: SeedSettings) -> bo
         if not ok:
             raise DemoSeedMismatch(f"Existing demo seed is incomplete or different: {description}.")
 
-    for email, role, _ in _DEMO_USERS:
+    for email, display_name, role, _ in _DEMO_USERS:
         user = users.get(email)
+        # A database seeded before the Sales user was named keeps the email's local part.
         require(
             user is not None
-            and user.display_name == email.split("@", 1)[0]
+            and user.display_name in (display_name, email.split("@", 1)[0])
             and user.role == role
             and user.status == AppUserStatus.ACTIVE,
             f"user {email}",
@@ -811,6 +1300,10 @@ async def _existing_seed_matches(db: AsyncSession, settings: SeedSettings) -> bo
         )
     for spec in _DEMO_SERVICES:
         service = services.get(spec.code)
+        if service is None:
+            # A service that joined the demo dataset after this database was seeded;
+            # `seed_demo_services` adds it.
+            continue
         require(
             service is not None
             and service.name == spec.name
@@ -933,16 +1426,40 @@ async def _existing_seed_matches(db: AsyncSession, settings: SeedSettings) -> bo
 
 
 async def seed_demo_dataset(db: AsyncSession, settings: SeedSettings) -> None:
-    """Seed once, or confirm that the existing seed matches without issuing any writes."""
-    if await _existing_seed_matches(db, settings):
-        return
+    """Seed once, or confirm that the existing seed matches; either way, add the provider facts,
+    the relationship statuses and suggested accounts while the seeded services have no discovery
+    candidate, and the demo signals and contacts while none of them exists."""
     now = build_clock(settings)()
+    if await _existing_seed_matches(db, settings):
+        admin_id = (
+            await db.execute(select(AppUser.id).where(AppUser.email == DEMO_ADMIN_EMAIL))
+        ).scalar_one()
+        await seed_demo_services(db, actor_id=admin_id, now=now)
+        await seed_demo_provider_facts(db)
+        await seed_demo_relationships_and_suggestions(db, actor_id=admin_id, now=now)
+        await _seed_signals(db, settings, actor_id=admin_id, now=now)
+        return
     admin_id = await seed_demo_users(db, settings)
     await seed_demo_industries(db, actor_id=admin_id, now=now)
     await seed_demo_markets(db, actor_id=admin_id, now=now)
     await seed_demo_source_plugins(db)
     await seed_demo_services(db, actor_id=admin_id, now=now)
+    await seed_demo_provider_facts(db)
     await seed_demo_accounts(db, settings=settings, actor_id=admin_id, now=now)
+    await seed_demo_relationships_and_suggestions(db, actor_id=admin_id, now=now)
+    await _seed_signals(db, settings, actor_id=admin_id, now=now)
+
+
+async def _seed_signals(
+    db: AsyncSession, settings: SeedSettings, *, actor_id: uuid.UUID, now: datetime
+) -> None:
+    await seed_demo_signals_and_contacts(
+        db,
+        actor_id=actor_id,
+        now=now,
+        document_retention_days=WorkerSettings.model_fields["document_retention_days"].default,
+        contact_retention_days=settings.contact_retention_days,
+    )
 
 
 async def _run(settings: SeedSettings) -> None:

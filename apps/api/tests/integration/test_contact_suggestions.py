@@ -1,4 +1,4 @@
-"""Integration tests of `accounts.contact_suggestions.suggest_contacts` (`API-91`, `S-ACC-06`)
+"""Integration tests of `accounts.contact_suggestions.suggest_contacts` (`API-94`, `S-ACC-07`)
 against a real database: [Contact suggestion](/architecture/rules.md#contact-suggestion) reads
 the account's stored passages and writes nothing. The AI gateway is a fake that records its input;
 the embedder answers over an `httpx.MockTransport`."""

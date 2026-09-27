@@ -27,7 +27,6 @@ from leadradar.ai.classifier import (
     validate_answers,
 )
 from leadradar.ai.errors import (
-    AiDependency,
     BudgetExhausted,
     InvalidOutput,
     UnavailableReason,
@@ -53,6 +52,8 @@ from leadradar.ai.shapes import (
     Organisations,
     OutreachInput,
     OutreachOutput,
+    ToneCheckInput,
+    ToneCheckOutput,
 )
 from leadradar.clock import build_clock
 from leadradar.core.budget_guard import (
@@ -61,7 +62,13 @@ from leadradar.core.budget_guard import (
     call_cost_eur,
     is_budget_exhausted,
 )
-from leadradar.core.enums import AiCallOutcome, AiCallProvider, AiRole, DocumentTriageClassifier
+from leadradar.core.enums import (
+    AiCallOutcome,
+    AiCallProvider,
+    AiRole,
+    Dependency,
+    DocumentTriageClassifier,
+)
 
 T = TypeVar("T")
 OutputT = TypeVar("OutputT", bound=BaseModel)
@@ -74,8 +81,8 @@ def build_ai_http_client(
     return build_fixture_client(settings.fixture_mode, settings.fixture_dir, live)
 
 
-def _dependency(role: AiRole) -> AiDependency:
-    return "classifier" if role == AiRole.CLASSIFIER else "llm"
+def _dependency(role: AiRole) -> Dependency:
+    return Dependency.CLASSIFIER if role == AiRole.CLASSIFIER else Dependency.LLM
 
 
 def _reason(outcome: AiCallOutcome) -> UnavailableReason:
@@ -172,7 +179,7 @@ class AiGateway:
     async def extract_contacts(
         self, role_input: ContactExtractionInput, context: AiCallContext
     ) -> list[ContactCandidate]:
-        """`API-92`, on `LLM_EVIDENCE_MODEL`."""
+        """`API-95`, on `LLM_EVIDENCE_MODEL`."""
         output = await self._generate(
             AiRole.CONTACT_EXTRACTION,
             self._settings.llm_evidence_model,
@@ -193,6 +200,19 @@ class AiGateway:
             role_input,
             OutreachOutput,
             len(role_input.findings),
+            context,
+        )
+
+    async def check_outreach_tone(
+        self, role_input: ToneCheckInput, context: AiCallContext
+    ) -> ToneCheckOutput:
+        """`API-92`, on `LLM_OUTREACH_MODEL`."""
+        return await self._generate(
+            AiRole.TONE_CHECK,
+            self._settings.llm_outreach_model,
+            role_input,
+            ToneCheckOutput,
+            1,
             context,
         )
 
@@ -225,7 +245,11 @@ class AiGateway:
         items: int,
         context: AiCallContext,
     ) -> OutputT:
-        model_key = "LLM_OUTREACH_MODEL" if role == AiRole.OUTREACH else "LLM_EVIDENCE_MODEL"
+        model_key = (
+            "LLM_OUTREACH_MODEL"
+            if role in {AiRole.OUTREACH, AiRole.TONE_CHECK}
+            else "LLM_EVIDENCE_MODEL"
+        )
         chosen_model = self._require_model(model, role, model_key)
         prompt = self._prompts[role]
         provider_request = ProviderRequest(

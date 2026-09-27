@@ -21,8 +21,10 @@ from typing import Literal
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from leadradar.ai.errors import BudgetExhausted, UpstreamUnavailable
+from leadradar.ai.fixtures import FixtureMissing
 from leadradar.ai.gateway import AiGateway
-from leadradar.core.enums import JobStep, PipelineRunKind, PipelineRunTrigger
+from leadradar.core.enums import Dependency, JobStep, PipelineRunKind, PipelineRunTrigger
 from leadradar.db.models.ingestion import Job, PipelineRun
 from leadradar.worker.settings import WorkerSettings
 
@@ -72,9 +74,29 @@ class StepContext:
 class StepFailed(Exception):
     """Raised by a handler that failed with a known error code."""
 
-    def __init__(self, code: StepErrorCode, message: str) -> None:
+    def __init__(
+        self, code: StepErrorCode, message: str, *, dependency: Dependency | None = None
+    ) -> None:
         super().__init__(message)
         self.code: StepErrorCode = code
+        self.dependency: Dependency | None = dependency
+
+
+def step_failure(error: UpstreamUnavailable | BudgetExhausted | FixtureMissing) -> StepFailed:
+    """The one mapping of an AI gateway error onto `StepFailed`
+    ([Job queue](/architecture/services/worker.md#job-queue) Retries;
+    [Conventions](/architecture/interfaces.md#conventions)): a missing recording is
+    `FIXTURE_MISSING`, a budget stop is `BUDGET_EXHAUSTED`, and an unavailable dependency is
+    `UPSTREAM_UNAVAILABLE` — or `NOT_CONFIGURED` when its reason is — naming the dependency that
+    failed."""
+    if isinstance(error, FixtureMissing):
+        return StepFailed("FIXTURE_MISSING", str(error))
+    if isinstance(error, BudgetExhausted):
+        return StepFailed("BUDGET_EXHAUSTED", str(error))
+    code: StepErrorCode = (
+        "NOT_CONFIGURED" if error.reason == "NOT_CONFIGURED" else "UPSTREAM_UNAVAILABLE"
+    )
+    return StepFailed(code, str(error), dependency=error.dependency)
 
 
 StepHandler = Callable[[StepContext], Awaitable[None]]

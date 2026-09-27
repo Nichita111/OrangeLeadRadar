@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { useConfig } from "../configContext";
 import { client, requireData } from "./client";
 import type { Schemas } from "./contract";
+import { prospectsAndEvidenceKeys } from "./prospectsAndEvidence";
 import { referenceDataKeys } from "./referenceData";
 
 export type AccountRow = Schemas["AccountRow"];
@@ -12,12 +14,17 @@ export const accountsKeys = ["accounts"] as const;
 export interface AccountFilters {
   q: string;
   status: Schemas["AccountStatus"] | undefined;
+  relationship_status: Schemas["AccountRelationshipStatus"] | undefined;
   origin: Schemas["AccountOrigin"] | undefined;
   page: number;
 }
 
-/** `API-20` (`FR-038`). */
+/**
+ * `API-20` (`FR-038`). Polls every `RUN_POLL_INTERVAL_MS` while a listed account's refresh is
+ * running, so its Refreshing mark clears when the run ends (`FR-137`).
+ */
 export function useAccounts(filters: AccountFilters) {
+  const { RUN_POLL_INTERVAL_MS } = useConfig();
   return useQuery({
     queryKey: [...accountsKeys, "list", filters],
     queryFn: async () =>
@@ -29,12 +36,19 @@ export function useAccounts(filters: AccountFilters) {
                 page: filters.page,
                 ...(filters.q.trim() === "" ? {} : { q: filters.q.trim() }),
                 ...(filters.status === undefined ? {} : { status: filters.status }),
+                ...(filters.relationship_status === undefined
+                  ? {}
+                  : { relationship_status: filters.relationship_status }),
                 ...(filters.origin === undefined ? {} : { origin: filters.origin }),
               },
             },
           })
         ).data,
       ),
+    refetchInterval: (query) =>
+      (query.state.data?.items ?? []).some((account) => account.active_run_id !== null)
+        ? RUN_POLL_INTERVAL_MS
+        : false,
   });
 }
 
@@ -64,6 +78,7 @@ export function useUpdateAccount(accountId: string) {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: accountsKeys });
       await queryClient.invalidateQueries({ queryKey: referenceDataKeys });
+      await queryClient.invalidateQueries({ queryKey: prospectsAndEvidenceKeys });
     },
   });
 }

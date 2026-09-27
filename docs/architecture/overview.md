@@ -87,7 +87,7 @@ The database has two roles. The owner, the `db` container's user, creates and ch
 
 **Fixture files.** One exchange per file, at `FIXTURE_DIR/<adapter>/<key>.json`, where `<adapter>` is `JEV` or `OPENROUTER` for an AI gateway call, `HUBSPOT` for a HubSpot exchange, or the plug-in's [`source_plugin`](/architecture/sql-store.md#source_plugin) `code` for a source request. The normalised request is `{adapter, method, url, body}`: `url` with its `api_key` query parameter, SerpAPI's credential, removed and the others sorted; `body` the parsed JSON of a JSON body, the text of any other body, or null. Headers and the `api_key` parameter are left out, so no key or credential is ever stored. `<key>` is the SHA-256, in lower-case hex, of the normalised request serialised as JSON with sorted keys, no whitespace and non-ASCII characters unescaped. The file is the JSON object `{adapter, request, response}`: `request` is the normalised request; `response` is `{status, content_type}`, plus `location`, the `Location` header, for a redirect status, with one of `json` for a JSON body, `text` for any other text and `base64` for binary content such as a PDF, or `{error}` with `TIMEOUT` or `TRANSPORT_ERROR` for an exchange that failed before an answer, which replay raises again. `record` overwrites the file of a repeated request, so a retried call keeps its last attempt.
 
-**Seeding.** `make seed-demo` loads the [demo dataset](#demo-dataset) into an empty database: users, industries, markets, services, questions, active scoring versions, provider facts, and the accounts with their sources, imported from the demo account file by the rules of `API-22` and then linked to their parents ([S-RUN-03](/requirements/system.md)). It never fetches. A repeat invocation succeeds without changing a complete matching seed; an incomplete or different existing seed fails clearly. Sources a refresh detected and attribute values its enrichment filled where the demo account file leaves them empty are the account's, not the seed's, and do not make a seed different. The **demo refresh** follows it: `make refresh-demo` requests a refresh of every active account through `API-33` and waits until every run is final, in replay mode for the demo and the acceptance tests. It fails if a requested run is missing or ends in a status other than `SUCCEEDED`; the P1 scheduler would find the same accounts due, and one refresh per account is all either can queue. Labels reference passages, which exist only after a refresh, so `make export-labels` writes every active evaluation item to `FIXTURE_DIR/evaluation_items.json`, a JSON array of `{account_domain, content_hash, ordinal, service_code, question_key, question_revision, expected_strength}` sorted by those keys, and `make seed-labels` loads them after the demo refresh, matching each to its passage and writing it as a `MANUAL` label of the demo Admin; an entry that matches no passage or question fails the command, naming it; replay reproduces the same documents and passages, so every exported label finds its passage.
+**Seeding.** `make seed-demo` loads the [demo dataset](#demo-dataset) into an empty database: users, industries, markets, services, questions, active scoring versions, provider facts, and the accounts with their sources, imported from the demo account file by the rules of `API-22` and then linked to their parents, their relationship statuses and the suggested accounts ([S-RUN-03](/requirements/system.md)). It never fetches. The relationship statuses and the suggested accounts are seeded only while the seeded services have no discovery candidate, so a database seeded before them gains them and a later change by a user is kept. A repeat invocation succeeds without changing a complete matching seed; an incomplete or different existing seed fails clearly. Sources a refresh detected and attribute values its enrichment filled where the demo account file leaves them empty are the account's, not the seed's, and do not make a seed different. The **demo refresh** follows it: `make refresh-demo` requests a refresh of every active account through `API-33` and waits until every run is final, in replay mode for the demo and the acceptance tests. It fails if a requested run is missing or ends in a status other than `SUCCEEDED`; the P1 scheduler would find the same accounts due, and one refresh per account is all either can queue. Labels reference passages, which exist only after a refresh, so `make export-labels` writes every active evaluation item to `FIXTURE_DIR/evaluation_items.json`, a JSON array of `{account_domain, content_hash, ordinal, service_code, question_key, question_revision, expected_strength}` sorted by those keys, and `make seed-labels` loads them after the demo refresh, matching each to its passage and writing it as a `MANUAL` label of the demo Admin; an entry that matches no passage or question fails the command, naming it; replay reproduces the same documents and passages, so every exported label finds its passage.
 
 ## Store ownership
 
@@ -97,7 +97,7 @@ The api service owns the schema and applies migrations; both processes write the
 |---|---|---|
 | [`app_user`](/architecture/sql-store.md#app_user), [`auth_session`](/architecture/sql-store.md#auth_session) | all | deletes expired sessions |
 | [`service`](/architecture/sql-store.md#service), [`signal_question`](/architecture/sql-store.md#signal_question), [`scoring_config`](/architecture/sql-store.md#scoring_config), [`industry`](/architecture/sql-store.md#industry), [`market`](/architecture/sql-store.md#market), [`provider_fact`](/architecture/sql-store.md#provider_fact) | all | — |
-| [`account`](/architecture/sql-store.md#account) | user-entered fields, including an accepted discovery candidate's attributes, `status` | `CRUNCHBASE` and `CLASSIFIER` attributes, `crunchbase_id`, `last_refreshed_at`, `next_refresh_at` |
+| [`account`](/architecture/sql-store.md#account) | user-entered fields, including an accepted discovery candidate's attributes, `status`, `relationship_status` | `CRUNCHBASE` and `CLASSIFIER` attributes, `crunchbase_id`, `last_refreshed_at`, `next_refresh_at` |
 | [`account_alias`](/architecture/sql-store.md#account_alias) | all | — |
 | [`account_source`](/architecture/sql-store.md#account_source) | `MANUAL` rows, any row's `status` | `DETECTED` rows |
 | [`contact`](/architecture/sql-store.md#contact) | all, including persona mapping and erasure on request | erasure at the end of retention |
@@ -128,6 +128,7 @@ Every call goes through the one [AI gateway](/architecture/services/worker.md#ai
 | `OPEN_SIGNAL` | `LLM_EVIDENCE_MODEL` | Note buying signals no question asks about ([Open signals](/architecture/rules.md#open-signals)) | Label, polarity, quote, translation, why it matters | Quote verbatim; translation present exactly for non-English |
 | `INTERPRETATION` | `LLM_INTERPRETATION_MODEL` | Explain in words why a ranked account is worth approaching and why each counted signal matters ([Interpretation](/architecture/rules.md#interpretation)) | Summary, what holds it back, one note per counted finding, cited open signal and fact ids | Citations ⊆ inputs; every counted positive finding explained; no number its inputs do not carry; length |
 | `OUTREACH` | `LLM_OUTREACH_MODEL` | Draft a message from findings and provider facts ([Outreach grounding](/architecture/rules.md#outreach-grounding)) | Subject, body, cited finding and fact ids | Citations ⊆ findings and facts given; no number they do not carry; length; no contact data invented |
+| `TONE_CHECK` | `LLM_OUTREACH_MODEL` | Review the current text of an outreach draft | Verdict, one-line summary, phrase and suggested rewrite notes | Verdict and note shape; every note identifies a phrase and its rewrite |
 
 No role produces a score, a band, a standing or an exclusion, and no role's text is shown as a fact without the quote or provider fact it rests on. Embeddings are not an AI role: they are local, deterministic and make no judgement.
 
@@ -139,8 +140,8 @@ A failure is degrading when a deterministic path remains, blocking when it does 
 |---|---|---|---|
 | One source plug-in | Its fetch step fails; the run ends `PARTIAL` naming it | The other plug-ins, the rest of the pipeline, every screen | **A source plug-in is unavailable.** Still works: The other source plug-ins · The rest of the refresh · Every screen |
 | Classifier | `SIGNAL` jobs fail and are retried; the run ends `PARTIAL`; question preview, and a contact added without a persona, answer `503` | Fetching and processing; scoring from existing findings; every screen | **Quick checks are unavailable.** Still works: Collecting and preparing new documents · Scores from the signals already found · Every screen |
-| OpenRouter | Every classifier and LLM call fails, Jev's included: `SIGNAL` jobs fail and are retried and the run ends `PARTIAL`; open signals and interpretations wait for the account's next run; preview, outreach, contact suggestions and a contact added without a persona answer `503` | Fetching and processing; scoring from existing findings; every screen | **The AI service is unavailable.** Still works: Collecting and preparing new documents · Scores from the signals already found · Every screen |
-| LLM daily budget reached | Escalation and evidence pairs wait as `PENDING_LLM`, open signals and interpretations wait for the next run, and with the LLM classifier adapter classification waits too; preview, outreach and contact suggestions answer `429`, and so does a contact added without a persona under the LLM classifier adapter | Classification by Jev; confident negatives; scoring from existing findings; every screen | **Today's budget for detailed checks is used up.** Still works: Scores from the signals already found · Every screen |
+| OpenRouter | Every classifier and LLM call fails, Jev's included: `SIGNAL` jobs fail and are retried and the run ends `PARTIAL`; open signals and interpretations wait for the account's next run; preview, outreach generation and tone check, contact suggestions, and a contact added without a persona answer `503` | Fetching and processing; scoring from existing findings; every screen; the current outreach editor text | **The AI service is unavailable.** Still works: Collecting and preparing new documents · Scores from the signals already found · Every screen |
+| LLM daily budget reached | Escalation and evidence pairs wait as `PENDING_LLM`, open signals and interpretations wait for the next run, and with the LLM classifier adapter classification waits too; preview, outreach generation and tone check, and contact suggestions answer `429`, and so does a contact added without a persona under the LLM classifier adapter | Classification by Jev; confident negatives; scoring from existing findings; every screen; the current outreach editor text | **Today's budget for detailed checks is used up.** Still works: Scores from the signals already found · Every screen |
 | Embedder | `PROCESS` jobs fail and are retried; the run ends `PARTIAL`; question preview on an account, or on pasted text longer than `WHOLE_DOCUMENT_MAX_CHARS`, and contact suggestions answer `503` | Scoring, every screen, preview on shorter pasted text | **Text analysis is unavailable.** Still works: Scores from the signals already found · Every screen · Try it on short pasted text |
 | HubSpot | The push answers `503` and the attempt is recorded; the engagement sync run fails naming HubSpot and every status stays as it was | Statuses set by people; everything else | **HubSpot is unavailable.** Still works: Statuses set by people · Everything else |
 | Database | Blocking: every contract except `API-61` answers `503 UPSTREAM_UNAVAILABLE`, `API-61` answers `503` with the database `DOWN`, and the worker stops claiming jobs | Nothing | **The database is unavailable.** Nothing works until it is back. |
@@ -162,7 +163,7 @@ What the MVP deliberately leaves out, and how it would be added without changing
 
 The seed is the acceptance tests' concrete data and the demo's walk-through. Its literal values are the ones below.
 
-**Users.** `admin@leadradar.local` with role `ADMIN` and `sales@leadradar.local` with role `SALES`, each with the email's local part as display name; passwords from `SEED_ADMIN_PASSWORD` and `SEED_SALES_PASSWORD`.
+**Users.** `admin@leadradar.local` with role `ADMIN` and display name admin, and `sales@leadradar.local` with role `SALES` and display name Ana, who signs the demo's outreach drafts; passwords from `SEED_ADMIN_PASSWORD` and `SEED_SALES_PASSWORD`.
 
 **Industries.** Seeded as `ACTIVE` [`industry`](/architecture/sql-store.md#industry) rows; an Admin adds, renames and retires them afterwards. A label is the short name every screen shows.
 
@@ -217,6 +218,16 @@ The seed is the acceptance tests' concrete data and the demo's walk-through. Its
 | Zurich Insurance Group | `zurich.com` | `CH` | `INSURANCE` | |
 | Generali | `generali.com` | `IT` | `INSURANCE` | |
 
+**Relationship statuses.** After the import, the seed sets each account's [`relationship_status`](/architecture/sql-store.md#account) through `API-24`; the accounts not listed keep `PROSPECT`.
+
+| Relationship status | Accounts |
+|---|---|
+| `CLIENT` | Siemens, Allianz, Munich Re, Continental |
+| `PAST_CLIENT` | Commerzbank, Air France-KLM, Schaeffler |
+| `IN_TALKS` | Bosch, UBS, Kuehne+Nagel, Erste Group, ZF Group |
+| `DO_NOT_CONTACT` | Generali, Raiffeisen Bank International |
+| `PROSPECT` | Lufthansa Group, SWISS, DHL Group, DB Schenker, DSV, Zurich Insurance Group |
+
 **Demo account file.** `FIXTURE_DIR/demo_accounts.csv` holds one [`AccountImportRow`](/architecture/interfaces.md#accountimportrow) per account of the table, with the name, domain, country and industry above, plus the account's `careers_url`, `newsroom_url`, `investor_relations_url` and `rss_url` where it has one, its `employee_count` and its `operational_complexity`, collected by the team when it records the fixtures. Source detection and profile enrichment are P1, so the demo's hiring signals and its size and complexity criteria rest on these values.
 
 **Service `INTELLIGENT_AUTOMATION`** — "Intelligent Automation". Description: "Automating business processes end to end with RPA, AI, agentic AI and process mining, from discovery to operation." Value proposition: "Orange Systems designs, builds and runs automation that removes manual work from finance, operations and customer processes, with measurable savings within months."
@@ -249,6 +260,34 @@ ICP: `SECTOR` (`INDUSTRY`: `AEROSPACE_AVIATION`, `LOGISTICS_TRANSPORT`, `MANUFAC
 
 ICP: `SECTOR` (`INDUSTRY`: `BANKING`, `INSURANCE`, `ENERGY_UTILITIES`, `HEALTHCARE_PHARMA`, `MANUFACTURING`, `AUTOMOTIVE`, `LOGISTICS_TRANSPORT`, `AEROSPACE_AVIATION`; `HIGH`), `REGION` (as Intelligent Automation; `MEDIUM`), `SIZE` (`EMPLOYEE_RANGE` min 1000; `MEDIUM`). Disqualifier: `INSOLVENT` as Intelligent Automation. All other settings are the defaults.
 
+**Service `SOFTWARE_DEVELOPMENT`** — "Software development". Description: "Custom business software, web and mobile applications, and the modernisation of legacy systems, built by dedicated or project teams." Value proposition: "Orange Systems builds and modernises business software with nearshore teams that scale up quickly and deliver to agreed quality and timelines."
+
+| Key | Question | Answer type | Polarity | Source types | Weight | Hint terms |
+|---|---|---|---|---|---|---|
+| `LEGACY_MODERNISATION` | Does the company plan or run the replacement or modernisation of legacy applications or core systems? | `YES_NO` | `POSITIVE` | `NEWS`, `COMPANY_PUBLICATION` | `HIGH` | legacy; modernisation; core banking; mainframe; S/4HANA |
+| `DIGITAL_PRODUCT` | Does the company build or launch new digital products, customer portals or mobile apps? | `YES_NO` | `POSITIVE` | `NEWS`, `COMPANY_PUBLICATION` | `HIGH` | app; customer portal; digital platform; launch |
+| `DEVELOPER_HIRING` | Is the company hiring software developers, software architects or engineering managers? | `YES_NO` | `POSITIVE` | `JOB_POSTING` | `MEDIUM` | |
+| `NEW_TECH_LEADER` | Has the company appointed a new CTO, CIO or head of software engineering? | `YES_NO` | `POSITIVE` | `NEWS`, `COMPANY_PUBLICATION`, `COMPANY_PROFILE` | `MEDIUM`, half-life 180 days | appointed; CTO; head of engineering |
+| `EXTERNAL_DELIVERY` | Does the company describe outsourcing, nearshoring or an external delivery centre for software development? | `YES_NO` | `POSITIVE` | `NEWS`, `COMPANY_PUBLICATION` | `MEDIUM` | nearshore; outsourcing; delivery centre |
+| `IN_HOUSE_ENGINEERING` | Does the company describe a large in-house software engineering organisation that builds its own products? | `SCALE` | `NEGATIVE` | `NEWS`, `COMPANY_PUBLICATION` | `MEDIUM` | software engineers; in-house; tech hub |
+| `INSOLVENCY` | Is the company in insolvency, restructuring under creditor protection, or being wound up? | `YES_NO` | `NEGATIVE` | `NEWS`, `COMPANY_PROFILE` | `NONE` | insolvency; Insolvenz |
+
+ICP: `SECTOR` (`INDUSTRY`: `BANKING`, `INSURANCE`, `LOGISTICS_TRANSPORT`, `AEROSPACE_AVIATION`, `MANUFACTURING`, `AUTOMOTIVE`; `HIGH`), `REGION` (as Intelligent Automation; `MEDIUM`), `SIZE` (`EMPLOYEE_RANGE` min 1000; `MEDIUM`). Disqualifier: `INSOLVENT` as Intelligent Automation. All other settings are the defaults.
+
+**Service `QUALITY_ASSURANCE`** — "Quality assurance and testing". Description: "Test strategy, manual and automated testing, performance and resilience testing, and test centres of excellence." Value proposition: "Orange Systems tests business software end to end and automates regression testing, so releases go out faster and with fewer defects."
+
+| Key | Question | Answer type | Polarity | Source types | Weight | Hint terms |
+|---|---|---|---|---|---|---|
+| `SOFTWARE_FAILURE` | Does the text report a software failure, faulty release or IT outage that affected the company's customers or operations? | `SCALE` | `POSITIVE` | `NEWS` | `HIGH`, half-life 120 days | outage; glitch; software error; IT failure; Störung |
+| `MAJOR_ROLLOUT` | Is the company rolling out a large new system, platform or ERP that needs extensive testing? | `YES_NO` | `POSITIVE` | `NEWS`, `COMPANY_PUBLICATION` | `HIGH` | go-live; rollout; S/4HANA; migration |
+| `TEST_AUTOMATION` | Does the company plan or run test automation, continuous testing or DevOps quality initiatives? | `YES_NO` | `POSITIVE` | `NEWS`, `COMPANY_PUBLICATION` | `MEDIUM` | test automation; continuous testing; DevOps |
+| `QA_HIRING` | Is the company hiring QA engineers, test automation engineers or test managers? | `YES_NO` | `POSITIVE` | `JOB_POSTING` | `MEDIUM` | |
+| `COMPLIANCE_TESTING` | Must the company's software pass compliance or resilience testing, such as DORA resilience testing, GxP validation or automotive safety standards? | `YES_NO` | `POSITIVE` | `NEWS`, `COMPANY_PUBLICATION` | `LOW` | DORA; GxP; ISO 26262; validation |
+| `TESTING_PROVIDER_IN_PLACE` | Does the company name an existing external testing or QA service provider? | `YES_NO` | `NEGATIVE` | `NEWS`, `COMPANY_PUBLICATION` | `MEDIUM` | testing partner; managed testing |
+| `INSOLVENCY` | Is the company in insolvency, restructuring under creditor protection, or being wound up? | `YES_NO` | `NEGATIVE` | `NEWS`, `COMPANY_PROFILE` | `NONE` | insolvency; Insolvenz |
+
+ICP: `SECTOR` (`INDUSTRY`: `BANKING`, `INSURANCE`, `AEROSPACE_AVIATION`, `AUTOMOTIVE`, `HEALTHCARE_PHARMA`, `LOGISTICS_TRANSPORT`; `HIGH`), `REGION` (as Intelligent Automation; `MEDIUM`), `SIZE` (`EMPLOYEE_RANGE` min 1000; `MEDIUM`). Disqualifier: `INSOLVENT` as Intelligent Automation. All other settings are the defaults. Seeding adds a service of this table missing from a database seeded before it joined.
+
 **Service `DATA_PLATFORM`** — not seeded; `AC-66` creates it through the REST contracts. "Data and analytics platforms". Description: "Building and modernising data platforms, warehouses and analytics so that decisions rest on current, trusted data." Value proposition: "Orange Systems designs, builds and runs data platforms that turn scattered operational data into reporting and analytics within months."
 
 | Key | Question | Answer type | Polarity | Source types | Weight | Hint terms |
@@ -257,6 +296,20 @@ ICP: `SECTOR` (`INDUSTRY`: `BANKING`, `INSURANCE`, `ENERGY_UTILITIES`, `HEALTHCA
 | `DATA_HIRING` | Is the company hiring data engineers, data scientists or analytics specialists? | `YES_NO` | `POSITIVE` | `JOB_POSTING` | `MEDIUM` | |
 
 It has no ICP criteria and no disqualifiers; all settings are the defaults, and it is activated as version 1.
+
+**Suggested accounts.** For each seeded service, one `DISCOVERY` [`pipeline_run`](/architecture/sql-store.md#pipeline_run) requested by the Admin and `SUCCEEDED`, with these [`discovery_candidate`](/architecture/sql-store.md#discovery_candidate) rows of origin `CRUNCHBASE_SEARCH`, no document and no quote; each `fit_estimate` is the [Fit score](/architecture/rules.md#fit-score) over the attributes below under the service's active settings. The rejected one records the Admin and the reason.
+
+| Service | Name | Domain | Country | Industry | Employees | Status |
+|---|---|---|---|---|---|---|
+| `INTELLIGENT_AUTOMATION` | Hapag-Lloyd | `hlag.com` | `DE` | `LOGISTICS_TRANSPORT` | 14000 | `PENDING` |
+| `INTELLIGENT_AUTOMATION` | BASF | `basf.com` | `DE` | `MANUFACTURING` | 112000 | `PENDING` |
+| `INTELLIGENT_AUTOMATION` | ING Group | `ing.com` | `NL` | `BANKING` | 60000 | `PENDING` |
+| `INTELLIGENT_AUTOMATION` | Swiss Re | `swissre.com` | `CH` | `INSURANCE` | 14000 | `PENDING` |
+| `INTELLIGENT_AUTOMATION` | Example Logistik | | `DE` | `LOGISTICS_TRANSPORT` | | `PENDING` |
+| `INTELLIGENT_AUTOMATION` | Mahle | `mahle.com` | `DE` | `AUTOMOTIVE` | 72000 | `REJECTED`, reason "Already works with a strategic automation partner." |
+| `CYBERSECURITY` | E.ON | `eon.com` | `DE` | `ENERGY_UTILITIES` | 72000 | `PENDING` |
+| `CYBERSECURITY` | Fresenius | `fresenius.com` | `DE` | `HEALTHCARE_PHARMA` | 190000 | `PENDING` |
+| `CYBERSECURITY` | Nordea | `nordea.com` | `FI` | `BANKING` | 30000 | `PENDING` |
 
 **Provider facts.** Seeded as `ACTIVE` [`provider_fact`](/architecture/sql-store.md#provider_fact) rows, each taken from the Orange Systems website at the address beside it; the owner reviews them and an Admin adds, edits and retires them afterwards. A fact without a service applies to every service.
 

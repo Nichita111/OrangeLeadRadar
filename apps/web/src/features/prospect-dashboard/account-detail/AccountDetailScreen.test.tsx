@@ -1,8 +1,17 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
+import {
+  expectFullKeyboardCoverage,
+  expectNoSalesForbiddenWording,
+  expectNoSeriousOrCriticalViolations,
+  tabOrderWithin,
+} from "../../../accessibilityTestSupport";
 import { errorEnvelope, errorResponse } from "../../../api/authenticationAndUsers.fixtures";
 import { createAccountsAndDiscoveryHandlers } from "../../../mocks/accountsAndDiscovery";
+import { createOutreachAndCrmHandlers } from "../../../mocks/outreachAndCrm";
+import { createMockStore } from "../../../mocks/store";
 import { http, server } from "../../../testServer";
 import { renderAt } from "../testSupport";
 
@@ -11,9 +20,9 @@ describe("AccountDetailScreen", () => {
     renderAt("/accounts/acc-lh");
 
     expect(await screen.findByRole("heading", { name: "Lufthansa Group" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "lufthansa.com" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "lufthansagroup.com" })).toHaveAttribute(
       "href",
-      "https://lufthansa.com",
+      "https://lufthansagroup.com",
     );
     expect(await screen.findByText("Germany, Aerospace and aviation")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Lufthansa Holding" })).toHaveAttribute(
@@ -60,9 +69,10 @@ describe("AccountDetailScreen", () => {
   });
 
   it("FR-086: the Outreach tab shows under the header with the account's contacts to address a draft to", async () => {
+    const store = createMockStore();
     server.use(
-      ...createAccountsAndDiscoveryHandlers(),
-      http.get("/api/v1/accounts/{id}/outreach-drafts", ({ response }) => response(200).json([])),
+      ...createAccountsAndDiscoveryHandlers(store),
+      ...createOutreachAndCrmHandlers(store),
     );
     renderAt("/accounts/acc-lh/outreach");
 
@@ -83,7 +93,7 @@ describe("AccountDetailScreen", () => {
       }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Generate" })).toBeInTheDocument();
-    expect(screen.queryByText("Cost programme")).not.toBeInTheDocument();
+    expect(screen.queryByText("Sector")).not.toBeInTheDocument();
   });
 
   it("FR-071: the matched exclusion rule is listed with the fact that matched", async () => {
@@ -166,7 +176,7 @@ describe("AccountDetailScreen", () => {
     renderAt("/accounts/acc-lh");
 
     const cost = (await screen.findByText("Cost programme")).closest("li") as HTMLElement;
-    const original = within(cost).getByRole("link", { name: "Open original" });
+    const original = await within(cost).findByRole("link", { name: "Open original" });
     expect(original).toHaveAttribute(
       "href",
       "https://gdelt.example/fnd-cost#:~:text=Wir%20senken%20die%20Kosten%20um%20500%20Millionen%20Euro.",
@@ -205,5 +215,50 @@ describe("AccountDetailScreen", () => {
     const signal = quote.closest("li") as HTMLElement;
     expect(within(signal).queryByText("Why it counts:")).not.toBeInTheDocument();
     expect(within(signal).queryByText(/GDELT Project/)).not.toBeInTheDocument();
+  });
+});
+
+describe("Accessibility (N-10, FR-016)", () => {
+  it.each(["SALES", "ADMIN"] as const)(
+    "has no serious or critical axe violation on the Why tab as %s",
+    async (role) => {
+      const { container } = renderAt("/accounts/acc-lh", role);
+      await screen.findByRole("heading", { name: "Lufthansa Group" });
+
+      await expectNoSeriousOrCriticalViolations(container);
+    },
+  );
+
+  it.each(["SALES", "ADMIN"] as const)(
+    "has no serious or critical axe violation on the Signals tab as %s",
+    async (role) => {
+      const { container } = renderAt("/accounts/acc-lh?tab=signals", role);
+      await screen.findByText("Wir senken die Kosten um 500 Millionen Euro.");
+
+      await expectNoSeriousOrCriticalViolations(container);
+    },
+  );
+
+  it("tabs through every action of the Why tab with each one taking focus in turn", async () => {
+    const { container } = renderAt("/accounts/acc-lh");
+    await screen.findByRole("heading", { name: "Lufthansa Group" });
+
+    const visited = await tabOrderWithin(userEvent.setup(), container);
+
+    expectFullKeyboardCoverage(container, visited);
+  });
+
+  it("shows Sales no escalation, triage or fixture probability wording on the Why tab", async () => {
+    const { container } = renderAt("/accounts/acc-lh", "SALES");
+    await screen.findByRole("heading", { name: "Lufthansa Group" });
+
+    expectNoSalesForbiddenWording(container);
+  });
+
+  it("shows Sales no escalation, triage or fixture probability wording on the Signals tab", async () => {
+    const { container } = renderAt("/accounts/acc-lh?tab=signals", "SALES");
+    await screen.findByText("Wir senken die Kosten um 500 Millionen Euro.");
+
+    expectNoSalesForbiddenWording(container);
   });
 });

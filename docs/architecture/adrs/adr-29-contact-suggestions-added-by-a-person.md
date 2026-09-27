@@ -1,12 +1,12 @@
 ---
 type: Decision
-title: ADR-27 Contact suggestions added by a person
+title: ADR-29 Contact suggestions added by a person
 description: On request, the LLM names the people an account's stored documents state with a job title, each with a verbatim quote; the suggestions are shown and never stored, and a person adds the ones they choose as ordinary minimal contacts.
 status: draft
 tags: [accounts-and-discovery, outreach-and-crm]
 ---
 
-# ADR-27 Contact suggestions added by a person
+# ADR-29 Contact suggestions added by a person
 
 ## Context
 

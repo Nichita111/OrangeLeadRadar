@@ -37,6 +37,7 @@ from leadradar.core.account_import import ImportRowOutcome, is_refused_feed
 from leadradar.core.enums import (
     AccountOperationalComplexity,
     AccountOrigin,
+    AccountRelationshipStatus,
     AccountSourceKind,
     AccountSourceOrigin,
     AccountSourceStatus,
@@ -59,6 +60,7 @@ class AccountRow(BaseModel):
     country_code: str | None
     industry: str | None
     status: AccountStatus
+    relationship_status: AccountRelationshipStatus
     origin: AccountOrigin
     last_refreshed_at: datetime | None
     active_run_id: uuid.UUID | None
@@ -96,6 +98,7 @@ class Account(BaseModel):
     country_code: str | None
     industry: str | None
     status: AccountStatus
+    relationship_status: AccountRelationshipStatus
     origin: AccountOrigin
     last_refreshed_at: datetime | None
     active_run_id: uuid.UUID | None
@@ -200,6 +203,7 @@ class AccountUpdate(BaseModel):
     linkedin_url: str | SkipJsonSchema[None] = None
     notes: str | SkipJsonSchema[None] = None
     status: AccountStatus | SkipJsonSchema[None] = None
+    relationship_status: AccountRelationshipStatus | SkipJsonSchema[None] = None
     aliases: list[str] | SkipJsonSchema[None] = None
     sources: list[AccountUpdateSource] | SkipJsonSchema[None] = None
 
@@ -214,6 +218,7 @@ class AccountUpdate(BaseModel):
         "linkedin_url",
         "notes",
         "status",
+        "relationship_status",
         "aliases",
         "sources",
         mode="before",
@@ -268,6 +273,7 @@ def _to_account_row(row: AccountRowData) -> AccountRow:
         country_code=row.country_code,
         industry=row.industry,
         status=row.status,
+        relationship_status=row.relationship_status,
         origin=row.origin,
         last_refreshed_at=row.last_refreshed_at,
         active_run_id=row.active_run_id,
@@ -284,6 +290,7 @@ def to_account(data: AccountData) -> Account:
         country_code=data.row.country_code,
         industry=data.row.industry,
         status=data.row.status,
+        relationship_status=data.row.relationship_status,
         origin=data.row.origin,
         last_refreshed_at=data.row.last_refreshed_at,
         active_run_id=data.row.active_run_id,
@@ -315,6 +322,7 @@ async def get_accounts(
     _principal: CurrentUser,
     q: str | None = None,
     status: AccountStatus | None = None,
+    relationship_status: AccountRelationshipStatus | None = None,
     country_code: str | None = None,
     industry: str | None = None,
     origin: AccountOrigin | None = None,
@@ -332,6 +340,7 @@ async def get_accounts(
         session,
         q=q,
         status=status,
+        relationship_status=relationship_status,
         country_code=country_code,
         industry=industry,
         origin=origin,
@@ -453,6 +462,7 @@ async def patch_account(
         linkedin_url=body.linkedin_url,
         notes=body.notes,
         status=body.status,
+        relationship_status=body.relationship_status,
         aliases=tuple(body.aliases) if body.aliases is not None else None,
         sources=(
             tuple(SourceUpdateInput(kind=s.kind, url=s.url, status=s.status) for s in body.sources)

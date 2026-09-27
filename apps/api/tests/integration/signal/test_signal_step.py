@@ -33,6 +33,7 @@ from leadradar.ai.shapes import (
 )
 from leadradar.core.enums import (
     ClassificationStatus,
+    Dependency,
     DocumentTriageClassifier,
     DocumentTriageOutcome,
     EvaluationItemStatus,
@@ -551,14 +552,17 @@ async def test_an_unavailable_llm_leaves_the_pair_waiting_and_the_run_records_on
     ids = await _arrange(async_session)
     await _seed(async_session, factories.make_signal_question, ids["svc"])
     gateway = FakeGateway(p_positive=0.5)
-    down = UpstreamUnavailable("llm", "ERROR", "down")
+    down = UpstreamUnavailable(Dependency.LLM, "ERROR", "down")
     gateway.escalations = [down, down]
 
     await _run_job(async_session, ids, gateway)
 
     assert await _count(async_session, Classification, status=ClassificationStatus.PENDING_LLM) == 2
+    assert gateway.escalation_calls == 1
     errors: list[Any] = (await _run(async_session, ids)).errors
-    assert [(e["stage"], e["code"]) for e in errors] == [("EVIDENCE", "UPSTREAM_UNAVAILABLE")]
+    assert [(e["stage"], e["code"], e["dependency"]) for e in errors] == [
+        ("EVIDENCE", "UPSTREAM_UNAVAILABLE", "LLM")
+    ]
 
 
 async def test_an_unavailable_classifier_fails_the_job_and_the_next_one_triages(
@@ -566,11 +570,14 @@ async def test_an_unavailable_classifier_fails_the_job_and_the_next_one_triages(
 ) -> None:
     ids = await _arrange(async_session)
     gateway = FakeGateway()
-    gateway.classify_error = UpstreamUnavailable("classifier", "ERROR", "down")
+    gateway.classify_error = UpstreamUnavailable(Dependency.CLASSIFIER, "ERROR", "down")
 
     with pytest.raises(StepFailed) as failure:
         await _run_job(async_session, ids, gateway)
-    assert failure.value.code == "UPSTREAM_UNAVAILABLE"
+    assert (failure.value.code, failure.value.dependency) == (
+        "UPSTREAM_UNAVAILABLE",
+        Dependency.CLASSIFIER,
+    )
 
     await _run_job(async_session, ids, FakeGateway())
     assert await _count(async_session, DocumentTriage, document_id=ids["doc"]) == 1

@@ -108,7 +108,7 @@ def test_a_second_start_applies_no_further_migration(migration_database_url: str
                 text("SELECT version_num FROM alembic_version")
             ).scalar_one()
 
-        assert before == after == "0003"
+        assert before == after == "0005"
     finally:
         engine.dispose()
 

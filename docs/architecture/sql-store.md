@@ -237,6 +237,7 @@ A company that may buy. Accounts are shared by the whole team.
 | `parent_account_id` | uuid FK → [`account`](#account), null | Group parent, e.g. SWISS → Lufthansa Group. Display and navigation only; findings are never inherited. |
 | `origin` | enum: `IMPORTED`, `MANUAL`, `DISCOVERED` | How the account entered: CSV import, manual entry, or an accepted [`discovery_candidate`](#discovery_candidate). |
 | `status` | enum: `ACTIVE`, `INACTIVE` | An inactive account is not refreshed, scored or listed in Prospects; its data is kept. |
+| `relationship_status` | enum: `PROSPECT`, `IN_TALKS`, `CLIENT`, `PAST_CLIENT`, `DO_NOT_CONTACT` | The team's relationship with the company, set by a user and shared by every service; an account starts `PROSPECT`. `PROSPECT`: no relationship yet. `IN_TALKS`: the team is discussing a deal with it. `CLIENT`: it buys from Orange Systems. `PAST_CLIENT`: it bought before and does not now. `DO_NOT_CONTACT`: the team shall not approach it. No rule reads it: it changes no score, standing or band, it is independent of the per-service lead feedback `ALREADY_CUSTOMER` and of the per-service [`engagement_status`](#engagement_status), and it does not prevent drafting outreach ([ADR-28](/architecture/adrs/adr-28-relationship-status-beside-lead-feedback.md)). |
 | `crunchbase_id` | text, null | Crunchbase organisation permalink, when matched. |
 | `linkedin_url` | text, null | Entered by a user for manual checks; never fetched ([RULE-01](/requirements/business.md#business-rules)). |
 | `notes` | text, null | Free notes. |
@@ -267,7 +268,7 @@ An address where an account publishes: the pages the website, careers and RSS pl
 
 ### contact
 
-A decision-maker at an account, entered by a user, typed or taken from a suggestion, and kept to the minimum ([RULE-07](/requirements/business.md#business-rules), [ADR-10](/architecture/adrs/adr-10-minimal-contact-data.md), [ADR-27](/architecture/adrs/adr-27-contact-suggestions-added-by-a-person.md)). There is deliberately no column for an email address or a phone number.
+A decision-maker at an account, entered by a user, typed or taken from a suggestion, and kept to the minimum ([RULE-07](/requirements/business.md#business-rules), [ADR-10](/architecture/adrs/adr-10-minimal-contact-data.md), [ADR-29](/architecture/adrs/adr-29-contact-suggestions-added-by-a-person.md)). There is deliberately no column for an email address or a phone number.
 
 | Column | Type | Notes |
 |---|---|---|
@@ -404,7 +405,7 @@ A unit of background work a user can see: a refresh, a reclassification, a resco
 | `status` | enum: `QUEUED`, `RUNNING`, `SUCCEEDED`, `PARTIAL`, `FAILED`, `CANCELLED` | `PARTIAL`: finished, but at least one plug-in or step failed, or pairs were left `PENDING_LLM`, as `errors` and `progress` state. `FAILED`: its final stage failed after its retries. |
 | `stage` | enum, null: `FETCH`, `PROCESS`, `TRIAGE`, `CLASSIFY`, `EVIDENCE`, `OPEN_SIGNALS`, `SYNC`, `SCORE`, `INTERPRET` | The stage in progress; null when queued or finished. The stages each kind passes through are the [run lifecycle](/architecture/services/worker.md#run-lifecycle). |
 | `progress` | jsonb | Counters: `documents_fetched`, `documents_new`, `documents_kept`, `passages`, `pairs_classified`, `pairs_escalated`, `findings_created`, `open_signals_created`, `interpretations_written`, `statuses_synced`, `pending_budget`, `candidates`, `items_evaluated`, `news_searched`, `organisations_found`. |
-| `errors` | jsonb | Array of `{stage, plugin_code?, code, message}`; `code` is an error code of [Conventions](/architecture/interfaces.md#conventions) or `FIXTURE_MISSING`. |
+| `errors` | jsonb | Array of `{stage, plugin_code?, dependency?, code, message}`; `code` is an error code of [Conventions](/architecture/interfaces.md#conventions) or `FIXTURE_MISSING`; `dependency` is the `details.dependency` value of [Conventions](/architecture/interfaces.md#conventions) of the classifier, LLM or embedder call that failed. |
 | `requested_by` | uuid FK → [`app_user`](#app_user), null | The user whose action caused it; null for the scheduler. |
 | `started_at` | timestamptz, null | When the first job started. |
 | `finished_at` | timestamptz, null | When the last job finished. |
@@ -760,9 +761,23 @@ A message draft for a person to send themselves ([RULE-06](/requirements/busines
 | `body` | text | Message text. |
 | `finding_ids` | uuid[] | The findings the draft cites; each an id of [`finding`](#finding). |
 | `provider_fact_ids` | uuid[] | The provider facts the draft cites; each an id of [`provider_fact`](#provider_fact). |
+| `preferences` | jsonb, null | The optional [`OutreachPreferences`](#outreachpreferences) supplied at generation; null for drafts created before [ADR-27](/architecture/adrs/adr-27-outreach-personalization-and-tone-check.md). |
 | `edited` | boolean | True once a user changed the generated text. |
 | `status` | enum: `DRAFT`, `EXPORTED` | `EXPORTED` once copied or downloaded. |
 | `created_by` | uuid FK → [`app_user`](#app_user) | Who generated it. |
+
+#### OutreachPreferences
+
+All fields are required when the object is non-null.
+
+| Field | Values |
+|---|---|
+| `personalization` | `STANDARD`, `TAILORED`, `BESPOKE` |
+| `language` | `ENGLISH`, `GERMAN`, `QUOTE_LANGUAGE` |
+| `formality` | `CASUAL`, `NEUTRAL`, `FORMAL` |
+| `length` | `SHORT`, `STANDARD`, `LONG` |
+| `opening` | `EVIDENCE`, `VALUE`, `QUESTION` |
+| `call_to_action` | `MEETING`, `SHARE_RESOURCE`, `OPEN_QUESTION` |
 
 ### crm_sync
 
@@ -813,7 +828,7 @@ The append-only record of who did what ([RULE-09](/requirements/business.md#busi
 
 ## Audit actions
 
-The closed vocabulary of `audit_event.action`. **AI call payload**: `ai_role` (a role of [AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries)), `provider` (`JEV` or `OPENROUTER`), `model` (the OpenRouter model id for `OPENROUTER`), `prompt_version` (null for `JEV`), `items` (passages or questions in the call), `input_tokens`, `output_tokens`, `cost_eur`, `latency_ms`, `outcome` (`OK`, `TIMEOUT`, `ERROR`, `INVALID_OUTPUT`), `fixture` (true when replayed). **Changed fields**: an object mapping each changed field to its new value; `password` maps to null, so a reset is recorded without its value.
+The closed vocabulary of `audit_event.action`. **AI call payload**: `ai_role` (a role of [AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries), including `TONE_CHECK`), `provider` (`JEV` or `OPENROUTER`), `model` (the OpenRouter model id for `OPENROUTER`), `prompt_version` (null for `JEV`), `items` (passages or questions in the call), `input_tokens`, `output_tokens`, `cost_eur`, `latency_ms`, `outcome` (`OK`, `TIMEOUT`, `ERROR`, `INVALID_OUTPUT`), `fixture` (true when replayed). **Changed fields**: an object mapping each changed field to its new value; `password` maps to null, so a reset is recorded without its value.
 
 | Action | Kind | Entity | Payload |
 |---|---|---|---|

@@ -41,7 +41,7 @@ A worker process runs `WORKER_CONCURRENCY` job loops. A loop claims the next job
 | 5 | `ACCOUNT_REFRESH` from `SCHEDULE` |
 | 7 | `DISCOVERY`, `EVALUATION`, `ENGAGEMENT_SYNC` |
 
-**Retries.** A step that raises is retried with `not_before` = now + `JOB_RETRY_BACKOFF_S × 2^(attempts − 1)`, up to `JOB_MAX_ATTEMPTS` attempts, after which the job is `FAILED` and its run records the error: an entry of `errors` with the stage the step was in, the `plugin_code` of a `FETCH` job, and the code the step raised, else `INTERNAL`. A `RUNNING` job whose `locked_at` is older than `JOB_LOCK_TIMEOUT_S` is returned to `READY`; this is safe because every step is idempotent: it writes through the unique constraints of the [SQL store](/architecture/sql-store.md#constraints-and-indexes) and skips work already recorded ([N-05](/requirements/system.md)).
+**Retries.** A step that raises is retried with `not_before` = now + `JOB_RETRY_BACKOFF_S × 2^(attempts − 1)`, up to `JOB_MAX_ATTEMPTS` attempts, after which the job is `FAILED` and its run records the error: an entry of `errors` with the stage the step was in, the `plugin_code` of a `FETCH` job, the `dependency` when a classifier, LLM or embedder call failed, and the code the step raised, else `INTERNAL`. A `RUNNING` job whose `locked_at` is older than `JOB_LOCK_TIMEOUT_S` is returned to `READY`; this is safe because every step is idempotent: it writes through the unique constraints of the [SQL store](/architecture/sql-store.md#constraints-and-indexes) and skips work already recorded ([N-05](/requirements/system.md)).
 
 **Fan-out.** A step that finishes a stage enqueues the next stage's jobs in the same transaction as its own results. When every job of an `ACCOUNT_REFRESH` run is final, it has `FETCH` jobs and none is a `PROCESS` job, the job loop enqueues the run's `PROCESS` job, so the documents of the plug-ins that succeeded are processed whichever `FETCH` job finishes last. When every job of an `ACCOUNT_REFRESH` or `RECLASSIFY` run is final and none is a `SCORE` job, the job loop enqueues the run's `SCORE` job, so a refresh whose fetches all failed is still scored. Otherwise the last job of a run to finish sets the run's final status.
 
@@ -105,7 +105,7 @@ flowchart TD
 
 The graph's state holds identifiers and passage texts of one batch. Each node writes its results before the next runs, so an interrupted job resumes from what is recorded; the graph keeps no checkpoint of its own. Classification and escalation of different passages run concurrently up to `AI_CONCURRENCY`.
 
-An escalation or evidence call that fails with `UPSTREAM_UNAVAILABLE` leaves its pair `PENDING_LLM`, and the job adds one entry `{stage EVIDENCE, code UPSTREAM_UNAVAILABLE}` to its run's `errors`, so the run ends `PARTIAL`; an unavailable classifier or a missing recording fails the job.
+An escalation or evidence call whose LLM is unavailable leaves its pair `PENDING_LLM`, as a budget stop does; the job then makes no further LLM call, leaves its remaining escalation and evidence pairs `PENDING_LLM`, and adds one entry `{stage: EVIDENCE, code: UPSTREAM_UNAVAILABLE, dependency: LLM}` to its run's `errors`, so the run ends `PARTIAL` naming the LLM; an unavailable classifier or a missing recording fails the job, which is retried as Retries states.
 
 ### AI gateway
 
@@ -117,13 +117,13 @@ One module owns every classifier and LLM call, for the worker and the api. For e
 4. validates the output against the port's shape;
 5. writes the `AI_CALL` audit row with the payload of [Audit actions](/architecture/sql-store.md#audit-actions), computing `cost_eur` from the response's `usage.cost` at `USD_EUR_RATE`.
 
-A call stopped before it is sent — by the budget guard, by a missing recording, or because `OPENROUTER_API_KEY` outside `replay` or the role's model id is unset — writes no `AI_CALL` row, since nothing answered it. Every other call writes exactly one, whatever its outcome, with its latency across all attempts. A failure is `UPSTREAM_UNAVAILABLE` with `details.dependency` `classifier` for the `CLASSIFIER` role and `llm` otherwise and `details.reason` the call's `outcome`, or `NOT_CONFIGURED` for an unset key or model id; a budget stop is `BUDGET_EXHAUSTED` with `details.resets_at` the next 00:00 UTC; a missing recording is `FIXTURE_MISSING`.
+A call stopped before it is sent — by the budget guard, by a missing recording, or because `OPENROUTER_API_KEY` outside `replay` or the role's model id is unset — writes no `AI_CALL` row, since nothing answered it. Every other call writes exactly one, whatever its outcome, with its latency across all attempts. A failure is `UPSTREAM_UNAVAILABLE` with `details.dependency` `CLASSIFIER` for the `CLASSIFIER` role and `LLM` otherwise, values of [Conventions](/architecture/interfaces.md#conventions), and `details.reason` the call's `outcome`, or `NOT_CONFIGURED` for an unset key or model id; a budget stop is `BUDGET_EXHAUSTED` with `details.resets_at` the next 00:00 UTC; a missing recording is `FIXTURE_MISSING`.
 
 **Jev adapter.** Maps a [`ClassifierRequest`](/architecture/interfaces.md#classifierrequest) to one Jev request: the passage and the context line are Jev's state, and each question, keyed by its `id`, becomes one of Jev's typed questions — `YES_NO` a `noul` question, `SCALE` a `score` question whose `criteria` are its levels' labels in order, `CHOICE` a `choice` question whose `criteria` map each option key to its label — so that one call answers them all. The state is the passage alone without a context line, else `{context, text}`. A `noul` answer is P(`YES`), and P(`NO`) is its complement; a `score` or `choice` answer's `probabilities`, keyed by option key or, for a score, by the level's position from 0, become the answer's `probabilities`, normalised to sum to 1 since Jev reports them rounded to two decimals; an answer without them is `INVALID_OUTPUT`. Requests go to `JEV_DECISIONS_URL`, OpenRouter's Decisions API, for the model `JEV_MODEL` with the `OPENROUTER_API_KEY` bearer token, and the response's `usage.cost` is the call's cost ([ADR-15](/architecture/adrs/adr-15-openrouter-as-the-llm-provider.md)).
 
 **LLM classifier adapter.** Sends the same request through the OpenRouter adapter to `LLM_CLASSIFIER_MODEL`, with a response schema that requires a probability for every answer value of every question, and normalises each question's probabilities to sum to 1.
 
-**OpenRouter adapter.** Every generation role, and the LLM classifier adapter, has a prompt versioned in the repository as `prompts/<role>/v<n>.md`, `<role>` being the AI role in lower case; the highest `n` is the one in use, and `v<n>` is recorded in the audit as `prompt_version`. The prompt is the system message; the user message is the role's input shape as JSON. Calls go to `{OPENROUTER_BASE_URL}/chat/completions` in the OpenAI chat format with the `OPENROUTER_API_KEY` bearer token, at temperature 0, with a `response_format` of type `json_schema` whose schema is the role's output shape of [LLM shapes](/architecture/interfaces.md#llm-shapes), with `provider.require_parameters` true so that only providers that honour the schema serve the call, and with `usage.include` true so that the response carries its cost; the rule that owns the role then validates the content ([ADR-15](/architecture/adrs/adr-15-openrouter-as-the-llm-provider.md)).
+**OpenRouter adapter.** Every generation role, including `TONE_CHECK`, and the LLM classifier adapter, has a prompt versioned in the repository as `prompts/<role>/v<n>.md`, `<role>` being the AI role in lower case; the highest `n` is the one in use, and `v<n>` is recorded in the audit as `prompt_version`. `OUTREACH` and `TONE_CHECK` both use `LLM_OUTREACH_MODEL`. The prompt is the system message; the user message is the role's input shape as JSON. Calls go to `{OPENROUTER_BASE_URL}/chat/completions` in the OpenAI chat format with the `OPENROUTER_API_KEY` bearer token, at temperature 0, with a `response_format` of type `json_schema` whose schema is the role's output shape of [LLM shapes](/architecture/interfaces.md#llm-shapes), with `provider.require_parameters` true so that only providers that honour the schema serve the call, and with `usage.include` true so that the response carries its cost; the rule that owns the role then validates the content ([ADR-15](/architecture/adrs/adr-15-openrouter-as-the-llm-provider.md), [ADR-27](/architecture/adrs/adr-27-outreach-personalization-and-tone-check.md)).
 
 ### Source plug-ins
 
@@ -159,7 +159,7 @@ Crunchbase category mapping: the first of the organisation's categories that thi
 
 ### Scheduler and housekeeping
 
-One worker at a time runs the scheduler: each loop takes a PostgreSQL advisory lock and skips the tick if another holds it. Every `SCHEDULER_TICK_S` it applies [Scheduling](/architecture/rules.md#scheduling) — refreshes, discovery and the engagement sync of the daily cycle; once a day at `HOUSEKEEPING_HOUR_UTC` it applies [Retention and erasure](/architecture/rules.md#retention-and-erasure).
+One worker at a time runs the scheduler: each loop takes a PostgreSQL advisory lock and skips the tick if another holds it. Every `SCHEDULER_TICK_S` it applies [Scheduling](/architecture/rules.md#scheduling) — refreshes, discovery and the engagement sync of the daily cycle; the first tick of each UTC day at or after `HOUSEKEEPING_HOUR_UTC` also applies [Retention and erasure](/architecture/rules.md#retention-and-erasure); the process keeps the day it last did so, which is safe to lose because the housekeeping is idempotent, so a worker started later in the day applies it at its first tick.
 
 ## Runtime
 
@@ -252,7 +252,7 @@ One worker at a time runs the scheduler: each loop takes a PostgreSQL advisory l
 | `LLM_CLASSIFIER_MODEL` | — (required with `OPENROUTER_API_KEY`) | OpenRouter model id, `organisation/model` such as `google/gemini-2.5-flash`, of the LLM classifier adapter |
 | `LLM_EVIDENCE_MODEL` | — (required with `OPENROUTER_API_KEY`) | OpenRouter model id of escalation, evidence, open signals, discovery extraction and contact extraction |
 | `LLM_INTERPRETATION_MODEL` | — (required with `OPENROUTER_API_KEY`) | OpenRouter model id of interpretation |
-| `LLM_OUTREACH_MODEL` | — (required with `OPENROUTER_API_KEY`) | OpenRouter model id of outreach drafting |
+| `LLM_OUTREACH_MODEL` | — (required with `OPENROUTER_API_KEY`) | OpenRouter model id of outreach drafting and tone checking |
 | `PROVIDER_FACTS_PER_CALL` | `8` | Provider facts given to one draft or interpretation |
 | `LLM_DAILY_BUDGET_EUR` | `20` | Daily OpenRouter spend cap ([Budget guard](/architecture/rules.md#budget-guard)) |
 | `CLASSIFIER_TIMEOUT_S` | `10` | Timeout of one classifier call |
@@ -267,7 +267,7 @@ One worker at a time runs the scheduler: each loop takes a PostgreSQL advisory l
 
 **Source plug-in keys.** `CRUNCHBASE_API_KEY`, `NEWSAPI_KEY`, `SERPAPI_KEY`: unset by default; a plug-in whose key is unset is unavailable.
 
-The worker also reads `DATABASE_URL`, `LOG_LEVEL` and `HUBSPOT_ACCESS_TOKEN` of the [api runtime](/architecture/services/api.md#runtime).
+The worker also reads `DATABASE_URL`, `LOG_LEVEL`, `SESSION_TTL_HOURS` and `HUBSPOT_ACCESS_TOKEN` of the [api runtime](/architecture/services/api.md#runtime).
 
 ## Examples
 

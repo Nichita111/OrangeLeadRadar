@@ -1,8 +1,8 @@
-"""[Contact suggestion](/architecture/rules.md#contact-suggestion) (`API-91`, `S-ACC-06`): selects
+"""[Contact suggestion](/architecture/rules.md#contact-suggestion) (`API-94`, `S-ACC-07`): selects
 the account's passages most likely to name its people, asks the LLM who they are through the AI
-gateway (`API-92`) and keeps the grounded ones. Nothing is written here; the only row the call
+gateway (`API-95`) and keeps the grounded ones. Nothing is written here; the only row the call
 leaves is the `AI_CALL` audit row the AI gateway writes in its own transaction
-([ADR-27](/architecture/adrs/adr-27-contact-suggestions-added-by-a-person.md))."""
+([ADR-29](/architecture/adrs/adr-29-contact-suggestions-added-by-a-person.md))."""
 
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ async def suggest_contacts(
     max_suggestions: int,
     actor_id: uuid.UUID,
 ) -> list[Suggestion]:
-    """`API-91`: at most `max_suggestions` (`CONTACT_SUGGESTION_MAX`) from the first
+    """`API-94`: at most `max_suggestions` (`CONTACT_SUGGESTION_MAX`) from the first
     `max_passages` (`CONTACT_SUGGESTION_MAX_PASSAGES`) passages; no passage, no LLM call.
     Raises `AccountNotFound`, and the embedder's and the AI gateway's errors."""
     account = await session.get(Account, account_id)
