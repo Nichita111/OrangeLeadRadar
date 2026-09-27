@@ -1,5 +1,5 @@
-// The development mock of the contacts (`API-25` to `API-28`) and Discovery (`API-29` to
-// `API-32`) contracts (TypeScript Mock layer). Temporary: the persona is suggested from a few
+// The development mock of the contacts (`API-25` to `API-28`), contact suggestions (`API-94`) and
+// Discovery (`API-29` to `API-32`) contracts (TypeScript Mock layer). Temporary: the persona is suggested from a few
 // job-title words instead of the classifier, a domain is normalised by stripping the scheme, `www.`
 // and the path, and the candidate list ignores `service_id`. An accepted candidate's account and
 // the runs live in the shared store, which the Accounts and Runs mock answers.
@@ -7,7 +7,11 @@ import { createOpenApiHttp } from "openapi-msw";
 
 import { errorEnvelope, errorResponse } from "../api/authenticationAndUsers.fixtures";
 import type { Schemas, paths } from "../api/contract";
-import { discoveredLater, discoveryCandidates } from "./accountsAndDiscovery.fixtures";
+import {
+  contactSuggestions,
+  discoveredLater,
+  discoveryCandidates,
+} from "./accountsAndDiscovery.fixtures";
 import { mockSessionUser } from "./authentication";
 import { services } from "./prospectsAndEvidence.fixtures";
 import type { MockStore } from "./store";
@@ -100,6 +104,18 @@ export function createAccountsAndDiscoveryHandlers(store: MockStore) {
       };
       contactRows.push(created);
       return response(200).json(created);
+    }),
+    http.post("/api/v1/accounts/{id}/contact-suggestions", ({ params, response }) => {
+      const known = new Set(
+        contactRows
+          .filter((row) => row.account_id === params.id)
+          .map((row) => row.full_name.toLowerCase()),
+      );
+      return response(200).json(
+        (contactSuggestions[params.id] ?? []).filter(
+          (suggestion) => !known.has(suggestion.full_name.toLowerCase()),
+        ),
+      );
     }),
     http.patch("/api/v1/contacts/{id}", async ({ params, request, response }) => {
       const current = contactRows.find((row) => row.id === params.id);

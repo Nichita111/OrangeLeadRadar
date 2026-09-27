@@ -5,7 +5,49 @@
 import type { Schemas } from "../api/contract";
 
 type Contact = Schemas["Contact"];
+type ContactSuggestion = Schemas["ContactSuggestion"];
 type DiscoveryCandidate = Schemas["DiscoveryCandidate"];
+
+/** Contact suggestions (`API-94`) by account; the mock leaves out a name already a contact. */
+export const contactSuggestions: Record<string, ContactSuggestion[]> = {
+  "acc-dhl": [
+    {
+      full_name: "Katrin Vogel",
+      job_title: "Chief Information Officer",
+      source_url: "https://dhl.com/en/about-us/board.html",
+      quote: "Katrin Vogel, Chief Information Officer, leads the group's IT.",
+      document_title: "Board of Management",
+      published_at: "2026-08-05T00:00:00Z",
+    },
+    {
+      full_name: "Dr. Henrik Albers",
+      job_title: "Head of Intelligent Automation",
+      source_url: "https://dhl.com/en/press/releases/2026/automation-programme.html",
+      quote:
+        "“We automate 1,000 processes this year,” said Dr. Henrik Albers, Head of Intelligent Automation.",
+      document_title: "DHL scales AI agents across its processes",
+      published_at: "2026-09-02T00:00:00Z",
+    },
+  ],
+  "acc-lh": [
+    {
+      full_name: "Mira Hoffmann",
+      job_title: "Head of Global Business Services",
+      source_url: "https://lufthansa.com/newsroom/gbs-appointment",
+      quote: "Mira Hoffmann becomes Head of Global Business Services.",
+      document_title: "New head of Global Business Services",
+      published_at: "2026-07-14T00:00:00Z",
+    },
+    {
+      full_name: "Jan-Erik Brandt",
+      job_title: "Leiter Prozessexzellenz",
+      source_url: "https://lufthansa.com/newsroom/fit-for-growth",
+      quote: "Jan-Erik Brandt, Leiter Prozessexzellenz, verantwortet das Programm Fit for Growth.",
+      document_title: "Fit for Growth",
+      published_at: null,
+    },
+  ],
+};
 
 export const contacts: Contact[] = [
   {

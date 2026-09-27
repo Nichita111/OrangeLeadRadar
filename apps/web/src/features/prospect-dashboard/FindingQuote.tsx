@@ -2,7 +2,7 @@ import type { FindingView } from "../../api/prospectsAndEvidence";
 import { Quote } from "../../components/score/Quote";
 import { enumLabel } from "../../shell/format";
 
-/** FR-116: a finding's quote with the domain, type and age of its source. */
+/** FR-116: a finding's quote with the domain, type and age of its source, and Open original. */
 export function FindingQuote({ finding }: { finding: FindingView }) {
   return (
     <Quote
@@ -10,6 +10,7 @@ export function FindingQuote({ finding }: { finding: FindingView }) {
       {...(finding.quote_en === null ? {} : { english: finding.quote_en })}
       sourceDomain={new URL(finding.document.url).hostname}
       sourceLabel={enumLabel(finding.document.source_type)}
+      sourceUrl={finding.document.url}
       at={finding.observed_at}
     />
   );

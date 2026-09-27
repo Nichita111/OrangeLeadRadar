@@ -1,5 +1,5 @@
 """Router of the [Prospects and evidence](/architecture/interfaces.md#prospects-and-evidence)
-family: `API-39`, `API-40`, `API-42` to `API-45`. `API-41` (score history) is built in
+family: `API-39`, `API-40`, `API-42`, `API-44` and `API-45`. `API-41` (score history) is built in
 `leadradar.api.feedback_and_alerts`, which shares its `account_id`/`service_id` pair with
 `API-46`. [`LeadFeedback`](/architecture/interfaces.md#leadfeedback) and
 [`FindingView`](/architecture/interfaces.md#findingview) are defined there too, which `API-46`
@@ -43,7 +43,6 @@ from leadradar.prospects.queries import (
     ProspectFilters,
     list_findings,
     list_prospects,
-    read_evidence,
     read_score_view,
 )
 
@@ -201,7 +200,7 @@ class ScoreView(BaseModel):
 
 
 class FindingDocument(BaseModel):
-    """`FindingView.document`, reused by `EvidenceView.document` ("as in `FindingView`")."""
+    """`FindingView.document`."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -212,20 +211,6 @@ class FindingDocument(BaseModel):
     plugin_code: SourcePluginCode
     language: str
     published_at: str | None
-
-
-class EvidenceView(BaseModel):
-    """[`EvidenceView`](/architecture/interfaces.md#evidenceview)."""
-
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    finding_id: str
-    document: FindingDocument
-    section: str | None
-    purged: bool
-    excerpt: str | None
-    quote_start: int | None
-    quote_end: int | None
 
 
 @router.get("/services/{id}/prospects", response_model=ProspectPage)
@@ -288,23 +273,6 @@ async def get_findings(
         session, account_id=id, service_id=service_id, question_id=question_id, status=status
     )
     return [finding_view(view) for view in views]
-
-
-@router.get("/findings/{id}/evidence", response_model=EvidenceView)
-async def get_evidence(
-    id: uuid.UUID,
-    request: Request,
-    session: Annotated[AsyncSession, Depends(get_session)],
-    principal: CurrentUser,
-) -> EvidenceView:
-    """`API-43`."""
-    return EvidenceView.model_validate(
-        await read_evidence(
-            session,
-            finding_id=id,
-            context_chars=request.app.state.settings.evidence_context_chars,
-        )
-    )
 
 
 @router.post("/accounts/{id}/scores/{service_id}/overrides", response_model=Override)

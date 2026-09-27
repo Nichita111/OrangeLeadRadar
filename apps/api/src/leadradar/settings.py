@@ -46,7 +46,6 @@ class ApiSettings(AiGatewaySettings):
     import_max_rows: int = 2000
     audit_default_range_days: int = 30
     preview_max_passages: int = 5
-    evidence_context_chars: int = 600
     label_queue_size: int = 20
     outreach_max_findings: int = 5
     provider_facts_per_call: int = 8
@@ -55,6 +54,8 @@ class ApiSettings(AiGatewaySettings):
     outreach_email_max_chars: int = 1200
     outreach_inmail_max_chars: int = 1900
     contact_retention_days: int = 730
+    contact_suggestion_max_passages: int = 8
+    contact_suggestion_max: int = 10
     hubspot_access_token: SecretStr | None = None
     job_poll_interval_s: int = 1
     refresh_target_minutes: int = 10

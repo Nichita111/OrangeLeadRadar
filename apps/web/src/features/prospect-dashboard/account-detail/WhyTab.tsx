@@ -6,7 +6,6 @@ import {
   XIcon,
 } from "@phosphor-icons/react";
 import { useState } from "react";
-import { Link } from "react-router";
 
 import type { Schemas } from "../../../api/contract";
 import { useFindings, useRevokeOverride, type ScoreView } from "../../../api/prospectsAndEvidence";
@@ -46,7 +45,7 @@ function signed(points: number): string {
 }
 
 /**
- * The Why tab (FR-069 to FR-071, FR-131): "In short", the Fit criteria, the counted signals, and
+ * The Why tab (FR-069 to FR-071): "In short", the Fit criteria, the counted signals, and
  * the exclusion rules with the Admin's exceptions. Everything is rendered from the score view and
  * the findings; the screen composes no score.
  */
@@ -160,17 +159,11 @@ export function WhyTab({
                   <span className="num ml-auto">{signed(entry.points)}</span>
                 </div>
                 {finding !== undefined && <FindingQuote finding={finding} />}
-                <div className="flex gap-4 text-hint text-text-tertiary">
-                  {others > 0 && (
-                    <span>{`${String(others)} other signal${others === 1 ? "" : "s"}`}</span>
-                  )}
-                  <Link
-                    to={`?tab=signals&finding=${entry.finding_id ?? ""}`}
-                    className="text-accent-ink underline"
-                  >
-                    Read the evidence
-                  </Link>
-                </div>
+                {others > 0 && (
+                  <span className="text-hint text-text-tertiary">
+                    {`${String(others)} other signal${others === 1 ? "" : "s"}`}
+                  </span>
+                )}
               </li>
             );
           })}

@@ -40,6 +40,9 @@ from leadradar.ai.settings import AiGatewaySettings
 from leadradar.ai.shapes import (
     ClassifierAnswer,
     ClassifierRequest,
+    ContactCandidate,
+    ContactCandidates,
+    ContactExtractionInput,
     DiscoveryInput,
     EscalationInput,
     EscalationOutput,
@@ -172,6 +175,20 @@ class AiGateway:
             context,
         )
         return output.organisations
+
+    async def extract_contacts(
+        self, role_input: ContactExtractionInput, context: AiCallContext
+    ) -> list[ContactCandidate]:
+        """`API-95`, on `LLM_EVIDENCE_MODEL`."""
+        output = await self._generate(
+            AiRole.CONTACT_EXTRACTION,
+            self._settings.llm_evidence_model,
+            role_input,
+            ContactCandidates,
+            len(role_input.passages),
+            context,
+        )
+        return output.contacts
 
     async def draft_outreach(
         self, role_input: OutreachInput, context: AiCallContext

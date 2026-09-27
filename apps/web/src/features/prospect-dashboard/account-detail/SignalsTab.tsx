@@ -1,12 +1,6 @@
-import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router";
+import { useState } from "react";
 
-import {
-  useFindings,
-  type FindingStatus,
-  type FindingView,
-} from "../../../api/prospectsAndEvidence";
-import { Button } from "../../../components/Button";
+import { useFindings, type FindingStatus } from "../../../api/prospectsAndEvidence";
 import { Chip } from "../../../components/Chip";
 import { Select } from "../../../components/controls";
 import { Skeleton } from "../../../components/Skeleton";
@@ -14,7 +8,6 @@ import { ConfidenceWord } from "../../../shell/ConfidenceWord";
 import { strengthLabel, enumLabel } from "../../../shell/format";
 import { DataView } from "../../../shell/states/DataView";
 import { FindingQuote } from "../FindingQuote";
-import { EvidencePanel } from "./EvidencePanel";
 
 const STATUSES: { value: FindingStatus; label: string }[] = [
   { value: "ACTIVE", label: "Counting" },
@@ -29,37 +22,18 @@ function isStatus(value: string): value is FindingStatus {
 }
 
 /**
- * The Signals tab (FR-072, FR-074, FR-131): the account's signals for the service, filtered by
- * status (the api's) and by question (over the loaded list), each with its evidence.
+ * The Signals tab (FR-072, FR-074): the account's signals for the service, filtered by status
+ * (the api's) and by question (over the loaded list), each with its quote, why it counts and Open
+ * original; the stored passage is not shown.
  */
-export function SignalsTab({
-  accountId,
-  serviceId,
-  findingId,
-}: {
-  accountId: string;
-  serviceId: string;
-  findingId: string | null;
-}) {
-  const [, setParams] = useSearchParams();
+export function SignalsTab({ accountId, serviceId }: { accountId: string; serviceId: string }) {
   const [status, setStatus] = useState<FindingStatus>("ACTIVE");
   const [question, setQuestion] = useState("");
   const findings = useFindings(accountId, serviceId, status);
 
-  const loaded = findings.data;
-  useEffect(() => {
-    if (findingId !== null && loaded !== undefined) {
-      document.getElementById(`signal-${findingId}`)?.scrollIntoView();
-    }
-  }, [findingId, loaded]);
-
   const questions = [
-    ...new Map((loaded ?? []).map((item) => [item.question.key, item.question.text])),
+    ...new Map((findings.data ?? []).map((item) => [item.question.key, item.question.text])),
   ];
-
-  const toggleEvidence = (item: FindingView) => {
-    setParams(findingId === item.id ? { tab: "signals" } : { tab: "signals", finding: item.id });
-  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -130,18 +104,24 @@ export function SignalsTab({
                     <span className="text-text-tertiary">{enumLabel(item.decided_by)}</span>
                   </div>
                   <FindingQuote finding={item} />
-                  <div>
-                    <Button
-                      size="small"
-                      aria-expanded={findingId === item.id}
-                      onClick={() => {
-                        toggleEvidence(item);
-                      }}
-                    >
-                      Evidence
-                    </Button>
-                  </div>
-                  {findingId === item.id && <EvidencePanel finding={item} />}
+                  {item.rationale.trim() !== "" && (
+                    <p className="m-0 text-text-secondary">
+                      <span className="font-medium text-text">Why it counts:</span> {item.rationale}
+                    </p>
+                  )}
+                  {item.document.plugin_code === "GDELT" && (
+                    <p className="m-0 text-hint text-text-tertiary">
+                      Found by the{" "}
+                      <a
+                        href="https://www.gdeltproject.org/"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="underline"
+                      >
+                        GDELT Project
+                      </a>
+                    </p>
+                  )}
                 </li>
               ))}
             </ul>

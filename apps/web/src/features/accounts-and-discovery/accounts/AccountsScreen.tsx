@@ -152,13 +152,11 @@ export function AccountsScreen() {
                     "Origin",
                     "Last refresh",
                     "",
-                  ].map(
-                    (heading) => (
-                      <th key={heading} scope="col" className="px-3 py-2 font-medium">
-                        {heading}
-                      </th>
-                    ),
-                  )}
+                  ].map((heading) => (
+                    <th key={heading} scope="col" className="px-3 py-2 font-medium">
+                      {heading}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>

@@ -10,19 +10,19 @@ tags: [accounts-and-discovery, audit-trail, evaluation-and-feedback, identity-an
 
 ## Responsibilities
 
-The api answers every REST contract of [interfaces](/architecture/interfaces.md): sign-in and users, configuration, accounts and contacts, run requests, prospects, evidence, overrides, feedback, labels, outreach drafts, the HubSpot push, provider facts, open-signal decisions, engagement statuses and their statistics, the daily summary, the audit and health. It validates input, writes what a user changed, enqueues the background work the change requires, and makes the interactive AI calls: question preview, outreach drafting, and persona mapping when a contact is added without a persona. It owns the schema and applies migrations at start.
+The api answers every REST contract of [interfaces](/architecture/interfaces.md): sign-in and users, configuration, accounts and contacts, run requests, prospects, evidence, overrides, feedback, labels, outreach drafts, the HubSpot push, provider facts, open-signal decisions, engagement statuses and their statistics, the daily summary, the audit and health. It validates input, writes what a user changed, enqueues the background work the change requires, and makes the interactive AI calls: question preview, outreach drafting, contact suggestions, and persona mapping when a contact is added without a persona. It owns the schema and applies migrations at start.
 
 It never fetches from a source, never classifies in batch, never writes a score, and never sends a message to anyone outside the product.
 
 ## Owns
 
 - **Tables and columns**: those of the api column of [store ownership](/architecture/overview.md#store-ownership); the Alembic migrations of the whole [SQL store](/architecture/sql-store.md).
-- **Rules implemented**: [Account identity](/architecture/rules.md#account-identity), [Scoring settings validation](/architecture/rules.md#scoring-settings-validation), [Feedback effects](/architecture/rules.md#feedback-effects) (the status and label writes; the rescore is the worker's), the label queue of [Evaluation metrics](/architecture/rules.md#evaluation-metrics), [Outreach grounding](/architecture/rules.md#outreach-grounding), [Persona mapping](/architecture/rules.md#persona-mapping) on contact creation and edit, the decisions of [Open signals](/architecture/rules.md#open-signals), [Engagement statistics](/architecture/rules.md#engagement-statistics), [Daily summary](/architecture/rules.md#daily-summary), and erasure on request of [Retention and erasure](/architecture/rules.md#retention-and-erasure).
-- **Rules invoked**, implemented by the [worker](/architecture/services/worker.md): [Chunking and passage selection](/architecture/rules.md#chunking-and-passage-selection), [Signal classification](/architecture/rules.md#signal-classification), [Escalation](/architecture/rules.md#escalation) and [Evidence extraction](/architecture/rules.md#evidence-extraction) for question preview, without writing; [Fit score](/architecture/rules.md#fit-score) through [Priority, standing and band](/architecture/rules.md#priority-standing-and-band) for scoring preview, without writing.
+- **Rules implemented**: [Account identity](/architecture/rules.md#account-identity), [Scoring settings validation](/architecture/rules.md#scoring-settings-validation), [Feedback effects](/architecture/rules.md#feedback-effects) (the status and label writes; the rescore is the worker's), the label queue of [Evaluation metrics](/architecture/rules.md#evaluation-metrics), [Outreach grounding](/architecture/rules.md#outreach-grounding), [Persona mapping](/architecture/rules.md#persona-mapping) on contact creation and edit, [Contact suggestion](/architecture/rules.md#contact-suggestion), the decisions of [Open signals](/architecture/rules.md#open-signals), [Engagement statistics](/architecture/rules.md#engagement-statistics), [Daily summary](/architecture/rules.md#daily-summary), and erasure on request of [Retention and erasure](/architecture/rules.md#retention-and-erasure).
+- **Rules invoked**, implemented by the [worker](/architecture/services/worker.md): [Chunking and passage selection](/architecture/rules.md#chunking-and-passage-selection), [Signal classification](/architecture/rules.md#signal-classification), [Escalation](/architecture/rules.md#escalation) and [Evidence extraction](/architecture/rules.md#evidence-extraction) for question preview, without writing, and the question-scoped retrieval of Chunking and passage selection for contact suggestions; [Fit score](/architecture/rules.md#fit-score) through [Priority, standing and band](/architecture/rules.md#priority-standing-and-band) for scoring preview, without writing.
 
 ## Provides and consumes
 
-- Provides every REST family of [interfaces](/architecture/interfaces.md), `API-01` to `API-61`, `API-71` to `API-83`, `API-86` to `API-88` and `API-90`.
+- Provides every REST family of [interfaces](/architecture/interfaces.md), `API-01` to `API-42`, `API-44` to `API-61`, `API-71` to `API-83`, `API-86` to `API-88`, `API-90`, `API-91`, `API-93` and `API-94`.
 - Consumes the [Classifier](/architecture/interfaces.md#classifier) and [LLM](/architecture/interfaces.md#llm) ports through the worker's [AI gateway](/architecture/services/worker.md#ai-gateway) module, the [Embedder](/architecture/interfaces.md#embedder) and `API-70` of the [CRM](/architecture/interfaces.md#crm) port.
 
 ## Design
@@ -37,7 +37,7 @@ It never fetches from a source, never classifies in batch, never writes a score,
 
 **Demo sign-in.** `API-78` signs in only while `FIXTURE_MODE` is `replay`, and answers `404 NOT_FOUND` otherwise. It stays in the OpenAPI document in every mode, so the client has its type.
 
-**Interactive AI calls.** Question preview (`API-14`), outreach drafting (`API-56`) and persona mapping (`API-26`, `API-27`, when no persona is given) call the AI gateway in the request, bounded by `CLASSIFIER_TIMEOUT_S` or `AI_CALL_TIMEOUT_S`. Their LLM calls pass the [Budget guard](/architecture/rules.md#budget-guard), and every call writes its `AI_CALL` audit row. Preview writes nothing else.
+**Interactive AI calls.** Question preview (`API-14`), outreach drafting (`API-56`), tone check (`API-91`), contact suggestions (`API-94`) and persona mapping (`API-26`, `API-27`, when no persona is given) call the AI gateway in the request, bounded by `CLASSIFIER_TIMEOUT_S` or `AI_CALL_TIMEOUT_S`. Their LLM calls pass the [Budget guard](/architecture/rules.md#budget-guard), and every call writes its `AI_CALL` audit row. Preview, tone check and contact suggestions write nothing else.
 
 **Sessions and passwords.** Passwords are hashed with argon2id. The session token is 32 random bytes, sent only in the cookie; the database holds its SHA-256.
 
@@ -66,7 +66,6 @@ It never fetches from a source, never classifies in batch, never writes a score,
 | `PAGE_SIZE_MAX` | `200` | Maximum page size |
 | `IMPORT_MAX_ROWS` | `2000` | Maximum rows per CSV import |
 | `PREVIEW_MAX_PASSAGES` | `5` | Passages returned by question preview |
-| `EVIDENCE_CONTEXT_CHARS` | `600` | Document text shown on each side of an evidence passage |
 | `LABEL_QUEUE_SIZE` | `20` | Tasks per label-queue request |
 | `OUTREACH_MAX_FINDINGS` | `5` | Findings given to an outreach draft |
 | `PROVIDER_FACT_MAX_CHARS` | `300` | Longest provider fact |
@@ -78,6 +77,8 @@ It never fetches from a source, never classifies in batch, never writes a score,
 | `OUTREACH_EMAIL_MAX_CHARS` | `1200` | Maximum email body length |
 | `OUTREACH_INMAIL_MAX_CHARS` | `1900` | Maximum InMail body length |
 | `CONTACT_RETENTION_DAYS` | `730` | Sets a contact's `retain_until` at creation |
+| `CONTACT_SUGGESTION_MAX_PASSAGES` | `8` | Passages given to one contact-suggestion call |
+| `CONTACT_SUGGESTION_MAX` | `10` | Contact suggestions returned at most |
 | `AUDIT_DEFAULT_RANGE_DAYS` | `30` | Default audit range |
 | `HEALTH_TIMEOUT_MS` | `2000` | Timeout of each health check |
 | `INTERACTIVE_P95_TARGET_MS` | `800` | Target p95 latency of interactive reads ([N-01](/requirements/system.md)) |

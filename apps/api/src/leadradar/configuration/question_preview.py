@@ -12,13 +12,12 @@ import re
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
 
 import httpx
-from sqlalchemy import ColumnElement, Select, func, literal_column, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from leadradar.accounts.errors import AccountNotFound
+from leadradar.accounts.passages import retrieve_account_passages
 from leadradar.ai.audit import AiCallContext
 from leadradar.ai.embedder import embed
 from leadradar.ai.gateway import AiGateway
@@ -34,7 +33,12 @@ from leadradar.ai.shapes import (
 )
 from leadradar.configuration.errors import QuestionInvalid, QuestionNotFound
 from leadradar.configuration.queries import question_options, require_service
-from leadradar.core.chunking import fuse_rankings, passage_header, split_into_passages
+from leadradar.core.chunking import (
+    fuse_rankings,
+    passage_header,
+    retrieval_text,
+    split_into_passages,
+)
 from leadradar.core.document_normalisation import detect_language
 from leadradar.core.enums import DocumentSourceType, FindingStrength, SignalQuestionAnswerType
 from leadradar.core.questions import validate_question_shape
@@ -49,7 +53,6 @@ from leadradar.core.signal.escalation import Route, post_escalation_route, route
 from leadradar.core.signal.evidence import validate_quote
 from leadradar.db.models.accounts import Account
 from leadradar.db.models.configuration import SignalQuestion
-from leadradar.db.models.ingestion import Chunk, Document
 
 # Pasted text belongs to no account; the classifier frames its question about "the company".
 PASTED_TEXT_ACCOUNT_NAME = "the company"
@@ -158,7 +161,7 @@ async def _question(session: AsyncSession, request: PreviewRequest) -> _Question
 def _embedding_text(question: _Question) -> str:
     """Question text followed by its hint terms ([Chunking and passage selection]
     (/architecture/rules.md#chunking-and-passage-selection))."""
-    return " ".join([question.text, *question.hint_terms])
+    return retrieval_text(question.text, question.hint_terms)
 
 
 def _normalised(text: str) -> str:
@@ -220,103 +223,6 @@ async def _pasted_passages(
     return [
         _Passage(drafts[o].text, header, language, None, None, None, None) for o in order[:limit]
     ]
-
-
-async def _account_passages(
-    session: AsyncSession,
-    account: Account,
-    question: _Question,
-    *,
-    settings: AiGatewaySettings,
-    embedder: httpx.AsyncClient,
-    limit: int,
-) -> list[_Passage]:
-    """Question-scoped retrieval over the stored passages of the account's documents of the
-    question's source types: a keyword and a meaning ranking fused by reciprocal rank."""
-
-    def base() -> Select[uuid.UUID]:
-        return (
-            select(Chunk.id)
-            .join(Document, Document.id == Chunk.document_id)
-            .where(
-                Document.account_id == account.id,
-                Document.source_type.in_(
-                    [DocumentSourceType(value) for value in question.source_types]
-                ),
-                Chunk.text.isnot(None),
-            )
-        )
-
-    rankings: list[list[uuid.UUID]] = []
-    terms = [term for term in question.hint_terms if term.strip()]
-    if terms:
-        simple: ColumnElement[Any] = literal_column("'simple'::regconfig")
-        query: ColumnElement[Any] = func.phraseto_tsquery(simple, terms[0])
-        for term in terms[1:]:
-            query = query.op("||")(func.phraseto_tsquery(simple, term))
-        keyword = (
-            base()
-            .where(Chunk.lexemes.op("@@")(query))
-            .order_by(func.ts_rank(Chunk.lexemes, query).desc(), Chunk.ordinal)
-            .limit(settings.retrieval_candidates)
-        )
-        rankings.append(list((await session.execute(keyword)).scalars()))
-    [vector] = await embed(
-        embedder,
-        embedder_url=settings.embedder_url,
-        dim=settings.embedding_dim,
-        batch_size=settings.embed_batch_size,
-        texts=[_embedding_text(question)],
-    )
-    meaning = (
-        base()
-        .where(Chunk.embedding.isnot(None))
-        .order_by(Chunk.embedding.cosine_distance(vector), Chunk.ordinal)
-        .limit(settings.retrieval_candidates)
-    )
-    rankings.append(list((await session.execute(meaning)).scalars()))
-
-    ids = list(dict.fromkeys(chunk_id for ranking in rankings for chunk_id in ranking))
-    index = {chunk_id: position for position, chunk_id in enumerate(ids)}
-    fused = fuse_rankings(
-        [[index[c] for c in ranking] for ranking in rankings],
-        candidates=settings.retrieval_candidates,
-        rrf_k=settings.retrieval_rrf_k,
-    )
-    chosen = [ids[position] for position, _ in fused[:limit]]
-    if not chosen:
-        return []
-    rows = {
-        chunk.id: (chunk, document)
-        for chunk, document in (
-            await session.execute(
-                select(Chunk, Document)
-                .join(Document, Document.id == Chunk.document_id)
-                .where(Chunk.id.in_(chosen))
-            )
-        ).all()
-    }
-    passages: list[_Passage] = []
-    for chunk_id in chosen:
-        chunk, document = rows[chunk_id]
-        assert chunk.text is not None
-        passages.append(
-            _Passage(
-                text=chunk.text,
-                header=passage_header(
-                    account_name=account.name,
-                    document_title=document.title,
-                    section=chunk.section,
-                    date=(document.published_at or document.fetched_at).strftime("%Y-%m-%d"),
-                ),
-                language=document.language,
-                chunk_id=chunk.id,
-                title=document.title,
-                url=document.url,
-                published_at=document.published_at,
-            )
-        )
-    return passages
 
 
 def _escalation_question(question: _Question) -> EscalationQuestion:
@@ -492,14 +398,27 @@ async def preview_question(
         if account is None:
             raise AccountNotFound(f"No account {request.account_id}.")
         account_name = account.name
-        passages = await _account_passages(
-            session,
-            account,
-            question,
-            settings=settings,
-            embedder=embedder,
-            limit=max_passages,
-        )
+        passages = [
+            _Passage(
+                text=passage.text,
+                header=passage.header,
+                language=passage.language,
+                chunk_id=passage.chunk_id,
+                title=passage.title,
+                url=passage.url,
+                published_at=passage.published_at,
+            )
+            for passage in await retrieve_account_passages(
+                session,
+                account,
+                text=question.text,
+                hint_terms=question.hint_terms,
+                source_types=[DocumentSourceType(value) for value in question.source_types],
+                settings=settings,
+                embedder=embedder,
+                limit=max_passages,
+            )
+        ]
     else:
         assert request.sample_text is not None
         account_name = PASTED_TEXT_ACCOUNT_NAME

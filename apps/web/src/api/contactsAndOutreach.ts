@@ -7,6 +7,7 @@ export type Contact = Schemas["Contact"];
 export type ContactCreate = Schemas["ContactCreate"];
 export type ContactUpdate = Schemas["ContactUpdate"];
 export type ContactPersona = Schemas["ContactPersona"];
+export type ContactSuggestion = Schemas["ContactSuggestion"];
 export type OutreachDraft = Schemas["OutreachDraft"];
 export type OutreachDraftChannel = Schemas["OutreachDraftChannel"];
 export type OutreachDraftUpdate = Schemas["OutreachDraftUpdate"];
@@ -74,6 +75,20 @@ export function useContactMutations(accountId: string) {
     onSuccess,
   });
   return { create, update, erase };
+}
+
+/** `API-94`: computed on request from the account's stored documents; nothing is stored. */
+export function useContactSuggestions(accountId: string) {
+  return useMutation({
+    mutationFn: async () =>
+      requireData(
+        (
+          await client.POST("/api/v1/accounts/{id}/contact-suggestions", {
+            params: { path: { id: accountId } },
+          })
+        ).data,
+      ),
+  });
 }
 
 /** `API-57`: newest first. */

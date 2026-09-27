@@ -10,8 +10,8 @@ import { TopSignals } from "../TopSignals";
 
 /**
  * FR-130: the drawer over the right side of the list, without moving the rows: name and band,
- * Priority with Fit and Intent in words, the row's top signals, and Open full explanation.
- * Escape or the close button dismisses it and returns focus to the row's button.
+ * Priority with Fit and Intent in words, the row's top signals, Open full explanation and Draft
+ * outreach. Escape or the close button dismisses it and returns focus to the row's button.
  */
 export function ProspectDrawer({
   row,
@@ -61,7 +61,10 @@ export function ProspectDrawer({
               <TopSignals signals={row.top_signals} />
             </section>
           )}
-          <ButtonLink to={`/accounts/${row.account.id}`}>Open full explanation</ButtonLink>
+          <div className="flex flex-col gap-2">
+            <ButtonLink to={`/accounts/${row.account.id}`}>Open full explanation</ButtonLink>
+            <ButtonLink to={`/accounts/${row.account.id}/outreach`}>Draft outreach</ButtonLink>
+          </div>
         </RadixDialog.Content>
       </RadixDialog.Portal>
     </RadixDialog.Root>

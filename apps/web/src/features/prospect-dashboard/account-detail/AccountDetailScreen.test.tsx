@@ -9,6 +9,9 @@ import {
   tabOrderWithin,
 } from "../../../accessibilityTestSupport";
 import { errorEnvelope, errorResponse } from "../../../api/authenticationAndUsers.fixtures";
+import { createAccountsAndDiscoveryHandlers } from "../../../mocks/accountsAndDiscovery";
+import { createOutreachAndCrmHandlers } from "../../../mocks/outreachAndCrm";
+import { createMockStore } from "../../../mocks/store";
 import { http, server } from "../../../testServer";
 import { renderAt } from "../testSupport";
 
@@ -48,6 +51,49 @@ describe("AccountDetailScreen", () => {
     expect(within(cost).getByText("1 other signal")).toBeInTheDocument();
     const inHouse = screen.getByText("In-house automation capability").closest("li") as HTMLElement;
     expect(within(inHouse).getByText("-41.4")).toBeInTheDocument();
+  });
+
+  it("WF-13: the tabs link to Why, Signals and Outreach of the account", async () => {
+    renderAt("/accounts/acc-lh");
+
+    const tabs = await screen.findByRole("navigation", { name: "Account detail tabs" });
+    expect(within(tabs).getByRole("link", { name: "Why" })).toHaveAttribute("aria-current", "page");
+    expect(within(tabs).getByRole("link", { name: "Signals" })).toHaveAttribute(
+      "href",
+      "/accounts/acc-lh?tab=signals",
+    );
+    expect(within(tabs).getByRole("link", { name: "Outreach" })).toHaveAttribute(
+      "href",
+      "/accounts/acc-lh/outreach",
+    );
+  });
+
+  it("FR-086: the Outreach tab shows under the header with the account's contacts to address a draft to", async () => {
+    const store = createMockStore();
+    server.use(
+      ...createAccountsAndDiscoveryHandlers(store),
+      ...createOutreachAndCrmHandlers(store),
+    );
+    renderAt("/accounts/acc-lh/outreach");
+
+    expect(await screen.findByRole("heading", { name: "Lufthansa Group" })).toBeInTheDocument();
+    const tabs = await screen.findByRole("navigation", { name: "Account detail tabs" });
+    expect(within(tabs).getByRole("link", { name: "Outreach" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(within(tabs).getByRole("link", { name: "Why" })).toHaveAttribute(
+      "href",
+      "/accounts/acc-lh?tab=why",
+    );
+    expect(await screen.findByText("Mira Hoffmann")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("option", {
+        name: "Mira Hoffmann — Head of Global Business Services",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Generate" })).toBeInTheDocument();
+    expect(screen.queryByText("Sector")).not.toBeInTheDocument();
   });
 
   it("FR-071: the matched exclusion rule is listed with the fact that matched", async () => {
@@ -126,35 +172,49 @@ describe("AccountDetailScreen", () => {
     expect(screen.queryByRole("button", { name: "Revoke exception" })).not.toBeInTheDocument();
   });
 
-  it("FR-131, FR-074: Read the evidence opens Signals with the quote highlighted, the original and the GDELT credit", async () => {
+  it("FR-116: each counted signal on the Why tab opens its original in a new tab at the quoted line", async () => {
     renderAt("/accounts/acc-lh");
+
     const cost = (await screen.findByText("Cost programme")).closest("li") as HTMLElement;
-
-    fireEvent.click(within(cost).getByRole("link", { name: "Read the evidence" }));
-
-    const mark = await screen.findByText("Wir senken die Kosten um 500 Millionen Euro.", {
-      selector: "mark",
-    });
-    expect(mark).toBeInTheDocument();
-    expect(screen.getByText(/Strategy 2030/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Open original" })).toHaveAttribute(
+    const original = await within(cost).findByRole("link", { name: "Open original" });
+    expect(original).toHaveAttribute(
       "href",
-      "https://gdelt.example/fnd-cost",
+      "https://gdelt.example/fnd-cost#:~:text=Wir%20senken%20die%20Kosten%20um%20500%20Millionen%20Euro.",
     );
-    expect(screen.getByText(/Found by the/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "GDELT Project" })).toHaveAttribute(
+    expect(original).toHaveAttribute("target", "_blank");
+    expect(within(cost).queryByRole("link", { name: "Read the evidence" })).not.toBeInTheDocument();
+  });
+
+  it("FR-074, S-PRO-03: a signal shows its quote, why it counts, Open original and the GDELT credit, and no passage", async () => {
+    renderAt("/accounts/acc-lh?tab=signals");
+
+    const quote = await screen.findByText("Wir senken die Kosten um 500 Millionen Euro.");
+    const signal = quote.closest("li") as HTMLElement;
+    expect(within(signal).getByText(/We are cutting costs/)).toBeInTheDocument();
+    expect(
+      within(signal).getByText("A group-wide cost programme with a stated target."),
+    ).toBeInTheDocument();
+    const original = within(signal).getByRole("link", { name: "Open original" });
+    expect(original).toHaveAttribute(
+      "href",
+      "https://gdelt.example/fnd-cost#:~:text=Wir%20senken%20die%20Kosten%20um%20500%20Millionen%20Euro.",
+    );
+    expect(original).toHaveAttribute("target", "_blank");
+    expect(within(signal).getByRole("link", { name: "GDELT Project" })).toHaveAttribute(
       "href",
       "https://www.gdeltproject.org/",
     );
+    expect(within(signal).queryByRole("button", { name: "Evidence" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Strategy 2030/)).not.toBeInTheDocument();
   });
 
-  it("FR-074: a purged document shows the quote, the link and that the full text is no longer stored", async () => {
-    renderAt("/accounts/acc-lh?tab=signals&finding=fnd-inhouse");
+  it("FR-074: a signal without a reason shows no Why it counts line", async () => {
+    renderAt("/accounts/acc-lh?tab=signals");
 
-    expect(
-      await screen.findByText("The full text of this page is no longer stored."),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Open original" })).toBeInTheDocument();
+    const quote = await screen.findByText("Wir suchen Automatisierungsingenieure.");
+    const signal = quote.closest("li") as HTMLElement;
+    expect(within(signal).queryByText("Why it counts:")).not.toBeInTheDocument();
+    expect(within(signal).queryByText(/GDELT Project/)).not.toBeInTheDocument();
   });
 });
 
@@ -170,10 +230,10 @@ describe("Accessibility (N-10, FR-016)", () => {
   );
 
   it.each(["SALES", "ADMIN"] as const)(
-    "has no serious or critical axe violation on the Signals tab with evidence open as %s",
+    "has no serious or critical axe violation on the Signals tab as %s",
     async (role) => {
-      const { container } = renderAt("/accounts/acc-lh?tab=signals&finding=fnd-cost", role);
-      await screen.findByText("Wir senken die Kosten um 500 Millionen Euro.", { selector: "mark" });
+      const { container } = renderAt("/accounts/acc-lh?tab=signals", role);
+      await screen.findByText("Wir senken die Kosten um 500 Millionen Euro.");
 
       await expectNoSeriousOrCriticalViolations(container);
     },
@@ -196,8 +256,8 @@ describe("Accessibility (N-10, FR-016)", () => {
   });
 
   it("shows Sales no escalation, triage or fixture probability wording on the Signals tab", async () => {
-    const { container } = renderAt("/accounts/acc-lh?tab=signals&finding=fnd-cost", "SALES");
-    await screen.findByText("Wir senken die Kosten um 500 Millionen Euro.", { selector: "mark" });
+    const { container } = renderAt("/accounts/acc-lh?tab=signals", "SALES");
+    await screen.findByText("Wir senken die Kosten um 500 Millionen Euro.");
 
     expectNoSalesForbiddenWording(container);
   });

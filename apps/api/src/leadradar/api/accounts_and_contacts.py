@@ -1,6 +1,7 @@
 """Router of the [Accounts and contacts](/architecture/interfaces.md#accounts-and-contacts)
-family, its contacts half: `API-25` to `API-28`. The accounts half (`API-20` to `API-24`) is
-built in `leadradar.api.accounts`; the capability is `leadradar.accounts.contacts`."""
+family, its contacts half: `API-25` to `API-28` and `API-94`. The accounts half (`API-20` to
+`API-24`) is built in `leadradar.api.accounts`; the capabilities are `leadradar.accounts.contacts`
+and `leadradar.accounts.contact_suggestions`."""
 
 from __future__ import annotations
 
@@ -13,6 +14,7 @@ from pydantic.json_schema import SkipJsonSchema
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from leadradar.accounts import contacts as contact_commands
+from leadradar.accounts.contact_suggestions import suggest_contacts
 from leadradar.accounts.contacts import ContactFields
 from leadradar.api.authentication import CurrentUser
 from leadradar.core.enums import ContactPersona, ContactPersonaOrigin
@@ -57,6 +59,19 @@ class ContactUpdate(BaseModel):
     job_title: str | SkipJsonSchema[None] = None
     source_url: str | SkipJsonSchema[None] = None
     persona: ContactPersona | SkipJsonSchema[None] = None
+
+
+class ContactSuggestion(BaseModel):
+    """[`ContactSuggestion`](/architecture/interfaces.md#contactsuggestion)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    full_name: str
+    job_title: str
+    source_url: str
+    quote: str
+    document_title: str | None
+    published_at: str | None
 
 
 def _to_contact(contact: ContactModel) -> Contact:
@@ -106,6 +121,40 @@ async def create_contact(
         now=request.app.state.clock(),
     )
     return _to_contact(contact)
+
+
+@router.post("/accounts/{id}/contact-suggestions", response_model=list[ContactSuggestion])
+async def list_contact_suggestions(
+    id: uuid.UUID,
+    request: Request,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    principal: CurrentUser,
+) -> list[ContactSuggestion]:
+    """`API-94`: computed on request and never stored."""
+    state = request.app.state
+    suggestions = await suggest_contacts(
+        session,
+        account_id=id,
+        gateway=state.ai_gateway,
+        embedder=state.embedder_client,
+        settings=state.settings,
+        max_passages=state.settings.contact_suggestion_max_passages,
+        max_suggestions=state.settings.contact_suggestion_max,
+        actor_id=principal.id,
+    )
+    return [
+        ContactSuggestion(
+            full_name=suggestion.full_name,
+            job_title=suggestion.job_title,
+            source_url=suggestion.source_url,
+            quote=suggestion.quote,
+            document_title=suggestion.document_title,
+            published_at=(
+                None if suggestion.published_at is None else suggestion.published_at.isoformat()
+            ),
+        )
+        for suggestion in suggestions
+    ]
 
 
 @router.patch("/contacts/{id}", response_model=Contact)

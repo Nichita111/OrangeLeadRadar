@@ -103,7 +103,7 @@ describe("ProspectsScreen", () => {
     expect(await screen.findByText(/appear after their first refresh/)).toBeInTheDocument();
   });
 
-  it("FR-130: selecting a row opens the drawer with the meanings and the link; Escape closes it and returns focus", async () => {
+  it("FR-130: selecting a row opens the drawer with the meanings and the links; Escape closes it and returns focus", async () => {
     renderAt("/prospects");
     const trigger = await screen.findByRole("button", { name: "DHL Group" });
 
@@ -115,6 +115,10 @@ describe("ProspectsScreen", () => {
     expect(within(drawer).getByRole("link", { name: "Open full explanation" })).toHaveAttribute(
       "href",
       "/accounts/acc-dhl",
+    );
+    expect(within(drawer).getByRole("link", { name: "Draft outreach" })).toHaveAttribute(
+      "href",
+      "/accounts/acc-dhl/outreach",
     );
     fireEvent.keyDown(drawer, { key: "Escape" });
     await waitFor(() => {

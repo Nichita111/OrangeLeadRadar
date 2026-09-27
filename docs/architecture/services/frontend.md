@@ -256,7 +256,7 @@ WF-24 — score anatomy
 | `FR-113` | A signal shall carry a polarity mark: a filled plus circle for a positive signal and a filled minus circle for a negative one, beside the question's label and the signed points. |
 | `FR-114` | A Fit criterion shall carry a match mark: a check for matched, a dashed circle for unknown and a cross for not matched, beside the criterion's icon, its value, its weight level and its points; an unknown criterion names the fact of the table below that would sharpen the score. |
 | `FR-115` | A strength shall be a chip with the label Weak, Clear or Strong and a confidence shall follow [FR-009](#screen-labels); the deciding check is shown as Quick check or Detailed check. |
-| `FR-116` | A quote shall be shown verbatim with a rule at its left, its English translation on the next line when the passage is not English, then its source domain, source type and age; in the evidence view the quoted sentence is highlighted inside its passage. |
+| `FR-116` | A quote shall be shown verbatim with a rule at its left, its English translation on the next line when the passage is not English, then its source domain, source type and age, and Open original, a link that opens the original page in a new tab with a text fragment of the quote, so that a browser that supports text fragments scrolls to the quoted line and highlights it. |
 | `FR-117` | Wherever a band is explained, the legend shall read the Warm and Hot thresholds from the service's active [scoring settings](/architecture/sql-store.md#scoring-settings-document), never from literals in the client. |
 
 | Criterion kind | Icon | Fact an unknown criterion asks for |

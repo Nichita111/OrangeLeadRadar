@@ -4,7 +4,6 @@
 import type { Schemas } from "../api/contract";
 
 type Account = Schemas["Account"];
-type EvidenceView = Schemas["EvidenceView"];
 type FindingView = Schemas["FindingView"];
 type Industry = Schemas["Industry"];
 type Market = Schemas["Market"];
@@ -492,6 +491,7 @@ export const findings: FindingView[] = [
     "We are cutting costs by 500 million euros.",
     "GDELT",
     53.033,
+    { rationale: "A group-wide cost programme with a stated target." },
   ),
   finding(
     "fnd-cost-old",
@@ -611,47 +611,4 @@ function dhlFindings(): FindingView[] {
       { source_type: "COMPANY_PROFILE" },
     ),
   ];
-}
-
-const EXCERPTS: Record<string, { section: string; excerpt: string }> = {
-  "fnd-cost": {
-    section: "Strategy 2030",
-    excerpt:
-      "Im Rahmen der Strategie 2030: Wir senken die Kosten um 500 Millionen Euro. Weiter so.",
-  },
-  "fnd-dhl-ai": {
-    section: "Press release",
-    excerpt:
-      "Bonn, 4. September 2026. Wir führen KI-gestützte Automatisierung in allen Paketzentren ein. Die ersten Standorte starten noch in diesem Jahr.",
-  },
-};
-
-export function evidenceFor(findingId: string): EvidenceView | undefined {
-  const found = findings.find((candidate) => candidate.id === findingId);
-  if (found === undefined) {
-    return undefined;
-  }
-  const stored = EXCERPTS[findingId];
-  if (stored === undefined) {
-    return {
-      finding_id: findingId,
-      document: found.document,
-      section: null,
-      purged: true,
-      excerpt: null,
-      quote_start: null,
-      quote_end: null,
-    };
-  }
-  const { section, excerpt } = stored;
-  const start = excerpt.indexOf(found.quote);
-  return {
-    finding_id: findingId,
-    document: found.document,
-    section,
-    purged: false,
-    excerpt,
-    quote_start: start,
-    quote_end: start + found.quote.length,
-  };
 }
