@@ -115,7 +115,7 @@ WF-10 — Runs
 | ID | Requirement |
 |---|---|
 | `FR-054` | The screen shall list runs newest first with kind, subject (account, service or question), trigger, requester, start time, duration, status and a one-line progress summary, filtered by kind, status and account. |
-| `FR-055` | Selecting a run shall show its stages in order with done, current and pending marks, its counters in plain words, and each error with its stage and plug-in; an Admin also sees the run's AI cost. |
+| `FR-055` | Selecting a run shall show its stages in order with done, current and pending marks, its counters in plain words, and each error with its stage and plug-in; an Admin also sees the run's AI cost. The selected run is kept in the URL query as `run`, so a link can open it. |
 | `FR-056` | A `PARTIAL` run shall say why in one line: which plug-ins failed and how many signals are waiting for the next refresh. |
 | `FR-057` | Cancel shall be offered on a queued or running run — to Admins only for reclassification, rescore and quality-check runs — and confirm that running steps finish first. |
 | `FR-058` | A live run shall update by polling as the frontend's [Polling](/architecture/services/frontend.md#polling) states. |
