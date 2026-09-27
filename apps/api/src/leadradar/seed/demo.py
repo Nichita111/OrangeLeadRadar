@@ -30,14 +30,22 @@ from leadradar.configuration.commands import (
     create_service,
     save_scoring_draft,
 )
+from leadradar.core.account_import import parse_csv_rows, parse_import_row
 from leadradar.core.enums import (
+    AccountSourceKind,
+    AccountStatus,
     AppUserRole,
+    AppUserStatus,
     AuditAction,
     DocumentSourceType,
     FindingStrength,
+    IndustryStatus,
+    MarketStatus,
     ScoringConfigStatus,
+    ServiceStatus,
     SignalQuestionAnswerType,
     SignalQuestionPolarity,
+    SignalQuestionStatus,
     SourcePluginCode,
 )
 from leadradar.core.scoring_settings import (
@@ -49,8 +57,15 @@ from leadradar.core.scoring_settings import (
     WeightLevel,
     default_scoring_settings,
 )
-from leadradar.db.models.accounts import Account
-from leadradar.db.models.configuration import ScoringConfig
+from leadradar.db.models.accounts import Account, AccountAlias, AccountSource
+from leadradar.db.models.configuration import (
+    Industry,
+    Market,
+    ScoringConfig,
+    Service,
+    SignalQuestion,
+)
+from leadradar.db.models.identity import AppUser
 from leadradar.db.models.ingestion import SourcePlugin
 from leadradar.db.session import build_engine
 from leadradar.logs import configure_json_logging
@@ -200,8 +215,7 @@ _DEMO_SOURCE_PLUGINS: tuple[tuple[SourcePluginCode, int], ...] = (
 
 async def seed_demo_source_plugins(db: AsyncSession) -> None:
     """One [`source_plugin`](/architecture/sql-store.md#source_plugin) row per plug-in value,
-    `enabled`. A second run's unique `code` constraint fails it loudly, matching the users
-    step's idempotency."""
+    `enabled`. The entry point checks an existing seed before this insert."""
     for code, rate_limit_per_minute in _DEMO_SOURCE_PLUGINS:
         db.add(
             SourcePlugin(
@@ -675,7 +689,7 @@ async def seed_demo_accounts(
         )
     file_text = path.read_text(encoding="utf-8")
 
-    await import_accounts(
+    result = await import_accounts(
         db,
         file_text=file_text,
         dry_run=False,
@@ -683,6 +697,10 @@ async def seed_demo_accounts(
         actor_id=actor_id,
         now=now,
     )
+    if result.created != len(result.rows):
+        raise DemoSeedMismatch(
+            "The demo account import did not create every row; check invalid or duplicate accounts."
+        )
 
     for child_domain, parent_domain in _DEMO_PARENT_DOMAINS.items():
         child_id = await _account_id_by_domain(db, child_domain)
@@ -699,17 +717,218 @@ async def seed_demo_accounts(
 # --- Entry point ---------------------------------------------------------------------------------
 
 
+class DemoSeedMismatch(Exception):
+    """An existing demo seed is incomplete or differs from the declared dataset."""
+
+
+async def _existing_seed_matches(db: AsyncSession, settings: SeedSettings) -> bool:
+    """Return whether a complete demo seed is already present, without writing anything.
+
+    Other application data is allowed; only the identities owned by this seed are checked.
+    A partial seed is rejected before any of the seed's committing steps can run.
+    """
+    path = settings.fixture_dir / "demo_accounts.csv"
+    if not path.is_file():
+        raise DemoAccountFileMissing(f"No demo account file at {path}. Add it before seeding.")
+    rows = [
+        parse_import_row(line, raw, frozenset(code for code, _ in _DEMO_INDUSTRIES))
+        for line, raw in enumerate(parse_csv_rows(path.read_text(encoding="utf-8")), start=2)
+    ]
+    if any(row.errors for row in rows):
+        raise DemoSeedMismatch("The demo account file has invalid rows.")
+    domains = {row.domain for row in rows}
+    if len(domains) != len(rows):
+        raise DemoSeedMismatch("The demo account file has duplicate domains.")
+
+    users = {
+        user.email: user
+        for user in (
+            await db.execute(select(AppUser).where(AppUser.email.in_([u[0] for u in _DEMO_USERS])))
+        ).scalars()
+    }
+    industries = {row.code: row for row in (await db.execute(select(Industry))).scalars()}
+    markets = {row.code: row for row in (await db.execute(select(Market))).scalars()}
+    plugins = {row.code: row for row in (await db.execute(select(SourcePlugin))).scalars()}
+    services = {row.code: row for row in (await db.execute(select(Service))).scalars()}
+    accounts = {
+        row.domain: row
+        for row in (await db.execute(select(Account).where(Account.domain.in_(domains)))).scalars()
+    }
+    if not any((users, industries, markets, plugins, services, accounts)):
+        return False
+
+    def require(ok: bool, description: str) -> None:
+        if not ok:
+            raise DemoSeedMismatch(f"Existing demo seed is incomplete or different: {description}.")
+
+    for email, role, _ in _DEMO_USERS:
+        user = users.get(email)
+        require(
+            user is not None
+            and user.display_name == email.split("@", 1)[0]
+            and user.role == role
+            and user.status == AppUserStatus.ACTIVE,
+            f"user {email}",
+        )
+    for code, label in _DEMO_INDUSTRIES:
+        industry = industries.get(code)
+        require(
+            industry is not None
+            and industry.label == label
+            and industry.status == IndustryStatus.ACTIVE,
+            f"industry {code}",
+        )
+    for code, name, countries in _DEMO_MARKETS:
+        market = markets.get(code)
+        require(
+            market is not None
+            and market.name == name
+            and market.country_codes == countries
+            and market.status == MarketStatus.ACTIVE,
+            f"market {code}",
+        )
+    for code, rate in _DEMO_SOURCE_PLUGINS:
+        plugin = plugins.get(code)
+        require(
+            plugin is not None
+            and plugin.enabled
+            and plugin.rate_limit_per_minute == rate
+            and plugin.daily_quota is None,
+            f"source plug-in {code}",
+        )
+    for spec in _DEMO_SERVICES:
+        service = services.get(spec.code)
+        require(
+            service is not None
+            and service.name == spec.name
+            and service.description == spec.description
+            and service.value_proposition == spec.value_proposition
+            and service.status == ServiceStatus.ACTIVE,
+            f"service {spec.code}",
+        )
+        assert service is not None
+        questions = {
+            question.key: question
+            for question in (
+                await db.execute(
+                    select(SignalQuestion).where(SignalQuestion.service_id == service.id)
+                )
+            ).scalars()
+        }
+        require(len(questions) == len(spec.questions), f"questions for {spec.code}")
+        for question_spec in spec.questions:
+            question = questions.get(question_spec.key)
+            require(
+                question is not None
+                and question.text == question_spec.text
+                and question.answer_type == question_spec.answer_type
+                and question.options
+                == (list(question_spec.options) if question_spec.options is not None else None)
+                and question.polarity == question_spec.polarity
+                and question.source_types == list(question_spec.source_types)
+                and question.hint_terms == list(question_spec.hint_terms)
+                and question.revision == 1
+                and question.status == SignalQuestionStatus.ACTIVE,
+                f"question {spec.code}/{question_spec.key}",
+            )
+        config = (
+            await db.execute(
+                select(ScoringConfig).where(
+                    ScoringConfig.service_id == service.id,
+                    ScoringConfig.version == 1,
+                )
+            )
+        ).scalar_one_or_none()
+        require(
+            config is not None and config.status == ScoringConfigStatus.ACTIVE,
+            f"active scoring version for {spec.code}",
+        )
+        assert config is not None
+        expected_settings = default_scoring_settings().model_copy(
+            update={
+                "icp_criteria": list(spec.icp_criteria),
+                "questions": [
+                    QuestionSetting(
+                        question_key=q.key, weight=q.weight, half_life_days=q.half_life_days
+                    )
+                    for q in spec.questions
+                ],
+                "disqualifiers": list(spec.disqualifiers),
+            }
+        )
+        require(
+            config.settings == expected_settings.model_dump(mode="json"),
+            f"scoring settings for {spec.code}",
+        )
+    for account_spec in rows:
+        assert account_spec.domain is not None
+        account = accounts.get(account_spec.domain)
+        require(
+            account is not None
+            and account.name == account_spec.name
+            and account.country_code == account_spec.country_code
+            and account.industry == account_spec.industry
+            and account.employee_count == account_spec.employee_count
+            and account.revenue_eur == account_spec.revenue_eur
+            and account.operational_complexity == account_spec.operational_complexity
+            and account.linkedin_url == account_spec.linkedin_url
+            and account.notes == account_spec.notes
+            and account.status == AccountStatus.ACTIVE,
+            f"account {account_spec.domain}",
+        )
+        assert account is not None
+        aliases = {
+            alias.alias
+            for alias in (
+                await db.execute(select(AccountAlias).where(AccountAlias.account_id == account.id))
+            ).scalars()
+        }
+        sources = {
+            (source.kind, source.url)
+            for source in (
+                await db.execute(
+                    select(AccountSource).where(AccountSource.account_id == account.id)
+                )
+            ).scalars()
+        }
+        require(
+            aliases == {account_spec.name, *account_spec.aliases},
+            f"aliases for {account_spec.domain}",
+        )
+        require(
+            sources
+            == {
+                (AccountSourceKind.WEBSITE, f"https://{account_spec.domain}/"),
+                *((source.kind, source.url) for source in account_spec.sources),
+            },
+            f"sources for {account_spec.domain}",
+        )
+        parent_domain = _DEMO_PARENT_DOMAINS.get(account_spec.domain)
+        if parent_domain:
+            require(parent_domain in accounts, f"parent account {parent_domain}")
+        expected_parent = accounts[parent_domain].id if parent_domain else None
+        require(account.parent_account_id == expected_parent, f"parent for {account_spec.domain}")
+    return True
+
+
+async def seed_demo_dataset(db: AsyncSession, settings: SeedSettings) -> None:
+    """Seed once, or confirm that the existing seed matches without issuing any writes."""
+    if await _existing_seed_matches(db, settings):
+        return
+    now = build_clock(settings)()
+    admin_id = await seed_demo_users(db, settings)
+    await seed_demo_industries(db, actor_id=admin_id, now=now)
+    await seed_demo_markets(db, actor_id=admin_id, now=now)
+    await seed_demo_source_plugins(db)
+    await seed_demo_services(db, actor_id=admin_id, now=now)
+    await seed_demo_accounts(db, settings=settings, actor_id=admin_id, now=now)
+
+
 async def _run(settings: SeedSettings) -> None:
     engine = build_engine(settings.database_url.get_secret_value())
     try:
         async with AsyncSession(engine, expire_on_commit=False) as db:
-            now = build_clock(settings)()
-            admin_id = await seed_demo_users(db, settings)
-            await seed_demo_industries(db, actor_id=admin_id, now=now)
-            await seed_demo_markets(db, actor_id=admin_id, now=now)
-            await seed_demo_source_plugins(db)
-            await seed_demo_services(db, actor_id=admin_id, now=now)
-            await seed_demo_accounts(db, settings=settings, actor_id=admin_id, now=now)
+            await seed_demo_dataset(db, settings)
     finally:
         await engine.dispose()
 
