@@ -10,6 +10,7 @@ import { Users } from "./features/identity-and-access/users/Users";
 import { IndustriesAndMarketsScreen } from "./features/service-configuration/industries-and-markets/IndustriesAndMarketsScreen";
 import { ServiceEditorScreen } from "./features/service-configuration/service-editor/ServiceEditorScreen";
 import { ServicesScreen } from "./features/service-configuration/services/ServicesScreen";
+import { ScoringSettingsScreen } from "./features/service-configuration/scoring-settings/ScoringSettingsScreen";
 import { DocumentTitle } from "./shell/DocumentTitle";
 import { RequireAdmin } from "./shell/RequireAdmin";
 import { RequireSession } from "./shell/RequireSession";
@@ -93,6 +94,19 @@ export const routes: RouteObject[] = [
             ),
             handle: handle({
               title: "Service editor",
+              adminOnly: true,
+              parent: { title: "Services", route: "/services" },
+            }),
+          },
+          {
+            path: "/services/:id/scoring",
+            element: (
+              <RequireAdmin>
+                <ScoringSettingsScreen />
+              </RequireAdmin>
+            ),
+            handle: handle({
+              title: "Scoring settings",
               adminOnly: true,
               parent: { title: "Services", route: "/services" },
             }),
