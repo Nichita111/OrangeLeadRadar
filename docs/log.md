@@ -1,5 +1,9 @@
 # Update Log
 
+## 2026-09-27
+
+* **Update**: Requirements register: `AC-63` scopes its contact-erasure clause "where contacts are built", since a contact can only be created once `API-26` (`S-ACC-04`, P1) lands.
+
 ## 2026-09-26
 
 * **Update**: [ProspectRow](/architecture/interfaces.md#prospectrow), [ScoreView](/architecture/interfaces.md#scoreview) and [ScoreChange](/architecture/interfaces.md#scorechange) state that `band` is null unless `RANKED`; [Override](/architecture/interfaces.md#override) separates required creation provenance from nullable revocation provenance.
