@@ -491,8 +491,8 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `API-31` | POST | `/discovery-candidates/{id}/accept` | `*` | [`CandidateDecision`](#candidatedecision) → [`Account`](#account) |
 | `API-32` | POST | `/discovery-candidates/{id}/reject` | `*` | [`CandidateDecision`](#candidatedecision) → [`DiscoveryCandidate`](#discoverycandidate) |
 
-- `API-29` — one queued or running discovery per service; a second request returns it.
-- `API-30` — ordered by `fit_estimate` descending.
+- `API-29` — one queued or running discovery per service; a second request returns it. A service that is not `ACTIVE`, or has no `ACTIVE` scoring version, answers `409`.
+- `API-30` — ordered by `fit_estimate` descending, then by the naming article's `published_at` newest first and unknown last, then by `normalised_name`.
 - `API-31`, `API-32` — only a `PENDING` candidate can be decided (`409` otherwise). Acceptance follows [Discovery](/architecture/rules.md#discovery): no domain answers `422`; an existing domain answers `409` with `details.entity_id`.
 
 ### Discovery shapes

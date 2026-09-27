@@ -227,7 +227,7 @@ A company that may buy. Accounts are shared by the whole team.
 | `employee_count` | integer, null | Number of employees. |
 | `revenue_eur` | bigint, null | Annual revenue in EUR. |
 | `operational_complexity` | enum: `LOW`, `MEDIUM`, `HIGH`, null | How complex the company's operations are, by the countries it operates in and its business units; headcount is `employee_count`. `LOW`: at most 2 countries and one business unit. `MEDIUM`: 3 to 10 countries, or 2 to 4 business units. `HIGH`: more than 10 countries, or 5 or more business units. When the two measures point to different levels, the higher applies. Entered, or classified by [Account attributes](/architecture/rules.md#account-attributes). |
-| `attribute_origin` | jsonb | Object: attribute name → `MANUAL`, `CRUNCHBASE` or `CLASSIFIER`, for `country_code`, `industry`, `employee_count`, `revenue_eur` and `operational_complexity`. A `MANUAL` value is never overwritten by a plug-in or the classifier. |
+| `attribute_origin` | jsonb | Object: attribute name → `MANUAL`, `CRUNCHBASE` or `CLASSIFIER`, for `country_code`, `industry`, `employee_count`, `revenue_eur` and `operational_complexity`. A `MANUAL` value is never overwritten by a plug-in or the classifier. Accepting a discovery candidate counts as `MANUAL` entry of its known attributes, even though their values came from AI extraction. |
 | `parent_account_id` | uuid FK → [`account`](#account), null | Group parent, e.g. SWISS → Lufthansa Group. Display and navigation only; findings are never inherited. |
 | `origin` | enum: `IMPORTED`, `MANUAL`, `DISCOVERED` | How the account entered: CSV import, manual entry, or an accepted [`discovery_candidate`](#discovery_candidate). |
 | `status` | enum: `ACTIVE`, `INACTIVE` | An inactive account is not refreshed, scored or listed in Prospects; its data is kept. |
@@ -397,7 +397,7 @@ A unit of background work a user can see: a refresh, a reclassification, a resco
 | `question_id` | uuid FK → [`signal_question`](#signal_question), null | `RECLASSIFY`. |
 | `status` | enum: `QUEUED`, `RUNNING`, `SUCCEEDED`, `PARTIAL`, `FAILED`, `CANCELLED` | `PARTIAL`: finished, but at least one plug-in or step failed, or pairs were left `PENDING_LLM`, as `errors` and `progress` state. `FAILED`: its final stage failed after its retries. |
 | `stage` | enum, null: `FETCH`, `PROCESS`, `TRIAGE`, `CLASSIFY`, `EVIDENCE`, `SCORE` | The stage in progress; null when queued or finished. The stages each kind passes through are the [run lifecycle](/architecture/services/worker.md#run-lifecycle). |
-| `progress` | jsonb | Counters: `documents_fetched`, `documents_new`, `documents_kept`, `passages`, `pairs_classified`, `pairs_escalated`, `findings_created`, `pending_budget`, `candidates`, `items_evaluated`. |
+| `progress` | jsonb | Counters: `documents_fetched`, `documents_new`, `documents_kept`, `passages`, `pairs_classified`, `pairs_escalated`, `findings_created`, `pending_budget`, `candidates`, `items_evaluated`, `news_searched`, `organisations_found`. |
 | `errors` | jsonb | Array of `{stage, plugin_code?, code, message}`; `code` is an error code of [Conventions](/architecture/interfaces.md#conventions) or `FIXTURE_MISSING`. |
 | `requested_by` | uuid FK → [`app_user`](#app_user), null | The user whose action caused it; null for the scheduler. |
 | `started_at` | timestamptz, null | When the first job started. |
@@ -410,7 +410,7 @@ The work queue behind runs ([ADR-04](/architecture/adrs/adr-04-postgres-job-queu
 | Column | Type | Notes |
 |---|---|---|
 | `run_id` | uuid FK → [`pipeline_run`](#pipeline_run) | Owning run. |
-| `step` | enum: `FETCH`, `PROCESS`, `SIGNAL`, `SCORE`, `DISCOVER`, `EVALUATE` | `FETCH`: one plug-in for one account; stores each new item it fetches as a normalised document with its passages. `PROCESS`: embed the passages of a batch of fetched documents, mark near duplicates, and classify the account's operational complexity. `SIGNAL`: run the [signal graph](/architecture/services/worker.md#signal-graph) over a batch of documents or passages. `SCORE`: rescore. `DISCOVER`: one discovery source for one service. `EVALUATE`: the labelled pairs of its run. |
+| `step` | enum: `FETCH`, `PROCESS`, `SIGNAL`, `SCORE`, `DISCOVER`, `EVALUATE` | `FETCH`: one plug-in for one account; stores each new item it fetches as a normalised document with its passages. `PROCESS`: embed the passages of a batch of fetched documents, mark near duplicates, and classify the account's operational complexity. `SIGNAL`: run the [signal graph](/architecture/services/worker.md#signal-graph) over a batch of documents or passages. `SCORE`: rescore. `DISCOVER`: every available discovery source for one service, and the ranking of its candidates. `EVALUATE`: the labelled pairs of its run. |
 | `payload` | jsonb | Step input: identifiers only, never document text. |
 | `status` | enum: `READY`, `RUNNING`, `DONE`, `FAILED`, `CANCELLED` | `FAILED` after `JOB_MAX_ATTEMPTS` attempts. |
 | `priority` | smallint | Lower runs first, as the [job queue](/architecture/services/worker.md#job-queue) assigns it. |
