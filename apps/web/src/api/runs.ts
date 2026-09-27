@@ -127,3 +127,61 @@ export function useUpdateSourcePlugin() {
     },
   });
 }
+
+/** `API-34`, newest first, filtered by kind, status and account (`FR-054`). */
+export function useRuns(filters: {
+  kind?: Schemas["PipelineRunKind"] | undefined;
+  status?: Schemas["PipelineRunStatus"] | undefined;
+  accountId?: string | undefined;
+}) {
+  const { RUN_POLL_INTERVAL_MS } = useConfig();
+  return useQuery({
+    queryKey: [...runsKeys, "list", filters],
+    queryFn: async () =>
+      requireData(
+        (
+          await client.GET("/api/v1/runs", {
+            params: {
+              query: {
+                ...(filters.kind === undefined ? {} : { kind: filters.kind }),
+                ...(filters.status === undefined ? {} : { status: filters.status }),
+                ...(filters.accountId === undefined ? {} : { account_id: filters.accountId }),
+              },
+            },
+          })
+        ).data,
+      ),
+    refetchInterval: (query) =>
+      (query.state.data?.items ?? []).some((run) => !isRunFinal(run))
+        ? RUN_POLL_INTERVAL_MS
+        : false,
+  });
+}
+
+/** `API-36` (`FR-057`). */
+export function useCancelRun() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (runId: string) =>
+      requireData(
+        (await client.POST("/api/v1/runs/{id}/cancel", { params: { path: { id: runId } } })).data,
+      ),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: runsKeys }),
+  });
+}
+
+/** `API-33`: requests a refresh of one account and answers its run. */
+export function useRefreshAccount() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (accountId: string) =>
+      requireData(
+        (
+          await client.POST("/api/v1/accounts/{id}/refresh", {
+            params: { path: { id: accountId } },
+          })
+        ).data,
+      ),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: runsKeys }),
+  });
+}

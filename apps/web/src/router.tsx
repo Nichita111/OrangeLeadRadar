@@ -1,6 +1,11 @@
 import { Navigate, createBrowserRouter, type RouteObject } from "react-router";
 
 import { AuditLogScreen } from "./features/audit-trail/AuditLogScreen";
+import { AccountImportScreen } from "./features/accounts-and-discovery/account-import/AccountImportScreen";
+import { AccountProfileScreen } from "./features/accounts-and-discovery/account-profile/AccountProfileScreen";
+import { AccountsScreen } from "./features/accounts-and-discovery/accounts/AccountsScreen";
+import { AlertsScreen } from "./features/prospect-dashboard/alerts/AlertsScreen";
+import { RunsScreen } from "./features/signal-pipeline/runs/RunsScreen";
 import { SuggestedAccountsScreen } from "./features/accounts-and-discovery/suggested-accounts/SuggestedAccountsScreen";
 import { LabellingScreen } from "./features/evaluation-and-feedback/labelling/LabellingScreen";
 import { QualityReportScreen } from "./features/evaluation-and-feedback/quality-report/QualityReportScreen";
@@ -46,6 +51,31 @@ export const routes: RouteObject[] = [
             path: "/accounts/:id",
             element: <AccountDetailScreen />,
             handle: handle({ title: "Account detail" }),
+          },
+          {
+            path: "/alerts",
+            element: <AlertsScreen />,
+            handle: handle({ title: "Alerts" }),
+          },
+          {
+            path: "/accounts",
+            element: <AccountsScreen />,
+            handle: handle({ title: "Accounts" }),
+          },
+          {
+            path: "/accounts/import",
+            element: <AccountImportScreen />,
+            handle: handle({ title: "Account import" }),
+          },
+          {
+            path: "/accounts/:id/profile",
+            element: <AccountProfileScreen />,
+            handle: handle({ title: "Account profile" }),
+          },
+          {
+            path: "/runs",
+            element: <RunsScreen />,
+            handle: handle({ title: "Runs" }),
           },
           {
             path: "/suggested-accounts",
