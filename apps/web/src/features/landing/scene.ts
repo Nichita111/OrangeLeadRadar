@@ -169,8 +169,9 @@ export function mountScene(targets: SceneTargets): (() => void) | null {
   renderer.setClearColor(C.page, 1);
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 120);
+  // Lines write no depth: a line faded to nothing would still cut a hole through what is drawn after it.
   const lineMat = (color: THREE.Color, opacity = 1) =>
-    new THREE.LineBasicMaterial({ color, transparent: true, opacity });
+    new THREE.LineBasicMaterial({ color, transparent: true, opacity, depthWrite: false });
   const basic = (color: THREE.Color, opacity = 1) =>
     new THREE.MeshBasicMaterial({ color, transparent: true, opacity });
 
@@ -272,6 +273,7 @@ export function mountScene(targets: SceneTargets): (() => void) | null {
     vertexColors: true,
     transparent: true,
     opacity: 1,
+    depthWrite: false,
   });
   const floor = new THREE.LineSegments(floorGeo, floorMat);
   scene.add(floor);
@@ -771,6 +773,7 @@ export function mountScene(targets: SceneTargets): (() => void) | null {
               gapSize: 0.035,
               transparent: true,
               opacity: 0,
+              depthWrite: false,
             }),
           )
         : new THREE.LineSegments(boxEdge, lineMat(rule.col ? C.accent : C.text2, 0));
@@ -981,7 +984,10 @@ export function mountScene(targets: SceneTargets): (() => void) | null {
     need(pkGeo.attributes["position"], "position").needsUpdate = true;
     pkMat.opacity = clamp(S.src * 2 - 1) * (1 - S.read);
     pkGlow.opacity = pkMat.opacity * 0.95;
-    portMarks.forEach((m) => (m.material.opacity = S.src * (1 - S.sift) * 0.9));
+    portMarks.forEach((m) => {
+      m.material.opacity = S.src * (1 - S.sift) * 0.9;
+      m.visible = m.material.opacity > 0.004;
+    });
 
     // documents: fall into stacks, then the sieve sets most of them aside
     const sieveY = lerp(1.7, -0.06, S.sift);
