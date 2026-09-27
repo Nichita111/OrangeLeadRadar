@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Navigate, useNavigate, useSearchParams } from "react-router";
 
-import { useLogin, useMe } from "../../../api/authenticationAndUsers";
+import { useDemoLogin, useLogin, useMe } from "../../../api/authenticationAndUsers";
 import { ApiError } from "../../../api/client";
 import { Button, ButtonLink } from "../../../components/Button";
 import { Callout } from "../../../components/Callout";
@@ -13,6 +13,7 @@ import { Skeleton } from "../../../components/Skeleton";
 import { formErrors } from "../../../shell/formErrors";
 import { safeReturnPath } from "../../../shell/returnPath";
 import { DataView } from "../../../shell/states/DataView";
+import { DemoShortcuts } from "./DemoShortcuts";
 
 function BrandPanel() {
   return (
@@ -29,7 +30,13 @@ function BrandPanel() {
   );
 }
 
-function SignInForm({ login }: { login: ReturnType<typeof useLogin> }) {
+function SignInForm({
+  login,
+  demoLogin,
+}: {
+  login: ReturnType<typeof useLogin>;
+  demoLogin: ReturnType<typeof useDemoLogin>;
+}) {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const [email, setEmail] = useState("");
@@ -98,17 +105,19 @@ function SignInForm({ login }: { login: ReturnType<typeof useLogin> }) {
           Sign in
         </Button>
       </div>
+      <DemoShortcuts demoLogin={demoLogin} className="flex flex-col items-start gap-2" />
     </form>
   );
 }
 
-/** FL-19 step 1, FR-093, FR-094, FR-152, FR-160: two panels; a signed-in visitor goes to Prospects. */
+/** FL-19 steps 1 and 3, FR-093, FR-094, FR-152, FR-160, FR-167: two panels; a signed-in visitor goes to Prospects. */
 export function SignIn() {
   const me = useMe();
   const login = useLogin();
-  // A visitor who signs in now is sent by the submit, to the return path; only one who arrived
-  // already signed in is sent to Prospects (FR-093).
-  const signedIn = me.status === "success" && login.isIdle;
+  const demoLogin = useDemoLogin();
+  // A visitor who signs in now is sent by the submit or the shortcut, to the return path; only one
+  // who arrived already signed in is sent to Prospects (FR-093, FR-168).
+  const signedIn = me.status === "success" && login.isIdle && demoLogin.isIdle;
   const unauthenticated =
     me.status === "error" && me.error instanceof ApiError && me.error.status === 401;
   return (
@@ -118,7 +127,12 @@ export function SignIn() {
         {signedIn ? (
           <Navigate to="/prospects" replace />
         ) : (
-          <FormOrCheck me={me} login={login} unauthenticated={unauthenticated} />
+          <FormOrCheck
+            me={me}
+            login={login}
+            demoLogin={demoLogin}
+            unauthenticated={unauthenticated}
+          />
         )}
       </section>
     </div>
@@ -128,14 +142,16 @@ export function SignIn() {
 function FormOrCheck({
   me,
   login,
+  demoLogin,
   unauthenticated,
 }: {
   me: ReturnType<typeof useMe>;
   login: ReturnType<typeof useLogin>;
+  demoLogin: ReturnType<typeof useDemoLogin>;
   unauthenticated: boolean;
 }) {
   if (unauthenticated || me.status === "success") {
-    return <SignInForm login={login} />;
+    return <SignInForm login={login} demoLogin={demoLogin} />;
   }
   return (
     <DataView
@@ -147,7 +163,7 @@ function FormOrCheck({
         action: <ButtonLink to="/login">Sign in</ButtonLink>,
       }}
     >
-      {() => <SignInForm login={login} />}
+      {() => <SignInForm login={login} demoLogin={demoLogin} />}
     </DataView>
   );
 }

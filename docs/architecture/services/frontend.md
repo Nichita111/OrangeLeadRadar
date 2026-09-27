@@ -24,7 +24,7 @@ Consumes every REST family of [interfaces](/architecture/interfaces.md) through 
 
 ## Design
 
-React with TypeScript in strict mode, built by Vite; React Router for routes; TanStack Query for server state, caching and polling; a typed client generated with `openapi-typescript`; Tailwind CSS with Radix-based components for accessible primitives. Icons come from one family, Phosphor (`@phosphor-icons/react`), at the weights [Visual language](#visual-language) names. Type is Geist and Geist Mono, self-hosted by the `web` container. Animation uses `motion`, and the animated components of [Motion](#motion) are copied from React Bits ([ADR-17](/architecture/adrs/adr-17-animated-components-from-react-bits.md)). The [Landing](#landing) scene alone uses three.js through `@react-three/fiber`, `@react-three/drei` and `@react-three/postprocessing`, animated with Anime.js ([ADR-20](/architecture/adrs/adr-20-landing-scene-mock-layer-and-demo-sign-in.md)). The build is static files served by the `web` container, which proxies `/api/v1` to `API_UPSTREAM`. The other keys of [Runtime](#runtime) reach the client at run time: the `web` container writes them to `/config.json` when it starts, and the client reads that file before its first render, so changing one needs a restart, not a rebuild.
+React with TypeScript in strict mode, built by Vite; React Router for routes; TanStack Query for server state, caching and polling; a typed client generated with `openapi-typescript`; Tailwind CSS with Radix-based components for accessible primitives. Icons come from one family, Phosphor (`@phosphor-icons/react`), at the weights [Visual language](#visual-language) names. Type is Geist and Geist Mono, self-hosted by the `web` container. Animation uses `motion`, and the animated components of [Motion](#motion) are copied from React Bits ([ADR-17](/architecture/adrs/adr-17-animated-components-from-react-bits.md)). The [Landing](#landing) scene alone uses three.js, animated with Anime.js ([ADR-20](/architecture/adrs/adr-20-landing-scene-mock-layer-and-demo-sign-in.md)). The build is static files served by the `web` container, which proxies `/api/v1` to `API_UPSTREAM`. The other keys of [Runtime](#runtime) reach the client at run time: the `web` container writes them to `/config.json` when it starts, and the client reads that file before its first render, so changing one needs a restart, not a rebuild.
 
 ## Routes
 
@@ -55,24 +55,55 @@ A signed-in user opening `/` is sent to `/prospects` ([Landing](#landing)).
 
 ## Landing
 
-Route `/`. Anonymous; a signed-in user is sent to `/prospects`. The page that opens the live demo: three steps that say what LeadRadar does, each leading to [Sign in](/features/identity-and-access.md#sign-in).
+Route `/`. Anonymous; a signed-in user is sent to `/prospects`. The page that opens the live demo: eight steps that follow the demo accounts from the sources LeadRadar reads to the ranked Prospects list, the last leading to [Sign in](/features/identity-and-access.md#sign-in).
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │ LeadRadar                                                        [ Sign in ] │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ Scan   Know which accounts to call, and exactly why.                         │
-│        LeadRadar reads public news, company sites and job boards.            │
-│        [ scene: a field of accounts under a radar sweep ]                    │
+│ Accounts   Know which accounts to call, and why.                             │
+│            Twenty accounts, one service to sell: Intelligent Automation.     │
+│            [ scene: the demo accounts as points on a disc of six sectors ]   │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ Quote  Every signal carries a verbatim quote, its source and its date.       │
-│        [ scene: lines draw from DHL Group to a card typing                ]  │
-│        [ "DHL setzt in über 1.000 Prozessen KI-Agenten ein…", then        ]  │
-│        [ English: "DHL uses AI agents in more than 1,000 processes…"      ]  │
+│ Sources    LeadRadar reads what companies publish.                           │
+│            News, company sites, job boards and investor relations, fetched   │
+│            on a schedule.                                                    │
+│            [ scene: curves carry packets from four sources to the accounts ] │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ Rank   Scores come from fixed rules you can read, not from a model.          │
-│        LeadRadar never contacts anyone.                          [ Sign in ] │
-│        [ scene: the accounts rise into Hot, Warm and Cold rings ]            │
+│ Read       Every page is read, not guessed.                                  │
+│            Each document is split into passages and kept with its address    │
+│            and date.                                                         │
+│            [ scene: documents fall into a stack above each account ]         │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ Sift       Only passages that answer a question stay.                        │
+│            Intelligent Automation asks nine questions. Passages that answer  │
+│            none are set aside.                                               │
+│            [ scene: a wafer of the architecture and flow diagrams sinks      │
+│              through the stacks; the documents that answer nothing fall ]    │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ Quote      Every signal carries a quote, source and date.                    │
+│            The quote stays in its own language, with an English translation  │
+│            beside it.                                                        │
+│            [ scene: a DHL Group document lifts into a card that shows        │
+│              "DHL setzt in über 1.000 Prozessen KI-Agenten ein…" and types   │
+│              "DHL uses AI agents in more than 1,000 processes…" ]            │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ Score      Scores come from rules you can read.                              │
+│            Fit and Intent add up weighted rules. Models answer questions;    │
+│            they never set the score.                                         │
+│            [ scene: DHL Group's rules stack into Fit 88 and Intent 72,       │
+│              Priority 78, Hot ]                                              │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ Rank       The accounts worth a call rise to the top.                        │
+│            LeadRadar never contacts anyone. Your team decides who to call.   │
+│            [ scene: every account rises to its Priority and the columns      │
+│              line up, highest first ]                                        │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ Prospects  Your prospects, ranked and explained.                             │
+│            Sign in with the account your Admin created.                      │
+│            [ Sign in ]                                                       │
+│            [ scene: the Prospects list takes over; DHL Group and Lufthansa   │
+│              Group fly into its first rows ]                                 │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -80,11 +111,11 @@ WF-27 — Landing
 
 | ID | Requirement |
 |---|---|
-| `FR-161` | Landing shall show three full-viewport steps in order — Scan, Quote, Rank — each with the words of WF-27, over one pinned scene that each step advances as the visitor scrolls; scrolling back reverses the scene. |
-| `FR-162` | A header with the LeadRadar mark and a Sign in button shall stay visible on every step, and the Rank step shall end with a Sign in button; both open Sign in. |
+| `FR-161` | Landing shall show eight full-viewport steps in order — Accounts, Sources, Read, Sift, Quote, Score, Rank, Prospects — each with the words of WF-27, over one pinned scene that each step advances as the visitor scrolls; scrolling back reverses the scene. A column of step dots beside the steps shows the current step and scrolls to the one pressed. |
+| `FR-162` | A header with the LeadRadar mark and a Sign in button shall stay visible on every step, and the Prospects step shall end with a Sign in button; both open Sign in. Landing offers no other way to sign in. |
 | `FR-163` | A signed-in user opening `/` shall be sent to `/prospects`. |
-| `FR-164` | The scene shall show the accounts as points that a radar beam sweeps in Scan; draw lines from DHL Group's point to a card that types DHL Group's quote and then its English translation, as [WF-24](#score-presentation) shows them, in Quote; and raise the points into three rings, Hot, Warm and Cold, each with its band icon ([FR-111](#score-presentation)), in Rank. Its colours are the tokens Accent for Hot and the beam, Accent soft for Warm and Cool for Cold, on the dark Page, in both colour schemes. |
-| `FR-165` | The words of each step shall render before the scene loads; under `prefers-reduced-motion` each step shall show the end frame of its scene still, and without WebGL each step shall show a still image of that end frame. |
+| `FR-164` | The scene shall show the scenes of WF-27 with the [demo dataset](/architecture/overview.md#demo-dataset)'s twenty accounts; DHL Group's quote, rules and scores and Lufthansa Group's band and scores are those of [WF-24](#score-presentation) and the demo dataset, and every other account's position, documents and Priority are illustrative. The accounts stand on a floor grid in the Border colour that fades toward its edges, moves with the camera and gives way to the Sift wafer and the Prospects list. Band chips carry their band icon ([FR-111](#score-presentation)). Its colours are the tokens Accent for what the current step is about and for Hot, Accent soft for Warm and Cool for Cold, on the dark Page, in both colour schemes. |
+| `FR-165` | The words of each step shall render before the scene loads; under `prefers-reduced-motion` each step shall show the end frame of its scene still, and without WebGL the steps show their words on the dark Page with no scene. |
 | `FR-166` | Landing shall load lazily; three.js and Anime.js are imported by no other screen, and every font, script and texture it uses is served by the `web` container ([FR-109](#visual-language)). |
 
 **Data**: `API-03`. **States**: none; the page has no data view.

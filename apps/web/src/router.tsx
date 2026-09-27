@@ -1,4 +1,4 @@
-import { Navigate, createBrowserRouter, type RouteObject } from "react-router";
+import { createBrowserRouter, type RouteObject } from "react-router";
 
 import { AuditLogScreen } from "./features/audit-trail/AuditLogScreen";
 import { AccountImportScreen } from "./features/accounts-and-discovery/account-import/AccountImportScreen";
@@ -9,6 +9,7 @@ import { RunsScreen } from "./features/signal-pipeline/runs/RunsScreen";
 import { SuggestedAccountsScreen } from "./features/accounts-and-discovery/suggested-accounts/SuggestedAccountsScreen";
 import { LabellingScreen } from "./features/evaluation-and-feedback/labelling/LabellingScreen";
 import { QualityReportScreen } from "./features/evaluation-and-feedback/quality-report/QualityReportScreen";
+import { LandingRoute } from "./features/landing/LandingRoute";
 import { OutreachComposerScreen } from "./features/outreach-and-crm/OutreachComposerScreen";
 import { AccountDetailScreen } from "./features/prospect-dashboard/account-detail/AccountDetailScreen";
 import { ProspectsScreen } from "./features/prospect-dashboard/prospects/ProspectsScreen";
@@ -37,11 +38,11 @@ export const routes: RouteObject[] = [
   {
     element: <DocumentTitle />,
     children: [
+      { path: "/", element: <LandingRoute /> },
       { path: "/login", element: <SignIn />, handle: handle({ title: "Sign in" }) },
       {
         element: <RequireSession />,
         children: [
-          { path: "/", element: <Navigate to="/prospects" replace /> },
           {
             path: "/prospects",
             element: <ProspectsScreen />,
