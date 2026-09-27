@@ -27,6 +27,16 @@ def is_own_source(plugin_code: SourcePluginCode | str) -> bool:
     return plugin_code in _OWN_SOURCES
 
 
+def kept_for_service(
+    *, outcome: DocumentTriageOutcome, relevance_p: float, triage_relevance_min_p: float
+) -> bool:
+    """Whether a stored triage keeps the document for this service."""
+    return (
+        outcome is not DocumentTriageOutcome.NOT_ABOUT_ACCOUNT
+        and relevance_p >= triage_relevance_min_p
+    )
+
+
 ABOUT_ACCOUNT_QUESTION_ID = "ABOUT_ACCOUNT"
 RELEVANT_QUESTION_PREFIX = "RELEVANT_"
 

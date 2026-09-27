@@ -142,8 +142,8 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 
 - `API-08` — creates the service and its first scoring draft with the defaults of the [scoring settings document](/architecture/sql-store.md#scoring-settings-document). A code or name already used answers `409 CONFLICT`.
 - `API-10` — `code` is not accepted. Setting `status` to `ACTIVE` from `INACTIVE` enqueues one `RECLASSIFY` run per active question.
-- `API-12` — enqueues a `RECLASSIFY` run for the new question and adds it at weight `MEDIUM` to the service's draft, creating the draft from the active version if none exists.
-- `API-13` — a change to `text`, `answer_type`, `options` or `source_types` increments `revision` and enqueues a `RECLASSIFY` run ([Reclassification](/architecture/rules.md#reclassification)); deactivating removes the question from the draft; reactivating enqueues a `RECLASSIFY` run and adds it to the draft.
+- `API-12` — enqueues a `RECLASSIFY` run for the new question and adds it at weight `MEDIUM` to the service's draft, creating the draft from the active version if none exists. It answers the [`SignalQuestion`](#signalquestion) with the `run_id` of that run, an exception to Runs.
+- `API-13` — a change to `text`, `answer_type`, `options` or `source_types` increments `revision` and enqueues a `RECLASSIFY` run ([Reclassification](/architecture/rules.md#reclassification)); deactivating removes the question from the draft; reactivating enqueues a `RECLASSIFY` run and adds it to the draft. It answers the [`SignalQuestion`](#signalquestion) with the `run_id` of the `RECLASSIFY` run it enqueued, else null, an exception to Runs.
 - `API-14` — asks an unsaved or saved question against pasted text or against the account's stored passages, through the same classification, escalation and evidence rules as the pipeline, and stores nothing except `AI_CALL` audit rows.
 
 ### Services and questions shapes
@@ -184,6 +184,7 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 | `revision` | integer | [`signal_question`](/architecture/sql-store.md#signal_question) |
 | `status` | enum | [`signal_question`](/architecture/sql-store.md#signal_question) `status` |
 | `finding_count` | integer | in-force [`finding`](/architecture/sql-store.md#finding) rows of the question |
+| `run_id` | string, null | the `RECLASSIFY` run the request enqueued; null on reads and when none was queued |
 
 #### SignalQuestionCreate
 

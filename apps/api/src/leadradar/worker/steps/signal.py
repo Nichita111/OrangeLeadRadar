@@ -20,6 +20,8 @@ from typing import Any, Protocol, cast
 
 import httpx
 from sqlalchemy import and_, exists, or_, select, update
+from sqlalchemy import cast as sql_cast
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import Select
 
@@ -38,12 +40,15 @@ from leadradar.ai.shapes import (
     EvidenceOutput,
 )
 from leadradar.core.enums import (
+    AccountStatus,
     ClassificationStatus,
     DocumentTriageClassifier,
     DocumentTriageOutcome,
+    EvaluationItemStatus,
     FindingDecidedBy,
     FindingStatus,
     FindingStrength,
+    PipelineRunKind,
     PipelineRunStage,
     ServiceStatus,
     SignalQuestionAnswerType,
@@ -62,10 +67,12 @@ from leadradar.core.signal.triage import (
     RELEVANT_QUESTION_PREFIX,
     TriageResult,
     is_own_source,
+    kept_for_service,
     triage,
 )
 from leadradar.db.models.accounts import Account
 from leadradar.db.models.configuration import Service, SignalQuestion
+from leadradar.db.models.feedback import EvaluationItem
 from leadradar.db.models.ingestion import Chunk, Document, Job, PipelineRun
 from leadradar.db.models.signals import Classification, DocumentTriage, Finding
 from leadradar.worker.queue import add_run_error, add_run_progress
@@ -157,15 +164,117 @@ class SignalBatch:
 # ── Node: triage ────────────────────────────────────────────────────────────────
 
 
+def _triage_text(state: SignalBatch, doc: dict[str, Any]) -> str:
+    text_slice = (doc.get("text") or "")[: state.triage_chars]
+    return f"{doc['title']}\n{text_slice}" if doc.get("title") else text_slice
+
+
+def _relevant_question(state: SignalBatch, service_id: str) -> ClassifierQuestion:
+    return ClassifierQuestion(
+        id=f"{RELEVANT_QUESTION_PREFIX}{service_id}",
+        kind="YES_NO",
+        text=(
+            f"Could this text matter for whether {state.account_name}"
+            f" might need this service: {state.service_descriptions.get(service_id, '')}?"
+        ),
+        options=None,
+    )
+
+
+async def _complete_stored_triage(
+    state: SignalBatch, session: AsyncSession, doc: dict[str, Any], stored: DocumentTriage
+) -> None:
+    doc_id = doc["document_id"]
+    kept: set[str] = set()
+    for service_id in state.service_ids:
+        raw_p = stored.service_relevance.get(service_id)
+        if raw_p is None:
+            request = ClassifierRequest(
+                state=_triage_text(state, doc),
+                context=(
+                    f"Company: {state.account_name} ({state.account_domain},"
+                    f" {state.account_country_code or ''})"
+                ),
+                questions=[_relevant_question(state, service_id)],
+            )
+            answers = await _classify_call(
+                state,
+                request,
+                AiCallContext(
+                    entity_type="document", entity_id=uuid.UUID(doc_id), run_id=state.run_id
+                ),
+            )
+            relevance_p = next(
+                (
+                    answer.probabilities.get("YES", 0.0)
+                    for answer in answers
+                    if answer.question_id == f"{RELEVANT_QUESTION_PREFIX}{service_id}"
+                ),
+                0.0,
+            )
+            keep = kept_for_service(
+                outcome=stored.outcome,
+                relevance_p=relevance_p,
+                triage_relevance_min_p=state.triage_relevance_min_p,
+            )
+            became_kept = keep and stored.outcome is not DocumentTriageOutcome.KEPT
+            statement = (
+                update(DocumentTriage)
+                .where(DocumentTriage.id == stored.id)
+                .values(
+                    service_relevance=DocumentTriage.service_relevance.op("||")(
+                        sql_cast({service_id: relevance_p}, JSONB)
+                    ),
+                )
+            )
+            if keep:
+                statement = statement.values(outcome=DocumentTriageOutcome.KEPT)
+            await session.execute(statement)
+            if became_kept:
+                state.counts["documents_kept"] += 1
+                stored.outcome = DocumentTriageOutcome.KEPT
+        else:
+            relevance_p = float(cast(float, raw_p))
+            keep = kept_for_service(
+                outcome=stored.outcome,
+                relevance_p=relevance_p,
+                triage_relevance_min_p=state.triage_relevance_min_p,
+            )
+        if keep:
+            kept.add(service_id)
+    state.triage_results[doc_id] = TriageResult(
+        outcome=stored.outcome,
+        kept_service_ids=frozenset(kept),
+        about_account_p=float(stored.about_account_p)
+        if stored.about_account_p is not None
+        else None,
+    )
+
+
 async def _node_triage(state: SignalBatch, session: AsyncSession) -> None:
     """Triage each document to triage: call the classifier, write its ``document_triage`` row."""
+    document_ids = [uuid.UUID(doc["document_id"]) for doc in state.documents]
+    stored_rows = (
+        list(
+            (
+                await session.scalars(
+                    select(DocumentTriage).where(DocumentTriage.document_id.in_(document_ids))
+                )
+            ).all()
+        )
+        if document_ids
+        else []
+    )
+    stored_by_document = {str(row.document_id): row for row in stored_rows}
     for doc in state.documents:
         doc_id = doc["document_id"]
+        stored = stored_by_document.get(doc_id)
+        if stored is not None:
+            await _complete_stored_triage(state, session, doc, stored)
+            continue
 
         own_source = is_own_source(doc["plugin_code"])
-        text_slice = (doc.get("text") or "")[: state.triage_chars]
-        if doc.get("title"):
-            text_slice = f"{doc['title']}\n{text_slice}"
+        text_slice = _triage_text(state, doc)
 
         # Build classifier questions for triage
         triage_questions: list[ClassifierQuestion] = []
@@ -186,18 +295,7 @@ async def _node_triage(state: SignalBatch, session: AsyncSession) -> None:
             )
 
         for svc_id in state.service_ids:
-            desc = state.service_descriptions.get(svc_id, "")
-            triage_questions.append(
-                ClassifierQuestion(
-                    id=f"{RELEVANT_QUESTION_PREFIX}{svc_id}",
-                    kind="YES_NO",
-                    text=(
-                        f"Could this text matter for whether {state.account_name}"
-                        f" might need this service: {desc}?"
-                    ),
-                    options=None,
-                )
-            )
+            triage_questions.append(_relevant_question(state, svc_id))
 
         context_line = (
             f"Company: {state.account_name} ({state.account_domain},"
@@ -765,13 +863,13 @@ def _write_finding(
 # ── Supersede findings of a previous revision (Reclassification) ───────────────
 
 
-async def supersede_old_revision_findings(
+async def supersede_older_revisions(
     session: AsyncSession,
     *,
     question_id: uuid.UUID,
     current_revision: int,
 ) -> None:
-    """Mark findings of older revisions ``SUPERSEDED``.
+    """Mark findings and evaluation items of older revisions stale.
 
     Implements [Reclassification](/architecture/rules.md#reclassification) step 1:
     *"Mark the question's findings of an older revision ``SUPERSEDED``."*
@@ -784,6 +882,15 @@ async def supersede_old_revision_findings(
             Finding.status == FindingStatus.ACTIVE,
         )
         .values(status=FindingStatus.SUPERSEDED)
+    )
+    await session.execute(
+        update(EvaluationItem)
+        .where(
+            EvaluationItem.question_id == question_id,
+            EvaluationItem.question_revision < current_revision,
+            EvaluationItem.status == EvaluationItemStatus.ACTIVE,
+        )
+        .values(status=EvaluationItemStatus.STALE)
     )
 
 
@@ -842,6 +949,20 @@ def _documents_to_triage(account_id: uuid.UUID) -> Select[Document]:
         ~exists().where(
             Chunk.document_id == Document.id, Chunk.text.is_not(None), Chunk.embedding.is_(None)
         ),
+    )
+
+
+def _documents_to_reclassify(account_id: uuid.UUID) -> Select[Document]:
+    """The account's stored, triaged documents eligible for reclassification."""
+    return (
+        select(Document)
+        .join(DocumentTriage, DocumentTriage.document_id == Document.id)
+        .where(
+            Document.account_id == account_id,
+            Document.duplicate_of_id.is_(None),
+            Document.purged_at.is_(None),
+            DocumentTriage.outcome != DocumentTriageOutcome.NOT_ABOUT_ACCOUNT,
+        )
     )
 
 
@@ -939,14 +1060,12 @@ async def run_signal_job(
 ) -> None:
     """Adapter that wires a SIGNAL ``Job`` into the generic job-loop handler protocol.
 
-    Loads the account, the active services and questions, the account's documents to triage and
-    the pairs waiting for the LLM, builds a ``SignalBatch`` from ``WorkerSettings`` and calls
-    ``run_signal_step``. The job payload's optional ``question_id`` restricts the questions
-    (RECLASSIFY runs).
+    Loads an account's pending refresh work or a changed question's stored documents.
     """
     cfg = settings
 
-    account_id = run.account_id
+    reclassify = run.kind is PipelineRunKind.RECLASSIFY
+    account_id = uuid.UUID(str(job.payload["account_id"])) if reclassify else run.account_id
     if account_id is None:
         raise ValueError(f"SIGNAL step: run {run.id} has no account_id")
 
@@ -954,8 +1073,12 @@ async def run_signal_job(
     account = await session.get(Account, account_id)
     if account is None:
         raise ValueError(f"SIGNAL step: account {account_id} not found")
+    if reclassify and account.status is not AccountStatus.ACTIVE:
+        return
 
     svc_stmt = select(Service).where(Service.status == ServiceStatus.ACTIVE)
+    if reclassify:
+        svc_stmt = svc_stmt.where(Service.id == run.service_id)
     services = list((await session.execute(svc_stmt)).scalars())
     service_ids = [str(svc.id) for svc in services]
     service_descriptions = {str(svc.id): svc.description for svc in services}
@@ -965,19 +1088,15 @@ async def run_signal_job(
         SignalQuestion.service_id.in_([svc.id for svc in services]),
         SignalQuestion.status == SignalQuestionStatus.ACTIVE,
     )
-    # For RECLASSIFY: filter to one question
-    reclassify_question_id_raw = job.payload.get("question_id")
-    if reclassify_question_id_raw is not None:
-        reclassify_qid = uuid.UUID(str(reclassify_question_id_raw))
-        q_stmt = q_stmt.where(SignalQuestion.id == reclassify_qid)
-        questions_rows = list((await session.execute(q_stmt)).scalars())
-        if questions_rows:
-            # Supersede findings of older revisions before classifying
-            await supersede_old_revision_findings(
-                session, question_id=reclassify_qid, current_revision=questions_rows[0].revision
-            )
-    else:
-        questions_rows = list((await session.execute(q_stmt)).scalars())
+    if reclassify:
+        q_stmt = q_stmt.where(SignalQuestion.id == run.question_id)
+    questions_rows = list((await session.execute(q_stmt)).scalars())
+    if reclassify:
+        if not questions_rows:
+            return
+        await supersede_older_revisions(
+            session, question_id=questions_rows[0].id, current_revision=questions_rows[0].revision
+        )
 
     questions: list[dict[str, Any]] = [
         {
@@ -994,7 +1113,10 @@ async def run_signal_job(
         for q in questions_rows
     ]
 
-    docs = list((await session.execute(_documents_to_triage(account_id))).scalars())
+    document_query = (
+        _documents_to_reclassify(account_id) if reclassify else _documents_to_triage(account_id)
+    )
+    docs = list((await session.execute(document_query)).scalars())
 
     documents: list[dict[str, Any]] = [
         {
@@ -1029,16 +1151,20 @@ async def run_signal_job(
             for c in chunks
         ]
 
-    pending_rows = [
-        (clf, chunk, doc)
-        for clf, chunk, doc in (
-            await session.execute(
-                _pending_pairs(account_id).where(
-                    Classification.question_id.in_([q.id for q in questions_rows])
+    pending_rows = (
+        []
+        if reclassify
+        else [
+            (clf, chunk, doc)
+            for clf, chunk, doc in (
+                await session.execute(
+                    _pending_pairs(account_id).where(
+                        Classification.question_id.in_([q.id for q in questions_rows])
+                    )
                 )
             )
-        )
-    ]
+        ]
+    )
 
     async def embed_texts(texts: list[str]) -> list[list[float]]:
         return await embed(

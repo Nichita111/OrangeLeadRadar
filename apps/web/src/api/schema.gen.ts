@@ -2012,6 +2012,8 @@ export interface components {
             polarity: components["schemas"]["SignalQuestionPolarity"];
             /** Revision */
             revision: number;
+            /** Run Id */
+            run_id: string | null;
             /**
              * Service Id
              * Format: uuid

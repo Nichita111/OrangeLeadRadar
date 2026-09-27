@@ -75,6 +75,7 @@ class QuestionSummary:
     revision: int
     status: SignalQuestionStatus
     finding_count: int
+    run_id: uuid.UUID | None = None
 
 
 @dataclass(frozen=True)
@@ -208,7 +209,9 @@ def question_options(value: object) -> list[dict[str, object]] | None:
     return cast("list[dict[str, object]] | None", value if isinstance(value, list) else None)
 
 
-async def question_summary(session: AsyncSession, question: SignalQuestion) -> QuestionSummary:
+async def question_summary(
+    session: AsyncSession, question: SignalQuestion, run_id: uuid.UUID | None = None
+) -> QuestionSummary:
     """[`SignalQuestion`](/architecture/interfaces.md#signalquestion) shaped from an already
     loaded row, its `finding_count` computed on read."""
     count = await _finding_count(session, question.id)
@@ -226,6 +229,7 @@ async def question_summary(session: AsyncSession, question: SignalQuestion) -> Q
         revision=question.revision,
         status=question.status,
         finding_count=count,
+        run_id=run_id,
     )
 
 

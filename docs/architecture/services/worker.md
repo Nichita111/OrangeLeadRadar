@@ -61,12 +61,12 @@ stateDiagram-v2
 | Kind | Stages, in order | Jobs |
 |---|---|---|
 | `ACCOUNT_REFRESH` | `FETCH` → `PROCESS` → `TRIAGE` → `CLASSIFY` → `EVIDENCE` → `SCORE` | one `FETCH` per available plug-in; `PROCESS` per batch of fetched documents; `SIGNAL` per batch of the account's documents with pending work — processed documents not yet triaged — non-duplicate, not purged, every passage embedded —, kept documents whose selected passages lack a classification at a current revision, `PENDING_LLM` pairs, and `EVIDENCE_FAILED` pairs whose `evidence_retried` is false — covering triage, classification and evidence; one `SCORE` for all active services |
-| `RECLASSIFY` | `TRIAGE` → `CLASSIFY` → `EVIDENCE` → `SCORE` | `SIGNAL` per batch of the service's documents; one `SCORE` for the service |
+| `RECLASSIFY` | `TRIAGE` → `CLASSIFY` → `EVIDENCE` → `SCORE` | one `SIGNAL` per active account, over its stored documents; one `SCORE` for the service, the first job when no account is active |
 | `RESCORE` | `SCORE` | one `SCORE` |
 | `DISCOVERY` | `FETCH` → `TRIAGE` → `SCORE` | one `DISCOVER` per available discovery source; the last one ranks and caps candidates |
 | `EVALUATION` | `CLASSIFY` | `EVALUATE` per batch of items; the last one writes the [`evaluation_result`](/architecture/sql-store.md#evaluation_result) |
 
-A `SCORE` job's `payload` is `{}`: its scope is its run's `account_id` and `service_id`, as the Jobs column states. A `FETCH` job's `payload` is `{plugin_code}`: its account is its run's `account_id`. A `PROCESS` job's `payload` is `{}`: it covers the documents its run fetched; when it fails after its retries, those documents stay stored without embeddings and are not triaged or classified. A refresh requested when no plug-in is available starts with its `SCORE` job.
+A `SCORE` job's `payload` is `{}`: its scope is its run's `account_id` and `service_id`, as the Jobs column states. A `FETCH` job's `payload` is `{plugin_code}`: its account is its run's `account_id`. A `PROCESS` job's `payload` is `{}`: it covers the documents its run fetched; when it fails after its retries, those documents stay stored without embeddings and are not triaged or classified. A `SIGNAL` job's `payload` is `{}` in a refresh, whose account is its run's `account_id`, and `{account_id}` in a `RECLASSIFY` run, whose question is its run's `question_id`. A refresh requested when no plug-in is available starts with its `SCORE` job.
 
 The first job claimed sets its run `RUNNING` with `started_at`. Claiming a job moves its run's `stage` to the first stage its step covers — `FETCH` for `FETCH` and `DISCOVER`, `PROCESS` for `PROCESS`, `TRIAGE` for `SIGNAL`, `CLASSIFY` for `EVALUATE`, `SCORE` for `SCORE` — never back to an earlier stage; the `SIGNAL` step moves it on through `CLASSIFY` and `EVIDENCE` itself.
 

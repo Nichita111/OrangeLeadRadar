@@ -35,9 +35,11 @@ from leadradar.core.enums import (
     ClassificationStatus,
     DocumentTriageClassifier,
     DocumentTriageOutcome,
+    FindingStatus,
     FindingStrength,
     JobStatus,
     JobStep,
+    PipelineRunKind,
     PipelineRunStatus,
     ScoringConfigStatus,
     SourcePluginCode,
@@ -48,6 +50,7 @@ from leadradar.db.models.audit import AuditEvent
 from leadradar.db.models.configuration import SignalQuestion
 from leadradar.db.models.ingestion import Chunk, Document, Job, PipelineRun, SourcePlugin
 from leadradar.db.models.signals import AccountScore, Classification, DocumentTriage, Finding
+from leadradar.runs.enqueue import enqueue_reclassify
 from leadradar.worker.loop import process_next_job
 from leadradar.worker.settings import WorkerSettings
 from leadradar.worker.steps import STEP_HANDLERS
@@ -347,3 +350,50 @@ async def test_a_refresh_runs_from_fetch_to_score_and_a_second_one_creates_nothi
         await _count(connection, model)
         for model in (Document, DocumentTriage, Classification, Finding, AccountScore)
     ] == before
+
+    # A revised question reuses the stored documents and finishes with one SCORE job.
+    question_id = (
+        await connection.execute(
+            select(SignalQuestion.id).where(SignalQuestion.key == scene.question_key)
+        )
+    ).scalar_one()
+    await connection.execute(
+        update(SignalQuestion)
+        .where(SignalQuestion.id == question_id)
+        .values(text=f"{HIGH} revised", revision=2)
+    )
+    user_id = await connection.run_sync(f.make_app_user)
+    async with session_factory(connection)() as session, session.begin():
+        reclassify_id = await enqueue_reclassify(
+            session,
+            question_id=question_id,
+            service_id=scene.service_id,
+            requested_by=user_id,
+            now=clock(),
+        )
+    await _drain(connection, embedder, clock)
+
+    reclassify = (
+        await connection.execute(
+            select(PipelineRun.kind, PipelineRun.status, PipelineRun.progress).where(
+                PipelineRun.id == reclassify_id
+            )
+        )
+    ).one()
+    assert reclassify.kind is PipelineRunKind.RECLASSIFY
+    assert reclassify.status is PipelineRunStatus.SUCCEEDED
+    steps = (
+        await connection.execute(select(Job.step, Job.status).where(Job.run_id == reclassify_id))
+    ).all()
+    assert sorted(steps) == sorted(
+        [(JobStep.SIGNAL, JobStatus.DONE), (JobStep.SCORE, JobStatus.DONE)]
+    )
+    assert await _count(connection, Document) == before[0]
+    assert reclassify.progress["pairs_classified"] > 0
+    assert (
+        await connection.scalar(
+            select(func.count())
+            .select_from(Finding)
+            .where(Finding.question_id == question_id, Finding.status == FindingStatus.SUPERSEDED)
+        )
+    ) > 0

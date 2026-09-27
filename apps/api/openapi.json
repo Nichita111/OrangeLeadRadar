@@ -3330,6 +3330,18 @@
             "title": "Revision",
             "type": "integer"
           },
+          "run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
           "service_id": {
             "format": "uuid",
             "title": "Service Id",
@@ -3362,7 +3374,8 @@
           "hint_terms",
           "revision",
           "status",
-          "finding_count"
+          "finding_count",
+          "run_id"
         ],
         "title": "SignalQuestion",
         "type": "object"

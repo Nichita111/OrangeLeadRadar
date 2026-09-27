@@ -14,6 +14,7 @@ from leadradar.core.enums import DocumentTriageOutcome
 from leadradar.core.signal.triage import (
     ABOUT_ACCOUNT_QUESTION_ID,
     RELEVANT_QUESTION_PREFIX,
+    kept_for_service,
     triage,
 )
 
@@ -23,6 +24,24 @@ ABOUT_MIN = 0.5
 RELEVANCE_MIN = 0.3
 SVC_A = "svc-aaa"
 SVC_B = "svc-bbb"
+
+
+def test_stored_triage_keeps_a_service_at_the_threshold() -> None:
+    assert kept_for_service(
+        outcome=DocumentTriageOutcome.IRRELEVANT,
+        relevance_p=RELEVANCE_MIN,
+        triage_relevance_min_p=RELEVANCE_MIN,
+    )
+    assert not kept_for_service(
+        outcome=DocumentTriageOutcome.IRRELEVANT,
+        relevance_p=RELEVANCE_MIN - 0.01,
+        triage_relevance_min_p=RELEVANCE_MIN,
+    )
+    assert not kept_for_service(
+        outcome=DocumentTriageOutcome.NOT_ABOUT_ACCOUNT,
+        relevance_p=1.0,
+        triage_relevance_min_p=RELEVANCE_MIN,
+    )
 
 
 def _answers(

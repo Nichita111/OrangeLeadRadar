@@ -113,6 +113,7 @@ class SignalQuestion(BaseModel):
     revision: int
     status: SignalQuestionStatus
     finding_count: int
+    run_id: uuid.UUID | None
 
 
 class SignalQuestionCreate(BaseModel):
@@ -174,6 +175,7 @@ def _to_signal_question(summary: QuestionSummary) -> SignalQuestion:
         revision=summary.revision,
         status=summary.status,
         finding_count=summary.finding_count,
+        run_id=summary.run_id,
     )
 
 

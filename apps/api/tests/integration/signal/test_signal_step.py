@@ -35,21 +35,24 @@ from leadradar.core.enums import (
     ClassificationStatus,
     DocumentTriageClassifier,
     DocumentTriageOutcome,
+    EvaluationItemStatus,
     FindingDecidedBy,
     FindingStatus,
     FindingStrength,
     JobStep,
+    PipelineRunKind,
     PipelineRunStage,
     SignalQuestionAnswerType,
     SourcePluginCode,
 )
 from leadradar.core.signal.triage import ABOUT_ACCOUNT_QUESTION_ID
 from leadradar.db.models.configuration import SignalQuestion
+from leadradar.db.models.feedback import EvaluationItem
 from leadradar.db.models.ingestion import Chunk, Document, Job, PipelineRun
 from leadradar.db.models.signals import Classification, DocumentTriage, Finding
 from leadradar.worker.settings import WorkerSettings
 from leadradar.worker.steps import StepFailed
-from leadradar.worker.steps.signal import run_signal_job, supersede_old_revision_findings
+from leadradar.worker.steps.signal import run_signal_job, supersede_older_revisions
 from tests.integration import factories
 
 pytestmark = pytest.mark.integration
@@ -110,6 +113,7 @@ class FakeGateway:
     ) -> None:
         self.about_p = about_p
         self.p_positive = p_positive
+        self.relevance_p = 0.9
         self.p_by_question: dict[str, float] = {}
         self.provider = provider
         self.classify_error: Exception | None = None
@@ -136,7 +140,7 @@ class FakeGateway:
             elif q.kind == "SCALE" and q.id.endswith("__SCALE"):
                 probs = {"WEAK": 0.0, "MEDIUM": 0.0, "STRONG": 1.0}
             elif q.id.startswith("RELEVANT_"):
-                probs = {"YES": 0.9, "NO": 0.1}
+                probs = {"YES": self.relevance_p, "NO": 1 - self.relevance_p}
             elif q.kind == "CHOICE":
                 p = self.p_by_question.get(q.id, self.p_positive)
                 probs = {"A": p, "NONE_OF_THEM": 1 - p}
@@ -193,10 +197,28 @@ async def _run_job(
     ids: dict[str, uuid.UUID],
     gateway: FakeGateway,
     embedder: httpx.AsyncClient | None = None,
+    reclassify: bool = False,
 ) -> None:
+    if reclassify:
+        await session.execute(
+            update(PipelineRun)
+            .where(PipelineRun.id == ids["run"])
+            .values(
+                kind=PipelineRunKind.RECLASSIFY,
+                account_id=None,
+                service_id=ids["svc"],
+                question_id=ids["q"],
+            )
+        )
     run = await session.get(PipelineRun, ids["run"])
     assert run is not None
-    job_id = await _seed(session, factories.make_job, ids["run"], step=JobStep.SIGNAL)
+    job_id = await _seed(
+        session,
+        factories.make_job,
+        ids["run"],
+        step=JobStep.SIGNAL,
+        payload={"account_id": str(ids["account"])} if reclassify else {},
+    )
     job = await session.get(Job, job_id)
     assert job is not None
     await run_signal_job(
@@ -623,13 +645,96 @@ async def test_findings_of_an_older_revision_become_superseded(
         clf_id,
         ids["chunk"],
     )
+    user_id = await _seed(async_session, factories.make_app_user)
+    item_id = await _seed(
+        async_session,
+        factories.make_evaluation_item,
+        ids["chunk"],
+        ids["q"],
+        user_id,
+    )
 
-    await supersede_old_revision_findings(async_session, question_id=ids["q"], current_revision=2)
+    await supersede_older_revisions(async_session, question_id=ids["q"], current_revision=2)
 
     finding = await async_session.get(Finding, finding_id)
     assert finding is not None
     await async_session.refresh(finding)
     assert finding.status == FindingStatus.SUPERSEDED
+    item = await _one(async_session, EvaluationItem, id=item_id)
+    assert item.status == EvaluationItemStatus.STALE
+
+
+@pytest.mark.parametrize(
+    ("has_relevance", "relevance_p", "classified"),
+    [(True, 0.9, True), (False, 0.9, True), (False, 0.1, False)],
+)
+async def test_reclassify_uses_stored_triage_and_only_the_changed_question(
+    async_session: AsyncSession,
+    has_relevance: bool,
+    relevance_p: float,
+    classified: bool,
+) -> None:
+    ids = await _arrange(async_session)
+    other_question = await _seed(async_session, factories.make_signal_question, ids["svc"])
+    await _seed(
+        async_session,
+        factories.make_document_triage,
+        ids["doc"],
+        service_relevance={str(ids["svc"]): 0.9} if has_relevance else {"another": 0.8},
+        outcome=DocumentTriageOutcome.KEPT if has_relevance else DocumentTriageOutcome.IRRELEVANT,
+    )
+    await async_session.execute(
+        update(SignalQuestion).where(SignalQuestion.id == ids["q"]).values(revision=2)
+    )
+    await async_session.execute(
+        update(PipelineRun)
+        .where(PipelineRun.id == ids["run"])
+        .values(
+            kind=PipelineRunKind.RECLASSIFY,
+            account_id=None,
+            service_id=ids["svc"],
+            question_id=ids["q"],
+        )
+    )
+    job_id = await _seed(
+        async_session,
+        factories.make_job,
+        ids["run"],
+        step=JobStep.SIGNAL,
+        payload={"account_id": str(ids["account"])},
+    )
+    run = await _one(async_session, PipelineRun, id=ids["run"])
+    job = await async_session.get(Job, job_id)
+    assert job is not None
+    gateway = FakeGateway()
+    gateway.relevance_p = relevance_p
+    async with httpx.AsyncClient() as embedder:
+        await run_signal_job(
+            async_session,
+            job=job,
+            run=run,
+            settings=WorkerSettings(database_url=SecretStr("postgresql://unused@localhost/unused")),
+            gateway=gateway,
+            embedder=embedder,
+        )
+    await async_session.flush()
+
+    assert await _count(
+        async_session, Classification, question_id=ids["q"], question_revision=2
+    ) == int(classified)
+    assert await _count(async_session, Classification, question_id=other_question) == 0
+    assert await _count(async_session, DocumentTriage, document_id=ids["doc"]) == 1
+    stored = await _one(async_session, DocumentTriage, document_id=ids["doc"])
+    if not has_relevance:
+        assert stored.service_relevance["another"] == 0.8
+        assert stored.service_relevance[str(ids["svc"])] == relevance_p
+        assert gateway.requests[0].questions[0].id == f"RELEVANT_{ids['svc']}"
+        assert stored.outcome == (
+            DocumentTriageOutcome.KEPT if classified else DocumentTriageOutcome.IRRELEVANT
+        )
+    assert len(gateway.requests) == int(classified) + int(not has_relevance)
+    if classified:
+        assert gateway.requests[-1].questions[0].id == str(ids["q"])
 
 
 class FakeEmbedder:
@@ -644,8 +749,10 @@ class FakeEmbedder:
         return httpx.Response(200, json=[[1.0] + [0.0] * 1023 for _ in texts])
 
 
+@pytest.mark.parametrize("reclassify", [False, True])
 async def test_a_long_document_is_classified_only_on_the_selected_passages(
     async_session: AsyncSession,
+    reclassify: bool,
 ) -> None:
     ids = await _arrange(async_session)
     await async_session.execute(delete(Chunk).where(Chunk.document_id == ids["doc"]))
@@ -653,6 +760,14 @@ async def test_a_long_document_is_classified_only_on_the_selected_passages(
     question = await _seed(
         async_session, factories.make_signal_question, ids["svc"], hint_terms=["Celonis"]
     )
+    ids["q"] = question
+    if reclassify:
+        await _seed(
+            async_session,
+            factories.make_document_triage,
+            ids["doc"],
+            service_relevance={str(ids["svc"]): 0.9},
+        )
     chunks: list[uuid.UUID] = []
     for ordinal in range(6):
         text = "Celonis was named." if ordinal == 5 else f"Passage {ordinal} about logistics."
@@ -674,6 +789,7 @@ async def test_a_long_document_is_classified_only_on_the_selected_passages(
         ids,
         FakeGateway(),
         embedder=httpx.AsyncClient(transport=httpx.MockTransport(embedder)),
+        reclassify=reclassify,
     )
 
     classified = set(
