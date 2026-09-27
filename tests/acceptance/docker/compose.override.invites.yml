@@ -1,0 +1,36 @@
+# Adds this acceptance module's configuration to ../../../compose.yaml
+# (docs/architecture/overview.md#runtime), like compose.override.yml, but reaching the api
+# directly on its own host port (`INVITES_API_PORT`) instead of through `web` - the base
+# compose.yaml defines no host port for `api`, so publishing one here never collides with a
+# `web` container already bound to 8080 (the api itself implements every route "under
+# /api/v1", docs/architecture/interfaces.md#conventions; `web` only proxies to it, so hitting
+# the api container directly exercises the same contracts). Also gives this module its own
+# writable clock file (`INVITES_CLOCK_DIR`) so AC-79's expired-invite case can advance the
+# clock (docs/architecture/services/worker.md#runtime: `CLOCK_FILE` is "read on every use of
+# the clock") without disturbing the shared clock/now.txt other acceptance modules read.
+# No value here is read by any test; the tests assert only what the acceptance criteria state.
+services:
+  api:
+    ports:
+      - "${INVITES_API_PORT}:8000"
+    environment:
+      FIXTURE_MODE: replay
+      CLOCK_FILE: /app/clock/now.txt
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      LLM_CLASSIFIER_MODEL: ${LLM_CLASSIFIER_MODEL}
+      LLM_EVIDENCE_MODEL: ${LLM_EVIDENCE_MODEL}
+      LLM_OUTREACH_MODEL: ${LLM_OUTREACH_MODEL}
+      LOG_LEVEL: INFO
+    volumes:
+      - ${INVITES_CLOCK_DIR}:/app/clock:ro
+  worker:
+    environment:
+      FIXTURE_MODE: replay
+      CLOCK_FILE: /app/clock/now.txt
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      LLM_CLASSIFIER_MODEL: ${LLM_CLASSIFIER_MODEL}
+      LLM_EVIDENCE_MODEL: ${LLM_EVIDENCE_MODEL}
+      LLM_OUTREACH_MODEL: ${LLM_OUTREACH_MODEL}
+      LOG_LEVEL: INFO
+    volumes:
+      - ${INVITES_CLOCK_DIR}:/app/clock:ro

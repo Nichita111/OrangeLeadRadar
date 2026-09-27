@@ -1,0 +1,13 @@
+{
+  "name": "leadradar-e2e-tests",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Playwright end-to-end tests driven from the specification only (docs/features, docs/architecture), against the composed stack's web container. Never imports the product code.",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
+  }
+}
