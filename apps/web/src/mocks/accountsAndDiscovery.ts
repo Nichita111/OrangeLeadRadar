@@ -198,6 +198,7 @@ export function createAccountsAndDiscoveryHandlers(store: MockStore) {
         country_code: current.country_code ?? "",
         industry: current.industry,
         status: "ACTIVE",
+        relationship_status: "PROSPECT",
         origin: "DISCOVERED",
         last_refreshed_at: null,
         active_run_id: refresh.id,

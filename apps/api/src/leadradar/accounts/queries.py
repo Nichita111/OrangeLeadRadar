@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from leadradar.core.enums import (
     AccountOperationalComplexity,
     AccountOrigin,
+    AccountRelationshipStatus,
     AccountSourceKind,
     AccountSourceOrigin,
     AccountSourceStatus,
@@ -76,6 +77,7 @@ class AccountRowData:
     country_code: str | None
     industry: str | None
     status: AccountStatus
+    relationship_status: AccountRelationshipStatus
     origin: AccountOrigin
     last_refreshed_at: datetime | None
     active_run_id: uuid.UUID | None
@@ -138,6 +140,7 @@ def _row_data(account: Account, active_run_id: uuid.UUID | None) -> AccountRowDa
         country_code=account.country_code,
         industry=account.industry,
         status=account.status,
+        relationship_status=account.relationship_status,
         origin=account.origin,
         last_refreshed_at=account.last_refreshed_at,
         active_run_id=active_run_id,
@@ -149,6 +152,7 @@ async def list_accounts(
     *,
     q: str | None,
     status: AccountStatus | None,
+    relationship_status: AccountRelationshipStatus | None,
     country_code: str | None,
     industry: str | None,
     origin: AccountOrigin | None,
@@ -160,6 +164,8 @@ async def list_accounts(
     filters = []
     if status is not None:
         filters.append(Account.status == status)
+    if relationship_status is not None:
+        filters.append(Account.relationship_status == relationship_status)
     if country_code is not None:
         filters.append(Account.country_code == country_code)
     if industry is not None:

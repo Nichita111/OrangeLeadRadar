@@ -81,6 +81,7 @@ A term is the one name of its concept in prose. **Identifier** is the name code,
 | Question-scoped retrieval | Ranking a long document's passages for one question by keyword and by meaning, fused by rank. | — | [Chunking and passage selection](/architecture/rules.md#chunking-and-passage-selection) |
 | Recall | The share of labelled positives that were predicted positive. | `recall` | [Evaluation metrics](/architecture/rules.md#evaluation-metrics) |
 | Recency decay | The halving of a finding's weight with every half-life of age. | `decay` | [Recency decay](/architecture/rules.md#recency-decay) |
+| Relationship status | The team's relationship with a company — prospect, in talks, client, past client or do not contact — set by a user, shared by every service, and read by no scoring rule; its value Prospect means no relationship yet, not an account in a service's ranking. | `relationship_status` | [`account`](/architecture/sql-store.md#account) |
 | Release gate | The criteria and scenarios a release must pass, including the precision threshold. | — | [Release gate](/requirements/acceptance.md#release-gate) |
 | Rescore | Recomputing scores from stored findings without fetching or classifying. | `RESCORE` | [Rescoring](/architecture/rules.md#rescoring) |
 | Run | A unit of background work a user can follow. | `pipeline_run` | [`pipeline_run`](/architecture/sql-store.md#pipeline_run) |

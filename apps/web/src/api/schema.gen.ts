@@ -1323,6 +1323,7 @@ export interface components {
             operational_complexity: components["schemas"]["AccountOperationalComplexity"] | null;
             origin: components["schemas"]["AccountOrigin"];
             parent: components["schemas"]["AccountParent"] | null;
+            relationship_status: components["schemas"]["AccountRelationshipStatus"];
             /** Revenue Eur */
             revenue_eur: number | null;
             /** Sources */
@@ -1403,6 +1404,12 @@ export interface components {
             name: string;
         };
         /**
+         * AccountRelationshipStatus
+         * @description `account.relationship_status`.
+         * @enum {string}
+         */
+        AccountRelationshipStatus: "PROSPECT" | "IN_TALKS" | "CLIENT" | "PAST_CLIENT" | "DO_NOT_CONTACT";
+        /**
          * AccountRow
          * @description [`AccountRow`](/architecture/interfaces.md#accountrow), one item of `API-20`.
          */
@@ -1425,6 +1432,7 @@ export interface components {
             /** Name */
             name: string;
             origin: components["schemas"]["AccountOrigin"];
+            relationship_status: components["schemas"]["AccountRelationshipStatus"];
             status: components["schemas"]["AccountStatus"];
         };
         /**
@@ -1502,6 +1510,8 @@ export interface components {
              * Format: uuid
              */
             parent_account_id?: string;
+            /** Relationship Status */
+            relationship_status?: components["schemas"]["AccountRelationshipStatus"];
             /** Revenue Eur */
             revenue_eur?: number;
             /** Sources */
@@ -2970,6 +2980,7 @@ export interface components {
             industry: string | null;
             /** Name */
             name: string;
+            relationship_status: components["schemas"]["AccountRelationshipStatus"];
         };
         /**
          * ProspectPage
@@ -3937,6 +3948,7 @@ export interface operations {
             query?: {
                 q?: string | null;
                 status?: components["schemas"]["AccountStatus"] | null;
+                relationship_status?: components["schemas"]["AccountRelationshipStatus"] | null;
                 country_code?: string | null;
                 industry?: string | null;
                 origin?: components["schemas"]["AccountOrigin"] | null;

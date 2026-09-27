@@ -12,6 +12,7 @@ import {
 import { useIndustries, useMarkets } from "../../../api/industriesAndMarkets";
 import { useBandThresholds } from "../../../api/scoring";
 import { Button, ButtonLink } from "../../../components/Button";
+import { Chip } from "../../../components/Chip";
 import { Select, Input } from "../../../components/controls";
 import { Skeleton } from "../../../components/Skeleton";
 import { countryName, enumLabel } from "../../../shell/format";
@@ -313,6 +314,11 @@ function ProspectsList({ service }: { service: Schemas["Service"] }) {
                       >
                         {row.account.name}
                       </button>
+                      {row.account.relationship_status !== "PROSPECT" && (
+                        <span className="ml-2 align-middle">
+                          <Chip>{enumLabel(row.account.relationship_status)}</Chip>
+                        </span>
+                      )}
                       {row.unread_alerts > 0 && (
                         <span
                           role="img"

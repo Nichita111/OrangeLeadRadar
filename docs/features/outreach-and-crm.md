@@ -115,7 +115,7 @@ WF-19 — Outreach composer
 | `FR-087` | Generate shall take the channel and an optional contact of the account, and show the subject (email only), the body and which signals it cites. |
 | `FR-088` | The subject and body shall be editable and saved with Save; the screen shall state that nothing is sent from LeadRadar. |
 | `FR-089` | Copy and Download .txt shall export the draft and mark it exported. |
-| `FR-090` | When the account has no in-force positive signal for the service, Generate shall be disabled with the reason. |
+| `FR-090` | When the account has no in-force positive signal for the service, Generate shall be disabled with the reason; the account's relationship status never disables it. |
 | `FR-179` | Below the signals, the left panel shall list the Orange Systems facts the draft can use for the service, and mark the ones a generated draft cites. |
 | `FR-180` | After Copy or Download, the composer shall offer Mark as contacted through `API-93`; its response shall leave a later engagement status visible and unchanged. |
 | `FR-182` | Before Generate, the composer shall offer six controls: personalization `STANDARD`, `TAILORED` or `BESPOKE`; language `ENGLISH`, `GERMAN` or `QUOTE_LANGUAGE`; formality `CASUAL`, `NEUTRAL` or `FORMAL`; length `SHORT`, `STANDARD` or `LONG`; opening `EVIDENCE`, `VALUE` or `QUESTION`; and call to action `MEETING`, `SHARE_RESOURCE` or `OPEN_QUESTION`. Their defaults shall be `STANDARD`, `ENGLISH`, `NEUTRAL`, `STANDARD`, `EVIDENCE` and `OPEN_QUESTION`; `TAILORED` shall require two eligible signals and `BESPOKE` a selected contact. |
@@ -123,7 +123,7 @@ WF-19 — Outreach composer
 | `FR-184` | After generation, Tone check shall submit the current subject and body without saving them and show `Good` or `Review`, a one-line summary, and every note's phrase and suggested rewrite; it shall not change the editor text. |
 | `FR-185` | When Tone check answers `429` or `503`, the unavailable state shall identify the dependency while preserving the current editor text. |
 
-Obligations: `S-OUT-01`, `S-ENG-01`.
+Obligations: `S-OUT-01`, `S-ENG-01`, `S-ACC-06`.
 
 **Data**: `API-25`, `API-42`, `API-56`, `API-57`, `API-58`, `API-79`, `API-91`, `API-93`. **States**: [States](/architecture/services/frontend.md#states); `429` and `503` show the unavailable state and keep the edited text.
 

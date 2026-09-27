@@ -98,6 +98,7 @@ function account(
   countryCode: string,
   industry: string,
   parent: Account["parent"] = null,
+  relationshipStatus: Account["relationship_status"] = "PROSPECT",
 ): Account {
   return {
     id,
@@ -105,6 +106,7 @@ function account(
     domain,
     country_code: countryCode,
     industry,
+    relationship_status: relationshipStatus,
     parent,
     aliases: [],
     attribute_origin: {},
@@ -150,6 +152,7 @@ function row(
       domain: found.domain,
       country_code: found.country_code,
       industry: found.industry,
+      relationship_status: found.relationship_status,
     },
     ...scores,
     reason: null,

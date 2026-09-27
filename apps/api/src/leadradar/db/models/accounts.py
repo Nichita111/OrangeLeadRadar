@@ -13,6 +13,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from leadradar.core.enums import (
     AccountOperationalComplexity,
     AccountOrigin,
+    AccountRelationshipStatus,
     AccountSourceKind,
     AccountSourceOrigin,
     AccountSourceStatus,
@@ -46,6 +47,10 @@ class Account(TimestampedBase):
     parent_account_id: Mapped[uuid.UUID | None] = fk_uuid("account.id", nullable=True)
     origin: Mapped[AccountOrigin] = mapped_column(pg_enum(AccountOrigin, "account_origin"))
     status: Mapped[AccountStatus] = mapped_column(pg_enum(AccountStatus, "account_status"))
+    relationship_status: Mapped[AccountRelationshipStatus] = mapped_column(
+        pg_enum(AccountRelationshipStatus, "account_relationship_status"),
+        server_default=AccountRelationshipStatus.PROSPECT.value,
+    )
     crunchbase_id: Mapped[str | None]
     linkedin_url: Mapped[str | None]
     notes: Mapped[str | None]

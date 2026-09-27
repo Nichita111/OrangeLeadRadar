@@ -107,6 +107,16 @@ class AccountStatus(StrEnum):
     INACTIVE = "INACTIVE"
 
 
+class AccountRelationshipStatus(StrEnum):
+    """`account.relationship_status`."""
+
+    PROSPECT = "PROSPECT"
+    IN_TALKS = "IN_TALKS"
+    CLIENT = "CLIENT"
+    PAST_CLIENT = "PAST_CLIENT"
+    DO_NOT_CONTACT = "DO_NOT_CONTACT"
+
+
 class AccountSourceKind(StrEnum):
     """`account_source.kind`."""
 
