@@ -243,7 +243,9 @@ class ScriptedGateway:
         self, request: ClassifierRequest, context: AiCallContext
     ) -> list[ClassifierAnswer]:
         self.requests.append(request)
-        marker = next(m for m in (ORIGINAL, MENTION, OWN, *self.organisations) if m in request.state)
+        marker = next(
+            m for m in (ORIGINAL, MENTION, OWN, *self.organisations) if m in request.state
+        )
         answers = []
         for question in request.questions:
             if question.id == ABOUT_ACCOUNT_QUESTION_ID:

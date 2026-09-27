@@ -203,7 +203,7 @@ async def test_home_page_links_add_detected_sources_with_one_audit_row(
 
     sources = await sources_of(connection, scene_.account_id)
     detected = {
-        (row.kind, row.url): row.AccountSource
+        (row.kind, row.url): row
         for row in sources
         if row.origin is AccountSourceOrigin.DETECTED
     }
@@ -261,7 +261,7 @@ async def test_an_inactive_detected_source_of_a_kind_also_blocks_its_detection(
 
     sources = await sources_of(connection, scene_.account_id)
     careers = [
-        row.AccountSource for row in sources if row.kind == AccountSourceKind.CAREERS
+        row for row in sources if row.kind == AccountSourceKind.CAREERS
     ]
     assert [c.url for c in careers] == [f"https://{DOMAIN}/old-careers"]
 
@@ -286,7 +286,7 @@ async def test_a_detected_url_already_a_source_of_another_kind_adds_no_row(
     await drain(connection, settings())
 
     sources = await sources_of(connection, scene_.account_id)
-    matching = [row.AccountSource for row in sources if row.url == shared_url]
+    matching = [row for row in sources if row.url == shared_url]
     assert len(matching) == 1
     assert matching[0].kind == AccountSourceKind.INVESTOR_RELATIONS
     assert await account_updated_rows(connection, scene_.run_id) == []
@@ -350,16 +350,12 @@ async def test_a_source_detected_this_run_is_not_read_by_the_same_runs_careers_j
         .where(PipelineRun.id == scene_.run_id)
         .values(status=PipelineRunStatus.SUCCEEDED)
     )
-    web.add(
-        "https://boards-api.greenhouse.io/v1/boards/acme/jobs",
-        {"jobs": []},
-        kind="json",
-    )
+    web.add(f"https://{DOMAIN}/careers", home_page_with_links())
     await connection.run_sync(next_refresh)
     await drain(connection, settings())
 
-    careers_search = [r for r in web.requests if "boards-api.greenhouse.io" in str(r.url)]
-    assert careers_search  # the next refresh does read the detected source
+    careers_requests = [r for r in web.pages if str(r.url) == f"https://{DOMAIN}/careers"]
+    assert careers_requests  # the next refresh does read the detected source
 
 
 async def test_with_max_items_one_the_home_page_is_still_the_one_item(
@@ -485,7 +481,7 @@ async def test_serpapi_available_and_careers_missing_detects_the_first_on_domain
 
     sources = await sources_of(connection, scene_.account_id)
     careers = [
-        row.AccountSource for row in sources if row.kind == AccountSourceKind.CAREERS
+        row for row in sources if row.kind == AccountSourceKind.CAREERS
     ]
     assert [c.url for c in careers] == [f"https://{DOMAIN}/careers"]
     assert await usage(connection, SourcePluginCode.SERPAPI) == 2  # one search per missing kind
@@ -504,7 +500,7 @@ async def test_a_failed_serpapi_search_records_a_run_error_and_keeps_home_page_d
     assert any(row.kind == AccountSourceKind.NEWSROOM for row in sources)
     run = (
         await connection.execute(select(PipelineRun).where(PipelineRun.id == scene_.run_id))
-    ).scalar_one()
+    ).one()
     errors = cast(list[dict[str, Any]], run.errors)
     [error] = [e for e in errors if e.get("plugin_code") == "SERPAPI"]
     assert error["stage"] == "FETCH"

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import AsyncIterator
-from typing import cast
+from typing import Any, cast
 
 import pytest
 from pydantic import SecretStr
@@ -250,7 +250,7 @@ async def test_third_service_classified_and_scored_by_the_next_refresh(
     )
 
     scene = await connection.run_sync(_scene)
-    actor_id = await connection.run_sync(f.make_app_user)
+    actor_id = await connection.run_sync(lambda conn: f.make_app_user(conn))
     service3_id, news_question_id, job_question_id = await _create_third_service(
         connection, actor_id
     )
@@ -320,7 +320,7 @@ async def test_a_new_service_is_classified_but_not_scored_before_its_first_activ
     )
 
     scene = await connection.run_sync(_scene)
-    actor_id = await connection.run_sync(f.make_app_user)
+    actor_id = await connection.run_sync(lambda conn: f.make_app_user(conn))
     service3_id, news_question_id, _job_question_id = await _create_third_service(
         connection, actor_id
     )

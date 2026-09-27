@@ -24,14 +24,14 @@ export function Switch({ checked, onChange, label, disabled = false }: SwitchPro
         onChange(!checked);
       }}
       className={cn(
-        "relative h-5 w-9 shrink-0 rounded-full transition-colors disabled:opacity-50 disabled:pointer-events-none",
+        "relative h-5 w-9 shrink-0 rounded-full disabled:opacity-50 disabled:pointer-events-none",
         checked ? "bg-accent" : "bg-control-border",
       )}
     >
       <span
         aria-hidden
         className={cn(
-          "absolute top-0.5 block h-4 w-4 rounded-full bg-surface transition-transform",
+          "absolute top-0.5 block h-4 w-4 rounded-full bg-surface",
           checked ? "translate-x-4" : "translate-x-0.5",
         )}
       />

@@ -76,8 +76,8 @@ async def _stop_once_final(
     while True:
         async with engine.connect() as conn:
             statuses = (
-                await conn.execute(select(Job.status).where(Job.id.in_(job_ids)))
-            ).scalars().all()
+                (await conn.execute(select(Job.status).where(Job.id.in_(job_ids)))).scalars().all()
+            )
         if statuses and all(status in (JobStatus.DONE, JobStatus.FAILED) for status in statuses):
             stop.set()
             return
@@ -118,12 +118,12 @@ async def test_two_workers_on_one_queue_run_every_job_exactly_once(database_url:
             asyncio.gather(*tasks, _stop_once_final(engine_a, job_ids, stop, 0.02)), timeout=15
         )
         async with AsyncSession(engine_a, expire_on_commit=False) as session:
-            jobs = (
-                await session.execute(select(Job).where(Job.id.in_(job_ids)))
-            ).scalars().all()
+            jobs = (await session.execute(select(Job).where(Job.id.in_(job_ids)))).scalars().all()
             runs = (
-                await session.execute(select(PipelineRun).where(PipelineRun.id.in_(run_ids)))
-            ).scalars().all()
+                (await session.execute(select(PipelineRun).where(PipelineRun.id.in_(run_ids))))
+                .scalars()
+                .all()
+            )
     finally:
         await _cleanup(engine_a, run_ids)
         await engine_a.dispose()
@@ -170,9 +170,7 @@ async def test_a_second_worker_runs_a_job_while_the_first_is_busy(database_url: 
             timeout=10,
         )
         async with AsyncSession(engine_a, expire_on_commit=False) as session:
-            jobs = (
-                await session.execute(select(Job).where(Job.id.in_(job_ids)))
-            ).scalars().all()
+            jobs = (await session.execute(select(Job).where(Job.id.in_(job_ids)))).scalars().all()
     finally:
         await _cleanup(engine_a, run_ids)
         await engine_a.dispose()
