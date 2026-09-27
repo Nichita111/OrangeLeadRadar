@@ -259,6 +259,34 @@ ICP: `SECTOR` (`INDUSTRY`: `AEROSPACE_AVIATION`, `LOGISTICS_TRANSPORT`, `MANUFAC
 
 ICP: `SECTOR` (`INDUSTRY`: `BANKING`, `INSURANCE`, `ENERGY_UTILITIES`, `HEALTHCARE_PHARMA`, `MANUFACTURING`, `AUTOMOTIVE`, `LOGISTICS_TRANSPORT`, `AEROSPACE_AVIATION`; `HIGH`), `REGION` (as Intelligent Automation; `MEDIUM`), `SIZE` (`EMPLOYEE_RANGE` min 1000; `MEDIUM`). Disqualifier: `INSOLVENT` as Intelligent Automation. All other settings are the defaults.
 
+**Service `SOFTWARE_DEVELOPMENT`** — "Software development". Description: "Custom business software, web and mobile applications, and the modernisation of legacy systems, built by dedicated or project teams." Value proposition: "Orange Systems builds and modernises business software with nearshore teams that scale up quickly and deliver to agreed quality and timelines."
+
+| Key | Question | Answer type | Polarity | Source types | Weight | Hint terms |
+|---|---|---|---|---|---|---|
+| `LEGACY_MODERNISATION` | Does the company plan or run the replacement or modernisation of legacy applications or core systems? | `YES_NO` | `POSITIVE` | `NEWS`, `COMPANY_PUBLICATION` | `HIGH` | legacy; modernisation; core banking; mainframe; S/4HANA |
+| `DIGITAL_PRODUCT` | Does the company build or launch new digital products, customer portals or mobile apps? | `YES_NO` | `POSITIVE` | `NEWS`, `COMPANY_PUBLICATION` | `HIGH` | app; customer portal; digital platform; launch |
+| `DEVELOPER_HIRING` | Is the company hiring software developers, software architects or engineering managers? | `YES_NO` | `POSITIVE` | `JOB_POSTING` | `MEDIUM` | |
+| `NEW_TECH_LEADER` | Has the company appointed a new CTO, CIO or head of software engineering? | `YES_NO` | `POSITIVE` | `NEWS`, `COMPANY_PUBLICATION`, `COMPANY_PROFILE` | `MEDIUM`, half-life 180 days | appointed; CTO; head of engineering |
+| `EXTERNAL_DELIVERY` | Does the company describe outsourcing, nearshoring or an external delivery centre for software development? | `YES_NO` | `POSITIVE` | `NEWS`, `COMPANY_PUBLICATION` | `MEDIUM` | nearshore; outsourcing; delivery centre |
+| `IN_HOUSE_ENGINEERING` | Does the company describe a large in-house software engineering organisation that builds its own products? | `SCALE` | `NEGATIVE` | `NEWS`, `COMPANY_PUBLICATION` | `MEDIUM` | software engineers; in-house; tech hub |
+| `INSOLVENCY` | Is the company in insolvency, restructuring under creditor protection, or being wound up? | `YES_NO` | `NEGATIVE` | `NEWS`, `COMPANY_PROFILE` | `NONE` | insolvency; Insolvenz |
+
+ICP: `SECTOR` (`INDUSTRY`: `BANKING`, `INSURANCE`, `LOGISTICS_TRANSPORT`, `AEROSPACE_AVIATION`, `MANUFACTURING`, `AUTOMOTIVE`; `HIGH`), `REGION` (as Intelligent Automation; `MEDIUM`), `SIZE` (`EMPLOYEE_RANGE` min 1000; `MEDIUM`). Disqualifier: `INSOLVENT` as Intelligent Automation. All other settings are the defaults.
+
+**Service `QUALITY_ASSURANCE`** — "Quality assurance and testing". Description: "Test strategy, manual and automated testing, performance and resilience testing, and test centres of excellence." Value proposition: "Orange Systems tests business software end to end and automates regression testing, so releases go out faster and with fewer defects."
+
+| Key | Question | Answer type | Polarity | Source types | Weight | Hint terms |
+|---|---|---|---|---|---|---|
+| `SOFTWARE_FAILURE` | Does the text report a software failure, faulty release or IT outage that affected the company's customers or operations? | `SCALE` | `POSITIVE` | `NEWS` | `HIGH`, half-life 120 days | outage; glitch; software error; IT failure; Störung |
+| `MAJOR_ROLLOUT` | Is the company rolling out a large new system, platform or ERP that needs extensive testing? | `YES_NO` | `POSITIVE` | `NEWS`, `COMPANY_PUBLICATION` | `HIGH` | go-live; rollout; S/4HANA; migration |
+| `TEST_AUTOMATION` | Does the company plan or run test automation, continuous testing or DevOps quality initiatives? | `YES_NO` | `POSITIVE` | `NEWS`, `COMPANY_PUBLICATION` | `MEDIUM` | test automation; continuous testing; DevOps |
+| `QA_HIRING` | Is the company hiring QA engineers, test automation engineers or test managers? | `YES_NO` | `POSITIVE` | `JOB_POSTING` | `MEDIUM` | |
+| `COMPLIANCE_TESTING` | Must the company's software pass compliance or resilience testing, such as DORA resilience testing, GxP validation or automotive safety standards? | `YES_NO` | `POSITIVE` | `NEWS`, `COMPANY_PUBLICATION` | `LOW` | DORA; GxP; ISO 26262; validation |
+| `TESTING_PROVIDER_IN_PLACE` | Does the company name an existing external testing or QA service provider? | `YES_NO` | `NEGATIVE` | `NEWS`, `COMPANY_PUBLICATION` | `MEDIUM` | testing partner; managed testing |
+| `INSOLVENCY` | Is the company in insolvency, restructuring under creditor protection, or being wound up? | `YES_NO` | `NEGATIVE` | `NEWS`, `COMPANY_PROFILE` | `NONE` | insolvency; Insolvenz |
+
+ICP: `SECTOR` (`INDUSTRY`: `BANKING`, `INSURANCE`, `AEROSPACE_AVIATION`, `AUTOMOTIVE`, `HEALTHCARE_PHARMA`, `LOGISTICS_TRANSPORT`; `HIGH`), `REGION` (as Intelligent Automation; `MEDIUM`), `SIZE` (`EMPLOYEE_RANGE` min 1000; `MEDIUM`). Disqualifier: `INSOLVENT` as Intelligent Automation. All other settings are the defaults. Seeding adds a service of this table missing from a database seeded before it joined.
+
 **Service `DATA_PLATFORM`** — not seeded; `AC-66` creates it through the REST contracts. "Data and analytics platforms". Description: "Building and modernising data platforms, warehouses and analytics so that decisions rest on current, trusted data." Value proposition: "Orange Systems designs, builds and runs data platforms that turn scattered operational data into reporting and analytics within months."
 
 | Key | Question | Answer type | Polarity | Source types | Weight | Hint terms |

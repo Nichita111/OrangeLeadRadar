@@ -2,6 +2,7 @@
 
 ## 2026-09-27
 
+* **Update**: The [demo dataset](/architecture/overview.md#demo-dataset) gains the services `SOFTWARE_DEVELOPMENT` and `QUALITY_ASSURANCE` with their questions, ICP and disqualifier, and `S-RUN-03` seeds four services; seeding adds a missing one to a database seeded before it.
 * **Update**: Merging `origin/main`, where the relationship status and outreach personalization took the same identifiers, the relationship status is renumbered: `AC-91` becomes `AC-95`, `FR-182` to `FR-184` become `FR-186` to `FR-188`, and ADR-27 becomes [ADR-28](/architecture/adrs/adr-28-relationship-status-beside-lead-feedback.md).
 * **Update**: The [demo dataset](/architecture/overview.md#demo-dataset) names the Sales user Ana, so the demo's outreach drafts are signed by a person.
 * **Update**: The [demo dataset](/architecture/overview.md#demo-dataset) gains relationship statuses for the demo accounts and suggested accounts for both seeded services, one finished discovery run each with Crunchbase-search candidates, one of them rejected; [Seeding](/architecture/overview.md#runtime) adds them to a database seeded before them.

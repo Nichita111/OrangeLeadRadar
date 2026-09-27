@@ -5,7 +5,8 @@ Outreach composer has grounded findings and a contact to draft for. It never fet
 calls a classifier or an LLM; the rows are those the signal pipeline would have written.
 
 Every document lives under `DEMO_SIGNAL_HOST`, so the seeded evidence is never mistaken for a
-fetched page. Seeding is skipped once any document there exists, so a user's later changes stay.
+fetched page. A document or contact already there is skipped, so running the seed again adds only
+what joined the dataset since, and a user's later changes stay.
 """
 
 from __future__ import annotations
@@ -49,6 +50,8 @@ DEMO_SIGNAL_HOST = "https://demo-signals.leadradar.local"
 
 _IA = "INTELLIGENT_AUTOMATION"
 _CYBER = "CYBERSECURITY"
+_SD = "SOFTWARE_DEVELOPMENT"
+_QA = "QUALITY_ASSURANCE"
 
 _S = FindingStrength.STRONG
 _M = FindingStrength.MEDIUM
@@ -573,6 +576,266 @@ _DEMO_SIGNALS: dict[str, tuple[_SignalSpec, ...]] = {
     ),
 }
 
+# Signals of the software development and quality assurance services, by account domain.
+_DELIVERY_SIGNALS: dict[str, tuple[_SignalSpec, ...]] = {
+    "commerzbank.de": (
+        _SignalSpec(
+            _SD,
+            "LEGACY_MODERNISATION",
+            _S,
+            0.92,
+            _NEWS,
+            10,
+            "Commerzbank replaces its core banking platform",
+            "Commerzbank outlined its technology plans at its capital markets day.",
+            "Commerzbank will replace its decades-old core banking systems with a modern, "
+            "modular platform and move 80 percent of its applications to the cloud by 2028.",
+            "The bank expects lower IT running costs once the migration is complete.",
+            "Plans to replace legacy core banking systems.",
+        ),
+        _SignalSpec(
+            _QA,
+            "SOFTWARE_FAILURE",
+            _M,
+            0.84,
+            _NEWS,
+            24,
+            "Online banking outage hits Commerzbank customers",
+            "Customers reported problems on Monday morning.",
+            "A faulty software update left the online banking and app of Commerzbank unavailable "
+            "for several hours, and card payments were delayed.",
+            "The bank apologised and said the update had been rolled back.",
+            "Reports a faulty release that affected customers.",
+        ),
+        _SignalSpec(
+            _QA,
+            "COMPLIANCE_TESTING",
+            _M,
+            0.78,
+            _PUBLICATION,
+            50,
+            "Digital operational resilience at Commerzbank",
+            "Commerzbank describes its resilience framework.",
+            "Under DORA, Commerzbank tests the resilience of its critical ICT systems every year, "
+            "including scenario-based tests of its payment applications.",
+            "Results are reported to the Board of Managing Directors.",
+            "Must run DORA resilience testing on its critical systems.",
+        ),
+    ),
+    "dbschenker.com": (
+        _SignalSpec(
+            _SD,
+            "DIGITAL_PRODUCT",
+            _S,
+            0.9,
+            _NEWS,
+            7,
+            "DB Schenker launches a new customer booking portal",
+            "The logistics provider announced new digital services.",
+            "DB Schenker is building a new self-service portal and mobile app that lets "
+            "customers book, track and pay for land and air freight in one place.",
+            "A first version will go live in Germany and Austria next spring.",
+            "Builds a new customer portal and mobile app.",
+        ),
+        _SignalSpec(
+            _SD,
+            "DEVELOPER_HIRING",
+            _M,
+            0.82,
+            _JOBS,
+            3,
+            "Senior Full-Stack Developer (m/f/d) - Digital Products",
+            "DB Schenker is growing its digital product teams in Essen and Berlin.",
+            "We are looking for senior full-stack developers with React and Java experience to "
+            "build our next-generation booking and tracking platform.",
+            "Hybrid working is possible.",
+            "Hires developers for its booking and tracking platform.",
+        ),
+        _SignalSpec(
+            _QA,
+            "MAJOR_ROLLOUT",
+            _M,
+            0.8,
+            _NEWS,
+            30,
+            "DB Schenker moves to a single transport management system",
+            "DB Schenker updated its IT roadmap.",
+            "DB Schenker is rolling out a single transport management system in 30 countries, "
+            "replacing more than a dozen local systems by 2027.",
+            "The rollout started in the Nordic countries.",
+            "Rolls out a large new system across many countries.",
+        ),
+    ),
+    "airfranceklm.com": (
+        _SignalSpec(
+            _QA,
+            "SOFTWARE_FAILURE",
+            _S,
+            0.91,
+            _NEWS,
+            15,
+            "Check-in system failure grounds flights",
+            "Passengers faced long queues at Paris-Charles de Gaulle and Amsterdam Schiphol.",
+            "A failure in the check-in and boarding software of Air France-KLM after a system "
+            "update led to more than 150 delayed or cancelled flights on Friday.",
+            "The group said it had restored normal operations by the evening.",
+            "Reports a software failure that disrupted operations.",
+        ),
+        _SignalSpec(
+            _SD,
+            "NEW_TECH_LEADER",
+            _M,
+            0.85,
+            _NEWS,
+            40,
+            "Air France-KLM appoints new Chief Technology Officer",
+            "Air France-KLM announced changes to its executive team.",
+            "Air France-KLM has appointed Claire Dubois as Group Chief Technology Officer, "
+            "responsible for software engineering and IT platforms across the group.",
+            "She previously led engineering at a European travel platform.",
+            "Appoints a new CTO.",
+        ),
+    ),
+    "schaeffler.com": (
+        _SignalSpec(
+            _SD,
+            "LEGACY_MODERNISATION",
+            _M,
+            0.83,
+            _PUBLICATION,
+            35,
+            "Schaeffler moves to SAP S/4HANA",
+            "Schaeffler reports on its digital agenda in its annual report.",
+            "Schaeffler is migrating its ERP landscape to SAP S/4HANA and retiring more than 200 "
+            "custom legacy applications in the process.",
+            "The migration will be completed plant by plant.",
+            "Modernises its ERP and retires legacy applications.",
+        ),
+        _SignalSpec(
+            _QA,
+            "MAJOR_ROLLOUT",
+            _S,
+            0.88,
+            _PUBLICATION,
+            35,
+            "Go-live plan for the new ERP",
+            "Schaeffler describes the next phase of its ERP programme.",
+            "The first 40 Schaeffler plants will go live on SAP S/4HANA next year, with "
+            "extensive integration and regression testing before each go-live.",
+            "The remaining plants follow in waves.",
+            "Plans a large ERP go-live with extensive testing.",
+        ),
+    ),
+    "swiss.com": (
+        _SignalSpec(
+            _QA,
+            "TEST_AUTOMATION",
+            _M,
+            0.81,
+            _NEWS,
+            20,
+            "SWISS modernises its booking platform",
+            "SWISS presented its digital roadmap.",
+            "SWISS is moving its booking and loyalty applications to weekly releases and wants "
+            "to automate most of its regression testing to get there.",
+            "The change is part of a wider Lufthansa Group programme.",
+            "Plans test automation to support faster releases.",
+        ),
+        _SignalSpec(
+            _QA,
+            "QA_HIRING",
+            _M,
+            0.79,
+            _JOBS,
+            5,
+            "Test Automation Engineer (m/f/d)",
+            "SWISS is looking for engineers in Zurich.",
+            "You will build automated end-to-end tests for our booking, check-in and loyalty "
+            "applications using Playwright and Cypress.",
+            "German or French is an advantage.",
+            "Hires test automation engineers.",
+        ),
+    ),
+    "lufthansagroup.com": (
+        _SignalSpec(
+            _SD,
+            "EXTERNAL_DELIVERY",
+            _M,
+            0.8,
+            _NEWS,
+            45,
+            "Lufthansa Group expands nearshore software delivery",
+            "Lufthansa Group spoke about its IT sourcing strategy.",
+            "Lufthansa Group plans to expand software delivery with nearshore partners in "
+            "Eastern Europe to speed up development of its customer apps.",
+            "The group wants to reduce time to market for new features.",
+            "Plans nearshore partners for software delivery.",
+        ),
+    ),
+    "erstegroup.com": (
+        _SignalSpec(
+            _SD,
+            "DIGITAL_PRODUCT",
+            _M,
+            0.8,
+            _NEWS,
+            18,
+            "George expands to new markets",
+            "Erste Group announced the next steps for its digital platform.",
+            "Erste Group will launch new features of its George digital banking app for small "
+            "businesses in Croatia and Serbia next year.",
+            "The bank serves more than 10 million digital customers.",
+            "Builds new features of its digital banking product.",
+        ),
+        _SignalSpec(
+            _QA,
+            "COMPLIANCE_TESTING",
+            _M,
+            0.77,
+            _NEWS,
+            26,
+            "Erste Group tests resilience under DORA",
+            "Austrian banks are preparing for threat-led penetration tests.",
+            "Erste Group must carry out DORA resilience and threat-led penetration testing of "
+            "its critical banking applications in all its core markets.",
+            "A programme office coordinates the tests.",
+            "Must run DORA resilience testing.",
+        ),
+    ),
+    "continental.com": (
+        _SignalSpec(
+            _SD,
+            "IN_HOUSE_ENGINEERING",
+            _S,
+            0.88,
+            _PUBLICATION,
+            30,
+            "Software at Continental",
+            "Continental describes its software organisation.",
+            "Continental employs more than 20,000 software and IT engineers who develop its "
+            "vehicle software and business applications in-house.",
+            "Its software hubs are in Germany, Romania and India.",
+            "Describes a large in-house software engineering organisation.",
+        ),
+    ),
+    "dhl.com": (
+        _SignalSpec(
+            _QA,
+            "QA_HIRING",
+            _M,
+            0.8,
+            _JOBS,
+            8,
+            "QA Lead - Parcel IT (m/f/d)",
+            "DHL Parcel is growing its IT teams in Bonn.",
+            "As QA Lead you will set up the test strategy and test automation for our new parcel "
+            "sorting and routing software.",
+            "You will lead a team of five testers.",
+            "Hires a QA lead for new parcel software.",
+        ),
+    ),
+}
+
 # Account domain → its contacts, fictional people at the demo accounts.
 _DEMO_CONTACTS: dict[str, tuple[_ContactSpec, ...]] = {
     "lufthansagroup.com": (
@@ -646,6 +909,20 @@ _DEMO_CONTACTS: dict[str, tuple[_ContactSpec, ...]] = {
     "munichre.com": (
         _ContactSpec("Florian Schmid", "Chief Technology Officer", ContactPersona.CTO),
     ),
+    "commerzbank.de": (
+        _ContactSpec("Sebastian Lang", "Chief Information Officer", ContactPersona.CIO),
+        _ContactSpec("Nina Fischer", "Head of Quality Engineering", ContactPersona.OTHER),
+    ),
+    "dbschenker.com": (
+        _ContactSpec("Oliver Becker", "Head of Digital Products", ContactPersona.CTO),
+    ),
+    "airfranceklm.com": (
+        _ContactSpec("Claire Dubois", "Group Chief Technology Officer", ContactPersona.CTO),
+    ),
+    "schaeffler.com": (
+        _ContactSpec("Andreas Vogel", "Head of ERP Transformation", ContactPersona.CIO),
+    ),
+    "swiss.com": (_ContactSpec("Laura Frei", "Head of Digital Engineering", ContactPersona.CTO),),
 }
 
 
@@ -663,12 +940,30 @@ def _slug(text: str) -> str:
     return "-".join("".join(c if c.isalnum() else " " for c in text.lower()).split())
 
 
-async def _already_seeded(db: AsyncSession) -> bool:
-    return (
-        await db.execute(
-            select(Document.id).where(Document.url.startswith(DEMO_SIGNAL_HOST)).limit(1)
-        )
-    ).first() is not None
+def _signals_by_domain() -> dict[str, tuple[_SignalSpec, ...]]:
+    domains = dict.fromkeys([*_DEMO_SIGNALS, *_DELIVERY_SIGNALS])
+    return {
+        domain: (*_DEMO_SIGNALS.get(domain, ()), *_DELIVERY_SIGNALS.get(domain, ()))
+        for domain in domains
+    }
+
+
+async def _seeded_document_urls(db: AsyncSession) -> set[str]:
+    return set(
+        (
+            await db.execute(select(Document.url).where(Document.url.startswith(DEMO_SIGNAL_HOST)))
+        ).scalars()
+    )
+
+
+async def _seeded_contact_urls(db: AsyncSession) -> set[str]:
+    return set(
+        (
+            await db.execute(
+                select(Contact.source_url).where(Contact.source_url.startswith(DEMO_SIGNAL_HOST))
+            )
+        ).scalars()
+    )
 
 
 async def seed_demo_signals_and_contacts(
@@ -681,9 +976,10 @@ async def seed_demo_signals_and_contacts(
 ) -> None:
     """Adds the demo signals and contacts, one `SUCCEEDED` refresh run per account that carries
     its documents, then scores every active account through `run_score_step` so the scores and
-    breakdowns come from the scoring rule. Does nothing once a demo signal document exists."""
-    if await _already_seeded(db):
-        return
+    breakdowns come from the scoring rule. Skips each document and contact already seeded, and
+    scores only when it added a document."""
+    seeded_documents = await _seeded_document_urls(db)
+    seeded_contacts = await _seeded_contact_urls(db)
 
     services = {
         service.code: service
@@ -706,10 +1002,18 @@ async def seed_demo_signals_and_contacts(
         ).scalars()
     }
 
-    for domain, specs in _DEMO_SIGNALS.items():
+    added = False
+    for domain, all_specs in _signals_by_domain().items():
         account = accounts.get(domain)
-        if account is None:
+        specs = [
+            spec
+            for spec in all_specs
+            if spec.service_code in services
+            and f"{DEMO_SIGNAL_HOST}/{domain}/{_slug(spec.title)}" not in seeded_documents
+        ]
+        if account is None or not specs:
             continue
+        added = True
         run = PipelineRun(
             kind=PipelineRunKind.ACCOUNT_REFRESH,
             trigger=PipelineRunTrigger.USER,
@@ -725,9 +1029,7 @@ async def seed_demo_signals_and_contacts(
         db.add(run)
         await db.flush()
         for spec in specs:
-            service = services.get(spec.service_code)
-            if service is None:
-                continue
+            service = services[spec.service_code]
             question = questions[(service.id, spec.question_key)]
             published_at = now - timedelta(days=spec.days_ago)
             url = f"{DEMO_SIGNAL_HOST}/{domain}/{_slug(spec.title)}"
@@ -809,6 +1111,9 @@ async def seed_demo_signals_and_contacts(
         if account is None:
             continue
         for contact in contacts:
+            source_url = f"{DEMO_SIGNAL_HOST}/{domain}/people/{_slug(contact.full_name)}"
+            if source_url in seeded_contacts:
+                continue
             db.add(
                 Contact(
                     account_id=account.id,
@@ -816,10 +1121,14 @@ async def seed_demo_signals_and_contacts(
                     job_title=contact.job_title,
                     persona=contact.persona,
                     persona_origin=ContactPersonaOrigin.MANUAL,
-                    source_url=f"{DEMO_SIGNAL_HOST}/{domain}/people/{_slug(contact.full_name)}",
+                    source_url=source_url,
                     retain_until=(now + timedelta(days=contact_retention_days)).date(),
                 )
             )
+
+    if not added:
+        await db.commit()
+        return
 
     rescore = PipelineRun(
         kind=PipelineRunKind.RESCORE,

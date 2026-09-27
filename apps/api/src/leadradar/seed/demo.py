@@ -594,7 +594,215 @@ _CYBERSECURITY = _ServiceSpec(
     disqualifiers=(_INSOLVENT_DISQUALIFIER,),
 )
 
-_DEMO_SERVICES = (_INTELLIGENT_AUTOMATION, _CYBERSECURITY)
+_SOFTWARE_DEVELOPMENT = _ServiceSpec(
+    code="SOFTWARE_DEVELOPMENT",
+    name="Software development",
+    description=(
+        "Custom business software, web and mobile applications, and the modernisation of legacy "
+        "systems, built by dedicated or project teams."
+    ),
+    value_proposition=(
+        "Orange Systems builds and modernises business software with nearshore teams that scale "
+        "up quickly and deliver to agreed quality and timelines."
+    ),
+    questions=(
+        _QuestionSpec(
+            key="LEGACY_MODERNISATION",
+            text="Does the company plan or run the replacement or modernisation of legacy "
+            "applications or core systems?",
+            answer_type=SignalQuestionAnswerType.YES_NO,
+            polarity=SignalQuestionPolarity.POSITIVE,
+            source_types=(DocumentSourceType.NEWS, DocumentSourceType.COMPANY_PUBLICATION),
+            weight=WeightLevel.HIGH,
+            hint_terms=("legacy", "modernisation", "core banking", "mainframe", "S/4HANA"),
+        ),
+        _QuestionSpec(
+            key="DIGITAL_PRODUCT",
+            text="Does the company build or launch new digital products, customer portals or "
+            "mobile apps?",
+            answer_type=SignalQuestionAnswerType.YES_NO,
+            polarity=SignalQuestionPolarity.POSITIVE,
+            source_types=(DocumentSourceType.NEWS, DocumentSourceType.COMPANY_PUBLICATION),
+            weight=WeightLevel.HIGH,
+            hint_terms=("app", "customer portal", "digital platform", "launch"),
+        ),
+        _QuestionSpec(
+            key="DEVELOPER_HIRING",
+            text="Is the company hiring software developers, software architects or engineering "
+            "managers?",
+            answer_type=SignalQuestionAnswerType.YES_NO,
+            polarity=SignalQuestionPolarity.POSITIVE,
+            source_types=(DocumentSourceType.JOB_POSTING,),
+            weight=WeightLevel.MEDIUM,
+        ),
+        _QuestionSpec(
+            key="NEW_TECH_LEADER",
+            text="Has the company appointed a new CTO, CIO or head of software engineering?",
+            answer_type=SignalQuestionAnswerType.YES_NO,
+            polarity=SignalQuestionPolarity.POSITIVE,
+            source_types=(
+                DocumentSourceType.NEWS,
+                DocumentSourceType.COMPANY_PUBLICATION,
+                DocumentSourceType.COMPANY_PROFILE,
+            ),
+            weight=WeightLevel.MEDIUM,
+            hint_terms=("appointed", "CTO", "head of engineering"),
+            half_life_days=180,
+        ),
+        _QuestionSpec(
+            key="EXTERNAL_DELIVERY",
+            text="Does the company describe outsourcing, nearshoring or an external delivery "
+            "centre for software development?",
+            answer_type=SignalQuestionAnswerType.YES_NO,
+            polarity=SignalQuestionPolarity.POSITIVE,
+            source_types=(DocumentSourceType.NEWS, DocumentSourceType.COMPANY_PUBLICATION),
+            weight=WeightLevel.MEDIUM,
+            hint_terms=("nearshore", "outsourcing", "delivery centre"),
+        ),
+        _QuestionSpec(
+            key="IN_HOUSE_ENGINEERING",
+            text="Does the company describe a large in-house software engineering organisation "
+            "that builds its own products?",
+            answer_type=SignalQuestionAnswerType.SCALE,
+            polarity=SignalQuestionPolarity.NEGATIVE,
+            source_types=(DocumentSourceType.NEWS, DocumentSourceType.COMPANY_PUBLICATION),
+            weight=WeightLevel.MEDIUM,
+            hint_terms=("software engineers", "in-house", "tech hub"),
+        ),
+        _INSOLVENCY_QUESTION,
+    ),
+    icp_criteria=(
+        ICPCriterion(
+            key="SECTOR",
+            kind=ICPCriterionKind.INDUSTRY,
+            weight=WeightLevel.HIGH,
+            values=[
+                "BANKING",
+                "INSURANCE",
+                "LOGISTICS_TRANSPORT",
+                "AEROSPACE_AVIATION",
+                "MANUFACTURING",
+                "AUTOMOTIVE",
+            ],
+        ),
+        ICPCriterion(
+            key="REGION",
+            kind=ICPCriterionKind.GEOGRAPHY,
+            weight=WeightLevel.MEDIUM,
+            values=list(_REGION_COUNTRIES),
+        ),
+        ICPCriterion(
+            key="SIZE", kind=ICPCriterionKind.EMPLOYEE_RANGE, weight=WeightLevel.MEDIUM, min=1000
+        ),
+    ),
+    disqualifiers=(_INSOLVENT_DISQUALIFIER,),
+)
+
+_QUALITY_ASSURANCE = _ServiceSpec(
+    code="QUALITY_ASSURANCE",
+    name="Quality assurance and testing",
+    description=(
+        "Test strategy, manual and automated testing, performance and resilience testing, and "
+        "test centres of excellence."
+    ),
+    value_proposition=(
+        "Orange Systems tests business software end to end and automates regression testing, so "
+        "releases go out faster and with fewer defects."
+    ),
+    questions=(
+        _QuestionSpec(
+            key="SOFTWARE_FAILURE",
+            text="Does the text report a software failure, faulty release or IT outage that "
+            "affected the company's customers or operations?",
+            answer_type=SignalQuestionAnswerType.SCALE,
+            polarity=SignalQuestionPolarity.POSITIVE,
+            source_types=(DocumentSourceType.NEWS,),
+            weight=WeightLevel.HIGH,
+            hint_terms=("outage", "glitch", "software error", "IT failure", "Störung"),
+            half_life_days=120,
+        ),
+        _QuestionSpec(
+            key="MAJOR_ROLLOUT",
+            text="Is the company rolling out a large new system, platform or ERP that needs "
+            "extensive testing?",
+            answer_type=SignalQuestionAnswerType.YES_NO,
+            polarity=SignalQuestionPolarity.POSITIVE,
+            source_types=(DocumentSourceType.NEWS, DocumentSourceType.COMPANY_PUBLICATION),
+            weight=WeightLevel.HIGH,
+            hint_terms=("go-live", "rollout", "S/4HANA", "migration"),
+        ),
+        _QuestionSpec(
+            key="TEST_AUTOMATION",
+            text="Does the company plan or run test automation, continuous testing or DevOps "
+            "quality initiatives?",
+            answer_type=SignalQuestionAnswerType.YES_NO,
+            polarity=SignalQuestionPolarity.POSITIVE,
+            source_types=(DocumentSourceType.NEWS, DocumentSourceType.COMPANY_PUBLICATION),
+            weight=WeightLevel.MEDIUM,
+            hint_terms=("test automation", "continuous testing", "DevOps"),
+        ),
+        _QuestionSpec(
+            key="QA_HIRING",
+            text="Is the company hiring QA engineers, test automation engineers or test managers?",
+            answer_type=SignalQuestionAnswerType.YES_NO,
+            polarity=SignalQuestionPolarity.POSITIVE,
+            source_types=(DocumentSourceType.JOB_POSTING,),
+            weight=WeightLevel.MEDIUM,
+        ),
+        _QuestionSpec(
+            key="COMPLIANCE_TESTING",
+            text="Must the company's software pass compliance or resilience testing, such as "
+            "DORA resilience testing, GxP validation or automotive safety standards?",
+            answer_type=SignalQuestionAnswerType.YES_NO,
+            polarity=SignalQuestionPolarity.POSITIVE,
+            source_types=(DocumentSourceType.NEWS, DocumentSourceType.COMPANY_PUBLICATION),
+            weight=WeightLevel.LOW,
+            hint_terms=("DORA", "GxP", "ISO 26262", "validation"),
+        ),
+        _QuestionSpec(
+            key="TESTING_PROVIDER_IN_PLACE",
+            text="Does the company name an existing external testing or QA service provider?",
+            answer_type=SignalQuestionAnswerType.YES_NO,
+            polarity=SignalQuestionPolarity.NEGATIVE,
+            source_types=(DocumentSourceType.NEWS, DocumentSourceType.COMPANY_PUBLICATION),
+            weight=WeightLevel.MEDIUM,
+            hint_terms=("testing partner", "managed testing"),
+        ),
+        _INSOLVENCY_QUESTION,
+    ),
+    icp_criteria=(
+        ICPCriterion(
+            key="SECTOR",
+            kind=ICPCriterionKind.INDUSTRY,
+            weight=WeightLevel.HIGH,
+            values=[
+                "BANKING",
+                "INSURANCE",
+                "AEROSPACE_AVIATION",
+                "AUTOMOTIVE",
+                "HEALTHCARE_PHARMA",
+                "LOGISTICS_TRANSPORT",
+            ],
+        ),
+        ICPCriterion(
+            key="REGION",
+            kind=ICPCriterionKind.GEOGRAPHY,
+            weight=WeightLevel.MEDIUM,
+            values=list(_REGION_COUNTRIES),
+        ),
+        ICPCriterion(
+            key="SIZE", kind=ICPCriterionKind.EMPLOYEE_RANGE, weight=WeightLevel.MEDIUM, min=1000
+        ),
+    ),
+    disqualifiers=(_INSOLVENT_DISQUALIFIER,),
+)
+
+_DEMO_SERVICES = (
+    _INTELLIGENT_AUTOMATION,
+    _CYBERSECURITY,
+    _SOFTWARE_DEVELOPMENT,
+    _QUALITY_ASSURANCE,
+)
 
 
 async def _activate_first_scoring_draft(
@@ -631,8 +839,12 @@ async def seed_demo_services(db: AsyncSession, *, actor_id: uuid.UUID, now: date
     """Creates each service of the [Demo dataset](/architecture/overview.md#demo-dataset) with
     its questions (`API-08`, `API-12`), then replaces the auto-created draft's settings with the
     service's ICP criteria, question weights and half-lives, and disqualifiers (`API-17`) before
-    activating it as version 1."""
+    activating it as version 1. A service whose code already exists is left as it is, so a
+    database seeded before a service joined the demo dataset gains only that service."""
+    existing = set((await db.execute(select(Service.code))).scalars())
     for spec in _DEMO_SERVICES:
+        if spec.code in existing:
+            continue
         service = await create_service(
             db,
             code=spec.code,
@@ -933,6 +1145,8 @@ async def seed_demo_relationships_and_suggestions(
         settings = ScoringSettings.model_validate(config.settings)
         icp_criteria = [criterion.model_dump() for criterion in settings.icp_criteria]
         specs = [spec for spec in _DEMO_CANDIDATES if spec.service_code == code]
+        if not specs:
+            continue
         run = PipelineRun(
             kind=PipelineRunKind.DISCOVERY,
             trigger=PipelineRunTrigger.USER,
@@ -1086,6 +1300,10 @@ async def _existing_seed_matches(db: AsyncSession, settings: SeedSettings) -> bo
         )
     for spec in _DEMO_SERVICES:
         service = services.get(spec.code)
+        if service is None:
+            # A service that joined the demo dataset after this database was seeded;
+            # `seed_demo_services` adds it.
+            continue
         require(
             service is not None
             and service.name == spec.name
@@ -1216,6 +1434,7 @@ async def seed_demo_dataset(db: AsyncSession, settings: SeedSettings) -> None:
         admin_id = (
             await db.execute(select(AppUser.id).where(AppUser.email == DEMO_ADMIN_EMAIL))
         ).scalar_one()
+        await seed_demo_services(db, actor_id=admin_id, now=now)
         await seed_demo_provider_facts(db)
         await seed_demo_relationships_and_suggestions(db, actor_id=admin_id, now=now)
         await _seed_signals(db, settings, actor_id=admin_id, now=now)
