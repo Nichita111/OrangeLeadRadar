@@ -831,7 +831,8 @@ export interface paths {
         put?: never;
         /**
          * Preview Question
-         * @description `API-14`.
+         * @description `API-14`: Admin only. `503 UPSTREAM_UNAVAILABLE` when the classifier, the LLM or the
+         *     embedder fails, `429 BUDGET_EXHAUSTED` when the budget guard stops an LLM call.
          */
         post: operations["preview_question_api_v1_questions_preview_post"];
         delete?: never;
@@ -976,10 +977,12 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Preview Scoring Config
-         * @description `API-19`.
+         * API-19: Preview the impact of a DRAFT scoring config
+         * @description [`API-19`](/architecture/interfaces.md#scoring): Admin only. Computes, without writing,
+         *     every current score of the draft's service under the draft. `404` for an unknown config,
+         *     `409 CONFLICT` when it is not a DRAFT or its service has no ACTIVE version.
          */
-        post: operations["preview_scoring_config_api_v1_scoring_configs__id__preview_post"];
+        post: operations["preview_scoring_config_route_api_v1_scoring_configs__id__preview_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2927,7 +2930,10 @@ export interface components {
          * @description [`QuestionPreviewRequest`](/architecture/interfaces.md#questionpreviewrequest).
          */
         QuestionPreviewRequest: {
-            /** Account Id */
+            /**
+             * Account Id
+             * Format: uuid
+             */
             account_id?: string;
             /** Answer Type */
             answer_type?: components["schemas"]["SignalQuestionAnswerType"];
@@ -2935,11 +2941,17 @@ export interface components {
             hint_terms?: string[];
             /** Options */
             options?: components["schemas"]["QuestionOption"][];
-            /** Question Id */
+            /**
+             * Question Id
+             * Format: uuid
+             */
             question_id?: string;
             /** Sample Text */
             sample_text?: string;
-            /** Service Id */
+            /**
+             * Service Id
+             * Format: uuid
+             */
             service_id: string;
             /** Source Types */
             source_types?: components["schemas"]["DocumentSourceType"][];
@@ -5312,7 +5324,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -5551,14 +5565,16 @@ export interface operations {
             };
         };
     };
-    preview_scoring_config_api_v1_scoring_configs__id__preview_post: {
+    preview_scoring_config_route_api_v1_scoring_configs__id__preview_post: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {

@@ -14,6 +14,7 @@ import httpx
 from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
+from leadradar.ai.embedder import build_embedder_client
 from leadradar.ai.gateway import AiGateway, build_ai_http_client
 from leadradar.api import (
     accounts,
@@ -48,16 +49,19 @@ def _build_lifespan(
         app.state.engine = build_engine(settings.database_url.get_secret_value())
         app.state.http_client = httpx.AsyncClient()
         app.state.clock = build_clock(settings)
-        ai_http = build_ai_http_client(settings)
+        # The AI gateway and the embedder client of the question preview (`API-14`).
+        app.state.ai_http_client = build_ai_http_client(settings)
         app.state.ai_gateway = AiGateway(
             settings,
-            http=ai_http,
+            http=app.state.ai_http_client,
             sessions=async_sessionmaker(app.state.engine, expire_on_commit=False),
         )
+        app.state.embedder_client = build_embedder_client()
         try:
             yield
         finally:
-            await ai_http.aclose()
+            await app.state.embedder_client.aclose()
+            await app.state.ai_http_client.aclose()
             await app.state.http_client.aclose()
             await app.state.engine.dispose()
 
@@ -87,7 +91,6 @@ def create_app(settings: ApiSettings) -> FastAPI:
     app.include_router(configuration.router, prefix=API_PREFIX)
     app.include_router(services_and_questions.router, prefix=API_PREFIX)
     app.include_router(scoring.router, prefix=API_PREFIX)
-    app.include_router(scoring.scoring_stub_router, prefix=API_PREFIX)
     app.include_router(accounts.router, prefix=API_PREFIX)
     app.include_router(accounts_and_contacts.router, prefix=API_PREFIX)
     app.include_router(runs_and_source_plugins_router, prefix=API_PREFIX)

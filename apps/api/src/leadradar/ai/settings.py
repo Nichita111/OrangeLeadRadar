@@ -66,3 +66,16 @@ class AiGatewaySettings(BaseSettings):
     #: the api as well for the [Persona mapping](/architecture/rules.md#persona-mapping) of
     #: `API-26` and `API-27`, so it is declared once here.
     attribute_min_p: float = 0.6
+
+    #: [worker Runtime](/architecture/services/worker.md#runtime) evidence, chunking and
+    #: retrieval keys, read by the api as well for the question preview (`API-14`), which runs
+    #: the same classification, escalation and evidence rules as the SIGNAL step.
+    evidence_max_attempts: int = 2
+    evidence_min_quote_chars: int = 20
+    evidence_max_quote_chars: int = 400
+    evidence_max_rationale_chars: int = 300
+    whole_document_max_chars: int = 8000
+    chunk_target_chars: int = 1600
+    chunk_overlap_chars: int = 200
+    retrieval_candidates: int = 50
+    retrieval_rrf_k: int = 60

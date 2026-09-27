@@ -4238,6 +4238,7 @@
         "description": "[`QuestionPreviewRequest`](/architecture/interfaces.md#questionpreviewrequest).",
         "properties": {
           "account_id": {
+            "format": "uuid",
             "title": "Account Id",
             "type": "string"
           },
@@ -4260,6 +4261,7 @@
             "type": "array"
           },
           "question_id": {
+            "format": "uuid",
             "title": "Question Id",
             "type": "string"
           },
@@ -4268,6 +4270,7 @@
             "type": "string"
           },
           "service_id": {
+            "format": "uuid",
             "title": "Service Id",
             "type": "string"
           },
@@ -9378,8 +9381,26 @@
     },
     "/api/v1/questions/preview": {
       "post": {
-        "description": "`API-14`.",
+        "description": "`API-14`: Admin only. `503 UPSTREAM_UNAVAILABLE` when the classifier, the LLM or the\nembedder fails, `429 BUDGET_EXHAUSTED` when the budget guard stops an LLM call.",
         "operationId": "preview_question_api_v1_questions_preview_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -9884,16 +9905,33 @@
     },
     "/api/v1/scoring-configs/{id}/preview": {
       "post": {
-        "description": "`API-19`.",
-        "operationId": "preview_scoring_config_api_v1_scoring_configs__id__preview_post",
+        "description": "[`API-19`](/architecture/interfaces.md#scoring): Admin only. Computes, without writing,\nevery current score of the draft's service under the draft. `404` for an unknown config,\n`409 CONFLICT` when it is not a DRAFT or its service has no ACTIVE version.",
+        "operationId": "preview_scoring_config_route_api_v1_scoring_configs__id__preview_post",
         "parameters": [
           {
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -9919,7 +9957,7 @@
             "description": "Error"
           }
         },
-        "summary": "Preview Scoring Config",
+        "summary": "API-19: Preview the impact of a DRAFT scoring config",
         "tags": [
           "scoring"
         ]
