@@ -361,16 +361,18 @@ The cost of a call is the `usage.cost` OpenRouter returns with it, in US dollars
 | `strength_agreement` | Share of true positives whose predicted strength equals the expected strength |
 | `escalation_rate` | Share of items that were escalated |
 | `classifier_only` | `precision` and `recall` of the classifier alone, positive when `p_positive ≥ EVAL_CLASSIFIER_ONLY_P`, no escalation |
-| `per_question` | Per question key: `items`, `precision`, `recall` |
+| `per_question` | Per question id: `key`, `service_id`, `items`, `precision`, `recall` |
 | `per_source_type` | Per document source type: `items`, `precision`, `recall` |
-| `missed_evidence` | Among items whose passage the current selection does not pick for the item's question: `items` and the share whose `expected_strength` is not `NONE`, null without such items — the evidence [Passage selection](#chunking-and-passage-selection) leaves unread |
+| `missed_evidence` | Among items whose passage the current selection does not pick for the item's question: `items` and `positive_rate`, the share whose `expected_strength` is not `NONE`; `positive_rate` is null without such items — the evidence [Passage selection](#chunking-and-passage-selection) leaves unread |
 | `calibration` | `EVAL_CALIBRATION_BINS` equal-width bins of `p_positive` from 0 to 1: `count`, `mean_p`, `positive_rate` |
 | `errors` | Up to `EVAL_MAX_ERRORS` misclassified items: `item_id`, `expected`, `predicted`, `p_positive`, `escalated` |
-| `lead_verdicts` | Counts of in-force `RELEVANT` and `NOT_RELEVANT` lead feedback per current band |
+| `lead_verdicts` | Per current band value of [`account_score`](/architecture/sql-store.md#account_score) `band`: `RELEVANT` and `NOT_RELEVANT` counts of in-force lead feedback |
+
+A ratio whose denominator is zero is null: `strength_agreement` without true positives, `escalation_rate` without items, and a calibration bin's `mean_p` and `positive_rate` when its `count` is 0. A `p_positive` of 1 falls in the last bin. `errors` lists misclassified items — prediction and expectation of different positivity — ordered by item `created_at`, then `id`.
 
 `passed` = `precision ≥ EVAL_MIN_PRECISION` and `items ≥ EVAL_MIN_ITEMS` ([ADR-14](/architecture/adrs/adr-14-labelled-set-and-precision-gate.md)). The result stores these values, `ESCALATION_RATE_TARGET` and the escalation band as they were for the run, so a report always shows the gate it was judged by. An evaluation whose classifier or LLM calls fail, or that the [Budget guard](#budget-guard) stops, ends `FAILED` with the reason and reports no metrics: a partial result is never reported as a quality check.
 
-**Label queue.** Pairs of a passage of a kept document of an active account and an applicable active question, without an active item, are split into four strata: for a selected passage, by its classification's `p_positive` — below `ESCALATION_LOWER`, inside the band, at or above `ESCALATION_UPPER`; and **not selected**, a passage of a long document that selection did not pick for the question. The queue returns `LABEL_QUEUE_SIZE` pairs, as equal a share from each stratum as there are pairs, ordered within a stratum by the SHA-256 of the passage id and question id, so the order is stable.
+**Label queue.** Pairs of a passage of a kept document of an active account and an applicable active question, without an active item, are split into four strata: for a selected passage, by its classification's `p_positive` — at or below `ESCALATION_LOWER`, inside the band, at or above `ESCALATION_UPPER`; and **not selected**, a passage of a long document that selection did not pick for the question. A pair is selected when it has a [`classification`](/architecture/sql-store.md#classification) at the question's current revision; `missed_evidence` uses the same test. The queue returns `LABEL_QUEUE_SIZE` pairs, as equal a share from each stratum as there are pairs, ordered within a stratum by the SHA-256 of the text `<chunk_id>:<question_id>`, so the order is stable.
 
 ## Impact
 

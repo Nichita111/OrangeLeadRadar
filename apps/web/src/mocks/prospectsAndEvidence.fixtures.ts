@@ -11,8 +11,8 @@ type Market = Schemas["Market"];
 type ProspectRow = Schemas["ProspectRow"];
 type ScoreBreakdown = Schemas["ScoreViewBreakdown"];
 type ScoreView = Schemas["ScoreView"];
-type ScoringConfig = Schemas["ScoringConfigModel"];
-type ScoringConfigSummary = Schemas["ScoringConfigSummaryModel"];
+type ScoringConfig = Schemas["ScoringConfig"];
+type ScoringConfigSummary = Schemas["ScoringConfigSummary"];
 type Service = Schemas["Service"];
 
 function service(id: string, name: string, status: Service["status"]): Service {

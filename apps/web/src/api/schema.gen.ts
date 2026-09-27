@@ -187,10 +187,11 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Push To Crm
-         * @description `API-59`.
+         * Post Crm Push
+         * @description `API-59`: pushes the account's current score for the service to HubSpot and records the
+         *     outcome in [`crm_sync`](/architecture/sql-store.md#crm_sync).
          */
-        post: operations["push_to_crm_api_v1_accounts__id__scores__service_id__crm_push_post"];
+        post: operations["post_crm_push_api_v1_accounts__id__scores__service_id__crm_push_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -503,16 +504,17 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Evaluation Items
-         * @description `API-52`.
+         * Get Evaluation Items
+         * @description `API-52`, Admin only.
          */
-        get: operations["list_evaluation_items_api_v1_evaluation_items_get"];
+        get: operations["get_evaluation_items_api_v1_evaluation_items_get"];
         put?: never;
         /**
-         * Create Label
-         * @description `API-51`.
+         * Post Evaluation Item
+         * @description `API-51`: writes the `MANUAL` item for the passage, question and revision, updating the
+         *     pair's active item in place, whatever its origin, or writing one when none exists (D9).
          */
-        post: operations["create_label_api_v1_evaluation_items_post"];
+        post: operations["post_evaluation_item_api_v1_evaluation_items_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -528,7 +530,8 @@ export interface paths {
         };
         /**
          * Get Label Queue
-         * @description `API-50`.
+         * @description `API-50`: the label queue of [Evaluation metrics]
+         *     (/architecture/rules.md#evaluation-metrics). A task never shows the classifier's answer.
          */
         get: operations["get_label_queue_api_v1_evaluation_label_queue_get"];
         put?: never;
@@ -547,10 +550,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Evaluation Results
-         * @description `API-54`.
+         * Get Evaluation Results
+         * @description `API-54`: every quality check, newest first (D8).
          */
-        get: operations["list_evaluation_results_api_v1_evaluation_results_get"];
+        get: operations["get_evaluation_results_api_v1_evaluation_results_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -589,10 +592,11 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Start Evaluation Run
-         * @description `API-53`.
+         * Post Evaluation Run
+         * @description `API-53`: one queued or running evaluation at a time (D2): `202` with a new run, or `200`
+         *     with the one already queued or running.
          */
-        post: operations["start_evaluation_run_api_v1_evaluation_runs_post"];
+        post: operations["post_evaluation_run_api_v1_evaluation_runs_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -909,7 +913,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/scoring-configs/{config_id}/activate": {
+    "/api/v1/scoring-configs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Scoring Config Route
+         * @description `API-16`.
+         */
+        get: operations["get_scoring_config_route_api_v1_scoring_configs__id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/scoring-configs/{id}/activate": {
         parameters: {
             query?: never;
             header?: never;
@@ -927,27 +951,7 @@ export interface paths {
          *     `409 CONFLICT` when the config is not DRAFT. `422` when `change_note` is missing.
          *     `403 FORBIDDEN` for non-Admin.
          */
-        post: operations["activate_scoring_config_route_api_v1_scoring_configs__config_id__activate_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/scoring-configs/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Scoring Config Route
-         * @description `API-16`.
-         */
-        get: operations["get_scoring_config_route_api_v1_scoring_configs__id__get"];
-        put?: never;
-        post?: never;
+        post: operations["activate_scoring_config_route_api_v1_scoring_configs__id__activate_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1184,7 +1188,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/users/{user_id}": {
+    "/api/v1/users/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1198,7 +1202,7 @@ export interface paths {
         options?: never;
         head?: never;
         /** Update User Route */
-        patch: operations["update_user_route_api_v1_users__user_id__patch"];
+        patch: operations["update_user_route_api_v1_users__id__patch"];
         trace?: never;
     };
 }
@@ -1264,24 +1268,27 @@ export interface components {
              */
             aliases: string[];
             /** Country Code */
-            country_code?: string | null;
+            country_code?: string;
             /** Domain */
             domain: string;
             /** Employee Count */
-            employee_count?: number | null;
+            employee_count?: number;
             /** Industry */
-            industry?: string | null;
+            industry?: string;
             /** Linkedin Url */
-            linkedin_url?: string | null;
+            linkedin_url?: string;
             /** Name */
             name: string;
             /** Notes */
-            notes?: string | null;
-            operational_complexity?: components["schemas"]["AccountOperationalComplexity"] | null;
-            /** Parent Account Id */
-            parent_account_id?: string | null;
+            notes?: string;
+            operational_complexity?: components["schemas"]["AccountOperationalComplexity"];
+            /**
+             * Parent Account Id
+             * Format: uuid
+             */
+            parent_account_id?: string;
             /** Revenue Eur */
-            revenue_eur?: number | null;
+            revenue_eur?: number;
             /**
              * Sources
              * @default []
@@ -1402,25 +1409,30 @@ export interface components {
          */
         AccountUpdate: {
             /** Aliases */
-            aliases?: string[] | null;
+            aliases?: string[];
             /** Country Code */
-            country_code?: string | null;
+            country_code?: string;
             /** Employee Count */
-            employee_count?: number | null;
+            employee_count?: number;
             /** Industry */
-            industry?: string | null;
+            industry?: string;
             /** Linkedin Url */
-            linkedin_url?: string | null;
+            linkedin_url?: string;
+            /** Name */
+            name?: string;
             /** Notes */
-            notes?: string | null;
-            operational_complexity?: components["schemas"]["AccountOperationalComplexity"] | null;
-            /** Parent Account Id */
-            parent_account_id?: string | null;
+            notes?: string;
+            operational_complexity?: components["schemas"]["AccountOperationalComplexity"];
+            /**
+             * Parent Account Id
+             * Format: uuid
+             */
+            parent_account_id?: string;
             /** Revenue Eur */
-            revenue_eur?: number | null;
+            revenue_eur?: number;
             /** Sources */
-            sources?: components["schemas"]["AccountUpdateSource"][] | null;
-            status?: components["schemas"]["AccountStatus"] | null;
+            sources?: components["schemas"]["AccountUpdateSource"][];
+            status?: components["schemas"]["AccountStatus"];
         };
         /**
          * AccountUpdateSource
@@ -1678,16 +1690,22 @@ export interface components {
         CrmSyncTarget: "HUBSPOT";
         /**
          * CrmSyncView
-         * @description [`CrmSyncView`](/architecture/interfaces.md#crmsyncview).
+         * @description [`CrmSyncView`](/architecture/interfaces.md#crmsyncview), the response of `API-59`.
          */
         CrmSyncView: {
-            /** Created At */
+            /**
+             * Created At
+             * Format: date-time
+             */
             created_at: string;
             /** Error */
             error: string | null;
             /** External Id */
             external_id: string | null;
-            /** Id */
+            /**
+             * Id
+             * Format: uuid
+             */
             id: string;
             status: components["schemas"]["CrmSyncStatus"];
             target: components["schemas"]["CrmSyncTarget"];
@@ -1891,17 +1909,29 @@ export interface components {
          * @description [`EvaluationItem`](/architecture/interfaces.md#evaluationitem).
          */
         EvaluationItem: {
-            /** Chunk Id */
+            /**
+             * Chunk Id
+             * Format: uuid
+             */
             chunk_id: string;
-            /** Created At */
+            /**
+             * Created At
+             * Format: date-time
+             */
             created_at: string;
             expected_strength: components["schemas"]["FindingStrength"];
-            /** Id */
+            /**
+             * Id
+             * Format: uuid
+             */
             id: string;
             /** Labelled By Name */
             labelled_by_name: string;
             origin: components["schemas"]["EvaluationItemOrigin"];
-            /** Question Id */
+            /**
+             * Question Id
+             * Format: uuid
+             */
             question_id: string;
             /** Question Key */
             question_key: string;
@@ -1923,12 +1953,14 @@ export interface components {
         EvaluationItemStatus: "ACTIVE" | "STALE";
         /**
          * EvaluationResult
-         * @description [`EvaluationResult`](/architecture/interfaces.md#evaluationresult): every field of
-         *     [`EvaluationResultSummary`](#evaluationresultsummary) plus these.
+         * @description [`EvaluationResult`](/architecture/interfaces.md#evaluationresult).
          */
         EvaluationResult: {
             classifier: components["schemas"]["DocumentTriageClassifier"];
-            /** Created At */
+            /**
+             * Created At
+             * Format: date-time
+             */
             created_at: string;
             /** Escalation Lower */
             escalation_lower: number;
@@ -1954,7 +1986,10 @@ export interface components {
             precision: number | null;
             /** Recall */
             recall: number | null;
-            /** Run Id */
+            /**
+             * Run Id
+             * Format: uuid
+             */
             run_id: string;
         };
         /**
@@ -1963,7 +1998,10 @@ export interface components {
          */
         EvaluationResultSummary: {
             classifier: components["schemas"]["DocumentTriageClassifier"];
-            /** Created At */
+            /**
+             * Created At
+             * Format: date-time
+             */
             created_at: string;
             /** Escalation Rate */
             escalation_rate: number | null;
@@ -1975,7 +2013,10 @@ export interface components {
             precision: number | null;
             /** Recall */
             recall: number | null;
-            /** Run Id */
+            /**
+             * Run Id
+             * Format: uuid
+             */
             run_id: string;
         };
         /**
@@ -2360,20 +2401,26 @@ export interface components {
         };
         /**
          * LabelCreate
-         * @description [`LabelCreate`](/architecture/interfaces.md#labelcreate).
+         * @description [`LabelCreate`](/architecture/interfaces.md#labelcreate), the request of `API-51`.
          */
         LabelCreate: {
-            /** Chunk Id */
+            /**
+             * Chunk Id
+             * Format: uuid
+             */
             chunk_id: string;
             expected_strength: components["schemas"]["FindingStrength"];
-            /** Question Id */
+            /**
+             * Question Id
+             * Format: uuid
+             */
             question_id: string;
             /** Question Revision */
             question_revision: number;
         };
         /**
          * LabelQueue
-         * @description [`LabelQueue`](/architecture/interfaces.md#labelqueue).
+         * @description [`LabelQueue`](/architecture/interfaces.md#labelqueue), the response of `API-50`.
          */
         LabelQueue: {
             /** Active Items */
@@ -2389,7 +2436,10 @@ export interface components {
          */
         LabelTask: {
             account: components["schemas"]["LabelTaskAccount"];
-            /** Chunk Id */
+            /**
+             * Chunk Id
+             * Format: uuid
+             */
             chunk_id: string;
             document: components["schemas"]["LabelTaskDocument"];
             /** Passage Text */
@@ -2398,42 +2448,41 @@ export interface components {
             /** Question Revision */
             question_revision: number;
         };
-        /**
-         * LabelTaskAccount
-         * @description `LabelTask.account`.
-         */
+        /** LabelTaskAccount */
         LabelTaskAccount: {
-            /** Id */
+            /**
+             * Id
+             * Format: uuid
+             */
             id: string;
             /** Name */
             name: string;
         };
-        /**
-         * LabelTaskDocument
-         * @description `LabelTask.document`.
-         */
+        /** LabelTaskDocument */
         LabelTaskDocument: {
             /** Language */
             language: string;
             /** Published At */
             published_at: string | null;
             /** Title */
-            title: string;
+            title: string | null;
             /** Url */
             url: string;
         };
-        /**
-         * LabelTaskQuestion
-         * @description `LabelTask.question`.
-         */
+        /** LabelTaskQuestion */
         LabelTaskQuestion: {
             answer_type: components["schemas"]["SignalQuestionAnswerType"];
-            /** Id */
+            /**
+             * Id
+             * Format: uuid
+             */
             id: string;
             /** Key */
             key: string;
             /** Options */
-            options: components["schemas"]["QuestionOption"][] | null;
+            options: {
+                [key: string]: unknown;
+            }[] | null;
             polarity: components["schemas"]["SignalQuestionPolarity"];
             /** Text */
             text: string;
@@ -3154,29 +3203,6 @@ export interface components {
             activated_by_name: string | null;
             /** Change Note */
             change_note: string | null;
-            /** Id */
-            id: string;
-            /** Service Id */
-            service_id: string;
-            /** Settings */
-            settings: {
-                [key: string]: unknown;
-            };
-            status: components["schemas"]["ScoringConfigStatus"];
-            /** Version */
-            version: number;
-        };
-        /**
-         * ScoringConfigModel
-         * @description [`ScoringConfig`](/architecture/interfaces.md#scoringconfig).
-         */
-        ScoringConfigModel: {
-            /** Activated At */
-            activated_at: string | null;
-            /** Activated By Name */
-            activated_by_name: string | null;
-            /** Change Note */
-            change_note: string | null;
             /**
              * Id
              * Format: uuid
@@ -3202,10 +3228,10 @@ export interface components {
          */
         ScoringConfigStatus: "DRAFT" | "ACTIVE" | "RETIRED";
         /**
-         * ScoringConfigSummaryModel
+         * ScoringConfigSummary
          * @description [`ScoringConfigSummary`](/architecture/interfaces.md#scoringconfigsummary).
          */
-        ScoringConfigSummaryModel: {
+        ScoringConfigSummary: {
             /** Activated At */
             activated_at: string | null;
             /** Activated By Name */
@@ -3232,8 +3258,8 @@ export interface components {
          */
         ScoringDraftUpdate: {
             /** Change Note */
-            change_note?: string | null;
-            settings: components["schemas"]["ScoringSettingsDocument"];
+            change_note?: string;
+            settings: components["schemas"]["ScoringSettings"];
         };
         /**
          * ScoringPreview
@@ -3281,11 +3307,19 @@ export interface components {
             standing: components["schemas"]["AccountScoreStanding"];
         };
         /**
-         * ScoringSettingsDocument
+         * ScoringSettings
          * @description The `settings` column of [`scoring_config`](/architecture/sql-store.md#scoring_config).
          */
-        ScoringSettingsDocument: {
-            /** Default Half Life Days */
+        ScoringSettings: {
+            /**
+             * Default Half Life Days
+             * @default {
+             *       "COMPANY_PROFILE": 365,
+             *       "COMPANY_PUBLICATION": 365,
+             *       "JOB_POSTING": 60,
+             *       "NEWS": 90
+             *     }
+             */
             default_half_life_days: {
                 [key: string]: number;
             };
@@ -3294,39 +3328,81 @@ export interface components {
              * @default []
              */
             disqualifiers: components["schemas"]["Disqualifier"][];
-            /** Fit Weight */
+            /**
+             * Fit Weight
+             * @default 0.4
+             */
             fit_weight: number;
-            /** Hot Threshold */
+            /**
+             * Hot Threshold
+             * @default 70
+             */
             hot_threshold: number;
             /**
              * Icp Criteria
              * @default []
              */
             icp_criteria: components["schemas"]["ICPCriterion"][];
-            /** Intent Saturation */
+            /**
+             * Intent Saturation
+             * @default 0.5
+             */
             intent_saturation: number;
-            /** Intent Weight */
+            /**
+             * Intent Weight
+             * @default 0.6
+             */
             intent_weight: number;
-            /** Min Decay */
+            /**
+             * Min Decay
+             * @default 0.05
+             */
             min_decay: number;
-            /** Min Fit */
+            /**
+             * Min Fit
+             * @default 40
+             */
             min_fit: number;
-            /** Negative Factor */
+            /**
+             * Negative Factor
+             * @default 1
+             */
             negative_factor: number;
             /**
              * Questions
              * @default []
              */
             questions: components["schemas"]["QuestionSetting"][];
-            /** Strength Values */
+            /**
+             * Strength Values
+             * @default {
+             *       "MEDIUM": 0.75,
+             *       "STRONG": 1,
+             *       "WEAK": 0.5
+             *     }
+             */
             strength_values: {
                 [key: string]: number;
             };
-            /** Unknown Match */
+            /**
+             * Unknown Match
+             * @default 0.5
+             */
             unknown_match: number;
-            /** Warm Threshold */
+            /**
+             * Warm Threshold
+             * @default 40
+             */
             warm_threshold: number;
-            /** Weight Values */
+            /**
+             * Weight Values
+             * @default {
+             *       "HIGH": 3,
+             *       "LOW": 1,
+             *       "MEDIUM": 2,
+             *       "NONE": 0
+             *     }
+             */
             weight_values: {
                 [key: string]: number;
             };
@@ -3570,11 +3646,14 @@ export interface components {
          */
         UserUpdate: {
             /** Display Name */
-            display_name?: string | null;
-            /** Password */
-            password?: string | null;
-            role?: components["schemas"]["AppUserRole"] | null;
-            status?: components["schemas"]["AppUserStatus"] | null;
+            display_name?: string;
+            /**
+             * Password
+             * Format: password
+             */
+            password?: string;
+            role?: components["schemas"]["AppUserRole"];
+            status?: components["schemas"]["AppUserStatus"];
         };
         /**
          * WeightLevel
@@ -3981,7 +4060,7 @@ export interface operations {
             };
         };
     };
-    push_to_crm_api_v1_accounts__id__scores__service_id__crm_push_post: {
+    post_crm_push_api_v1_accounts__id__scores__service_id__crm_push_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -3989,7 +4068,9 @@ export interface operations {
                 id: string;
                 service_id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -4561,7 +4642,7 @@ export interface operations {
             };
         };
     };
-    list_evaluation_items_api_v1_evaluation_items_get: {
+    get_evaluation_items_api_v1_evaluation_items_get: {
         parameters: {
             query?: {
                 question_id?: string | null;
@@ -4572,7 +4653,9 @@ export interface operations {
             };
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -4596,12 +4679,14 @@ export interface operations {
             };
         };
     };
-    create_label_api_v1_evaluation_items_post: {
+    post_evaluation_item_api_v1_evaluation_items_post: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -4636,7 +4721,9 @@ export interface operations {
             };
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -4660,12 +4747,14 @@ export interface operations {
             };
         };
     };
-    list_evaluation_results_api_v1_evaluation_results_get: {
+    get_evaluation_results_api_v1_evaluation_results_get: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -4696,7 +4785,9 @@ export interface operations {
             path: {
                 run_id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -4720,15 +4811,26 @@ export interface operations {
             };
         };
     };
-    start_evaluation_run_api_v1_evaluation_runs_post: {
+    post_evaluation_run_api_v1_evaluation_runs_post: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
+            /** @description The evaluation already queued */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Run"];
+                };
+            };
             /** @description Successful Response */
             202: {
                 headers: {
@@ -5336,22 +5438,18 @@ export interface operations {
             };
         };
     };
-    activate_scoring_config_route_api_v1_scoring_configs__config_id__activate_post: {
+    get_scoring_config_route_api_v1_scoring_configs__id__get: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                config_id: string;
+                id: string;
             };
             cookie?: {
                 leadradar_session?: string | null;
             };
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ActivationRequest"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -5373,7 +5471,7 @@ export interface operations {
             };
         };
     };
-    get_scoring_config_route_api_v1_scoring_configs__id__get: {
+    activate_scoring_config_route_api_v1_scoring_configs__id__activate_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -5384,7 +5482,11 @@ export interface operations {
                 leadradar_session?: string | null;
             };
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActivationRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -5392,7 +5494,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ScoringConfigModel"];
+                    "application/json": components["schemas"]["ScoringConfig"];
                 };
             };
             /** @description Error */
@@ -5733,7 +5835,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ScoringConfigSummaryModel"][];
+                    "application/json": components["schemas"]["ScoringConfigSummary"][];
                 };
             };
             /** @description Error */
@@ -5770,7 +5872,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ScoringConfigModel"];
+                    "application/json": components["schemas"]["ScoringConfig"];
                 };
             };
             /** @description Error */
@@ -5918,12 +6020,12 @@ export interface operations {
             };
         };
     };
-    update_user_route_api_v1_users__user_id__patch: {
+    update_user_route_api_v1_users__id__patch: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                user_id: string;
+                id: string;
             };
             cookie?: {
                 leadradar_session?: string | null;

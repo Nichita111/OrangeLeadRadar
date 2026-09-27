@@ -40,7 +40,8 @@ Authorisation is enforced by the api on every route ([S-SEC-02](/requirements/sy
 |---|---|---|
 | `UNAUTHENTICATED` | 401 | No valid session, or wrong credentials |
 | `FORBIDDEN` | 403 | The role does not allow the contract, the account is disabled, or the CSRF header is missing |
-| `NOT_FOUND` | 404 | The resource does not exist, or no contract has the request's method and path |
+| `NOT_FOUND` | 404 | The resource does not exist |
+| `METHOD_NOT_ALLOWED` | 405 | The resource exists but does not accept this HTTP method |
 | `CONFLICT` | 409 | A uniqueness or state rule refuses the change; `details.entity_id` names the conflicting row when there is one |
 | `NOT_CONFIGURED` | 409 | The contract needs an integration or plug-in key that is not configured |
 | `VALIDATION` | 422 | The input is invalid; `details.fields[]` lists `{field, message}`, where `field` is a body field name, a JSON pointer into it, or the name of a path or query parameter |
@@ -739,8 +740,9 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `API-77` | GET | `/impact` | `A` | — → [`Impact`](#impact) |
 
 - `API-50` — the label queue of [Evaluation metrics](/architecture/rules.md#evaluation-metrics). A task never shows the classifier's answer, so that labels are not biased by it.
-- `API-51` — writes the `MANUAL` item for the passage, question and revision, replacing the pair's active item whatever its origin, so a manual label takes the place of one derived from finding feedback; a revision that is not current answers `409`.
-- `API-53` — one queued or running evaluation at a time.
+- `API-51` — writes the `MANUAL` item for the passage, question and revision, updating the pair's active item in place, whatever its origin, or writing one when none exists, so a manual label takes the place of one derived from finding feedback; a revision that is not current answers `409`.
+- `API-53` — one queued or running evaluation at a time: a request while one is queued or running answers `200` with that run.
+- `API-54` — newest first.
 - `API-77` — computed on read by [Impact](/architecture/rules.md#impact); writes nothing.
 
 ### Evaluation shapes
@@ -823,7 +825,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 
 - `API-56` — follows [Outreach grounding](/architecture/rules.md#outreach-grounding); an account without an in-force positive finding for the service answers `422`. There is no contract that sends a message.
 - `API-58` — changing `subject` or `body` sets `edited`; `status` may only move to `EXPORTED`.
-- `API-59` — `404` when the account has no score for the service; without `HUBSPOT_ACCESS_TOKEN` answers `409 NOT_CONFIGURED`; otherwise calls `API-70` and records the outcome in [`crm_sync`](/architecture/sql-store.md#crm_sync).
+- `API-59` — without `HUBSPOT_ACCESS_TOKEN` answers `409 NOT_CONFIGURED` and writes nothing, whatever the account's data; otherwise `404` when the account has no score for the service; otherwise calls `API-70` and records the outcome in [`crm_sync`](/architecture/sql-store.md#crm_sync), answering `503 UPSTREAM_UNAVAILABLE` with `details.dependency` `HUBSPOT` when the call fails, the `FAILED` row recorded.
 
 ### Outreach and CRM shapes
 
@@ -1060,7 +1062,7 @@ The in-process port each [source plug-in](/architecture/services/worker.md#sourc
 
 | ID | Operation | Module | Transaction | Returns |
 |---|---|---|---|---|
-| `API-70` | `upsert_company(push)` | HubSpot adapter: CRM v3 companies API, search by `domain`, then update or create | none | the HubSpot company id, or `UPSTREAM_UNAVAILABLE` |
+| `API-70` | `upsert_company(push)` | HubSpot adapter: CRM v3 companies API at `https://api.hubapi.com`, search by `domain`, then update or create | none | the HubSpot company id, or `UPSTREAM_UNAVAILABLE` |
 
 ### CRM shapes
 
@@ -1070,6 +1072,9 @@ The in-process port each [source plug-in](/architecture/services/worker.md#sourc
 |---|---|---|
 | `domain`, `name` | string | [`account`](/architecture/sql-store.md#account) |
 | `leadradar_service` | string | [`service`](/architecture/sql-store.md#service) `name` |
-| `leadradar_priority`, `leadradar_band`, `leadradar_standing` | | the current [`account_score`](/architecture/sql-store.md#account_score) |
-| `leadradar_top_signals` | string | the question texts and quotes of up to `HUBSPOT_TOP_SIGNALS` top findings, one per line |
+| `leadradar_priority`, `leadradar_standing` | string | the current [`account_score`](/architecture/sql-store.md#account_score) |
+| `leadradar_band` | string | the current [`account_score`](/architecture/sql-store.md#account_score) `band`; empty when `band` is null |
+| `leadradar_top_signals` | string | one line per finding, `question text — "quote"`, for up to `HUBSPOT_TOP_SIGNALS` of the positive findings with the most `points` in the current breakdown, as [`ProspectRow`](#prospectrow) `top_signals`, then `observed_at` descending as `API-42`; empty when there is none |
 | `leadradar_url` | string | `APP_BASE_URL` + the account detail route |
+
+The `leadradar_*` properties are created in the target portal by its HubSpot administrator before the first push, as single-line text properties on the company object; a push against a portal without them fails and is recorded `FAILED`.

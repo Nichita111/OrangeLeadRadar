@@ -20,6 +20,7 @@ from typing import Literal
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from leadradar.ai.gateway import AiGateway
 from leadradar.core.enums import JobStep, PipelineRunKind, PipelineRunTrigger
 from leadradar.db.models.ingestion import Job, PipelineRun
 from leadradar.worker.settings import WorkerSettings
@@ -49,13 +50,15 @@ class ClaimedJob:
 
 @dataclass(frozen=True)
 class StepContext:
-    """What a handler is given: its job, the open transaction's session, the time and the
-    worker's configuration."""
+    """What a handler is given: its job, the open transaction's session, the time, the worker's
+    configuration and the one [AI gateway](/architecture/services/worker.md#ai-gateway) instance
+    of this process. Handlers that make no AI call (`SCORE`) ignore `gateway`."""
 
     job: ClaimedJob
     session: AsyncSession
     now: datetime
     settings: WorkerSettings
+    gateway: AiGateway | None = None
 
 
 class StepFailed(Exception):
@@ -82,6 +85,8 @@ async def _run_signal(context: StepContext) -> None:
     from leadradar.worker.steps.signal import run_signal_job
 
     job, run = await _load_job_and_run(context)
+    if context.gateway is None:
+        raise RuntimeError("The SIGNAL step requires the AI gateway")
     await run_signal_job(
         context.session,
         job=job,
@@ -89,6 +94,8 @@ async def _run_signal(context: StepContext) -> None:
         worker_instance_id=str(context.job.id),
         alert_max_age_days=context.settings.alert_max_age_days,
         settings=context.settings,
+        gateway=context.gateway,
+        now=context.now,
     )
 
 
@@ -103,10 +110,25 @@ async def _run_score(context: StepContext) -> None:
         run=run,
         worker_instance_id=str(context.job.id),
         alert_max_age_days=context.settings.alert_max_age_days,
+        now=context.now,
+    )
+
+
+async def _run_evaluate(context: StepContext) -> None:
+    """Adapts `run_evaluate_job`, which takes the job and run rows and the AI gateway, to the
+    handler shape."""
+    from leadradar.worker.steps.evaluate import run_evaluate_job
+
+    job, run = await _load_job_and_run(context)
+    if context.gateway is None:
+        raise RuntimeError("The EVALUATE step requires the AI gateway")
+    await run_evaluate_job(
+        context.session, job=job, run=run, settings=context.settings, gateway=context.gateway
     )
 
 
 STEP_HANDLERS: Mapping[JobStep, StepHandler] = {
     JobStep.SIGNAL: _run_signal,
     JobStep.SCORE: _run_score,
+    JobStep.EVALUATE: _run_evaluate,
 }

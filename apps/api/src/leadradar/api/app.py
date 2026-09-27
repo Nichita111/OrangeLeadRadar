@@ -83,7 +83,7 @@ def create_app(settings: ApiSettings) -> FastAPI:
     app.include_router(discovery.router, prefix=API_PREFIX)
     app.include_router(feedback_and_alerts.router, prefix=API_PREFIX)
     app.include_router(outreach_and_crm.router, prefix=API_PREFIX)
+    app.include_router(outreach_and_crm.outreach_stub_router, prefix=API_PREFIX)
     app.include_router(prospects_and_evidence.router, prefix=API_PREFIX)
     app.include_router(evaluation.router, prefix=API_PREFIX)
-    app.include_router(evaluation.evaluation_stub_router, prefix=API_PREFIX)
     return app

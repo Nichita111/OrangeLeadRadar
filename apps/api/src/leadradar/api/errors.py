@@ -1,10 +1,11 @@
 """Maps every error onto the `ErrorEnvelope` of
-[Conventions](/architecture/interfaces.md#conventions): an unknown path or a method no contract
-has (`NOT_FOUND`), a declared contract not yet built (`NOT_IMPLEMENTED`), a malformed request
-body or an invalid path, query or body field (`VALIDATION`), and every typed capability error,
-once, at the edge ([coding Errors](/guidelines/coding.md#errors)). An unhandled exception is
-caught by the outermost middleware ([`request_identity.py`](request_identity.py)) instead of a
-registered handler here, because Starlette's `ServerErrorMiddleware` sits outside every layer
+[Conventions](/architecture/interfaces.md#conventions): an unknown path (`NOT_FOUND`), a method
+the path does not accept (`METHOD_NOT_ALLOWED`), a declared contract not yet built
+(`NOT_IMPLEMENTED`), a malformed request body or an invalid path, query or body field
+(`VALIDATION`), and every typed capability error, once, at the edge
+([coding Errors](/guidelines/coding.md#errors)). An unhandled exception is caught by the
+outermost middleware ([`request_identity.py`](request_identity.py)) instead of a registered
+handler here, because Starlette's `ServerErrorMiddleware` sits outside every layer
 `add_middleware` adds and would send its response without `X-Request-Id`.
 """
 
@@ -12,10 +13,10 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import StrEnum
+from http import HTTPStatus
 from uuid import UUID
 
 from fastapi import FastAPI, Request
-from fastapi.exception_handlers import http_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict
@@ -37,7 +38,15 @@ from leadradar.auth.errors import (
     UserNotFound,
 )
 from leadradar.configuration.errors import Conflict, DraftInvalid, NotFound, QuestionInvalid
+from leadradar.evaluation.errors import (
+    ChunkNotFound,
+    QuestionNotFound,
+    ResultNotFound,
+    RevisionNotCurrent,
+    ServiceNotFound,
+)
 from leadradar.feedback.errors import FeedbackError
+from leadradar.outreach.errors import CrmUnavailable, HubspotNotConfigured, ScoreNotFound
 from leadradar.runs.errors import (
     AccountInactive,
     RefreshAccountNotFound,
@@ -138,17 +147,35 @@ _UNAUTHENTICATED_MESSAGE = "Sign-in required."
 
 
 def register_error_handlers(app: FastAPI) -> None:
-    """Registers the `NOT_FOUND`, `NOT_IMPLEMENTED`, `VALIDATION` and every typed capability
-    error's handler, once, at the edge. Every other `HTTPException` goes to Starlette's own
-    default handler."""
+    """Registers every HTTP exception, `NOT_IMPLEMENTED`, `VALIDATION` and every typed capability
+    error's handler, once, at the edge."""
 
     @app.exception_handler(StarletteHTTPException)
     async def handle_http_exception(request: Request, exc: StarletteHTTPException) -> Response:
-        if exc.status_code in (404, 405):
-            return JSONResponse(
-                status_code=404, content=envelope("NOT_FOUND", "The resource does not exist.")
-            )
-        return await http_exception_handler(request, exc)
+        codes = {
+            401: "UNAUTHENTICATED",
+            403: "FORBIDDEN",
+            404: "NOT_FOUND",
+            405: "METHOD_NOT_ALLOWED",
+            409: "CONFLICT",
+            422: "VALIDATION",
+            423: "LOCKED",
+            429: "BUDGET_EXHAUSTED",
+            500: "INTERNAL",
+            503: "UPSTREAM_UNAVAILABLE",
+        }
+        code = codes.get(exc.status_code, "INTERNAL")
+        try:
+            message = HTTPStatus(exc.status_code).phrase
+        except ValueError:
+            message = "HTTP error."
+        if exc.status_code == 404:
+            message = "The resource does not exist."
+        return JSONResponse(
+            status_code=exc.status_code,
+            content=envelope(code, message),
+            headers=exc.headers,
+        )
 
     @app.exception_handler(ContractNotBuilt)
     async def handle_contract_not_built(request: Request, exc: ContractNotBuilt) -> Response:
@@ -245,6 +272,27 @@ def register_error_handlers(app: FastAPI) -> None:
     async def handle_feedback_error(request: Request, exc: FeedbackError) -> Response:
         return JSONResponse(status_code=404, content=envelope("NOT_FOUND", str(exc)))
 
+    @app.exception_handler(HubspotNotConfigured)
+    async def handle_hubspot_not_configured(
+        request: Request, exc: HubspotNotConfigured
+    ) -> Response:
+        return JSONResponse(status_code=409, content=envelope("NOT_CONFIGURED", str(exc)))
+
+    @app.exception_handler(ScoreNotFound)
+    async def handle_outreach_score_not_found(request: Request, exc: ScoreNotFound) -> Response:
+        return JSONResponse(status_code=404, content=envelope("NOT_FOUND", str(exc)))
+
+    @app.exception_handler(CrmUnavailable)
+    async def handle_crm_unavailable(request: Request, exc: CrmUnavailable) -> Response:
+        return JSONResponse(
+            status_code=503,
+            content=envelope(
+                "UPSTREAM_UNAVAILABLE",
+                "HubSpot is unavailable.",
+                {"dependency": "HUBSPOT", "reason": str(exc)},
+            ),
+        )
+
     @app.exception_handler(RunNotFound)
     @app.exception_handler(RefreshAccountNotFound)
     async def handle_run_not_found(request: Request, exc: Exception) -> Response:
@@ -336,3 +384,14 @@ def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(AlertNotFound)
     async def handle_alert_not_found(request: Request, exc: AlertNotFound) -> Response:
         return JSONResponse(status_code=404, content=envelope("NOT_FOUND", str(exc)))
+
+    @app.exception_handler(ServiceNotFound)
+    @app.exception_handler(ChunkNotFound)
+    @app.exception_handler(QuestionNotFound)
+    @app.exception_handler(ResultNotFound)
+    async def handle_evaluation_not_found(request: Request, exc: Exception) -> Response:
+        return JSONResponse(status_code=404, content=envelope("NOT_FOUND", str(exc)))
+
+    @app.exception_handler(RevisionNotCurrent)
+    async def handle_revision_not_current(request: Request, exc: RevisionNotCurrent) -> Response:
+        return JSONResponse(status_code=409, content=envelope("CONFLICT", str(exc)))

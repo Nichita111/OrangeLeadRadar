@@ -71,6 +71,7 @@ async def test_api18_draft_returns_scoring_config_active(
     assert "service_id" in body
     assert "settings" in body
     assert "activated_at" in body
+    assert body["activated_by_name"] == "Admin"
 
 
 # ---------------------------------------------------------------------------

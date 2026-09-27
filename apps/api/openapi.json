@@ -1165,9 +1165,10 @@
       },
       "CrmSyncView": {
         "additionalProperties": false,
-        "description": "[`CrmSyncView`](/architecture/interfaces.md#crmsyncview).",
+        "description": "[`CrmSyncView`](/architecture/interfaces.md#crmsyncview), the response of `API-59`.",
         "properties": {
           "created_at": {
+            "format": "date-time",
             "title": "Created At",
             "type": "string"
           },
@@ -1194,6 +1195,7 @@
             "title": "External Id"
           },
           "id": {
+            "format": "uuid",
             "title": "Id",
             "type": "string"
           },
@@ -1700,10 +1702,12 @@
         "description": "[`EvaluationItem`](/architecture/interfaces.md#evaluationitem).",
         "properties": {
           "chunk_id": {
+            "format": "uuid",
             "title": "Chunk Id",
             "type": "string"
           },
           "created_at": {
+            "format": "date-time",
             "title": "Created At",
             "type": "string"
           },
@@ -1711,6 +1715,7 @@
             "$ref": "#/components/schemas/FindingStrength"
           },
           "id": {
+            "format": "uuid",
             "title": "Id",
             "type": "string"
           },
@@ -1722,6 +1727,7 @@
             "$ref": "#/components/schemas/EvaluationItemOrigin"
           },
           "question_id": {
+            "format": "uuid",
             "title": "Question Id",
             "type": "string"
           },
@@ -1772,12 +1778,13 @@
       },
       "EvaluationResult": {
         "additionalProperties": false,
-        "description": "[`EvaluationResult`](/architecture/interfaces.md#evaluationresult): every field of\n[`EvaluationResultSummary`](#evaluationresultsummary) plus these.",
+        "description": "[`EvaluationResult`](/architecture/interfaces.md#evaluationresult).",
         "properties": {
           "classifier": {
             "$ref": "#/components/schemas/DocumentTriageClassifier"
           },
           "created_at": {
+            "format": "date-time",
             "title": "Created At",
             "type": "string"
           },
@@ -1848,6 +1855,7 @@
             "title": "Recall"
           },
           "run_id": {
+            "format": "uuid",
             "title": "Run Id",
             "type": "string"
           }
@@ -1879,6 +1887,7 @@
             "$ref": "#/components/schemas/DocumentTriageClassifier"
           },
           "created_at": {
+            "format": "date-time",
             "title": "Created At",
             "type": "string"
           },
@@ -1924,6 +1933,7 @@
             "title": "Recall"
           },
           "run_id": {
+            "format": "uuid",
             "title": "Run Id",
             "type": "string"
           }
@@ -2909,9 +2919,10 @@
       },
       "LabelCreate": {
         "additionalProperties": false,
-        "description": "[`LabelCreate`](/architecture/interfaces.md#labelcreate).",
+        "description": "[`LabelCreate`](/architecture/interfaces.md#labelcreate), the request of `API-51`.",
         "properties": {
           "chunk_id": {
+            "format": "uuid",
             "title": "Chunk Id",
             "type": "string"
           },
@@ -2919,6 +2930,7 @@
             "$ref": "#/components/schemas/FindingStrength"
           },
           "question_id": {
+            "format": "uuid",
             "title": "Question Id",
             "type": "string"
           },
@@ -2938,7 +2950,7 @@
       },
       "LabelQueue": {
         "additionalProperties": false,
-        "description": "[`LabelQueue`](/architecture/interfaces.md#labelqueue).",
+        "description": "[`LabelQueue`](/architecture/interfaces.md#labelqueue), the response of `API-50`.",
         "properties": {
           "active_items": {
             "title": "Active Items",
@@ -2972,6 +2984,7 @@
             "$ref": "#/components/schemas/LabelTaskAccount"
           },
           "chunk_id": {
+            "format": "uuid",
             "title": "Chunk Id",
             "type": "string"
           },
@@ -3003,9 +3016,9 @@
       },
       "LabelTaskAccount": {
         "additionalProperties": false,
-        "description": "`LabelTask.account`.",
         "properties": {
           "id": {
+            "format": "uuid",
             "title": "Id",
             "type": "string"
           },
@@ -3023,7 +3036,6 @@
       },
       "LabelTaskDocument": {
         "additionalProperties": false,
-        "description": "`LabelTask.document`.",
         "properties": {
           "language": {
             "title": "Language",
@@ -3032,6 +3044,7 @@
           "published_at": {
             "anyOf": [
               {
+                "format": "date-time",
                 "type": "string"
               },
               {
@@ -3041,8 +3054,15 @@
             "title": "Published At"
           },
           "title": {
-            "title": "Title",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
           },
           "url": {
             "title": "Url",
@@ -3060,12 +3080,12 @@
       },
       "LabelTaskQuestion": {
         "additionalProperties": false,
-        "description": "`LabelTask.question`.",
         "properties": {
           "answer_type": {
             "$ref": "#/components/schemas/SignalQuestionAnswerType"
           },
           "id": {
+            "format": "uuid",
             "title": "Id",
             "type": "string"
           },
@@ -3077,7 +3097,8 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/QuestionOption"
+                  "additionalProperties": true,
+                  "type": "object"
                 },
                 "type": "array"
               },
@@ -6872,14 +6893,15 @@
     },
     "/api/v1/accounts/{id}/scores/{service_id}/crm-push": {
       "post": {
-        "description": "`API-59`.",
-        "operationId": "push_to_crm_api_v1_accounts__id__scores__service_id__crm_push_post",
+        "description": "`API-59`: pushes the account's current score for the service to HubSpot and records the\noutcome in [`crm_sync`](/architecture/sql-store.md#crm_sync).",
+        "operationId": "post_crm_push_api_v1_accounts__id__scores__service_id__crm_push_post",
         "parameters": [
           {
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Id",
               "type": "string"
             }
@@ -6889,8 +6911,25 @@
             "name": "service_id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Service Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -6916,7 +6955,7 @@
             "description": "Error"
           }
         },
-        "summary": "Push To Crm",
+        "summary": "Post Crm Push",
         "tags": [
           "outreach-and-crm"
         ]
@@ -8016,8 +8055,8 @@
     },
     "/api/v1/evaluation/items": {
       "get": {
-        "description": "`API-52`.",
-        "operationId": "list_evaluation_items_api_v1_evaluation_items_get",
+        "description": "`API-52`, Admin only.",
+        "operationId": "get_evaluation_items_api_v1_evaluation_items_get",
         "parameters": [
           {
             "in": "query",
@@ -8026,6 +8065,7 @@
             "schema": {
               "anyOf": [
                 {
+                  "format": "uuid",
                   "type": "string"
                 },
                 {
@@ -8073,6 +8113,7 @@
             "required": false,
             "schema": {
               "default": 1,
+              "minimum": 1,
               "title": "Page",
               "type": "integer"
             }
@@ -8084,6 +8125,7 @@
             "schema": {
               "anyOf": [
                 {
+                  "minimum": 1,
                   "type": "integer"
                 },
                 {
@@ -8091,6 +8133,22 @@
                 }
               ],
               "title": "Page Size"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -8116,14 +8174,32 @@
             "description": "Error"
           }
         },
-        "summary": "List Evaluation Items",
+        "summary": "Get Evaluation Items",
         "tags": [
           "evaluation"
         ]
       },
       "post": {
-        "description": "`API-51`.",
-        "operationId": "create_label_api_v1_evaluation_items_post",
+        "description": "`API-51`: writes the `MANUAL` item for the passage, question and revision, updating the\npair's active item in place, whatever its origin, or writing one when none exists (D9).",
+        "operationId": "post_evaluation_item_api_v1_evaluation_items_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -8156,7 +8232,7 @@
             "description": "Error"
           }
         },
-        "summary": "Create Label",
+        "summary": "Post Evaluation Item",
         "tags": [
           "evaluation"
         ]
@@ -8164,7 +8240,7 @@
     },
     "/api/v1/evaluation/label-queue": {
       "get": {
-        "description": "`API-50`.",
+        "description": "`API-50`: the label queue of [Evaluation metrics]\n(/architecture/rules.md#evaluation-metrics). A task never shows the classifier's answer.",
         "operationId": "get_label_queue_api_v1_evaluation_label_queue_get",
         "parameters": [
           {
@@ -8172,8 +8248,25 @@
             "name": "service_id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Service Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -8207,8 +8300,26 @@
     },
     "/api/v1/evaluation/results": {
       "get": {
-        "description": "`API-54`.",
-        "operationId": "list_evaluation_results_api_v1_evaluation_results_get",
+        "description": "`API-54`: every quality check, newest first (D8).",
+        "operationId": "get_evaluation_results_api_v1_evaluation_results_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -8217,7 +8328,7 @@
                   "items": {
                     "$ref": "#/components/schemas/EvaluationResultSummary"
                   },
-                  "title": "Response List Evaluation Results Api V1 Evaluation Results Get",
+                  "title": "Response Get Evaluation Results Api V1 Evaluation Results Get",
                   "type": "array"
                 }
               }
@@ -8235,7 +8346,7 @@
             "description": "Error"
           }
         },
-        "summary": "List Evaluation Results",
+        "summary": "Get Evaluation Results",
         "tags": [
           "evaluation"
         ]
@@ -8251,8 +8362,25 @@
             "name": "run_id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Run Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -8286,9 +8414,37 @@
     },
     "/api/v1/evaluation/runs": {
       "post": {
-        "description": "`API-53`.",
-        "operationId": "start_evaluation_run_api_v1_evaluation_runs_post",
+        "description": "`API-53`: one queued or running evaluation at a time (D2): `202` with a new run, or `200`\nwith the one already queued or running.",
+        "operationId": "post_evaluation_run_api_v1_evaluation_runs_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Run"
+                }
+              }
+            },
+            "description": "The evaluation already queued"
+          },
           "202": {
             "content": {
               "application/json": {
@@ -8310,7 +8466,7 @@
             "description": "Error"
           }
         },
-        "summary": "Start Evaluation Run",
+        "summary": "Post Evaluation Run",
         "tags": [
           "evaluation"
         ]

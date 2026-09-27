@@ -15,6 +15,7 @@ import sys
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
+from leadradar.ai.gateway import AiGateway, build_ai_http_client
 from leadradar.clock import build_clock
 from leadradar.db.session import build_engine
 from leadradar.logs import configure_json_logging
@@ -42,7 +43,8 @@ async def _serve(settings: WorkerSettings) -> None:
     clock = build_clock(settings)
     instance = f"{socket.gethostname()}:{os.getpid()}"
     try:
-        async with asyncio.TaskGroup() as loops:
+        async with build_ai_http_client(settings) as http, asyncio.TaskGroup() as loops:
+            gateway = AiGateway(settings, http=http, sessions=session_factory)
             for index in range(settings.worker_concurrency):
                 loops.create_task(
                     run_job_loop(
@@ -52,6 +54,7 @@ async def _serve(settings: WorkerSettings) -> None:
                         clock=clock,
                         worker_id=f"{instance}:{index}",
                         stop=stop,
+                        gateway=gateway,
                     )
                 )
             loops.create_task(

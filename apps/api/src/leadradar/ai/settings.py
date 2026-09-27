@@ -50,3 +50,14 @@ class AiGatewaySettings(BaseSettings):
     #: [api Runtime](/architecture/services/api.md#runtime): public base URL of the frontend,
     #: used in HubSpot links and the crawler's user agent, so both processes read it from here.
     app_base_url: str = "http://localhost:8080"
+
+    #: [worker Runtime](/architecture/services/worker.md#runtime) "Classification, evidence and
+    #: scoring", read by the api as well (D7 of `.work/labelling-and-quality/design.md`): the
+    #: escalation band and the kept-document threshold, for the worker's SIGNAL step and the
+    #: api's label queue; and `EVAL_MIN_ITEMS`, for the worker's EVALUATE step and the label
+    #: queue's `LabelQueue.min_items`. Declared once here rather than in each process's own
+    #: settings, since both need every one of them.
+    escalation_lower: float = 0.35
+    escalation_upper: float = 0.65
+    triage_relevance_min_p: float = 0.3
+    eval_min_items: int = 200

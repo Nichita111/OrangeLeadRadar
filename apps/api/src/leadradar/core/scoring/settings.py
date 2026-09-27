@@ -166,9 +166,7 @@ def add_question(document: ScoringSettings, question_key: str) -> ScoringSetting
     return document.model_copy(update={"questions": [*document.questions, joined]})
 
 
-def remove_question(
-    document: ScoringSettings, question_key: str
-) -> ScoringSettings:
+def remove_question(document: ScoringSettings, question_key: str) -> ScoringSettings:
     """`document.questions` with `question_key` removed ([FL-01]
     (/features/service-configuration.md#fl-01-define-a-service-and-its-signal-questions) step 4,
     `API-13` deactivation)."""

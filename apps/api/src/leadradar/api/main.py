@@ -34,7 +34,7 @@ def apply_migrations(settings: ApiSettings) -> None:
 
 
 def run() -> None:
-    """`leadradar-api`: applies migrations, then serves `create_app(settings)` on port 8000."""
+    """`leadradar-api`: applies migrations, then serves `create_app(settings)`."""
     configure_json_logging("INFO")
     try:
         settings = ApiSettings()
@@ -51,7 +51,9 @@ def run() -> None:
 
     import uvicorn
 
-    uvicorn.run(create_app(settings), host="0.0.0.0", port=8000, log_config=None)
+    uvicorn.run(
+        create_app(settings), host=settings.api_host, port=settings.api_port, log_config=None
+    )
 
 
 if __name__ == "__main__":

@@ -192,13 +192,12 @@ async def test_an_unknown_path_answers_404_with_the_not_found_envelope(
     assert request_lines[0]["request_id"] == request_id
 
 
-async def test_a_method_with_no_contract_answers_the_not_found_envelope(
+async def test_a_path_with_no_contract_answers_the_not_found_envelope(
     client: httpx.AsyncClient,
 ) -> None:
-    """[Conventions](/architecture/interfaces.md#conventions) Envelope: `NOT_FOUND` also covers a
-    request whose method and path no contract has. The CSRF header is sent so the request reaches
-    routing instead of being refused by `CsrfMiddleware`."""
-    response = await client.post("/api/v1/health", headers={"X-Requested-With": "XMLHttpRequest"})
+    """[Conventions](/architecture/interfaces.md#conventions) Envelope: `NOT_FOUND` covers a
+    request whose path no contract has."""
+    response = await client.get("/api/v1/no-such-contract")
 
     assert response.status_code == 404
     assert response.json() == {

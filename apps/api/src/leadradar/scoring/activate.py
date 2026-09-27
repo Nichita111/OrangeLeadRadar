@@ -16,19 +16,28 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
 
+from pydantic import ValidationError
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from leadradar.audit.events import write_run_requested, write_scoring_activated
+from leadradar.audit.events import append_audit_event
+from leadradar.configuration import queries
+from leadradar.configuration.errors import DraftInvalid
 from leadradar.core.enums import (
+    AuditAction,
     JobStatus,
     JobStep,
     PipelineRunKind,
     PipelineRunStatus,
     PipelineRunTrigger,
     ScoringConfigStatus,
+)
+from leadradar.core.scoring.settings import (
+    FieldError,
+    ScoringSettings,
+    validate_scoring_settings,
 )
 from leadradar.db.models.configuration import ScoringConfig
 from leadradar.db.models.ingestion import Job, PipelineRun
@@ -60,17 +69,13 @@ async def activate_scoring_config(
     config_id: uuid.UUID,
     actor_id: uuid.UUID,
     change_note: str,
-    request_id: str | None,
-    now: datetime | None = None,
+    now: datetime,
 ) -> ActivationResult:
     """Activate a DRAFT scoring config in one transaction.
 
     Raises `NotADraft` when the target config is not DRAFT.
     Raises `ScoringConfigNotFound` when the config does not exist.
     """
-    if now is None:
-        now = datetime.now(tz=UTC)
-
     # Load the target config
     row = await session.get(ScoringConfig, config_id)
     if row is None:
@@ -79,6 +84,22 @@ async def activate_scoring_config(
         raise NotADraft(str(config_id), row.status.value)
 
     service_id = row.service_id
+    try:
+        document = ScoringSettings.model_validate(row.settings)
+    except ValidationError as exc:
+        raise DraftInvalid(
+            [
+                FieldError("/" + "/".join(str(part) for part in error["loc"]), error["msg"])
+                for error in exc.errors()
+            ]
+        ) from None
+    violations = validate_scoring_settings(
+        document,
+        active_question_keys=await queries.active_question_keys(session, service_id),
+        active_industry_codes=await queries.active_industry_codes(session),
+    )
+    if violations:
+        raise DraftInvalid(violations)
 
     # Find the current ACTIVE version (if any) to retire it and record previous_version
     stmt_active = select(ScoringConfig).where(
@@ -110,14 +131,18 @@ async def activate_scoring_config(
     )
 
     # Write SCORING_ACTIVATED audit
-    await write_scoring_activated(
+    await append_audit_event(
         session,
+        action=AuditAction.SCORING_ACTIVATED,
+        occurred_at=now,
         actor_id=actor_id,
-        scoring_config_id=config_id,
-        version=row.version,
-        previous_version=previous_version,
-        change_note=change_note,
-        request_id=request_id,
+        entity_type="scoring_config",
+        entity_id=config_id,
+        payload={
+            "version": row.version,
+            "previous_version": previous_version,
+            "change_note": change_note,
+        },
     )
 
     # Create RESCORE pipeline_run
@@ -159,13 +184,18 @@ async def activate_scoring_config(
     )
 
     # Write RUN_REQUESTED audit
-    await write_run_requested(
+    await append_audit_event(
         session,
+        action=AuditAction.RUN_REQUESTED,
+        occurred_at=now,
         actor_id=actor_id,
+        entity_type="pipeline_run",
+        entity_id=run_id,
         run_id=run_id,
-        kind=PipelineRunKind.RESCORE.value,
-        trigger=PipelineRunTrigger.SCORING_ACTIVATION.value,
-        request_id=request_id,
+        payload={
+            "kind": PipelineRunKind.RESCORE.value,
+            "trigger": PipelineRunTrigger.SCORING_ACTIVATION.value,
+        },
     )
 
     # Reload to return the updated row

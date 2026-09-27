@@ -155,9 +155,9 @@ describe("New user and Edit (FR-096, FR-007)", () => {
     arrangeUsers([anaSales, olgaAdmin]);
     const bodies: Schemas["UserUpdate"][] = [];
     server.use(
-      http.patch("/api/v1/users/{user_id}", async ({ request, params, response }) => {
+      http.patch("/api/v1/users/{id}", async ({ request, params, response }) => {
         bodies.push(await request.json());
-        expect(params.user_id).toBe(anaSales.id);
+        expect(params.id).toBe(anaSales.id);
         return response(200).json({ ...anaSales, display_name: "Ana S." });
       }),
     );
@@ -299,7 +299,7 @@ describe("Disable and Enable (FR-097, FR-158, FR-015)", () => {
     arrangeUsers([anaSales, olgaAdmin]);
     const bodies: Schemas["UserUpdate"][] = [];
     server.use(
-      http.patch("/api/v1/users/{user_id}", async ({ request, response }) => {
+      http.patch("/api/v1/users/{id}", async ({ request, response }) => {
         bodies.push(await request.json());
         return response(200).json({ ...anaSales, status: "DISABLED" });
       }),
@@ -335,7 +335,7 @@ describe("Disable and Enable (FR-097, FR-158, FR-015)", () => {
     arrangeUsers([olgaAdmin, disabledUser]);
     const bodies: Schemas["UserUpdate"][] = [];
     server.use(
-      http.patch("/api/v1/users/{user_id}", async ({ request, response }) => {
+      http.patch("/api/v1/users/{id}", async ({ request, response }) => {
         bodies.push(await request.json());
         return response(200).json({ ...disabledUser, status: "ACTIVE" });
       }),

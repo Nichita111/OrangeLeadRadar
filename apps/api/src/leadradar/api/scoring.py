@@ -22,7 +22,7 @@ from leadradar.api.authentication import require_admin
 from leadradar.api.configuration import ScoringConfig
 from leadradar.api.errors import envelope
 from leadradar.api.router_utils import stub_router
-from leadradar.core.enums import AccountScoreBand, AccountScoreStanding, ScoringConfigStatus
+from leadradar.core.enums import AccountScoreBand, AccountScoreStanding
 from leadradar.db.models.identity import AppUser
 from leadradar.db.session import get_session
 from leadradar.scoring.activate import activate_scoring_config
@@ -111,17 +111,13 @@ async def activate_scoring_config_route(
     `409 CONFLICT` when the config is not DRAFT. `422` when `change_note` is missing.
     `403 FORBIDDEN` for non-Admin.
     """
-    request_id: str | None = (
-        request.state.request_id if hasattr(request.state, "request_id") else None
-    )
-
     try:
         result = await activate_scoring_config(
             session,
             config_id=id,
             actor_id=admin.id,
             change_note=body.change_note,
-            request_id=request_id,
+            now=request.app.state.clock(),
         )
     except ScoringConfigNotFound:
         return JSONResponse(
@@ -153,8 +149,7 @@ async def activate_scoring_config_route(
         status=result.status,
         change_note=result.change_note,
         activated_at=activated_at_str,
-        # display_name lookup deferred to service-configuration task
-        activated_by_name=None,
+        activated_by_name=admin.display_name,
         settings=result.settings,
     )
     return JSONResponse(status_code=200, content=response.model_dump(mode="json"))
