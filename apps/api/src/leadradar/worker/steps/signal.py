@@ -61,6 +61,7 @@ from leadradar.core.signal.triage import (
     ABOUT_ACCOUNT_QUESTION_ID,
     RELEVANT_QUESTION_PREFIX,
     TriageResult,
+    about_account_question,
     is_own_source,
     triage,
 )
@@ -169,19 +170,16 @@ async def _node_triage(state: SignalBatch, session: AsyncSession) -> None:
 
         # Build classifier questions for triage
         triage_questions: list[ClassifierQuestion] = []
-        if not own_source:
-            ctx_name = state.account_name
-            ctx_domain = state.account_domain
-            ctx_country = state.account_country_code or ""
+        about_text = about_account_question(
+            doc["plugin_code"],
+            name=state.account_name,
+            domain=state.account_domain,
+            country=state.account_country_code or "",
+        )
+        if about_text is not None:
             triage_questions.append(
                 ClassifierQuestion(
-                    id=ABOUT_ACCOUNT_QUESTION_ID,
-                    kind="YES_NO",
-                    text=(
-                        f"Is this text mainly about {ctx_name} ({ctx_domain}, {ctx_country}),"
-                        f" not a different company with a similar name and not a passing mention?"
-                    ),
-                    options=None,
+                    id=ABOUT_ACCOUNT_QUESTION_ID, kind="YES_NO", text=about_text, options=None
                 )
             )
 

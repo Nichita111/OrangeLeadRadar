@@ -125,7 +125,7 @@ Each ranking contributes its first `RETRIEVAL_CANDIDATES` passages. A passage's 
 
 **Algorithm.** One [classifier](/architecture/interfaces.md#classifier) call over the document title and its first `TRIAGE_CHARS` characters, with these yes/no questions:
 
-- `ABOUT_ACCOUNT`: "Is this text mainly about {name} ({domain}, {country}), not a different company with a similar name and not a passing mention?" — skipped for a document from one of the account's own sources or from `CAREERS` or `CRUNCHBASE`, which are about the account by construction.
+- `ABOUT_ACCOUNT`: "Is this text mainly about {name} ({domain}, {country}), not a different company with a similar name and not a passing mention?" — skipped for a document from one of the account's own sources or from `CRUNCHBASE`, which are about the account by construction. For a `CAREERS` document it is instead "Is this text one or more job postings of {name} ({domain}, {country}), not a sign-in, account or other page of the careers site?", since a crawled careers site also links pages that are not postings.
 - One `RELEVANT` question per active service: "Could this text matter for whether {name} might need this service: {service description}?"
 
 The outcome is `NOT_ABOUT_ACCOUNT` when the probability of `ABOUT_ACCOUNT` is below `TRIAGE_ABOUT_MIN_P`; else `IRRELEVANT` when every service's relevance is below `TRIAGE_RELEVANCE_MIN_P`; else `KEPT` for the services at or above it. Triage never escalates: its thresholds are set for recall, and precision is the job of [Signal classification](#signal-classification).

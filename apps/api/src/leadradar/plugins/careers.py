@@ -14,7 +14,7 @@ from bs4 import BeautifulSoup
 
 from leadradar.core.enums import AccountSourceKind, DocumentSourceType, SourcePluginCode
 from leadradar.plugins.errors import PluginFetchFailed
-from leadradar.plugins.http import CrawlHttpClient, RobotsDisallowed
+from leadradar.plugins.http import CrawlHttpClient, RobotsDisallowed, fetched_content_type
 from leadradar.plugins.shapes import FetchContext, RawItem
 
 logger = logging.getLogger(__name__)
@@ -125,7 +125,7 @@ async def _crawl(source_url: str, client: CrawlHttpClient, max_pages: int) -> li
         except (RobotsDisallowed, PluginFetchFailed) as error:
             logger.info("CAREERS posting skipped: %s", error)
             continue
-        if not response.is_success:
+        if not response.is_success or fetched_content_type(response) != "HTML":
             continue
         posting_soup = BeautifulSoup(response.text, "html.parser")
         title = (

@@ -315,6 +315,70 @@ async def test_careers_stores_its_postings(connection: AsyncConnection, web: Web
     )
 
 
+#: A PNG's first bytes: NUL bytes that PostgreSQL text refuses, so storing one as text fails.
+PNG = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01" * 20
+
+
+async def test_website_skips_a_linked_page_that_is_not_html(
+    connection: AsyncConnection, web: Web
+) -> None:
+    web.add("https://acme-test.com/news/logo", PNG, kind="png")
+    web.add("https://acme-test.com/news/one", html("Newsroom item"))
+    web.add("https://acme-test.com/news", html("Newsroom", ["/news/logo", "/news/one"]))
+    scene_ = await scene(
+        connection,
+        fetch=[SourcePluginCode.WEBSITE],
+        sources=[(AccountSourceKind.NEWSROOM, "https://acme-test.com/news")],
+    )
+
+    await drain(connection, settings())
+
+    stored = await documents(connection, scene_)
+    assert sorted(d.url for d in stored) == [
+        "https://acme-test.com/news",
+        "https://acme-test.com/news/one",
+    ]
+
+
+async def test_careers_skips_a_crawled_posting_that_is_not_html(
+    connection: AsyncConnection, web: Web
+) -> None:
+    web.add("https://jobs.acme-test.com/share", PNG, kind="png")
+    web.add("https://jobs.acme-test.com/job/1", html("Hub manager"))
+    web.add("https://jobs.acme-test.com/", html("Careers", ["/share", "/job/1"]))
+    scene_ = await scene(
+        connection,
+        fetch=[SourcePluginCode.CAREERS],
+        sources=[(AccountSourceKind.CAREERS, "https://jobs.acme-test.com/")],
+    )
+
+    await drain(connection, settings())
+
+    [document] = await documents(connection, scene_)
+    assert (document.url, document.source_type) == (
+        "https://jobs.acme-test.com/job/1",
+        DocumentSourceType.JOB_POSTING,
+    )
+
+
+async def test_gdelt_skips_an_article_that_is_not_html(
+    connection: AsyncConnection, web: Web
+) -> None:
+    web.add(
+        GDELT_SEARCH,
+        gdelt_articles(["https://news.example.org/photo", "https://news.example.org/a1"]),
+        kind="json",
+    )
+    web.add("https://news.example.org/photo", PNG, kind="png")
+    web.add("https://news.example.org/a1", html("First story"))
+    scene_ = await scene(connection, fetch=[SourcePluginCode.GDELT])
+
+    await drain(connection, settings())
+
+    [document] = await documents(connection, scene_)
+    assert document.url == "https://news.example.org/a1"
+
+
 # --- idempotency and deduplication ------------------------------------------------------------
 
 

@@ -13,7 +13,7 @@ from bs4 import BeautifulSoup
 
 from leadradar.core.enums import AccountSourceKind, DocumentSourceType, SourcePluginCode
 from leadradar.plugins.errors import PluginFetchFailed
-from leadradar.plugins.http import CrawlHttpClient, RobotsDisallowed
+from leadradar.plugins.http import CrawlHttpClient, RobotsDisallowed, fetched_content_type
 from leadradar.plugins.shapes import FetchContext, RawItem
 
 logger = logging.getLogger(__name__)
@@ -62,7 +62,7 @@ class WebsitePlugin:
                 except (RobotsDisallowed, PluginFetchFailed) as error:
                     logger.info("WEBSITE page skipped: %s", error)
                     continue
-                if not response.is_success:
+                if not response.is_success or fetched_content_type(response) != "HTML":
                     continue
                 pages += 1
                 soup = BeautifulSoup(response.text, "html.parser")
@@ -98,7 +98,7 @@ class WebsitePlugin:
             except (RobotsDisallowed, PluginFetchFailed) as error:
                 logger.info("WEBSITE PDF skipped: %s", error)
                 continue
-            if not response.is_success:
+            if not response.is_success or fetched_content_type(response) != "PDF":
                 continue
             items.append(
                 RawItem(

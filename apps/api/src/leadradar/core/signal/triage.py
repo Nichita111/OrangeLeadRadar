@@ -12,11 +12,11 @@ from leadradar.core.enums import DocumentTriageOutcome, SourcePluginCode
 
 # Sources that are about the account by construction: the plug-ins that read the account's
 # own pages ([`account_source`](/architecture/sql-store.md#account_source)) and CRUNCHBASE.
+# CAREERS is not one: its crawl also reaches pages of the careers site that are not postings.
 _OWN_SOURCES: frozenset[SourcePluginCode] = frozenset(
     {
         SourcePluginCode.WEBSITE,
         SourcePluginCode.RSS,
-        SourcePluginCode.CAREERS,
         SourcePluginCode.CRUNCHBASE,
     }
 )
@@ -29,6 +29,25 @@ def is_own_source(plugin_code: SourcePluginCode | str) -> bool:
 
 ABOUT_ACCOUNT_QUESTION_ID = "ABOUT_ACCOUNT"
 RELEVANT_QUESTION_PREFIX = "RELEVANT_"
+
+
+def about_account_question(
+    plugin_code: SourcePluginCode | str, *, name: str, domain: str, country: str
+) -> str | None:
+    """The `ABOUT_ACCOUNT` question's text for a document from `plugin_code`: whether a
+    `CAREERS` document is a job posting, whether any other is mainly about the account, and
+    `None` for an own source, which is not asked."""
+    if is_own_source(plugin_code):
+        return None
+    if plugin_code == SourcePluginCode.CAREERS:
+        return (
+            f"Is this text one or more job postings of {name} ({domain}, {country}),"
+            " not a sign-in, account or other page of the careers site?"
+        )
+    return (
+        f"Is this text mainly about {name} ({domain}, {country}),"
+        " not a different company with a similar name and not a passing mention?"
+    )
 
 
 @dataclass(frozen=True)

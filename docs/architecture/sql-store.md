@@ -504,7 +504,7 @@ The triage decision for one document ([Triage](/architecture/rules.md#triage)).
 | `classifier` | enum: `JEV`, `LLM` | The classifier adapter that answered: Jev, or the LLM structured-output adapter ([ADR-02](/architecture/adrs/adr-02-classification-cascade.md)). |
 | `about_account_p` | numeric 0–1, null | Probability that the document is about its account; null when skipped for a document from the account's own source. |
 | `service_relevance` | jsonb | Object: service id → probability 0–1 that the document is relevant to that service. |
-| `outcome` | enum: `KEPT`, `NOT_ABOUT_ACCOUNT`, `IRRELEVANT` | `KEPT`: its passages are classified for each service whose relevance passed. `NOT_ABOUT_ACCOUNT`: about another company or only mentions it. `IRRELEVANT`: relevant to no active service. |
+| `outcome` | enum: `KEPT`, `NOT_ABOUT_ACCOUNT`, `IRRELEVANT` | `KEPT`: its passages are classified for each service whose relevance passed. `NOT_ABOUT_ACCOUNT`: about another company or only mentions it, or a `CAREERS` page that is not a job posting. `IRRELEVANT`: relevant to no active service. |
 
 ### classification
 

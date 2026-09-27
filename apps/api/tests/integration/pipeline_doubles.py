@@ -54,7 +54,12 @@ class Web:
     def add(
         self, prefix: str, content: str | bytes | object, *, status: int = 200, kind: str = "html"
     ) -> None:
-        content_type = {"html": "text/html", "json": "application/json", "xml": "text/xml"}[kind]
+        content_type = {
+            "html": "text/html",
+            "json": "application/json",
+            "xml": "text/xml",
+            "png": "image/png",
+        }[kind]
         body = (
             content
             if isinstance(content, bytes)

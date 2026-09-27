@@ -103,10 +103,30 @@ def test_jev_answers_become_probabilities_over_the_answer_keys() -> None:
     answers = validate_answers(REQUEST, JEV.answers(REQUEST, payload))
 
     assert answers[0].probabilities == pytest.approx({"YES": 0.8, "NO": 0.2})
-    assert answers[1].probabilities == {"NONE": 0.1, "WEAK": 0.2, "MEDIUM": 0.6, "STRONG": 0.1}
-    assert answers[2].probabilities == {"RPA": 0.7, "NO_TOOL": 0.3}
+    assert answers[1].probabilities == pytest.approx(
+        {"NONE": 0.1, "WEAK": 0.2, "MEDIUM": 0.6, "STRONG": 0.1}
+    )
+    assert answers[2].probabilities == pytest.approx({"RPA": 0.7, "NO_TOOL": 0.3})
     usage = JEV.usage(payload)
     assert (usage.input_tokens, usage.output_tokens, usage.cost_usd) == (120, 3, 0.0004)
+
+
+def test_jev_probabilities_rounded_to_two_decimals_are_normalised_to_sum_to_one() -> None:
+    """A recorded Jev answer: `0.68 + 0.23 + 0.08` is `0.99`, outside the port's tolerance."""
+    payload = {
+        "answers": {
+            "q1": {"type": "noul", "noul": 0.58},
+            "q2": {"type": "score", "probabilities": {"0": 0.68, "1": 0.23, "2": 0.08, "3": 0.0}},
+            "q3": {"type": "choice", "probabilities": {"RPA": 0.51, "NO_TOOL": 0.5}},
+        }
+    }
+
+    answers = validate_answers(REQUEST, JEV.answers(REQUEST, payload))
+
+    assert answers[1].probabilities == pytest.approx(
+        {"NONE": 0.68 / 0.99, "WEAK": 0.23 / 0.99, "MEDIUM": 0.08 / 0.99, "STRONG": 0.0}
+    )
+    assert answers[2].probabilities == pytest.approx({"RPA": 0.51 / 1.01, "NO_TOOL": 0.5 / 1.01})
 
 
 def test_a_jev_answer_without_probabilities_is_invalid_output() -> None:

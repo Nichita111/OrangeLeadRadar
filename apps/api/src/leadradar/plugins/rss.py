@@ -16,7 +16,7 @@ import feedparser
 from leadradar.core.account_identity import InvalidDomain, normalise_domain
 from leadradar.core.enums import AccountSourceKind, DocumentSourceType, SourcePluginCode
 from leadradar.plugins.errors import PluginFetchFailed
-from leadradar.plugins.http import CrawlHttpClient, RobotsDisallowed
+from leadradar.plugins.http import CrawlHttpClient, RobotsDisallowed, fetched_content_type
 from leadradar.plugins.shapes import FetchContext, RawItem
 
 logger = logging.getLogger(__name__)
@@ -100,7 +100,7 @@ class RssPlugin:
                 except (RobotsDisallowed, PluginFetchFailed) as error:
                     logger.info("RSS item skipped: %s", error)
                     continue
-                if not page.is_success:
+                if not page.is_success or fetched_content_type(page) != "HTML":
                     continue
                 items.append(
                     RawItem(
