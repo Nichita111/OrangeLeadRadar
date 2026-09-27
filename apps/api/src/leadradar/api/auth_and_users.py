@@ -1,7 +1,7 @@
 """Router of the [Authentication and users](/architecture/interfaces.md#authentication-and-users)
-family: `API-01` to `API-06`, each built here; `API-78` is a declared stub answering
-`501 NOT_IMPLEMENTED` until task 2 builds it. Each built route validates its input into a
-Pydantic model, calls one `auth` capability function, and shapes the response
+family: `API-01` to `API-06` and `API-79` to `API-83`, each built here; `API-78` is a declared
+stub answering `501 NOT_IMPLEMENTED` until task 2 builds it. Each built route validates its
+input into a Pydantic model, calls one `auth` capability function, and shapes the response
 (api Design "Layering")."""
 
 from __future__ import annotations
@@ -22,6 +22,15 @@ from leadradar.api.authentication import (
 )
 from leadradar.api.constants import API_PREFIX
 from leadradar.api.router_utils import stub_router
+from leadradar.auth.errors import InviteNotFound
+from leadradar.auth.invites import (
+    InviteView,
+    accept_invite,
+    create_invite,
+    list_pending_invites,
+    preview_invite,
+    revoke_invite,
+)
 from leadradar.auth.sessions import sign_in, sign_out
 from leadradar.auth.users import (
     UserCreateData,
@@ -31,6 +40,7 @@ from leadradar.auth.users import (
     update_user,
 )
 from leadradar.core.enums import AppUserRole, AppUserStatus
+from leadradar.core.invites import invite_link
 from leadradar.db.models.identity import AppUser
 from leadradar.db.session import get_session
 from leadradar.settings import ApiSettings
@@ -105,6 +115,88 @@ class UserUpdate(BaseModel):
     role: AppUserRole = None
     status: AppUserStatus = None
     password: SecretStr = None
+
+
+class InviteCreate(BaseModel):
+    """[`InviteCreate`](/architecture/interfaces.md#invitecreate)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    email: str
+    role: AppUserRole
+
+
+class Invite(BaseModel):
+    """[`Invite`](/architecture/interfaces.md#invite)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    id: uuid.UUID
+    email: str
+    role: AppUserRole
+    invited_by: str
+    created_at: datetime
+    expires_at: datetime
+
+
+class InviteCreated(BaseModel):
+    """[`InviteCreated`](/architecture/interfaces.md#invitecreated)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    invite: Invite
+    link: str
+
+
+class InviteToken(BaseModel):
+    """[`InviteToken`](/architecture/interfaces.md#invitetoken)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    token: SecretStr
+
+
+class InvitePreview(BaseModel):
+    """[`InvitePreview`](/architecture/interfaces.md#invitepreview)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    email: str
+    role: AppUserRole
+    invited_by: str
+    created_at: datetime
+    expires_at: datetime
+    password_min_length: int
+
+
+class InviteAccept(BaseModel):
+    """[`InviteAccept`](/architecture/interfaces.md#inviteaccept). `password`'s minimum is
+    enforced once, by `auth.users.add_user` (`UserCreate`'s note)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    token: SecretStr
+    display_name: str
+    password: SecretStr
+
+
+def _invite_token(token: SecretStr) -> bytes:
+    """The token as the link's fragment carries it, hex; anything else names no invite."""
+    try:
+        return bytes.fromhex(token.get_secret_value())
+    except ValueError:
+        raise InviteNotFound from None
+
+
+def _to_invite(view: InviteView) -> Invite:
+    return Invite(
+        id=view.invite.id,
+        email=view.invite.email,
+        role=view.invite.role,
+        invited_by=view.invited_by,
+        created_at=view.invite.created_at,
+        expires_at=view.invite.expires_at,
+    )
 
 
 def _to_authenticated_user(user: AppUser) -> AuthenticatedUser:
@@ -196,6 +288,45 @@ def build_auth_router(settings: ApiSettings) -> APIRouter:
     async def me(user: AppUser = Depends(current_user)) -> AuthenticatedUser:
         return _to_authenticated_user(user)
 
+    @router.post("/auth/invite", response_model=InvitePreview)
+    async def preview_invite_route(
+        payload: InviteToken, request: Request, db: AsyncSession = Depends(get_session)
+    ) -> InvitePreview:
+        view = await preview_invite(
+            db, token=_invite_token(payload.token), now=request.app.state.clock()
+        )
+        return InvitePreview(
+            email=view.invite.email,
+            role=view.invite.role,
+            invited_by=view.invited_by,
+            created_at=view.invite.created_at,
+            expires_at=view.invite.expires_at,
+            password_min_length=settings.password_min_length,
+        )
+
+    @router.post("/auth/invite/accept", response_model=AuthenticatedUser)
+    async def accept_invite_route(
+        payload: InviteAccept,
+        request: Request,
+        response: Response,
+        db: AsyncSession = Depends(get_session),
+    ) -> AuthenticatedUser:
+        session_token = secrets.token_bytes(32)
+        user = await accept_invite(
+            db,
+            token=_invite_token(payload.token),
+            display_name=payload.display_name,
+            password=payload.password.get_secret_value(),
+            now=request.app.state.clock(),
+            session_token=session_token,
+            password_min_length=settings.password_min_length,
+            max_failures=settings.login_max_failures,
+            lock_minutes=settings.login_lock_minutes,
+            session_ttl_hours=settings.session_ttl_hours,
+        )
+        _set_session_cookie(response, session_token, settings)
+        return _to_authenticated_user(user)
+
     return router
 
 
@@ -256,6 +387,45 @@ def build_users_router(settings: ApiSettings) -> APIRouter:
             password_min_length=settings.password_min_length,
         )
         return _to_user(user)
+
+    @router.post("/invites", response_model=InviteCreated, status_code=200)
+    async def create_invite_route(
+        payload: InviteCreate,
+        request: Request,
+        admin: AppUser = Depends(require_admin),
+        db: AsyncSession = Depends(get_session),
+    ) -> InviteCreated:
+        token = secrets.token_bytes(32)
+        view = await create_invite(
+            db,
+            actor_id=admin.id,
+            email=payload.email,
+            role=payload.role,
+            token=token,
+            now=request.app.state.clock(),
+            ttl_hours=settings.invite_ttl_hours,
+        )
+        return InviteCreated(
+            invite=_to_invite(view), link=invite_link(settings.app_base_url, token)
+        )
+
+    @router.get("/invites", response_model=list[Invite])
+    async def get_invites(
+        request: Request, db: AsyncSession = Depends(get_session)
+    ) -> list[Invite]:
+        return [
+            _to_invite(view)
+            for view in await list_pending_invites(db, now=request.app.state.clock())
+        ]
+
+    @router.post("/invites/{id}/revoke", status_code=204)
+    async def revoke_invite_route(
+        id: uuid.UUID,
+        request: Request,
+        admin: AppUser = Depends(require_admin),
+        db: AsyncSession = Depends(get_session),
+    ) -> None:
+        await revoke_invite(db, actor_id=admin.id, invite_id=id, now=request.app.state.clock())
 
     return router
 

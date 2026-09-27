@@ -37,6 +37,7 @@ class ApiSettings(AiGatewaySettings):
     login_max_failures: int = 5
     login_lock_minutes: int = 15
     password_min_length: int = 12
+    invite_ttl_hours: int = 72
 
     page_size_default: int = 50
     page_size_max: int = 200
