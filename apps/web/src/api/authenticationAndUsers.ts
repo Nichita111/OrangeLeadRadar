@@ -12,11 +12,20 @@ export const authenticationAndUsersKeys = {
   invitePreview: (token: string) => ["authentication-and-users", "invite-preview", token] as const,
 };
 
-/** `API-03`: the signed-in user; a `401` is read by the route guard and by Sign in (DC-3). */
+/** Refetch on focus or reconnect only while there is a user whose session could have ended. */
+const whileSignedIn = (query: { state: { data: unknown } }) => query.state.data !== undefined;
+
+/**
+ * `API-03`: the signed-in user; a `401` is read by the route guard and by Sign in (DC-3). A visitor
+ * who is not signed in is not asked again when the window regains focus: that refetch would send
+ * the query back to pending and unmount the anonymous screen, losing what was typed.
+ */
 export function useMe() {
   return useQuery({
     queryKey: authenticationAndUsersKeys.me,
     meta: READS_OWN_UNAUTHENTICATED,
+    refetchOnWindowFocus: whileSignedIn,
+    refetchOnReconnect: whileSignedIn,
     queryFn: async () => requireData((await client.GET("/api/v1/auth/me")).data),
   });
 }
