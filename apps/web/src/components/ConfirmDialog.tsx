@@ -4,7 +4,8 @@ import type { ReactElement } from "react";
 import { Button } from "./Button";
 
 interface ConfirmDialogProps {
-  trigger: ReactElement;
+  /** Omitted when a `RowMenu` item opens the dialog under fully controlled `open` instead. */
+  trigger?: ReactElement;
   /** The action, as FR-123 asks. */
   title: string;
   /** One sentence: what changes and what is kept. */
@@ -12,6 +13,8 @@ interface ConfirmDialogProps {
   /** The verb button, never OK. */
   confirmLabel: string;
   onConfirm: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 /** FR-015, FR-123: cancel first, the confirming button last; Escape closes and focus returns. */
@@ -21,10 +24,16 @@ export function ConfirmDialog({
   description,
   confirmLabel,
   onConfirm,
+  open,
+  onOpenChange,
 }: ConfirmDialogProps) {
+  const controlled = {
+    ...(open === undefined ? {} : { open }),
+    ...(onOpenChange === undefined ? {} : { onOpenChange }),
+  };
   return (
-    <AlertDialog.Root>
-      <AlertDialog.Trigger asChild>{trigger}</AlertDialog.Trigger>
+    <AlertDialog.Root {...controlled}>
+      {trigger !== undefined && <AlertDialog.Trigger asChild>{trigger}</AlertDialog.Trigger>}
       <AlertDialog.Portal>
         <AlertDialog.Overlay className="fixed inset-0 z-40 bg-text/40" />
         <AlertDialog.Content className="fixed top-1/2 left-1/2 z-50 flex w-[460px] max-w-[95vw] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 rounded-card border border-border bg-surface p-6 shadow-overlay">

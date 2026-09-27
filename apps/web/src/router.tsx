@@ -7,6 +7,7 @@ import { AccountDetailScreen } from "./features/prospect-dashboard/account-detai
 import { ProspectsScreen } from "./features/prospect-dashboard/prospects/ProspectsScreen";
 import { SignIn } from "./features/identity-and-access/sign-in/SignIn";
 import { Users } from "./features/identity-and-access/users/Users";
+import { IndustriesAndMarketsScreen } from "./features/service-configuration/industries-and-markets/IndustriesAndMarketsScreen";
 import { DocumentTitle } from "./shell/DocumentTitle";
 import { RequireAdmin } from "./shell/RequireAdmin";
 import { RequireSession } from "./shell/RequireSession";

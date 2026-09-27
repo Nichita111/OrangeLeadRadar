@@ -68,6 +68,9 @@ describe("countryName and enumLabel (FR-011)", () => {
     ["DISQUALIFIED", "Excluded"],
     ["CLASSIFIER", "Quick check"],
     ["LLM", "Detailed check"],
+    ["YES_NO", "Yes/no"],
+    ["SCALE", "Scale"],
+    ["CHOICE", "Choice"],
   ])("%s reads %s", (value, label) => {
     expect(enumLabel(value)).toBe(label);
   });

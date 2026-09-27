@@ -3223,10 +3223,7 @@ export interface components {
              * Format: uuid
              */
             service_id: string;
-            /** Settings */
-            settings: {
-                [key: string]: unknown;
-            };
+            settings: components["schemas"]["ScoringSettings"];
             status: components["schemas"]["ScoringConfigStatus"];
             /** Version */
             version: number;

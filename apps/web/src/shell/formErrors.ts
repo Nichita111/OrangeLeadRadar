@@ -8,11 +8,22 @@ export interface FormErrors {
 }
 
 /** A field is a body field name or a JSON pointer into it; the form knows the names. */
-function fieldName(field: string): string {
+function normalized(field: string): string {
   return field.startsWith("/") ? field.slice(1) : field;
 }
 
-/** Splits a failed save into field errors and a callout message; nothing is dropped. */
+/** True when `pointer` names `formField` itself, or a key underneath it (a `/`-bounded prefix). */
+function namesOrIsUnder(pointer: string, formField: string): boolean {
+  return pointer === formField || pointer.startsWith(`${formField}/`);
+}
+
+/**
+ * Splits a failed save into field errors and a callout message; nothing is dropped. A
+ * `VALIDATION` field is placed on the longest registered form field that names it or a key
+ * underneath it (FR-034): a flat form's exact field names behave exactly as before, and a nested
+ * form's pointer (`/icp_criteria/2/values`) catches every error inside that criterion unless a
+ * more specific pointer is also registered.
+ */
 export function formErrors(error: Error | null, formFields: readonly string[]): FormErrors {
   if (error === null) {
     return { fields: {}, callout: undefined };
@@ -21,11 +32,20 @@ export function formErrors(error: Error | null, formFields: readonly string[]): 
     const fields: Partial<Record<string, string>> = {};
     const unplaced: string[] = [];
     for (const item of error.envelope.error.details?.fields ?? []) {
-      const name = fieldName(item.field);
-      if (formFields.includes(name)) {
-        fields[name] = item.message;
-      } else {
+      const pointer = normalized(item.field);
+      let longest: string | undefined;
+      for (const formField of formFields) {
+        if (
+          namesOrIsUnder(pointer, normalized(formField)) &&
+          (longest === undefined || formField.length > longest.length)
+        ) {
+          longest = formField;
+        }
+      }
+      if (longest === undefined) {
         unplaced.push(item.message);
+      } else {
+        fields[longest] = item.message;
       }
     }
     return { fields, callout: unplaced.length > 0 ? unplaced.join(" ") : undefined };

@@ -5092,9 +5092,7 @@
             "type": "string"
           },
           "settings": {
-            "additionalProperties": true,
-            "title": "Settings",
-            "type": "object"
+            "$ref": "#/components/schemas/ScoringSettings"
           },
           "status": {
             "$ref": "#/components/schemas/ScoringConfigStatus"

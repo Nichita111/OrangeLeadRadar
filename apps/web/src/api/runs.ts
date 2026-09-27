@@ -39,6 +39,36 @@ export function useRun(runId: string | undefined) {
 }
 
 /**
+ * The first `SCORING_ACTIVATION` run of `runs`, or undefined when there is none (G1 b): an
+ * activation's own `RESCORE` run among account rescores of the same service, which share `kind`
+ * and `service_id`, so `trigger` is filtered on the client.
+ */
+export function activationRescore(runs: readonly Run[]): Run | undefined {
+  return runs.find((run) => run.trigger === "SCORING_ACTIVATION");
+}
+
+/**
+ * `API-34` filtered to `kind=RESCORE&service_id=…`, newest first, read once after `API-18`
+ * answers (G1 b, `FR-036`): the run the Activate dialog then polls through `useRun`.
+ */
+export function useActivationRescore(serviceId: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: [...runsKeys, "activation-rescore", serviceId],
+    enabled: enabled && serviceId !== undefined,
+    queryFn: async () =>
+      activationRescore(
+        requireData(
+          (
+            await client.GET("/api/v1/runs", {
+              params: { query: { kind: "RESCORE", service_id: serviceId ?? "" } },
+            })
+          ).data,
+        ).items,
+      ),
+  });
+}
+
+/**
  * `API-34` filtered to `kind=EVALUATION`, newest first, one row: the Quality report's way of
  * finding a running check when it opens (D3).
  */

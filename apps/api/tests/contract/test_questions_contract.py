@@ -53,3 +53,5 @@ async def test_question_write_returns_its_run_and_reads_return_null(
     )
     assert hints.status_code == 200, hints.text
     assert hints.json()["run_id"] is None
+    # AC-03: "when the Admin then changes only its hint terms, the revision stays 2".
+    assert hints.json()["revision"] == 2

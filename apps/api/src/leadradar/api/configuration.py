@@ -325,7 +325,7 @@ class ScoringConfigSummary(BaseModel):
 class ScoringConfig(ScoringConfigSummary):
     """[`ScoringConfig`](/architecture/interfaces.md#scoringconfig)."""
 
-    settings: dict[str, object]
+    settings: ScoringSettings
 
 
 class ScoringDraftUpdate(BaseModel):

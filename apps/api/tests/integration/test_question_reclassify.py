@@ -25,6 +25,7 @@ from leadradar.core.enums import (
 )
 from leadradar.core.job_queue import job_priority
 from leadradar.db.models.audit import AuditEvent
+from leadradar.db.models.configuration import SignalQuestion
 from leadradar.db.models.ingestion import Job, PipelineRun
 from leadradar.runs.enqueue import enqueue_reclassify
 from tests.integration import factories
@@ -145,6 +146,73 @@ async def test_create_and_revision_enqueue_one_signal_job_per_active_account(
         now=NOW,
     )
     assert reactivated.revision == 2 and reactivated.run_id is not None
+
+
+async def test_changing_a_choice_question_to_yes_no_clears_options_and_increments_revision_once(
+    async_session: AsyncSession,
+) -> None:
+    user_id = await _seed(async_session, factories.make_app_user)
+    service_id = await _seed(async_session, factories.make_service)
+    question_id = await _seed(
+        async_session,
+        factories.make_signal_question,
+        service_id=service_id,
+        answer_type=SignalQuestionAnswerType.CHOICE,
+        options=[
+            {"key": "YES", "label": "Yes", "strength": "STRONG"},
+            {"key": "NO", "label": "No", "strength": "NONE"},
+        ],
+    )
+    changed = await update_question(
+        async_session,
+        question_id=question_id,
+        text=None,
+        answer_type=SignalQuestionAnswerType.YES_NO,
+        options=None,
+        source_types=None,
+        hint_terms=None,
+        status=None,
+        actor_id=user_id,
+        now=NOW,
+    )
+    assert changed.answer_type == SignalQuestionAnswerType.YES_NO
+    assert changed.options is None
+    assert changed.revision == 2
+    row = await async_session.get(SignalQuestion, question_id)
+    assert row is not None
+    assert row.options is None
+    assert row.revision == 2
+
+
+async def test_changing_a_choice_question_to_scale_clears_options(
+    async_session: AsyncSession,
+) -> None:
+    user_id = await _seed(async_session, factories.make_app_user)
+    service_id = await _seed(async_session, factories.make_service)
+    question_id = await _seed(
+        async_session,
+        factories.make_signal_question,
+        service_id=service_id,
+        answer_type=SignalQuestionAnswerType.CHOICE,
+        options=[
+            {"key": "YES", "label": "Yes", "strength": "STRONG"},
+            {"key": "NO", "label": "No", "strength": "NONE"},
+        ],
+    )
+    changed = await update_question(
+        async_session,
+        question_id=question_id,
+        text=None,
+        answer_type=SignalQuestionAnswerType.SCALE,
+        options=None,
+        source_types=None,
+        hint_terms=None,
+        status=None,
+        actor_id=user_id,
+        now=NOW,
+    )
+    assert changed.answer_type == SignalQuestionAnswerType.SCALE
+    assert changed.options is None
 
 
 async def test_reclassify_without_an_active_account_starts_with_score(

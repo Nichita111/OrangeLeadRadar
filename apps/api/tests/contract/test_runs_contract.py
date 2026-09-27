@@ -159,6 +159,53 @@ async def test_runs_list_is_a_page_filtered_by_account(
     assert [item["id"] for item in page["items"]] == [run_id]
 
 
+async def test_runs_list_filtered_by_service_and_kind_answers_only_that_service_s_runs_newest_first(
+    sales_client: httpx.AsyncClient,
+    running_app: FastAPI,
+    admin_user: tuple[uuid.UUID, str, str],
+) -> None:
+    async with running_app.state.engine.begin() as conn:
+        account_id, target_service_id, other_service_id = await conn.run_sync(
+            lambda sync: (f.make_account(sync), f.make_service(sync), f.make_service(sync))
+        )
+    async with AsyncSession(running_app.state.engine) as session, session.begin():
+        older_run_id = await enqueue_account_rescore(
+            session,
+            account_id=account_id,
+            service_id=target_service_id,
+            trigger=PipelineRunTrigger.FEEDBACK,
+            requested_by=admin_user[0],
+            now=datetime.now(tz=UTC),
+        )
+    async with AsyncSession(running_app.state.engine) as session, session.begin():
+        newer_run_id = await enqueue_account_rescore(
+            session,
+            account_id=account_id,
+            service_id=target_service_id,
+            trigger=PipelineRunTrigger.SCORING_ACTIVATION,
+            requested_by=admin_user[0],
+            now=datetime.now(tz=UTC),
+        )
+    async with AsyncSession(running_app.state.engine) as session, session.begin():
+        await enqueue_account_rescore(
+            session,
+            account_id=account_id,
+            service_id=other_service_id,
+            trigger=PipelineRunTrigger.FEEDBACK,
+            requested_by=admin_user[0],
+            now=datetime.now(tz=UTC),
+        )
+
+    response = await sales_client.get(
+        "/api/v1/runs", params={"kind": "RESCORE", "service_id": str(target_service_id)}
+    )
+
+    assert response.status_code == 200
+    page = response.json()
+    assert [item["id"] for item in page["items"]] == [str(newer_run_id), str(older_run_id)]
+    assert all(item["service"]["id"] == str(target_service_id) for item in page["items"])
+
+
 async def test_runs_list_refuses_a_page_size_above_the_maximum(
     sales_client: httpx.AsyncClient,
 ) -> None:

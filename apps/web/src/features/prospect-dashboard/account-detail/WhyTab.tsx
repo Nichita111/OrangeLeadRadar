@@ -10,7 +10,7 @@ import { Link } from "react-router";
 
 import type { Schemas } from "../../../api/contract";
 import { useFindings, useRevokeOverride, type ScoreView } from "../../../api/prospectsAndEvidence";
-import { useIndustries } from "../../../api/referenceData";
+import { useIndustries } from "../../../api/industriesAndMarkets";
 import { Button } from "../../../components/Button";
 import { Callout } from "../../../components/Callout";
 import { ConfirmDialog } from "../../../components/ConfirmDialog";

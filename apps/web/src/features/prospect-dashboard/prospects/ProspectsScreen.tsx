@@ -9,7 +9,8 @@ import {
   type ProspectSort,
   type Standing,
 } from "../../../api/prospectsAndEvidence";
-import { useBandThresholds, useIndustries, useMarkets } from "../../../api/referenceData";
+import { useIndustries, useMarkets } from "../../../api/industriesAndMarkets";
+import { useBandThresholds } from "../../../api/scoring";
 import { Button, ButtonLink } from "../../../components/Button";
 import { Select, Input } from "../../../components/controls";
 import { Skeleton } from "../../../components/Skeleton";

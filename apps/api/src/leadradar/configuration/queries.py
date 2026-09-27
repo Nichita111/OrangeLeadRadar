@@ -280,6 +280,24 @@ async def active_question_keys(session: AsyncSession, service_id: uuid.UUID) -> 
     return frozenset(keys)
 
 
+async def active_question_ids(session: AsyncSession, service_id: uuid.UUID) -> list[uuid.UUID]:
+    """Every `ACTIVE` [`signal_question`](/architecture/sql-store.md#signal_question) `id` of the
+    service (`API-10`'s note: reactivating a service reclassifies each)."""
+    ids = (
+        (
+            await session.execute(
+                select(SignalQuestion.id).where(
+                    SignalQuestion.service_id == service_id,
+                    SignalQuestion.status == SignalQuestionStatus.ACTIVE,
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    return list(ids)
+
+
 async def active_industry_codes(session: AsyncSession) -> frozenset[str]:
     """Every `ACTIVE` [`industry`](/architecture/sql-store.md#industry) `code` ([Scoring settings
     validation](/architecture/rules.md#scoring-settings-validation) bullet 5)."""
