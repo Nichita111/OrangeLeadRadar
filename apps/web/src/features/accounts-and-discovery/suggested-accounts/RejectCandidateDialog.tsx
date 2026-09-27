@@ -50,7 +50,12 @@ export function RejectCandidateDialog({
       </FormField>
       {reject.error !== null && <p className="m-0 text-negative">{reject.error.message}</p>}
       <div className="flex justify-end gap-2">
-        <Button variant="secondary" onClick={() => onOpenChange(false)}>
+        <Button
+          variant="secondary"
+          onClick={() => {
+            onOpenChange(false);
+          }}
+        >
           Cancel
         </Button>
         <Button variant="primary" disabled={reject.isPending} onClick={() => void handleSubmit()}>

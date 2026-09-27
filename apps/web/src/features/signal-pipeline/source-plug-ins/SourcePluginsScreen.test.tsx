@@ -274,7 +274,7 @@ describe("SourcePluginsScreen errors (FR-007, FR-120)", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("The database is unavailable.");
     expect(
-      screen.queryAllByRole("status").some((element) => element.textContent?.includes("saved")),
+      screen.queryAllByRole("status").some((element) => element.textContent.includes("saved")),
     ).toBe(false);
   });
 });

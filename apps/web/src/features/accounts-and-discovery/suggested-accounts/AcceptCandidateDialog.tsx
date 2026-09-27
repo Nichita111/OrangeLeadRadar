@@ -71,7 +71,12 @@ export function AcceptCandidateDialog({
       )}
       {errors.callout !== undefined && <p className="m-0 text-negative">{errors.callout}</p>}
       <div className="flex justify-end gap-2">
-        <Button variant="secondary" onClick={() => onOpenChange(false)}>
+        <Button
+          variant="secondary"
+          onClick={() => {
+            onOpenChange(false);
+          }}
+        >
           Cancel
         </Button>
         <Button

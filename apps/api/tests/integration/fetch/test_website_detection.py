@@ -493,7 +493,9 @@ async def test_serpapi_available_and_careers_missing_detects_the_first_on_domain
 async def test_a_failed_serpapi_search_records_a_run_error_and_keeps_home_page_detections(
     connection: AsyncConnection, web: Web
 ) -> None:
-    web.add(HOME_URL, home_page_with_links(["/press"]))
+    # The home page's own link fills INVESTOR_RELATIONS, so only one SERPAPI search (CAREERS)
+    # is made, and only one error results.
+    web.add(HOME_URL, home_page_with_links(["/press", "/investors"]))
     web.add("https://serpapi.com/search.json", "unavailable", status=503, kind="json")
     scene_ = await scene(connection)
 

@@ -249,7 +249,9 @@ function CandidatesTable({
                       void accept.mutateAsync({ id: item.id });
                     }
                   }}
-                  onReject={() => setRejecting(item)}
+                  onReject={() => {
+                    setRejecting(item);
+                  }}
                 />
               </td>
             </tr>
@@ -260,7 +262,7 @@ function CandidatesTable({
         <AcceptCandidateDialog
           candidate={accepting}
           serviceId={serviceId}
-          open={accepting !== null}
+          open
           onOpenChange={(open) => {
             if (!open) setAccepting(null);
           }}
@@ -270,7 +272,7 @@ function CandidatesTable({
         <RejectCandidateDialog
           candidate={rejecting}
           serviceId={serviceId}
-          open={rejecting !== null}
+          open
           onOpenChange={(open) => {
             if (!open) setRejecting(null);
           }}
