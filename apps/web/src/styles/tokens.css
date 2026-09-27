@@ -52,3 +52,29 @@
     color-scheme: dark;
   }
 }
+
+/* Landing is dark in both schemes (FR-106): the same dark values for the subtree that asks for them. */
+[data-scheme="dark"] {
+  --page: #0e0e10;
+  --surface: #17171a;
+  --border: #2a2a30;
+  --control-border: #6b6b74;
+  --text: #ececee;
+  --text-secondary: #a1a1aa;
+  --text-tertiary: #8a8a93;
+  --accent: #f0803f;
+  --on-accent: #1a0b03;
+  --accent-soft: #2a1b12;
+  --accent-ink: #fdba8c;
+  --positive: #4ade80;
+  --positive-soft: #12261a;
+  --negative: #f87171;
+  --negative-soft: #2c1416;
+  --caution: #facc15;
+  --caution-soft: #2a2410;
+  --cool: #a8b5c7;
+  --cool-soft: #1d232c;
+  --highlight: #4a3f12;
+  --overlay-shadow: 0 12px 32px color-mix(in srgb, var(--page) 70%, black);
+  color-scheme: dark;
+}
