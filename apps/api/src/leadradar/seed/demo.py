@@ -30,18 +30,26 @@ from leadradar.configuration.commands import (
     create_service,
     save_scoring_draft,
 )
+from leadradar.core.account_identity import normalise_name
 from leadradar.core.account_import import parse_csv_rows, parse_import_row
 from leadradar.core.enums import (
+    AccountRelationshipStatus,
     AccountSourceKind,
     AccountSourceOrigin,
     AccountStatus,
     AppUserRole,
     AppUserStatus,
     AuditAction,
+    DiscoveryCandidateOrigin,
+    DiscoveryCandidateStatus,
     DocumentSourceType,
     FindingStrength,
     IndustryStatus,
     MarketStatus,
+    PipelineRunKind,
+    PipelineRunStage,
+    PipelineRunStatus,
+    PipelineRunTrigger,
     ScoringConfigStatus,
     ServiceStatus,
     SignalQuestionAnswerType,
@@ -49,16 +57,23 @@ from leadradar.core.enums import (
     SignalQuestionStatus,
     SourcePluginCode,
 )
+from leadradar.core.scoring.fit import fit
 from leadradar.core.scoring.settings import (
     Disqualifier,
     DisqualifierKind,
     ICPCriterion,
     ICPCriterionKind,
     QuestionSetting,
+    ScoringSettings,
     WeightLevel,
     default_scoring_settings,
 )
-from leadradar.db.models.accounts import Account, AccountAlias, AccountSource
+from leadradar.db.models.accounts import (
+    Account,
+    AccountAlias,
+    AccountSource,
+    DiscoveryCandidate,
+)
 from leadradar.db.models.configuration import (
     Industry,
     Market,
@@ -67,8 +82,9 @@ from leadradar.db.models.configuration import (
     SignalQuestion,
 )
 from leadradar.db.models.identity import AppUser
-from leadradar.db.models.ingestion import SourcePlugin
+from leadradar.db.models.ingestion import PipelineRun, SourcePlugin
 from leadradar.db.session import build_engine
+from leadradar.discovery.commands import reject_candidate
 from leadradar.logs import configure_json_logging
 from leadradar.settings import ApiSettings
 
@@ -720,6 +736,170 @@ async def seed_demo_accounts(
         )
 
 
+# --- Relationship statuses and suggested accounts ------------------------------------------------
+
+_DEMO_RELATIONSHIP_STATUSES: dict[str, AccountRelationshipStatus] = {
+    "siemens.com": AccountRelationshipStatus.CLIENT,
+    "allianz.com": AccountRelationshipStatus.CLIENT,
+    "munichre.com": AccountRelationshipStatus.CLIENT,
+    "continental.com": AccountRelationshipStatus.CLIENT,
+    "commerzbank.de": AccountRelationshipStatus.PAST_CLIENT,
+    "airfranceklm.com": AccountRelationshipStatus.PAST_CLIENT,
+    "schaeffler.com": AccountRelationshipStatus.PAST_CLIENT,
+    "bosch.com": AccountRelationshipStatus.IN_TALKS,
+    "ubs.com": AccountRelationshipStatus.IN_TALKS,
+    "kuehne-nagel.com": AccountRelationshipStatus.IN_TALKS,
+    "erstegroup.com": AccountRelationshipStatus.IN_TALKS,
+    "zf.com": AccountRelationshipStatus.IN_TALKS,
+    "generali.com": AccountRelationshipStatus.DO_NOT_CONTACT,
+    "rbinternational.com": AccountRelationshipStatus.DO_NOT_CONTACT,
+}
+
+
+@dataclass(frozen=True)
+class _CandidateSpec:
+    service_code: str
+    name: str
+    domain: str | None
+    country_code: str
+    industry: str
+    employee_count: int | None
+    reject_reason: str | None = None
+
+
+_DEMO_CANDIDATES = (
+    _CandidateSpec(
+        "INTELLIGENT_AUTOMATION", "Hapag-Lloyd", "hlag.com", "DE", "LOGISTICS_TRANSPORT", 14000
+    ),
+    _CandidateSpec("INTELLIGENT_AUTOMATION", "BASF", "basf.com", "DE", "MANUFACTURING", 112000),
+    _CandidateSpec("INTELLIGENT_AUTOMATION", "ING Group", "ing.com", "NL", "BANKING", 60000),
+    _CandidateSpec("INTELLIGENT_AUTOMATION", "Swiss Re", "swissre.com", "CH", "INSURANCE", 14000),
+    _CandidateSpec(
+        "INTELLIGENT_AUTOMATION", "Example Logistik", None, "DE", "LOGISTICS_TRANSPORT", None
+    ),
+    _CandidateSpec(
+        "INTELLIGENT_AUTOMATION",
+        "Mahle",
+        "mahle.com",
+        "DE",
+        "AUTOMOTIVE",
+        72000,
+        reject_reason="Already works with a strategic automation partner.",
+    ),
+    _CandidateSpec("CYBERSECURITY", "E.ON", "eon.com", "DE", "ENERGY_UTILITIES", 72000),
+    _CandidateSpec(
+        "CYBERSECURITY", "Fresenius", "fresenius.com", "DE", "HEALTHCARE_PHARMA", 190000
+    ),
+    _CandidateSpec("CYBERSECURITY", "Nordea", "nordea.com", "FI", "BANKING", 30000),
+)
+
+
+async def seed_demo_relationships_and_suggestions(
+    db: AsyncSession, *, actor_id: uuid.UUID, now: datetime
+) -> None:
+    """Sets the [demo dataset](/architecture/overview.md#demo-dataset)'s relationship statuses
+    (`API-24`) and adds its suggested accounts, one `SUCCEEDED` discovery run per seeded service.
+    Does nothing once a seeded service has a discovery candidate, so a user's later changes stay."""
+    service_codes = {spec.code for spec in _DEMO_SERVICES}
+    services = {
+        service.code: service
+        for service in (
+            await db.execute(select(Service).where(Service.code.in_(service_codes)))
+        ).scalars()
+    }
+    already_seeded = (
+        await db.execute(
+            select(DiscoveryCandidate.id)
+            .where(DiscoveryCandidate.service_id.in_([s.id for s in services.values()]))
+            .limit(1)
+        )
+    ).first()
+    if already_seeded is not None:
+        return
+
+    for domain, relationship_status in _DEMO_RELATIONSHIP_STATUSES.items():
+        await update_account(
+            db,
+            account_id=await _account_id_by_domain(db, domain),
+            data=AccountUpdateData(relationship_status=relationship_status),
+            actor_id=actor_id,
+            now=now,
+        )
+
+    admin = (await db.execute(select(AppUser).where(AppUser.id == actor_id))).scalar_one()
+    for code, service in services.items():
+        config = (
+            await db.execute(
+                select(ScoringConfig).where(
+                    ScoringConfig.service_id == service.id,
+                    ScoringConfig.status == ScoringConfigStatus.ACTIVE,
+                )
+            )
+        ).scalar_one()
+        settings = ScoringSettings.model_validate(config.settings)
+        icp_criteria = [criterion.model_dump() for criterion in settings.icp_criteria]
+        specs = [spec for spec in _DEMO_CANDIDATES if spec.service_code == code]
+        run = PipelineRun(
+            kind=PipelineRunKind.DISCOVERY,
+            trigger=PipelineRunTrigger.USER,
+            service_id=service.id,
+            status=PipelineRunStatus.SUCCEEDED,
+            stage=PipelineRunStage.SCORE,
+            progress={
+                "documents_kept": 0,
+                "organisations_found": len(specs),
+                "candidates": len(specs),
+            },
+            errors=[],
+            requested_by=actor_id,
+            started_at=now,
+            finished_at=now,
+        )
+        db.add(run)
+        await db.flush()
+        rejected: list[tuple[DiscoveryCandidate, str]] = []
+        for spec in specs:
+            attributes: dict[str, object] = {
+                "country_code": spec.country_code,
+                "industry": spec.industry,
+                "employee_count": spec.employee_count,
+                "revenue_eur": None,
+                "operational_complexity": None,
+            }
+            candidate = DiscoveryCandidate(
+                service_id=service.id,
+                run_id=run.id,
+                name=spec.name,
+                normalised_name=normalise_name(spec.name),
+                domain=spec.domain,
+                country_code=spec.country_code,
+                industry=spec.industry,
+                employee_count=spec.employee_count,
+                origin=DiscoveryCandidateOrigin.CRUNCHBASE_SEARCH,
+                document_id=None,
+                quote=None,
+                fit_estimate=fit(
+                    attributes=attributes,
+                    icp_criteria=icp_criteria,
+                    weight_values=settings.weight_values,
+                    unknown_match=settings.unknown_match,
+                ).value,
+                status=DiscoveryCandidateStatus.PENDING,
+                decided_by=None,
+                decided_at=None,
+                reject_reason=None,
+                account_id=None,
+            )
+            db.add(candidate)
+            if spec.reject_reason is not None:
+                rejected.append((candidate, spec.reject_reason))
+        await db.commit()
+        for candidate, reason in rejected:
+            await reject_candidate(
+                db, candidate_id=candidate.id, reason=reason, principal=admin, now=now
+            )
+
+
 # --- Entry point ---------------------------------------------------------------------------------
 
 
@@ -933,16 +1113,22 @@ async def _existing_seed_matches(db: AsyncSession, settings: SeedSettings) -> bo
 
 
 async def seed_demo_dataset(db: AsyncSession, settings: SeedSettings) -> None:
-    """Seed once, or confirm that the existing seed matches without issuing any writes."""
-    if await _existing_seed_matches(db, settings):
-        return
+    """Seed once, or confirm that the existing seed matches; either way, add the relationship
+    statuses and suggested accounts while the seeded services have no discovery candidate."""
     now = build_clock(settings)()
+    if await _existing_seed_matches(db, settings):
+        admin_id = (
+            await db.execute(select(AppUser.id).where(AppUser.email == DEMO_ADMIN_EMAIL))
+        ).scalar_one()
+        await seed_demo_relationships_and_suggestions(db, actor_id=admin_id, now=now)
+        return
     admin_id = await seed_demo_users(db, settings)
     await seed_demo_industries(db, actor_id=admin_id, now=now)
     await seed_demo_markets(db, actor_id=admin_id, now=now)
     await seed_demo_source_plugins(db)
     await seed_demo_services(db, actor_id=admin_id, now=now)
     await seed_demo_accounts(db, settings=settings, actor_id=admin_id, now=now)
+    await seed_demo_relationships_and_suggestions(db, actor_id=admin_id, now=now)
 
 
 async def _run(settings: SeedSettings) -> None:

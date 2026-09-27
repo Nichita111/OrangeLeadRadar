@@ -87,7 +87,7 @@ The database has two roles. The owner, the `db` container's user, creates and ch
 
 **Fixture files.** One exchange per file, at `FIXTURE_DIR/<adapter>/<key>.json`, where `<adapter>` is `JEV` or `OPENROUTER` for an AI gateway call, `HUBSPOT` for a HubSpot exchange, or the plug-in's [`source_plugin`](/architecture/sql-store.md#source_plugin) `code` for a source request. The normalised request is `{adapter, method, url, body}`: `url` with its `api_key` query parameter, SerpAPI's credential, removed and the others sorted; `body` the parsed JSON of a JSON body, the text of any other body, or null. Headers and the `api_key` parameter are left out, so no key or credential is ever stored. `<key>` is the SHA-256, in lower-case hex, of the normalised request serialised as JSON with sorted keys, no whitespace and non-ASCII characters unescaped. The file is the JSON object `{adapter, request, response}`: `request` is the normalised request; `response` is `{status, content_type}`, plus `location`, the `Location` header, for a redirect status, with one of `json` for a JSON body, `text` for any other text and `base64` for binary content such as a PDF, or `{error}` with `TIMEOUT` or `TRANSPORT_ERROR` for an exchange that failed before an answer, which replay raises again. `record` overwrites the file of a repeated request, so a retried call keeps its last attempt.
 
-**Seeding.** `make seed-demo` loads the [demo dataset](#demo-dataset) into an empty database: users, industries, markets, services, questions, active scoring versions, provider facts, and the accounts with their sources, imported from the demo account file by the rules of `API-22` and then linked to their parents ([S-RUN-03](/requirements/system.md)). It never fetches. A repeat invocation succeeds without changing a complete matching seed; an incomplete or different existing seed fails clearly. Sources a refresh detected and attribute values its enrichment filled where the demo account file leaves them empty are the account's, not the seed's, and do not make a seed different. The **demo refresh** follows it: `make refresh-demo` requests a refresh of every active account through `API-33` and waits until every run is final, in replay mode for the demo and the acceptance tests. It fails if a requested run is missing or ends in a status other than `SUCCEEDED`; the P1 scheduler would find the same accounts due, and one refresh per account is all either can queue. Labels reference passages, which exist only after a refresh, so `make export-labels` writes every active evaluation item to `FIXTURE_DIR/evaluation_items.json`, a JSON array of `{account_domain, content_hash, ordinal, service_code, question_key, question_revision, expected_strength}` sorted by those keys, and `make seed-labels` loads them after the demo refresh, matching each to its passage and writing it as a `MANUAL` label of the demo Admin; an entry that matches no passage or question fails the command, naming it; replay reproduces the same documents and passages, so every exported label finds its passage.
+**Seeding.** `make seed-demo` loads the [demo dataset](#demo-dataset) into an empty database: users, industries, markets, services, questions, active scoring versions, provider facts, and the accounts with their sources, imported from the demo account file by the rules of `API-22` and then linked to their parents, their relationship statuses and the suggested accounts ([S-RUN-03](/requirements/system.md)). It never fetches. The relationship statuses and the suggested accounts are seeded only while the seeded services have no discovery candidate, so a database seeded before them gains them and a later change by a user is kept. A repeat invocation succeeds without changing a complete matching seed; an incomplete or different existing seed fails clearly. Sources a refresh detected and attribute values its enrichment filled where the demo account file leaves them empty are the account's, not the seed's, and do not make a seed different. The **demo refresh** follows it: `make refresh-demo` requests a refresh of every active account through `API-33` and waits until every run is final, in replay mode for the demo and the acceptance tests. It fails if a requested run is missing or ends in a status other than `SUCCEEDED`; the P1 scheduler would find the same accounts due, and one refresh per account is all either can queue. Labels reference passages, which exist only after a refresh, so `make export-labels` writes every active evaluation item to `FIXTURE_DIR/evaluation_items.json`, a JSON array of `{account_domain, content_hash, ordinal, service_code, question_key, question_revision, expected_strength}` sorted by those keys, and `make seed-labels` loads them after the demo refresh, matching each to its passage and writing it as a `MANUAL` label of the demo Admin; an entry that matches no passage or question fails the command, naming it; replay reproduces the same documents and passages, so every exported label finds its passage.
 
 ## Store ownership
 
@@ -216,6 +216,16 @@ The seed is the acceptance tests' concrete data and the demo's walk-through. Its
 | Zurich Insurance Group | `zurich.com` | `CH` | `INSURANCE` | |
 | Generali | `generali.com` | `IT` | `INSURANCE` | |
 
+**Relationship statuses.** After the import, the seed sets each account's [`relationship_status`](/architecture/sql-store.md#account) through `API-24`; the accounts not listed keep `PROSPECT`.
+
+| Relationship status | Accounts |
+|---|---|
+| `CLIENT` | Siemens, Allianz, Munich Re, Continental |
+| `PAST_CLIENT` | Commerzbank, Air France-KLM, Schaeffler |
+| `IN_TALKS` | Bosch, UBS, Kuehne+Nagel, Erste Group, ZF Group |
+| `DO_NOT_CONTACT` | Generali, Raiffeisen Bank International |
+| `PROSPECT` | Lufthansa Group, SWISS, DHL Group, DB Schenker, DSV, Zurich Insurance Group |
+
 **Demo account file.** `FIXTURE_DIR/demo_accounts.csv` holds one [`AccountImportRow`](/architecture/interfaces.md#accountimportrow) per account of the table, with the name, domain, country and industry above, plus the account's `careers_url`, `newsroom_url`, `investor_relations_url` and `rss_url` where it has one, its `employee_count` and its `operational_complexity`, collected by the team when it records the fixtures. Source detection and profile enrichment are P1, so the demo's hiring signals and its size and complexity criteria rest on these values.
 
 **Service `INTELLIGENT_AUTOMATION`** — "Intelligent Automation". Description: "Automating business processes end to end with RPA, AI, agentic AI and process mining, from discovery to operation." Value proposition: "Orange Systems designs, builds and runs automation that removes manual work from finance, operations and customer processes, with measurable savings within months."
@@ -256,6 +266,20 @@ ICP: `SECTOR` (`INDUSTRY`: `BANKING`, `INSURANCE`, `ENERGY_UTILITIES`, `HEALTHCA
 | `DATA_HIRING` | Is the company hiring data engineers, data scientists or analytics specialists? | `YES_NO` | `POSITIVE` | `JOB_POSTING` | `MEDIUM` | |
 
 It has no ICP criteria and no disqualifiers; all settings are the defaults, and it is activated as version 1.
+
+**Suggested accounts.** For each seeded service, one `DISCOVERY` [`pipeline_run`](/architecture/sql-store.md#pipeline_run) requested by the Admin and `SUCCEEDED`, with these [`discovery_candidate`](/architecture/sql-store.md#discovery_candidate) rows of origin `CRUNCHBASE_SEARCH`, no document and no quote; each `fit_estimate` is the [Fit score](/architecture/rules.md#fit-score) over the attributes below under the service's active settings. The rejected one records the Admin and the reason.
+
+| Service | Name | Domain | Country | Industry | Employees | Status |
+|---|---|---|---|---|---|---|
+| `INTELLIGENT_AUTOMATION` | Hapag-Lloyd | `hlag.com` | `DE` | `LOGISTICS_TRANSPORT` | 14000 | `PENDING` |
+| `INTELLIGENT_AUTOMATION` | BASF | `basf.com` | `DE` | `MANUFACTURING` | 112000 | `PENDING` |
+| `INTELLIGENT_AUTOMATION` | ING Group | `ing.com` | `NL` | `BANKING` | 60000 | `PENDING` |
+| `INTELLIGENT_AUTOMATION` | Swiss Re | `swissre.com` | `CH` | `INSURANCE` | 14000 | `PENDING` |
+| `INTELLIGENT_AUTOMATION` | Example Logistik | | `DE` | `LOGISTICS_TRANSPORT` | | `PENDING` |
+| `INTELLIGENT_AUTOMATION` | Mahle | `mahle.com` | `DE` | `AUTOMOTIVE` | 72000 | `REJECTED`, reason "Already works with a strategic automation partner." |
+| `CYBERSECURITY` | E.ON | `eon.com` | `DE` | `ENERGY_UTILITIES` | 72000 | `PENDING` |
+| `CYBERSECURITY` | Fresenius | `fresenius.com` | `DE` | `HEALTHCARE_PHARMA` | 190000 | `PENDING` |
+| `CYBERSECURITY` | Nordea | `nordea.com` | `FI` | `BANKING` | 30000 | `PENDING` |
 
 **Provider facts.** Seeded as `ACTIVE` [`provider_fact`](/architecture/sql-store.md#provider_fact) rows, each taken from the Orange Systems website at the address beside it; the owner reviews them and an Admin adds, edits and retires them afterwards. A fact without a service applies to every service.
 
