@@ -71,9 +71,9 @@ sequenceDiagram
 4. Rules: [Account identity](/architecture/rules.md#account-identity), [Account attributes](/architecture/rules.md#account-attributes), [Persona mapping](/architecture/rules.md#persona-mapping), [Discovery](/architecture/rules.md#discovery), [Scheduling](/architecture/rules.md#scheduling), [Fit score](/architecture/rules.md#fit-score), [Retention and erasure](/architecture/rules.md#retention-and-erasure).
 5. Interfaces: [Accounts and contacts](/architecture/interfaces.md#accounts-and-contacts) (`API-20` to `API-28`, [`AccountImportRow`](/architecture/interfaces.md#accountimportrow)) and [Discovery](/architecture/interfaces.md#discovery) (`API-29` to `API-32`).
 6. Services: the [api](/architecture/services/api.md) and its [runtime](/architecture/services/api.md#runtime) (`IMPORT_MAX_ROWS`, `CONTACT_RETENTION_DAYS`); the [worker](/architecture/services/worker.md) for discovery; the [frontend](/architecture/services/frontend.md) shell; the accounts of the [demo dataset](/architecture/overview.md#demo-dataset) and the account columns of [store ownership](/architecture/overview.md#store-ownership).
-7. Decisions: [ADR-10](/architecture/adrs/adr-10-minimal-contact-data.md), [ADR-12](/architecture/adrs/adr-12-suggested-accounts-need-acceptance.md), [ADR-07](/architecture/adrs/adr-07-source-plug-ins-with-a-free-core.md), [ADR-22](/architecture/adrs/adr-22-icp-criteria-weigh-never-exclude.md), [ADR-26](/architecture/adrs/adr-26-daily-cycle.md), [ADR-27](/architecture/adrs/adr-27-relationship-status-beside-lead-feedback.md).
+7. Decisions: [ADR-10](/architecture/adrs/adr-10-minimal-contact-data.md), [ADR-12](/architecture/adrs/adr-12-suggested-accounts-need-acceptance.md), [ADR-07](/architecture/adrs/adr-07-source-plug-ins-with-a-free-core.md), [ADR-22](/architecture/adrs/adr-22-icp-criteria-weigh-never-exclude.md), [ADR-26](/architecture/adrs/adr-26-daily-cycle.md), [ADR-28](/architecture/adrs/adr-28-relationship-status-beside-lead-feedback.md).
 8. Screens: [Accounts](#accounts), [Account import](#account-import), [Account profile](#account-profile), [Suggested accounts](#suggested-accounts).
-9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-09` to `AC-15`, `AC-59`, `AC-63`, `AC-69`, `AC-89`, `AC-91`.
+9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-09` to `AC-15`, `AC-59`, `AC-63`, `AC-69`, `AC-89`, `AC-95`.
 
 ## Accounts
 
@@ -105,7 +105,7 @@ WF-06 — Accounts
 | `FR-040` | A row shall open the account's [Account detail](/features/prospect-dashboard.md#account-detail) for the selected service. |
 | `FR-137` | The name cell shall show the parent account as Part of its name, an inactive account with an Inactive chip and an account whose refresh is running with a Refreshing chip. |
 | `FR-138` | In the New account dialog the domain field shall show, under the field, that the domain is already an account, naming it, and the confirming button shall then read Open existing account. |
-| `FR-182` | A Relationship filter shall narrow the list to the accounts of one relationship status. |
+| `FR-186` | A Relationship filter shall narrow the list to the accounts of one relationship status. |
 
 Obligations: `S-ACC-01`, `S-ACC-05`, `S-ACC-06`.
 

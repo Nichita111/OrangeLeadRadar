@@ -22,17 +22,21 @@ sequenceDiagram
   participant Web as Outreach composer
   participant API as api
   participant L as OpenRouter LLM
-  Sales->>Web: choose channel and, optionally, a contact
+  Sales->>Web: choose channel, preferences and, optionally, a contact
   Web->>API: generate (API-56)
   API->>API: budget guard; select top signals and Orange Systems facts of the service
   API->>L: draft outreach with signals, value proposition, facts, contact
   L-->>API: subject, body, cited signal and fact ids
   API->>API: validate citations, numbers, length, no invented contact data
   API-->>Web: draft stored as DRAFT
+  Sales->>Web: edit and request Tone check
+  Web->>API: current editor text (API-91)
+  API->>L: tone check through AI gateway (API-92)
+  L-->>Web: verdict, summary and notes
   Sales->>Web: edit, then Copy or Download
   Web->>API: update (API-58): status EXPORTED
   Sales->>Web: Mark as contacted
-  Web->>API: engagement (API-86): CONTACTED
+  Web->>API: mark exported draft contacted (API-93)
 ```
 
 ### FL-25 Record an engagement status
@@ -68,15 +72,15 @@ Without a HubSpot token no sync runs and statuses are set by people only ([Engag
 
 ## Reading order
 
-1. Terms in the [glossary](/requirements/glossary.md): Outreach draft, Value proposition, Provider fact, Finding, Contact, Persona, Budget guard, Engagement status, Engagement statistics, Daily cycle.
+1. Terms in the [glossary](/requirements/glossary.md): Outreach draft, Outreach preferences, Tone check, Tone verdict, Tone note, Value proposition, Provider fact, Finding, Contact, Persona, Budget guard, Engagement status, Engagement statistics, Daily cycle.
 2. Requirement rows: `S-OUT-01`, `S-OUT-02`, `S-ENG-01` to `S-ENG-03` in [system requirements](/requirements/system.md); `B-25`, `B-26`, `B-43` to `B-45`, `RULE-02`, `RULE-06`, `RULE-07`, `RULE-10` in [business requirements](/requirements/business.md).
 3. Stores: [`outreach_draft`](/architecture/sql-store.md#outreach_draft), [`engagement_status`](/architecture/sql-store.md#engagement_status), [`crm_sync`](/architecture/sql-store.md#crm_sync), [`finding`](/architecture/sql-store.md#finding), [`provider_fact`](/architecture/sql-store.md#provider_fact), [`contact`](/architecture/sql-store.md#contact), [`service`](/architecture/sql-store.md#service).
 4. Rules: [Outreach grounding](/architecture/rules.md#outreach-grounding), [Budget guard](/architecture/rules.md#budget-guard), [Engagement statistics](/architecture/rules.md#engagement-statistics), [Engagement sync](/architecture/rules.md#engagement-sync), [Scheduling](/architecture/rules.md#scheduling), [Priority, standing and band](/architecture/rules.md#priority-standing-and-band).
-5. Interfaces: [Outreach and CRM](/architecture/interfaces.md#outreach-and-crm) (`API-56` to `API-59`), [Engagement](/architecture/interfaces.md#engagement) (`API-86` to `API-88`), [Provider facts](/architecture/interfaces.md#provider-facts) (`API-79`), [LLM](/architecture/interfaces.md#llm) (`API-66`), [CRM](/architecture/interfaces.md#crm) (`API-70`, `API-89`).
+5. Interfaces: [Outreach and CRM](/architecture/interfaces.md#outreach-and-crm) (`API-56` to `API-59`, `API-91`, `API-93`), [Engagement](/architecture/interfaces.md#engagement) (`API-86` to `API-88`), [Provider facts](/architecture/interfaces.md#provider-facts) (`API-79`), [LLM](/architecture/interfaces.md#llm) (`API-66`, `API-92`), [CRM](/architecture/interfaces.md#crm) (`API-70`, `API-89`).
 6. Services: the [api](/architecture/services/api.md) (`OUTREACH_MAX_FINDINGS`, `OUTREACH_EMAIL_MAX_CHARS`, `OUTREACH_INMAIL_MAX_CHARS`, `HUBSPOT_ACCESS_TOKEN`, `APP_BASE_URL` in its [runtime](/architecture/services/api.md#runtime)); the [worker](/architecture/services/worker.md) (`PROVIDER_FACTS_PER_CALL`, `ENGAGEMENT_SYNC_INTERVAL_HOURS`, `HUBSPOT_REJECTED_LEAD_STATUSES` in its [runtime](/architecture/services/worker.md#runtime)); the [AI gateway](/architecture/services/worker.md#ai-gateway); the [frontend](/architecture/services/frontend.md) shell; [AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries) and [Degradation](/architecture/overview.md#degradation).
-7. Decisions: [ADR-03](/architecture/adrs/adr-03-models-answer-rules-score.md), [ADR-10](/architecture/adrs/adr-10-minimal-contact-data.md), [ADR-15](/architecture/adrs/adr-15-openrouter-as-the-llm-provider.md), [ADR-25](/architecture/adrs/adr-25-engagement-status-synced-from-hubspot.md), [ADR-26](/architecture/adrs/adr-26-daily-cycle.md).
+7. Decisions: [ADR-03](/architecture/adrs/adr-03-models-answer-rules-score.md), [ADR-10](/architecture/adrs/adr-10-minimal-contact-data.md), [ADR-15](/architecture/adrs/adr-15-openrouter-as-the-llm-provider.md), [ADR-25](/architecture/adrs/adr-25-engagement-status-synced-from-hubspot.md), [ADR-26](/architecture/adrs/adr-26-daily-cycle.md), [ADR-27](/architecture/adrs/adr-27-outreach-personalization-and-tone-check.md).
 8. Screens: [Outreach composer](#outreach-composer), [HubSpot push dialog](#hubspot-push-dialog); the engagement status control of [Account detail](/features/prospect-dashboard.md#account-detail) and the statistics of [Prospects](/features/prospect-dashboard.md#prospects).
-9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-27`, `AC-50`, `AC-51`, `AC-62`, `AC-70`, `AC-84`, `AC-85`, `AC-86`, `AC-87`, `AC-88`.
+9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-27`, `AC-50`, `AC-51`, `AC-62`, `AC-70`, `AC-84`, `AC-85`, `AC-86`, `AC-87`, `AC-88`, `AC-91` to `AC-94`.
 
 ## Outreach composer
 
@@ -113,11 +117,15 @@ WF-19 — Outreach composer
 | `FR-089` | Copy and Download .txt shall export the draft and mark it exported. |
 | `FR-090` | When the account has no in-force positive signal for the service, Generate shall be disabled with the reason; the account's relationship status never disables it. |
 | `FR-179` | Below the signals, the left panel shall list the Orange Systems facts the draft can use for the service, and mark the ones a generated draft cites. |
-| `FR-180` | After Copy or Download, the composer shall offer Mark as contacted, which sets the account's engagement status for the service to Contacted unless a later status is in force. |
+| `FR-180` | After Copy or Download, the composer shall offer Mark as contacted through `API-93`; its response shall leave a later engagement status visible and unchanged. |
+| `FR-182` | Before Generate, the composer shall offer six controls: personalization `STANDARD`, `TAILORED` or `BESPOKE`; language `ENGLISH`, `GERMAN` or `QUOTE_LANGUAGE`; formality `CASUAL`, `NEUTRAL` or `FORMAL`; length `SHORT`, `STANDARD` or `LONG`; opening `EVIDENCE`, `VALUE` or `QUESTION`; and call to action `MEETING`, `SHARE_RESOURCE` or `OPEN_QUESTION`. Their defaults shall be `STANDARD`, `ENGLISH`, `NEUTRAL`, `STANDARD`, `EVIDENCE` and `OPEN_QUESTION`; `TAILORED` shall require two eligible signals and `BESPOKE` a selected contact. |
+| `FR-183` | A generated or reopened draft shall show the saved Outreach preferences that produced it; changing a control shall apply only when a new draft is generated. |
+| `FR-184` | After generation, Tone check shall submit the current subject and body without saving them and show `Good` or `Review`, a one-line summary, and every note's phrase and suggested rewrite; it shall not change the editor text. |
+| `FR-185` | When Tone check answers `429` or `503`, the unavailable state shall identify the dependency while preserving the current editor text. |
 
 Obligations: `S-OUT-01`, `S-ENG-01`, `S-ACC-06`.
 
-**Data**: `API-25`, `API-42`, `API-56`, `API-57`, `API-58`, `API-79`, `API-86`. **States**: [States](/architecture/services/frontend.md#states); `429` and `503` show the unavailable state and keep the edited text.
+**Data**: `API-25`, `API-42`, `API-56`, `API-57`, `API-58`, `API-79`, `API-91`, `API-93`. **States**: [States](/architecture/services/frontend.md#states); `429` and `503` show the unavailable state and keep the edited text.
 
 ## HubSpot push dialog
 

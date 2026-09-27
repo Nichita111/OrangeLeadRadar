@@ -1,12 +1,12 @@
 ---
 type: Decision
-title: ADR-27 Relationship status beside lead feedback
+title: ADR-28 Relationship status beside lead feedback
 description: A team-wide account.relationship_status, set by a user and read by no rule, sits beside the per-service lead feedback ALREADY_CUSTOMER and the per-service engagement status without replacing either, changes no score or standing, and does not disable drafting outreach.
 status: draft
 tags: [accounts-and-discovery, prospect-dashboard]
 ---
 
-# ADR-27 Relationship status beside lead feedback
+# ADR-28 Relationship status beside lead feedback
 
 ## Context
 

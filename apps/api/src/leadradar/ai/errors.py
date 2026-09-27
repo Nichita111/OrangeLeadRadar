@@ -8,8 +8,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal
 
-# `details.dependency` of `UPSTREAM_UNAVAILABLE`: the names of the Health checks.
-AiDependency = Literal["classifier", "llm", "embedder"]
+from leadradar.core.enums import Dependency
 
 # `details.reason`: the call's `outcome`, or `NOT_CONFIGURED` for an unset key or model id.
 UnavailableReason = Literal["TIMEOUT", "ERROR", "INVALID_OUTPUT", "NOT_CONFIGURED"]
@@ -28,9 +27,9 @@ class UpstreamUnavailable(AiGatewayError):
     """`UPSTREAM_UNAVAILABLE`: the classifier or the LLM is unavailable or returned invalid
     output."""
 
-    def __init__(self, dependency: AiDependency, reason: UnavailableReason, message: str) -> None:
+    def __init__(self, dependency: Dependency, reason: UnavailableReason, message: str) -> None:
         super().__init__(message)
-        self.dependency: AiDependency = dependency
+        self.dependency: Dependency = dependency
         self.reason: UnavailableReason = reason
 
 

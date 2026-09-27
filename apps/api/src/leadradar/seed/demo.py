@@ -50,6 +50,7 @@ from leadradar.core.enums import (
     PipelineRunStage,
     PipelineRunStatus,
     PipelineRunTrigger,
+    ProviderFactStatus,
     ScoringConfigStatus,
     ServiceStatus,
     SignalQuestionAnswerType,
@@ -77,6 +78,7 @@ from leadradar.db.models.accounts import (
 from leadradar.db.models.configuration import (
     Industry,
     Market,
+    ProviderFact,
     ScoringConfig,
     Service,
     SignalQuestion,
@@ -680,6 +682,97 @@ async def seed_demo_services(db: AsyncSession, *, actor_id: uuid.UUID, now: date
         await _activate_first_scoring_draft(db, scoring_config_id=saved.summary.id, now=now)
 
 
+_DEMO_PROVIDER_FACTS = (
+    ("Orange Systems has more than 900 professionals.", None, "https://systems.orange.md/"),
+    (
+        "Orange Systems has more than 15 years of experience delivering IT solutions.",
+        None,
+        "https://systems.orange.md/",
+    ),
+    (
+        (
+            "Orange Systems delivers more than 500 projects a year for more than 50 clients "
+            "in 25 countries."
+        ),
+        None,
+        "https://systems.orange.md/",
+    ),
+    (
+        "Orange Systems is the leading IT hub of the Orange Group.",
+        None,
+        "https://systems.orange.md/about/",
+    ),
+    (
+        "Orange Systems is certified to ISO 9001, ISO 27001 and ISO 14001.",
+        None,
+        "https://systems.orange.md/about/",
+    ),
+    (
+        "Orange Systems has more than 50 experts in data and AI technologies.",
+        "INTELLIGENT_AUTOMATION",
+        "https://systems.orange.md/analytics/",
+    ),
+    (
+        "Orange Systems has delivered data analytics and AI solutions for more than 10 years.",
+        "INTELLIGENT_AUTOMATION",
+        "https://systems.orange.md/analytics/",
+    ),
+    (
+        "Orange Systems has automated more than 750 processes with RPA.",
+        "INTELLIGENT_AUTOMATION",
+        "https://systems.orange.md/rpa/",
+    ),
+    (
+        "Orange Systems' automation has saved its clients more than 17 million euros.",
+        "INTELLIGENT_AUTOMATION",
+        "https://systems.orange.md/rpa/",
+    ),
+    (
+        "Orange Systems' automation saved more than 2.5 million manual hours in 2024 and 2025.",
+        "INTELLIGENT_AUTOMATION",
+        "https://systems.orange.md/rpa/",
+    ),
+    (
+        "Orange Systems is a UiPath Platinum Partner for RPA and process mining.",
+        "INTELLIGENT_AUTOMATION",
+        "https://systems.orange.md/rpa/",
+    ),
+    (
+        "Orange Systems has more than 20 certified security professionals.",
+        "CYBERSECURITY",
+        "https://systems.orange.md/cybersec/",
+    ),
+    (
+        "Orange Systems' security team has more than 10 years of experience on average.",
+        "CYBERSECURITY",
+        "https://systems.orange.md/cybersec/",
+    ),
+    (
+        "Orange Systems' security operations automate 80% of threat detection.",
+        "CYBERSECURITY",
+        "https://systems.orange.md/cybersec/",
+    ),
+)
+
+
+async def seed_demo_provider_facts(db: AsyncSession) -> None:
+    """Idempotently seeds the Orange Systems facts used by outreach."""
+    existing = set((await db.execute(select(ProviderFact.text))).scalars())
+    services = {row.code: row.id for row in (await db.execute(select(Service))).scalars().all()}
+    for text, service_code, source_url in _DEMO_PROVIDER_FACTS:
+        if text in existing:
+            continue
+        db.add(
+            ProviderFact(
+                text=text,
+                service_ids=[] if service_code is None else [services[service_code]],
+                source_url=source_url,
+                status=ProviderFactStatus.ACTIVE,
+            )
+        )
+    await db.commit()
+
+
 # --- Accounts ------------------------------------------------------------------------------------
 
 # [Demo dataset](/architecture/overview.md#demo-dataset) Accounts: the one non-empty `Parent`
@@ -1115,14 +1208,15 @@ async def _existing_seed_matches(db: AsyncSession, settings: SeedSettings) -> bo
 
 
 async def seed_demo_dataset(db: AsyncSession, settings: SeedSettings) -> None:
-    """Seed once, or confirm that the existing seed matches; either way, add the relationship
-    statuses and suggested accounts while the seeded services have no discovery candidate, and
-    the demo signals and contacts while none of them exists."""
+    """Seed once, or confirm that the existing seed matches; either way, add the provider facts,
+    the relationship statuses and suggested accounts while the seeded services have no discovery
+    candidate, and the demo signals and contacts while none of them exists."""
     now = build_clock(settings)()
     if await _existing_seed_matches(db, settings):
         admin_id = (
             await db.execute(select(AppUser.id).where(AppUser.email == DEMO_ADMIN_EMAIL))
         ).scalar_one()
+        await seed_demo_provider_facts(db)
         await seed_demo_relationships_and_suggestions(db, actor_id=admin_id, now=now)
         await _seed_signals(db, settings, actor_id=admin_id, now=now)
         return
@@ -1131,6 +1225,7 @@ async def seed_demo_dataset(db: AsyncSession, settings: SeedSettings) -> None:
     await seed_demo_markets(db, actor_id=admin_id, now=now)
     await seed_demo_source_plugins(db)
     await seed_demo_services(db, actor_id=admin_id, now=now)
+    await seed_demo_provider_facts(db)
     await seed_demo_accounts(db, settings=settings, actor_id=admin_id, now=now)
     await seed_demo_relationships_and_suggestions(db, actor_id=admin_id, now=now)
     await _seed_signals(db, settings, actor_id=admin_id, now=now)

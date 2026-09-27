@@ -21,7 +21,7 @@ import { SignalsTab } from "./SignalsTab";
 import { WhyTab } from "./WhyTab";
 
 /** The five [`account`](/architecture/sql-store.md#account) `relationship_status` values, in the
- * store's order (`FR-184`). */
+ * store's order (`FR-188`). */
 const RELATIONSHIP_STATUSES: Schemas["AccountRelationshipStatus"][] = [
   "PROSPECT",
   "IN_TALKS",
@@ -178,7 +178,7 @@ function AccountBody({
 }
 
 /**
- * `FR-184`: the Relationship select, shown for every service whether or not the account has a
+ * `FR-188`: the Relationship select, shown for every service whether or not the account has a
  * score, on every tab. Saves on selection (`FR-015`), confirms with a toast on success, and on
  * failure returns the select to the stored value and shows the error as a callout, never a toast
  * (`FR-120`).

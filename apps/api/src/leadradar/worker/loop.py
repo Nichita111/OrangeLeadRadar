@@ -15,7 +15,7 @@ import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from leadradar.ai.gateway import AiGateway
-from leadradar.core.enums import JobStep
+from leadradar.core.enums import Dependency, JobStep
 from leadradar.core.job_queue import next_attempt_at
 from leadradar.logs import run_id_var
 from leadradar.worker.queue import (
@@ -50,6 +50,7 @@ async def _record_failure(
     retry_at: datetime | None,
     settings: WorkerSettings,
     clock: Clock,
+    dependency: Dependency | None = None,
 ) -> None:
     try:
         async with session_factory() as session, session.begin():
@@ -62,6 +63,7 @@ async def _record_failure(
                 retry_at=retry_at,
                 now=clock(),
                 refresh_interval_hours=settings.refresh_interval_hours,
+                dependency=dependency,
             )
     except LostJobLock:
         logger.warning("Job %s was reclaimed while it ran; its failure is not recorded", job.id)
@@ -133,6 +135,7 @@ async def _run_claimed_job(
             ),
             settings=settings,
             clock=clock,
+            dependency=error.dependency if isinstance(error, StepFailed) else None,
         )
 
 
