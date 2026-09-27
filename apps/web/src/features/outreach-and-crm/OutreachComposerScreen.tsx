@@ -20,6 +20,7 @@ import { RelativeTime } from "../../shell/RelativeTime";
 import { DataView } from "../../shell/states/DataView";
 import { WithService } from "../../shell/WithService";
 import { ContactsSection } from "./ContactsSection";
+import { DemoSendDialog, demoAddress } from "./DemoSendDialog";
 
 const CHANNELS: { value: OutreachDraftChannel; label: string }[] = [
   { value: "EMAIL", label: "Email" },
@@ -69,6 +70,18 @@ function Composer({ accountId, service }: { accountId: string; service: Schemas[
         onSuccess: (saved) => {
           setDraft(saved);
           setNotice("Saved.");
+        },
+      },
+    );
+  }
+
+  function sendDemo(current: OutreachDraft, address: string) {
+    update.mutate(
+      { id: current.id, body: { ...edits(current), status: "EXPORTED" } },
+      {
+        onSuccess: (saved) => {
+          setDraft(saved);
+          setNotice(`Sent (demo) to ${address}. Nothing left LeadRadar.`);
         },
       },
     );
@@ -245,6 +258,26 @@ function Composer({ accountId, service }: { accountId: string; service: Schemas[
               </p>
               {notice !== null && <Callout kind="neutral">{notice}</Callout>}
               <div className="flex flex-wrap justify-end gap-2">
+                {draft.channel === "EMAIL" && (
+                  <DemoSendDialog
+                    to={
+                      draft.contact === null
+                        ? null
+                        : {
+                            name: draft.contact.full_name,
+                            address: demoAddress(draft.contact.full_name, account.data?.domain),
+                          }
+                    }
+                    subject={subject}
+                    body={body}
+                    disabled={update.isPending}
+                    onSend={() => {
+                      if (draft.contact !== null) {
+                        sendDemo(draft, demoAddress(draft.contact.full_name, account.data?.domain));
+                      }
+                    }}
+                  />
+                )}
                 <Button
                   onClick={() => {
                     exportDraft(draft, "copy");

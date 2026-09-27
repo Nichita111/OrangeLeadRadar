@@ -86,7 +86,9 @@ from leadradar.db.models.ingestion import PipelineRun, SourcePlugin
 from leadradar.db.session import build_engine
 from leadradar.discovery.commands import reject_candidate
 from leadradar.logs import configure_json_logging
+from leadradar.seed.demo_signals import seed_demo_signals_and_contacts
 from leadradar.settings import ApiSettings
+from leadradar.worker.settings import WorkerSettings
 
 logger = logging.getLogger(__name__)
 
@@ -113,12 +115,12 @@ DEMO_USER_EMAILS: dict[AppUserRole, str] = {
     AppUserRole.SALES: DEMO_SALES_EMAIL,
 }
 
-# Email, role, and the settings field holding its password. Display name is the email's local
-# part (G2). The admin comes first: every later step needs its id as the actor of a write the
-# seed makes on its behalf.
+# Email, display name, role, and the settings field holding its password. The Sales user has a
+# person's name, as it signs the outreach drafts of a demo. The admin comes first: every later
+# step needs its id as the actor of a write the seed makes on its behalf.
 _DEMO_USERS = (
-    (DEMO_ADMIN_EMAIL, AppUserRole.ADMIN, "seed_admin_password"),
-    (DEMO_SALES_EMAIL, AppUserRole.SALES, "seed_sales_password"),
+    (DEMO_ADMIN_EMAIL, "admin", AppUserRole.ADMIN, "seed_admin_password"),
+    (DEMO_SALES_EMAIL, "Ana", AppUserRole.SALES, "seed_sales_password"),
 )
 
 
@@ -127,9 +129,8 @@ async def seed_demo_users(db: AsyncSession, settings: SeedSettings) -> uuid.UUID
     G4). Returns the Admin's id, the actor every later seeding step writes as."""
     now = build_clock(settings)()
     admin_id: uuid.UUID | None = None
-    for email, role, password_field in _DEMO_USERS:
+    for email, display_name, role, password_field in _DEMO_USERS:
         password = getattr(settings, password_field).get_secret_value()
-        display_name = email.split("@", 1)[0]
         user = await create_user(
             db,
             actor_id=None,
@@ -954,11 +955,12 @@ async def _existing_seed_matches(db: AsyncSession, settings: SeedSettings) -> bo
         if not ok:
             raise DemoSeedMismatch(f"Existing demo seed is incomplete or different: {description}.")
 
-    for email, role, _ in _DEMO_USERS:
+    for email, display_name, role, _ in _DEMO_USERS:
         user = users.get(email)
+        # A database seeded before the Sales user was named keeps the email's local part.
         require(
             user is not None
-            and user.display_name == email.split("@", 1)[0]
+            and user.display_name in (display_name, email.split("@", 1)[0])
             and user.role == role
             and user.status == AppUserStatus.ACTIVE,
             f"user {email}",
@@ -1114,13 +1116,15 @@ async def _existing_seed_matches(db: AsyncSession, settings: SeedSettings) -> bo
 
 async def seed_demo_dataset(db: AsyncSession, settings: SeedSettings) -> None:
     """Seed once, or confirm that the existing seed matches; either way, add the relationship
-    statuses and suggested accounts while the seeded services have no discovery candidate."""
+    statuses and suggested accounts while the seeded services have no discovery candidate, and
+    the demo signals and contacts while none of them exists."""
     now = build_clock(settings)()
     if await _existing_seed_matches(db, settings):
         admin_id = (
             await db.execute(select(AppUser.id).where(AppUser.email == DEMO_ADMIN_EMAIL))
         ).scalar_one()
         await seed_demo_relationships_and_suggestions(db, actor_id=admin_id, now=now)
+        await _seed_signals(db, settings, actor_id=admin_id, now=now)
         return
     admin_id = await seed_demo_users(db, settings)
     await seed_demo_industries(db, actor_id=admin_id, now=now)
@@ -1129,6 +1133,19 @@ async def seed_demo_dataset(db: AsyncSession, settings: SeedSettings) -> None:
     await seed_demo_services(db, actor_id=admin_id, now=now)
     await seed_demo_accounts(db, settings=settings, actor_id=admin_id, now=now)
     await seed_demo_relationships_and_suggestions(db, actor_id=admin_id, now=now)
+    await _seed_signals(db, settings, actor_id=admin_id, now=now)
+
+
+async def _seed_signals(
+    db: AsyncSession, settings: SeedSettings, *, actor_id: uuid.UUID, now: datetime
+) -> None:
+    await seed_demo_signals_and_contacts(
+        db,
+        actor_id=actor_id,
+        now=now,
+        document_retention_days=WorkerSettings.model_fields["document_retention_days"].default,
+        contact_retention_days=settings.contact_retention_days,
+    )
 
 
 async def _run(settings: SeedSettings) -> None:

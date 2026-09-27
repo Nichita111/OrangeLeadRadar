@@ -161,7 +161,7 @@ What the MVP deliberately leaves out, and how it would be added without changing
 
 The seed is the acceptance tests' concrete data and the demo's walk-through. Its literal values are the ones below.
 
-**Users.** `admin@leadradar.local` with role `ADMIN` and `sales@leadradar.local` with role `SALES`, each with the email's local part as display name; passwords from `SEED_ADMIN_PASSWORD` and `SEED_SALES_PASSWORD`.
+**Users.** `admin@leadradar.local` with role `ADMIN` and display name admin, and `sales@leadradar.local` with role `SALES` and display name Ana, who signs the demo's outreach drafts; passwords from `SEED_ADMIN_PASSWORD` and `SEED_SALES_PASSWORD`.
 
 **Industries.** Seeded as `ACTIVE` [`industry`](/architecture/sql-store.md#industry) rows; an Admin adds, renames and retires them afterwards. A label is the short name every screen shows.
 
