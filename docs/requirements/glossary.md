@@ -33,6 +33,7 @@ A term is the one name of its concept in prose. **Identifier** is the name code,
 | Contact | A decision-maker at an account, kept to the minimum. | `contact` | [`contact`](/architecture/sql-store.md#contact) |
 | Daily cycle | What the scheduler does every day: refresh every active account, run discovery for every active service and sync engagement statuses from HubSpot. | — | [Scheduling](/architecture/rules.md#scheduling) |
 | Daily summary | The counts at the top of Alerts of what changed for a service over the last day. | `digest` | [Daily summary](/architecture/rules.md#daily-summary) |
+| Demo sign-in | Signing in without a password as the demo dataset's Sales or Admin user, offered only in replay fixture mode. | `demo-login` | `API-78` in [Authentication and users](/architecture/interfaces.md#authentication-and-users) |
 | Discovery | A run, started by a user or by the daily cycle, that proposes companies not yet accounts for a service. | `DISCOVERY` | [Discovery](/architecture/rules.md#discovery) |
 | Discovery candidate | A company proposed by discovery that a person accepts or rejects. | `discovery_candidate` | [`discovery_candidate`](/architecture/sql-store.md#discovery_candidate) |
 | Disqualifier | A rule of the scoring settings that excludes an account from the ranking on an in-force finding of its question. | `disqualifiers` | [scoring settings document](/architecture/sql-store.md#scoring-settings-document) |

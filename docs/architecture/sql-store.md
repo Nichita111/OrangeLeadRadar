@@ -40,8 +40,8 @@ An application account. There is one organisation; every user sees every account
 | `role` | enum: `SALES`, `ADMIN` | `SALES` works accounts, runs, prospects, feedback, labels and outreach. `ADMIN` may do everything `SALES` may and also configures services and scoring, source plug-ins and users, overrides disqualifiers, runs quality checks and reads the audit ([Roles](/requirements/business.md#roles)). |
 | `status` | enum: `ACTIVE`, `DISABLED` | A disabled user cannot sign in; their sessions are revoked when disabled. |
 | `password_hash` | text | argon2id hash; the password is never stored or logged. |
-| `failed_logins` | integer | Consecutive failed sign-ins; reset to 0 by a successful one. |
-| `locked_until` | timestamptz, null | Set to now + `LOGIN_LOCK_MINUTES` when `failed_logins` reaches `LOGIN_MAX_FAILURES` ([api runtime](/architecture/services/api.md#runtime)). |
+| `failed_logins` | integer | Consecutive failed sign-ins; reset to 0 by a successful one and when a lock is set. |
+| `locked_until` | timestamptz, null | Set to now + `LOGIN_LOCK_MINUTES`, and `failed_logins` to 0, when `failed_logins` reaches `LOGIN_MAX_FAILURES`; the account is locked while now is before it. |
 | `last_login_at` | timestamptz, null | Time of the last successful sign-in. |
 
 ### auth_session
@@ -233,7 +233,7 @@ A company that may buy. Accounts are shared by the whole team.
 | `employee_count` | integer, null | Number of employees. |
 | `revenue_eur` | bigint, null | Annual revenue in EUR. |
 | `operational_complexity` | enum: `LOW`, `MEDIUM`, `HIGH`, null | How complex the company's operations are, by the countries it operates in and its business units; headcount is `employee_count`. `LOW`: at most 2 countries and one business unit. `MEDIUM`: 3 to 10 countries, or 2 to 4 business units. `HIGH`: more than 10 countries, or 5 or more business units. When the two measures point to different levels, the higher applies. Entered, or classified by [Account attributes](/architecture/rules.md#account-attributes). |
-| `attribute_origin` | jsonb | Object: attribute name → `MANUAL`, `CRUNCHBASE` or `CLASSIFIER`, for `country_code`, `industry`, `employee_count`, `revenue_eur` and `operational_complexity`. A `MANUAL` value is never overwritten by a plug-in or the classifier. |
+| `attribute_origin` | jsonb | Object: attribute name → `MANUAL`, `CRUNCHBASE` or `CLASSIFIER`, for `country_code`, `industry`, `employee_count`, `revenue_eur` and `operational_complexity`. A `MANUAL` value is never overwritten by a plug-in or the classifier. Accepting a discovery candidate counts as `MANUAL` entry of its known attributes, even though their values came from AI extraction. |
 | `parent_account_id` | uuid FK → [`account`](#account), null | Group parent, e.g. SWISS → Lufthansa Group. Display and navigation only; findings are never inherited. |
 | `origin` | enum: `IMPORTED`, `MANUAL`, `DISCOVERED` | How the account entered: CSV import, manual entry, or an accepted [`discovery_candidate`](#discovery_candidate). |
 | `status` | enum: `ACTIVE`, `INACTIVE` | An inactive account is not refreshed, scored or listed in Prospects; its data is kept. |
@@ -360,8 +360,8 @@ One row per source plug-in, seeded; holds the Admin's switches and limits. API k
 |---|---|---|
 | `code` | enum, unique | One of the plug-in values below. |
 | `enabled` | boolean | The Admin's switch. A plug-in that needs a key and has none is unavailable whatever this says ([Plug-in availability](/architecture/rules.md#plug-in-availability)). |
-| `rate_limit_per_minute` | integer | Maximum requests per minute to the provider. |
-| `daily_quota` | integer, null | Maximum requests per UTC day; null for none. |
+| `rate_limit_per_minute` | integer > 0 | Maximum requests per minute to the provider. |
+| `daily_quota` | integer > 0, null | Maximum requests per UTC day; null for none. |
 | `last_success_at` | timestamptz, null | Last request that succeeded. |
 | `last_error` | text, null | Message of the last failed request. |
 | `last_error_at` | timestamptz, null | When it failed. |
@@ -403,7 +403,7 @@ A unit of background work a user can see: a refresh, a reclassification, a resco
 | `question_id` | uuid FK → [`signal_question`](#signal_question), null | `RECLASSIFY`. |
 | `status` | enum: `QUEUED`, `RUNNING`, `SUCCEEDED`, `PARTIAL`, `FAILED`, `CANCELLED` | `PARTIAL`: finished, but at least one plug-in or step failed, or pairs were left `PENDING_LLM`, as `errors` and `progress` state. `FAILED`: its final stage failed after its retries. |
 | `stage` | enum, null: `FETCH`, `PROCESS`, `TRIAGE`, `CLASSIFY`, `EVIDENCE`, `OPEN_SIGNALS`, `SYNC`, `SCORE`, `INTERPRET` | The stage in progress; null when queued or finished. The stages each kind passes through are the [run lifecycle](/architecture/services/worker.md#run-lifecycle). |
-| `progress` | jsonb | Counters: `documents_fetched`, `documents_new`, `documents_kept`, `passages`, `pairs_classified`, `pairs_escalated`, `findings_created`, `open_signals_created`, `interpretations_written`, `statuses_synced`, `pending_budget`, `candidates`, `items_evaluated`. |
+| `progress` | jsonb | Counters: `documents_fetched`, `documents_new`, `documents_kept`, `passages`, `pairs_classified`, `pairs_escalated`, `findings_created`, `open_signals_created`, `interpretations_written`, `statuses_synced`, `pending_budget`, `candidates`, `items_evaluated`, `news_searched`, `organisations_found`. |
 | `errors` | jsonb | Array of `{stage, plugin_code?, code, message}`; `code` is an error code of [Conventions](/architecture/interfaces.md#conventions) or `FIXTURE_MISSING`. |
 | `requested_by` | uuid FK → [`app_user`](#app_user), null | The user whose action caused it; null for the scheduler. |
 | `started_at` | timestamptz, null | When the first job started. |
@@ -416,7 +416,7 @@ The work queue behind runs ([ADR-04](/architecture/adrs/adr-04-postgres-job-queu
 | Column | Type | Notes |
 |---|---|---|
 | `run_id` | uuid FK → [`pipeline_run`](#pipeline_run) | Owning run. |
-| `step` | enum: `FETCH`, `PROCESS`, `SIGNAL`, `OPEN_SIGNALS`, `SYNC`, `SCORE`, `INTERPRET`, `DISCOVER`, `EVALUATE` | `FETCH`: one plug-in for one account. `PROCESS`: normalise, deduplicate, chunk and embed a batch of fetched documents. `SIGNAL`: run the [signal graph](/architecture/services/worker.md#signal-graph) over a batch of documents or passages. `OPEN_SIGNALS`: [Open signals](/architecture/rules.md#open-signals) for one account. `SYNC`: [Engagement sync](/architecture/rules.md#engagement-sync) for a batch of companies. `SCORE`: rescore. `INTERPRET`: [Interpretation](/architecture/rules.md#interpretation) of the scores a run wrote. `DISCOVER`: one discovery source for one service. `EVALUATE`: a batch of labelled pairs. |
+| `step` | enum: `FETCH`, `PROCESS`, `SIGNAL`, `OPEN_SIGNALS`, `SYNC`, `SCORE`, `INTERPRET`, `DISCOVER`, `EVALUATE` | `FETCH`: one plug-in for one account; stores each new item it fetches as a normalised document with its passages. `PROCESS`: embed the passages of a batch of fetched documents, mark near duplicates, and classify the account's operational complexity. `SIGNAL`: run the [signal graph](/architecture/services/worker.md#signal-graph) over a batch of documents or passages. `OPEN_SIGNALS`: [Open signals](/architecture/rules.md#open-signals) for one account. `SYNC`: [Engagement sync](/architecture/rules.md#engagement-sync) for a batch of companies. `SCORE`: rescore. `INTERPRET`: [Interpretation](/architecture/rules.md#interpretation) of the scores a run wrote. `DISCOVER`: every available discovery source for one service, and the ranking of its candidates. `EVALUATE`: the labelled pairs of its run. |
 | `payload` | jsonb | Step input: identifiers only, never document text. |
 | `status` | enum: `READY`, `RUNNING`, `DONE`, `FAILED`, `CANCELLED` | `FAILED` after `JOB_MAX_ATTEMPTS` attempts. |
 | `priority` | smallint | Lower runs first, as the [job queue](/architecture/services/worker.md#job-queue) assigns it. |
@@ -436,7 +436,7 @@ One fetched item: a news article, a web page, a report, a job posting or a compa
 | `run_id` | uuid FK → [`pipeline_run`](#pipeline_run) | The run that fetched it. |
 | `plugin_code` | enum | A [`source_plugin`](#source_plugin) `code` value. |
 | `source_type` | enum: `NEWS`, `COMPANY_PUBLICATION`, `JOB_POSTING`, `COMPANY_PROFILE` | `NEWS`: third-party reporting. `COMPANY_PUBLICATION`: the company's own website, newsroom, reports and feeds. `JOB_POSTING`: a job advertisement. `COMPANY_PROFILE`: a structured profile or corporate event from a data provider. |
-| `url` | text | As fetched. |
+| `url` | text | As requested, before any redirect ([Fetch window](/architecture/rules.md#fetch-window) step 3). |
 | `canonical_url` | text | After [Document normalisation](/architecture/rules.md#document-normalisation). |
 | `title` | text, null | Title, when the source has one. |
 | `language` | text | ISO 639-1 code, detected. |
@@ -512,7 +512,7 @@ The triage decision for one document ([Triage](/architecture/rules.md#triage)).
 | `classifier` | enum: `JEV`, `LLM` | The classifier adapter that answered: Jev, or the LLM structured-output adapter ([ADR-02](/architecture/adrs/adr-02-classification-cascade.md)). |
 | `about_account_p` | numeric 0–1, null | Probability that the document is about its account; null when skipped for a document from the account's own source. |
 | `service_relevance` | jsonb | Object: service id → probability 0–1 that the document is relevant to that service. |
-| `outcome` | enum: `KEPT`, `NOT_ABOUT_ACCOUNT`, `IRRELEVANT` | `KEPT`: its passages are classified for each service whose relevance passed. `NOT_ABOUT_ACCOUNT`: about another company or only mentions it. `IRRELEVANT`: relevant to no active service. |
+| `outcome` | enum: `KEPT`, `NOT_ABOUT_ACCOUNT`, `IRRELEVANT` | `KEPT`: its passages are classified for each service whose relevance passed. `NOT_ABOUT_ACCOUNT`: about another company or only mentions it, or a `CAREERS` page that is not a job posting. `IRRELEVANT`: relevant to no active service. |
 | `open_signal_services` | uuid[] | The services for which [Open signals](/architecture/rules.md#open-signals) has asked the document, each an id of [`service`](#service), so that a document is asked at most once per service. |
 
 ### classification
@@ -797,12 +797,12 @@ Where the team stands with an account for a service. Rows are appended; the late
 
 ### audit_event
 
-The append-only record of who did what ([RULE-09](/requirements/business.md#business-rules)). No path updates or deletes a row.
+The append-only record of who did what ([RULE-09](/requirements/business.md#business-rules)). No path updates or deletes a row. The application role holds only `SELECT` and `INSERT` on it.
 
 | Column | Type | Notes |
 |---|---|---|
 | `occurred_at` | timestamptz | When. |
-| `actor_id` | uuid FK → [`app_user`](#app_user), null | The user; null for the scheduler and the worker acting on its own. |
+| `actor_id` | uuid FK → [`app_user`](#app_user), null | The user; null for a failed sign-in, for seeding, and for the scheduler and the worker acting on their own. |
 | `kind` | enum: `AUTH`, `USER`, `CONFIG`, `ACCOUNT`, `CONTACT`, `RUN`, `OVERRIDE`, `FEEDBACK`, `OUTREACH`, `ENGAGEMENT`, `CRM`, `AI_CALL` | Family of the action, for filtering. |
 | `action` | text | One value of [Audit actions](#audit-actions). |
 | `entity_type` | text, null | Table name of the entity acted on. |
@@ -813,12 +813,12 @@ The append-only record of who did what ([RULE-09](/requirements/business.md#busi
 
 ## Audit actions
 
-The closed vocabulary of `audit_event.action`. **AI call payload**: `ai_role` (a role of [AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries)), `provider` (`JEV` or `OPENROUTER`), `model` (the OpenRouter model id for `OPENROUTER`), `prompt_version` (null for `JEV`), `items` (passages or questions in the call), `input_tokens`, `output_tokens`, `cost_eur`, `latency_ms`, `outcome` (`OK`, `TIMEOUT`, `ERROR`, `INVALID_OUTPUT`), `fixture` (true when replayed).
+The closed vocabulary of `audit_event.action`. **AI call payload**: `ai_role` (a role of [AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries)), `provider` (`JEV` or `OPENROUTER`), `model` (the OpenRouter model id for `OPENROUTER`), `prompt_version` (null for `JEV`), `items` (passages or questions in the call), `input_tokens`, `output_tokens`, `cost_eur`, `latency_ms`, `outcome` (`OK`, `TIMEOUT`, `ERROR`, `INVALID_OUTPUT`), `fixture` (true when replayed). **Changed fields**: an object mapping each changed field to its new value; `password` maps to null, so a reset is recorded without its value.
 
 | Action | Kind | Entity | Payload |
 |---|---|---|---|
 | `LOGIN_SUCCEEDED` | `AUTH` | `app_user` | — |
-| `LOGIN_FAILED` | `AUTH` | `app_user`, when the email matches one | `reason`: `BAD_CREDENTIALS`, `LOCKED`, `DISABLED` |
+| `LOGIN_FAILED` | `AUTH` | `app_user`, when the email matches one | `reason`: `BAD_CREDENTIALS` (the failure that sets a lock included), `LOCKED` (an attempt during a lock), `DISABLED` |
 | `LOGOUT` | `AUTH` | `app_user` | — |
 | `USER_CREATED` | `USER` | `app_user` | `role` |
 | `USER_UPDATED` | `USER` | `app_user` | changed fields, never the password |
@@ -838,7 +838,7 @@ The closed vocabulary of `audit_event.action`. **AI call payload**: `ai_role` (a
 | `OPEN_SIGNAL_DISMISSED` | `CONFIG` | `open_signal` | — |
 | `OPEN_SIGNAL_PROMOTED` | `CONFIG` | `open_signal` | `question_id` |
 | `ACCOUNT_CREATED` | `ACCOUNT` | `account` | `domain`, `origin` |
-| `ACCOUNT_UPDATED` | `ACCOUNT` | `account` | changed fields |
+| `ACCOUNT_UPDATED` | `ACCOUNT` | `account` | changed fields; also written by the worker, with no actor and with its run, when a refresh detects sources or writes an attribute; the payload names the changed fields |
 | `ACCOUNTS_IMPORTED` | `ACCOUNT` | — | `rows`, `created`, `updated`, `duplicates`, `invalid` |
 | `CANDIDATE_ACCEPTED` | `ACCOUNT` | `discovery_candidate` | `account_id` |
 | `CANDIDATE_REJECTED` | `ACCOUNT` | `discovery_candidate` | `reason` |
@@ -873,9 +873,9 @@ Only these tables have rows deleted:
 - `app_user.email`, `service.code`, `service.name`, `industry.code`, `industry.label`, `market.code`, `market.name`, `account.domain`, `source_plugin.code` are unique.
 - `signal_question (service_id, key)`, `scoring_config (service_id, version)`, `account_alias (account_id, normalised)`, `account_source (account_id, url)`, `plugin_usage (plugin_code, day)`, `chunk (document_id, ordinal)` and `classification (chunk_id, question_id, question_revision)` are unique.
 - `document (account_id, content_hash)` is unique with `NULLS NOT DISTINCT`, so discovery documents without an account are deduplicated too; the same canonical URL with new content is a new document ([Document normalisation](/architecture/rules.md#document-normalisation)).
-- Partial unique indexes: one `scoring_config` with `status = 'DRAFT'` and one with `status = 'ACTIVE'` per service; one `account_score` with `is_current` per account and service; one `pipeline_run` of kind `ACCOUNT_REFRESH` with status `QUEUED` or `RUNNING` per account; one `pipeline_run` of kind `DISCOVERY` with status `QUEUED` or `RUNNING` per service; one `pipeline_run` of kind `ENGAGEMENT_SYNC` with status `QUEUED` or `RUNNING`; one `ACTIVE` `disqualifier_override` per account, service and rule key; one `ACTIVE` `evaluation_item` per passage, question and revision.
+- Partial unique indexes: one `scoring_config` with `status = 'DRAFT'` and one with `status = 'ACTIVE'` per service; one `account_score` with `is_current` per account and service; one `pipeline_run` of kind `ACCOUNT_REFRESH` with status `QUEUED` or `RUNNING` per account; one `pipeline_run` of kind `DISCOVERY` with status `QUEUED` or `RUNNING` per service; one `pipeline_run` of kind `EVALUATION` with status `QUEUED` or `RUNNING`; one `pipeline_run` of kind `ENGAGEMENT_SYNC` with status `QUEUED` or `RUNNING`; one `ACTIVE` `disqualifier_override` per account, service and rule key; one `ACTIVE` `evaluation_item` per passage, question and revision.
 - `finding.classification_id`, `alert.finding_id`, `alert.score_id`, `alert.run_id`, `alert.engagement_status_id`, `document_triage.document_id`, `score_interpretation.score_id` and `evaluation_result.run_id` are unique.
 - `chunk.embedding` has an HNSW index with cosine distance; `chunk.lexemes` has a GIN index.
 - `job (status, priority, not_before)` is indexed for claiming; `audit_event (kind, occurred_at)` and `audit_event (run_id)` for filtering and the [Budget guard](/architecture/rules.md#budget-guard); `finding (account_id, status)`, `account_score (service_id, is_current, standing, priority)` and `engagement_status (account_id, service_id, created_at)` for Prospects; `open_signal (service_id, status)` for the Service editor.
 - Check constraints: every column whose type states a 0–1 or 0–100 range is within it; `account_score.band` is null unless `standing = 'RANKED'`; `signal_question.options` is non-null exactly when `answer_type = 'CHOICE'`.
-- The schema is created and changed only by Alembic migrations owned by the [api service](/architecture/services/api.md#owns).
+- The schema is created and changed only by Alembic migrations owned by the [api service](/architecture/services/api.md#owns); each migration grants the application role of [Runtime](/architecture/overview.md#runtime) its privileges.

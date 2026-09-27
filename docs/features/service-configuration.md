@@ -113,7 +113,7 @@ Obligations: `S-CFG-01`.
 
 ## Service editor
 
-Route `/services/:id`. Admin only. Tabs: Overview, Signal questions, Suggested questions, and Scoring, which opens [Scoring settings](#scoring-settings).
+Route `/services/:id`. Admin only. Tabs: Overview, Signal questions, Suggested questions, and Scoring, which opens [Scoring settings](#scoring-settings). The selected tab is kept in the URL query as `tab` (`questions` for Signal questions); Overview is the default.
 
 **Layout**
 
@@ -196,8 +196,8 @@ Route `/services/:id/scoring`. Admin only; Sales sees the effect of the active v
 │            [ + criterion ]                                 │ v2 retired                     │
 │ Signals    COST_PROGRAM         + [High ▾]                 │ v1 retired                     │
 │            IN_HOUSE_AUTOMATION  - [Medium ▾]               │                                │
-│ Exclusions INSOLVENT  "In insolvency"  INSOLVENCY ≥ Clear  │                                │
-│            [ + disqualifier ]                              │                                │
+│ Exclusions INSOLVENT       "In insolvency"                 │                                │
+│            [ + exclusion rule ]                            │                                │
 │ > Advanced (weights, half-lives, decay floor, …)           │                                │
 │   [ Save draft ] [ Preview impact ] [ Activate… ]          │                                │
 └────────────────────────────────────────────────────────────┴────────────────────────────────┘
@@ -217,13 +217,13 @@ WF-05 — Scoring settings
 | `FR-033` | Advanced, collapsed by default, shall edit `weight_values`, `strength_values`, `default_half_life_days`, `min_decay`, `negative_factor`, `intent_saturation` and `unknown_match`, each with a one-line explanation. |
 | `FR-034` | Save draft shall show every validation error at the control whose JSON pointer it names. |
 | `FR-035` | Preview impact shall list the accounts whose rank, band or standing would change, current and proposed side by side, and the count of unchanged accounts. |
-| `FR-036` | Activate shall require a change note, confirm that every score of the service will be recomputed from stored signals, and then show the `RESCORE` run's progress. |
+| `FR-036` | Activate shall be offered only on a saved draft without unsaved changes; it shall require a change note, confirm that every score of the service will be recomputed from stored signals, and then show the `RESCORE` run's progress. |
 | `FR-037` | Versions shall list every version with status, activation date, Admin and change note, and open a read-only view of a retired or active version's settings. |
-| `FR-151` | Balance shall offer Fit share as a segmented choice with the Intent share shown as its complement, and Preview impact and Versions shall appear in a panel at the right of the settings; Activate shall open a dialog requiring the change note ([FR-036](#scoring-settings)). |
+| `FR-151` | Balance shall offer Fit share as a segmented choice of 30, 40, 50 and 60 %, a stored value outside these shown as an extra selected choice, with the Intent share shown as its complement, and Preview impact and Versions shall appear in a panel at the right of the settings; Activate shall open a dialog requiring the change note ([FR-036](#scoring-settings)). |
 
 Obligations: `S-CFG-03`, `S-CFG-04`, `S-CFG-06`, `S-SCO-04`, `S-SCO-05`, `S-SCO-07`.
 
-**Data**: `API-11`, `API-15`, `API-16`, `API-17`, `API-18`, `API-19`, `API-35`, `API-71`, `API-74`. **States**: [States](/architecture/services/frontend.md#states).
+**Data**: `API-11`, `API-15`, `API-16`, `API-17`, `API-18`, `API-19`, `API-34`, `API-35`, `API-71`, `API-74`. **States**: [States](/architecture/services/frontend.md#states).
 
 ## Industries and markets
 

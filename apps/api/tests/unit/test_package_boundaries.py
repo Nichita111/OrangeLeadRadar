@@ -32,7 +32,8 @@ def _imported_module_roots(tree: ast.Module) -> set[str]:
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:
-                roots.add(alias.name.split(".")[0])
+                parts = alias.name.split(".")
+                roots.add(parts[1] if parts[0] == "leadradar" and len(parts) > 1 else parts[0])
         elif isinstance(node, ast.ImportFrom) and node.module:
             parts = node.module.split(".")
             if parts[0] == "leadradar" and len(parts) > 1:
@@ -53,7 +54,21 @@ def test_core_has_no_forbidden_import() -> None:
         assert not forbidden, f"{path} imports forbidden module(s): {forbidden}"
 
 
-@pytest.mark.parametrize("package", ["db", "audit", "evaluation", "auth", "feedback", "runs"])
+@pytest.mark.parametrize(
+    "package",
+    [
+        "db",
+        "audit",
+        "evaluation",
+        "auth",
+        "feedback",
+        "runs",
+        "seed",
+        "ai",
+        "configuration",
+        "accounts",
+    ],
+)
 def test_store_and_capability_packages_do_not_import_api(package: str) -> None:
     python_files = list((SRC_DIR / package).rglob("*.py"))
     assert python_files, f"expected {package}/ to contain modules"
@@ -62,3 +77,35 @@ def test_store_and_capability_packages_do_not_import_api(package: str) -> None:
         tree = ast.parse(path.read_text(), filename=str(path))
         roots = _imported_module_roots(tree)
         assert "api" not in roots, f"{path} imports the api package, a layering cycle"
+
+
+def test_no_module_outside_api_imports_the_api_package() -> None:
+    src = CORE_DIR.parent
+    for path in src.rglob("*.py"):
+        if path.relative_to(src).parts[0] == "api":
+            continue
+        roots = _imported_module_roots(ast.parse(path.read_text(), filename=str(path)))
+        assert "api" not in roots, f"{path} imports the api package"
+
+
+def test_page_wire_model_has_one_owner() -> None:
+    page_definitions: list[Path] = []
+    for path in (SRC_DIR / "api").glob("*.py"):
+        tree = ast.parse(path.read_text(), filename=str(path))
+        page_definitions.extend(
+            path for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "Page"
+        )
+
+    assert page_definitions == [SRC_DIR / "api" / "pagination.py"]
+
+
+def test_scoring_settings_has_one_owner() -> None:
+    legacy = SRC_DIR / "core" / "scoring_settings.py"
+    imports = [
+        path
+        for path in SRC_DIR.rglob("*.py")
+        if "leadradar.core.scoring_settings" in path.read_text()
+    ]
+
+    assert not legacy.exists()
+    assert imports == []

@@ -30,11 +30,11 @@ Rounding is half up, to an integer, wherever a rule says "rounded".
 
 **Inputs.** The account; Crunchbase profile fields when the `CRUNCHBASE` plug-in fetched them; the account's `COMPANY_PROFILE` document or website home page text.
 
-**Precedence.** `MANUAL` > `CRUNCHBASE` > `CLASSIFIER`. A value is written only when the attribute is null or its [`attribute_origin`](/architecture/sql-store.md#account) is of lower precedence, and the origin is recorded with it. A user's edit always writes `MANUAL`.
+**Precedence.** `MANUAL` > `CRUNCHBASE` > `CLASSIFIER`. A value is written only when the attribute is null or its [`attribute_origin`](/architecture/sql-store.md#account) is of lower precedence, and the origin is recorded with it. A user's edit always writes `MANUAL`. Accepting a discovery candidate writes its known attributes as `MANUAL`: the acceptance counts as their manual entry.
 
 **Crunchbase mapping.** Headquarters country → `country_code`; category → `industry` through the category table of the [Crunchbase adapter](/architecture/services/worker.md#source-plug-ins), only when the industry it maps to is `ACTIVE`; the lower bound of the employee range → `employee_count`; the lower bound of the revenue range, converted at `USD_EUR_RATE` → `revenue_eur`.
 
-**Operational complexity.** When the attribute has no `MANUAL` or `CRUNCHBASE` value, the classifier answers the scale question "How complex are this company's operations, judged by the countries it operates in and its business units?" with levels `LOW`, `MEDIUM`, `HIGH`, each labelled with its meaning under [`account`](/architecture/sql-store.md#account) `operational_complexity`, over the profile or home page text. The most probable level is stored with origin `CLASSIFIER` when its probability is at least `ATTRIBUTE_MIN_P`; otherwise the attribute stays unknown.
+**Operational complexity.** When the attribute is null, the classifier answers the scale question "How complex are this company's operations, judged by the countries it operates in and its business units?" with levels `LOW`, `MEDIUM`, `HIGH`, each labelled with its meaning under [`account`](/architecture/sql-store.md#account) `operational_complexity`, over the text of the account's newest `WEBSITE` document of its home page, or its `COMPANY_PROFILE` document. The most probable level is stored with origin `CLASSIFIER` when its probability is at least `ATTRIBUTE_MIN_P`; otherwise the attribute stays unknown.
 
 **After.** An attribute a user changes enqueues, from the api, a `RESCORE` run with trigger `ACCOUNT_CHANGE` for every active service ([Rescoring](#rescoring)). An attribute written by a plug-in or the classifier during a refresh is scored by that refresh's own `SCORE` stage, so the worker enqueues no run for it.
 
@@ -57,15 +57,15 @@ Rounding is half up, to an integer, wherever a rule says "rounded".
 | `CAREERS` | `careers`, `career`, `jobs`, `karriere`, `stellenangebote` |
 | `RSS_FEED` | a `<link rel="alternate">` of type RSS or Atom |
 
-When `SERPAPI` is available and a kind is still missing, one web search `"{name}" careers` or `"{name}" investor relations annual report` records the first result on the account's domain. Detected sources have origin `DETECTED`.
+When `SERPAPI` is available, the `WEBSITE` job searches the web once for each of `CAREERS` and `INVESTOR_RELATIONS` still missing, with `"{name}" careers` and `"{name}" investor relations annual report`, and records the first result on the account's domain; `NEWSROOM` and `RSS_FEED` are not searched. A failed search adds an entry `{stage FETCH, plugin_code SERPAPI, code}` to the run's `errors`, and detection keeps what the home page gave. Detected sources have origin `DETECTED`.
 
-**Invariants.** At most one detected source per kind. A kind with a `MANUAL` source is never detected. An existing URL is never added twice.
+**Invariants.** At most one detected source per kind. A kind with a `MANUAL` source is never detected. An existing URL is never added twice. A source detected during a refresh is first read by the next refresh.
 
 ## Plug-in availability
 
 **Inputs.** [`source_plugin`](/architecture/sql-store.md#source_plugin), [`plugin_usage`](/architecture/sql-store.md#plugin_usage), the plug-in's key configuration.
 
-**Algorithm.** A plug-in is **available** when it is `enabled`, its key is configured if it needs one, and today's `requests` are below `daily_quota` when a quota is set. Requests to one provider are spaced to stay within `rate_limit_per_minute` in each worker process. Every request increments `plugin_usage` for the UTC day, whether it succeeds or not. A failed request sets `last_error` and `last_error_at` and adds an entry to the run's `errors`; the other plug-ins of the run continue.
+**Algorithm.** A plug-in is **available** when it is `enabled`, its key is configured if it needs one, and today's `requests` are below `daily_quota` when a quota is set. Requests to one provider are spaced to stay within `rate_limit_per_minute` in each worker process. Every request increments `plugin_usage` for the UTC day, whether it succeeds or not. A request that succeeds sets `last_success_at`; one that fails sets `last_error` and `last_error_at`. A plug-in whose fetch fails adds an entry to the run's `errors`, and the other plug-ins of the run continue; an item the plug-in skips after a failed request adds none. Availability is checked again when a plug-in's `FETCH` job starts: a plug-in that is no longer available makes no request and adds no error, and one that reaches its `daily_quota` during the job sends no further request.
 
 **Invariants.** An unavailable plug-in makes no request. Every P0 capability works with only the free-core plug-ins available ([RULE-08](/requirements/business.md#business-rules)).
 
@@ -77,13 +77,13 @@ When `SERPAPI` is available and a kind is still missing, one web search `"{name}
 
 1. The window is the last `FETCH_LOOKBACK_DAYS` days. Per plug-in, the lower bound is raised to one day before the newest `published_at` of the account's documents from that plug-in, so a refresh asks only for new items. A provider whose search reaches back less far than the window is asked for what it holds; older company publications come from `WEBSITE`.
 2. A news plug-in (`GDELT`, `NEWSAPI`, `SERPAPI`) sends one query per active service: the account's name or any alias, combined with any `hint_terms` of that service's active questions whose `source_types` include `NEWS`; a service without such terms queries the name alone.
-3. `WEBSITE` reads the account's `WEBSITE`, `NEWSROOM` and `INVESTOR_RELATIONS` sources and same-host links, at most `CRAWL_MAX_PAGES_PER_SITE` pages to link depth 2, newest first by sitemap date when the site has a sitemap, plus at most `CRAWL_MAX_PDFS` of the newest linked PDF reports.
+3. `WEBSITE` reads the account's `WEBSITE`, `NEWSROOM` and `INVESTOR_RELATIONS` sources and same-host links, at most `CRAWL_MAX_PAGES_PER_SITE` pages to link depth 2, newest first by sitemap date when the site has a sitemap, plus at most `CRAWL_MAX_PDFS` of the newest linked PDF reports. A page or report that answers a redirect (301, 302, 303, 307 or 308) is read at its target when the target is on the account's registrable domain and has not been requested in this job; each hop is one request and counts as one of the source's pages, or one of the `CRAWL_MAX_PDFS` reports. When a source's own URL redirects, its same-host links are those of the host it leads to.
 4. `CAREERS` reads every posting listed on the account's `CAREERS` sources that was posted within the window.
 5. `CRUNCHBASE` reads the matched organisation's profile, key people and events once per refresh.
 6. `RSS` reads each `RSS_FEED` source.
 7. Across plug-ins at most `MAX_DOCUMENTS_PER_REFRESH` documents are kept per refresh, split evenly across the available plug-ins, newest first.
 
-**Invariants.** Nothing older than the window is fetched. No request goes to `linkedin.com`, and no Google News feed is read ([ADR-19](/architecture/adrs/adr-19-source-provider-terms-and-limits.md)). The crawler honours `robots.txt`, identifies itself with `CRAWLER_USER_AGENT` and waits `CRAWL_HOST_DELAY_MS` between requests to one host ([N-09](/requirements/system.md)).
+**Invariants.** Nothing older than the window is fetched. No request goes to `linkedin.com`, and no Google News feed is read ([ADR-19](/architecture/adrs/adr-19-source-provider-terms-and-limits.md)). The crawler honours `robots.txt`, identifies itself with `CRAWLER_USER_AGENT` and waits `CRAWL_HOST_DELAY_MS` between requests to one host ([N-09](/requirements/system.md)). A redirect to another registrable domain is never followed.
 
 ## Document normalisation
 
@@ -96,7 +96,7 @@ When `SERPAPI` is available and a kind is still missing, one web search `"{name}
 3. Detect the language as an ISO 639-1 code.
 4. Canonical URL: lower-case scheme and host, drop the fragment, drop the query parameters `utm_*`, `gclid`, `fbclid`, `mc_cid`, `mc_eid`, `ref` and `source`, drop a trailing slash, and use the page's declared canonical link when it is on the same registrable domain.
 5. Exact duplicate: a document of the same account with the same `content_hash` already exists → not stored. The same canonical URL with a different hash is a new document: the page changed.
-6. Near duplicate: after [Chunking and passage selection](#chunking-and-passage-selection) embeds the first passage, a document whose first-passage embedding has cosine similarity of at least `NEAR_DUPLICATE_SIMILARITY` with the first passage of a document of the same account dated within `NEAR_DUPLICATE_WINDOW_DAYS` gets `duplicate_of_id` set to the earliest such document. The embeddings are multilingual, so a translation of the same story is a near duplicate.
+6. Near duplicate: after [Chunking and passage selection](#chunking-and-passage-selection) embeds the first passage, a document whose first-passage embedding has cosine similarity of at least `NEAR_DUPLICATE_SIMILARITY` with the first passage of an earlier document of the same account, dated within `NEAR_DUPLICATE_WINDOW_DAYS`, gets `duplicate_of_id` set to the earliest such document. A document is dated by its `published_at`, else its `fetched_at`; documents are ordered by that date, then by `content_hash`, and one that is itself a near duplicate is never another's original. The embeddings are multilingual, so a translation of the same story is a near duplicate.
 
 **Invariants.** A duplicate is never triaged or classified. Re-running normalisation on the same item stores nothing new.
 
@@ -127,7 +127,7 @@ Each ranking contributes its first `RETRIEVAL_CANDIDATES` passages. A passage's 
 
 **Algorithm.** One [classifier](/architecture/interfaces.md#classifier) call over the document title and its first `TRIAGE_CHARS` characters, with these yes/no questions:
 
-- `ABOUT_ACCOUNT`: "Is this text mainly about {name} ({domain}, {country}), not a different company with a similar name and not a passing mention?" — skipped for a document from one of the account's own sources or from `CAREERS` or `CRUNCHBASE`, which are about the account by construction.
+- `ABOUT_ACCOUNT`: "Is this text mainly about {name} ({domain}, {country}), not a different company with a similar name and not a passing mention?" — skipped for a document from one of the account's own sources or from `CRUNCHBASE`, which are about the account by construction. For a `CAREERS` document it is instead "Is this text one or more job postings of {name} ({domain}, {country}), not a sign-in, account or other page of the careers site?", since a crawled careers site also links pages that are not postings.
 - One `RELEVANT` question per active service: "Could this text matter for whether {name} might need this service: {service description}?"
 
 The outcome is `NOT_ABOUT_ACCOUNT` when the probability of `ABOUT_ACCOUNT` is below `TRIAGE_ABOUT_MIN_P`; else `IRRELEVANT` when every service's relevance is below `TRIAGE_RELEVANCE_MIN_P`; else `KEPT` for the services at or above it. Triage never escalates: its thresholds are set for recall, and precision is the job of [Signal classification](#signal-classification).
@@ -171,7 +171,7 @@ flowchart LR
 
 - `p_positive ≥ ESCALATION_UPPER`: the classifier's answer is accepted as positive with its candidate strength, `decided_by = CLASSIFIER` and `confidence = p_positive`; go to [Evidence extraction](#evidence-extraction).
 - `p_positive ≤ ESCALATION_LOWER`: `NEGATIVE`, strength `NONE`.
-- Otherwise `escalated = true`: the [LLM escalate](/architecture/interfaces.md#llm) call answers the same question on the same passage with a strength (including `NONE`), a confidence and, when positive, the quote, translation and rationale in the same call. Strength `NONE` → `NEGATIVE`. Otherwise the quote is validated as in [Evidence extraction](#evidence-extraction) and the finding carries `decided_by = LLM` and the LLM's confidence.
+- Otherwise `escalated = true`: the [LLM escalate](/architecture/interfaces.md#llm) call answers the same question on the same passage with a strength (including `NONE`), a confidence and, when positive, the quote, translation and rationale in the same call. Strength `NONE` → `NEGATIVE`. Otherwise the output is validated, and an invalid one requested again, as in [Evidence extraction](#evidence-extraction) and the finding carries `decided_by = LLM` and the LLM's confidence.
 - An LLM step that the [Budget guard](#budget-guard) stops, or whose provider is unavailable, leaves the classification `PENDING_LLM`; the next refresh of the account resumes it.
 
 The same band applies whichever classifier adapter is configured ([ADR-02](/architecture/adrs/adr-02-classification-cascade.md)).
@@ -188,7 +188,7 @@ The same band applies whichever classifier adapter is configured ([ADR-02](/arch
 - `quote_en` is present when the document language is not `en`, and absent otherwise;
 - `rationale` is one sentence of at most `EVIDENCE_MAX_RATIONALE_CHARS` characters.
 
-An invalid output is requested again, up to `EVIDENCE_MAX_ATTEMPTS` attempts in total; after that the classification is `EVIDENCE_FAILED` and no finding is created. The account's next refresh retries an `EVIDENCE_FAILED` pair once more and sets its `evidence_retried`; a pair that fails again is not retried.
+An invalid output is requested again, up to `EVIDENCE_MAX_ATTEMPTS` attempts in total; after that the classification is `EVIDENCE_FAILED` and no finding is created. The account's next refresh retries an `EVIDENCE_FAILED` pair once more — by escalation when it was escalated, else by evidence extraction at its candidate strength, again up to `EVIDENCE_MAX_ATTEMPTS` attempts — and sets its `evidence_retried`; a pair that fails again is not retried.
 
 **After.** One [`finding`](/architecture/sql-store.md#finding) with the strength, confidence, `decided_by`, the quote as the passage writes it at the matched span, translation, rationale, `observed_at` = the document's `published_at`, else its `fetched_at`, and status `ACTIVE`.
 
@@ -201,7 +201,7 @@ An invalid output is requested again, up to `EVIDENCE_MAX_ATTEMPTS` attempts in 
 **Algorithm.** A `RECLASSIFY` run with trigger `QUESTION_CHANGE`:
 
 1. Mark the question's findings of an older revision `SUPERSEDED` and its evaluation items of an older revision `STALE`.
-2. For every non-purged, non-duplicate document of every active account: if its triage has no relevance for the question's service, answer that service's `RELEVANT` question now ([Triage](#triage)). For each document kept for the service, select its passages for this question alone — the document's one passage, or its first `PASSAGES_PER_QUESTION` by question-scoped retrieval over all its stored passages — and classify those without a classification at the question's current revision, for this question only ([Signal classification](#signal-classification)), then escalate and extract evidence as usual. Evidence for the question in a passage no earlier question selected is found this way.
+2. For every triaged, non-purged, non-duplicate document of every active account whose triage outcome is not `NOT_ABOUT_ACCOUNT`: if its triage has no relevance for the question's service, answer that service's `RELEVANT` question now ([Triage](#triage)), add it to the triage's `service_relevance`, and set the outcome `KEPT` when it reaches `TRIAGE_RELEVANCE_MIN_P`. A document not yet triaged is left to the account's next refresh. For each document kept for the service, select its passages for this question alone — the document's one passage, or its first `PASSAGES_PER_QUESTION` by question-scoped retrieval over all its stored passages — and classify those without a classification at the question's current revision, for this question only ([Signal classification](#signal-classification)), then escalate and extract evidence as usual. Evidence for the question in a passage no earlier question selected is found this way.
 3. Rescore the service ([Rescoring](#rescoring)).
 
 **Invariants.** Nothing is fetched. No other question is reclassified. A change to weight, half-life or any other scoring setting never reclassifies ([ADR-09](/architecture/adrs/adr-09-findings-per-passage-and-question-revision.md)).
@@ -299,7 +299,7 @@ The cost of a call is the `usage.cost` OpenRouter returns with it, in US dollars
 }
 ```
 
-`match` is `MATCH`, `MISMATCH` or `UNKNOWN`. A criterion's `points` is `100 × w_c·m_c / Σ w_c`; a question's is `± 100 × w_q·c_q / (intent_saturation × M)`, multiplied by `negative_factor` and negative for a negative question. Before rounding and clamping the points add up to the value, so every point of a score is traceable to a criterion or a finding. Numbers are rounded to six decimals and keys are sorted, so equal inputs give byte-identical JSON.
+`match` is `MATCH`, `MISMATCH` or `UNKNOWN`. A criterion's `points` is `100 × w_c·m_c / Σ w_c`; a question's is `± 100 × w_q·c_q / (intent_saturation × M)`, multiplied by `negative_factor` and negative for a negative question. Before rounding and clamping the points add up to the value, so every point of a score is traceable to a criterion or a finding. A question entry's `finding_id`, `strength` and `decay` are null when it has no counted finding, and a question counts exactly when its `finding_id` is set; a criterion's `attribute` is the account's value it tested — a code, a country or a number such as the employee count — and null when that value is unknown. A criterion has no label: screens show its key in sentence case. Numbers are rounded to six decimals and keys are sorted, so equal inputs give byte-identical JSON.
 
 ## Rescoring
 
@@ -378,11 +378,11 @@ An invalid output is requested once more; a second invalid output stores nothing
 **Algorithm.** A `DISCOVERY` run, started by a user or by [Scheduling](#scheduling):
 
 1. When `CRUNCHBASE` is available: an organisation search restricted by the ICP's `GEOGRAPHY` countries, `INDUSTRY` values mapped to Crunchbase categories and `EMPLOYEE_RANGE`, up to `DISCOVERY_MAX_CANDIDATES` results.
-2. For each available news plug-in: a query made of the `hint_terms` of the service's positive questions whose `source_types` include `NEWS`, restricted to the ICP's countries where the plug-in supports it, over the last `DISCOVERY_LOOKBACK_DAYS`, up to `DISCOVERY_MAX_DOCUMENTS` documents, stored with no account. Each is triaged for the service's relevance only; for a kept document the [LLM extract organisations](/architecture/interfaces.md#llm) call names the companies that are the subject of the signal, with the country and website when the text states them.
-3. Drop a company that matches an existing account ([Account identity](#account-identity)) or any earlier candidate of the service in any status.
-4. Compute `fit_estimate` with the [Fit score](#fit-score) over the known attributes; keep the `DISCOVERY_MAX_CANDIDATES` best by `fit_estimate`. A company that misses an ICP criterion is kept with a lower estimate, never dropped for it ([RULE-11](/requirements/business.md#business-rules)).
+2. For each available news plug-in: a query made of the `hint_terms` of the service's positive questions whose `source_types` include `NEWS`, restricted to the ICP's countries where the plug-in supports it, over the last `DISCOVERY_LOOKBACK_DAYS`, up to `DISCOVERY_MAX_DOCUMENTS` documents per run, split evenly across the news plug-ins and taken newest first; a service whose positive questions have no such hint terms searches no news. Documents are stored with no account. A document is triaged once: one already triaged is not read again, and an identical document is not stored again. Each is triaged for the service's relevance only, with the question "Could this text matter for whether a company it reports on might need this service: {service description}?" and no context line; for a kept document the [LLM extract organisations](/architecture/interfaces.md#llm) call names the companies that are the subject of the signal, with the country and website when the text states them. An organisation is kept only when its `quote` is a substring of the document text, its name normalises to something, and it has a stated website or country. A website is stated when the text contains it and it has a registrable domain, which becomes the candidate's `domain`; a country is stated when it is an ISO 3166-1 alpha-2 code. A classifier or LLM call that fails, or that the [Budget guard](#budget-guard) stops, skips only its document and adds `{stage TRIAGE, code}` to the run's `errors`; the other documents continue, and the run ends `PARTIAL`. A source plug-in that fails adds an entry to the run's `errors` and the other sources continue.
+3. Mentions of one normalised name in several documents make one company, with the document and quote of the newest article naming it. Drop a company that matches an existing account ([Account identity](#account-identity)) or any earlier candidate of the service in any status.
+4. Compute `fit_estimate` with the [Fit score](#fit-score) over the known attributes; keep the `DISCOVERY_MAX_CANDIDATES` best by `fit_estimate`; equal estimates are ordered by the naming article's `published_at`, newest first and unknown last, then by `normalised_name`. A company that misses an ICP criterion is kept with a lower estimate, never dropped for it ([RULE-11](/requirements/business.md#business-rules)).
 
-**Acceptance.** Accepting a candidate requires a domain, taken from the candidate or entered by the user. It creates an account with origin `DISCOVERED`, the candidate's known attributes, its name as alias and a `WEBSITE` source, links the candidate, and enqueues an `ACCOUNT_REFRESH` with trigger `USER`. A domain that is already an account's is refused as `CONFLICT` naming it.
+**Acceptance.** Accepting a candidate requires a domain, taken from the candidate or entered by the user. It creates an account with origin `DISCOVERED`, the candidate's known attributes as `MANUAL` values, its name as alias and a `WEBSITE` source, links the candidate, and enqueues an `ACCOUNT_REFRESH` with trigger `USER`. A domain that is already an account's is refused as `CONFLICT` naming it.
 
 **Invariants.** A candidate is never fetched for, triaged or scored as an account before acceptance ([ADR-12](/architecture/adrs/adr-12-suggested-accounts-need-acceptance.md)). A rejected company is never proposed again for the service.
 
@@ -412,16 +412,18 @@ An invalid output is requested once more; a second invalid output stores nothing
 | `strength_agreement` | Share of true positives whose predicted strength equals the expected strength |
 | `escalation_rate` | Share of items that were escalated |
 | `classifier_only` | `precision` and `recall` of the classifier alone, positive when `p_positive ≥ EVAL_CLASSIFIER_ONLY_P`, no escalation |
-| `per_question` | Per question key: `items`, `precision`, `recall` |
+| `per_question` | Per question id: `key`, `service_id`, `items`, `precision`, `recall` |
 | `per_source_type` | Per document source type: `items`, `precision`, `recall` |
-| `missed_evidence` | Among items whose passage the current selection does not pick for the item's question: `items` and the share whose `expected_strength` is not `NONE`, null without such items — the evidence [Passage selection](#chunking-and-passage-selection) leaves unread |
+| `missed_evidence` | Among items whose passage the current selection does not pick for the item's question: `items` and `positive_rate`, the share whose `expected_strength` is not `NONE`; `positive_rate` is null without such items — the evidence [Passage selection](#chunking-and-passage-selection) leaves unread |
 | `calibration` | `EVAL_CALIBRATION_BINS` equal-width bins of `p_positive` from 0 to 1: `count`, `mean_p`, `positive_rate` |
 | `errors` | Up to `EVAL_MAX_ERRORS` misclassified items: `item_id`, `expected`, `predicted`, `p_positive`, `escalated` |
-| `lead_verdicts` | Counts of in-force `RELEVANT` and `NOT_RELEVANT` lead feedback per current band |
+| `lead_verdicts` | Per current band value of [`account_score`](/architecture/sql-store.md#account_score) `band`: `RELEVANT` and `NOT_RELEVANT` counts of in-force lead feedback |
+
+A ratio whose denominator is zero is null: `strength_agreement` without true positives, `escalation_rate` without items, and a calibration bin's `mean_p` and `positive_rate` when its `count` is 0. A `p_positive` of 1 falls in the last bin. `errors` lists misclassified items — prediction and expectation of different positivity — ordered by item `created_at`, then `id`.
 
 `passed` = `precision ≥ EVAL_MIN_PRECISION` and `items ≥ EVAL_MIN_ITEMS` ([ADR-14](/architecture/adrs/adr-14-labelled-set-and-precision-gate.md)). The result stores these values, `ESCALATION_RATE_TARGET` and the escalation band as they were for the run, so a report always shows the gate it was judged by. An evaluation whose classifier or LLM calls fail, or that the [Budget guard](#budget-guard) stops, ends `FAILED` with the reason and reports no metrics: a partial result is never reported as a quality check.
 
-**Label queue.** Pairs of a passage of a kept document of an active account and an applicable active question, without an active item, are split into four strata: for a selected passage, by its classification's `p_positive` — below `ESCALATION_LOWER`, inside the band, at or above `ESCALATION_UPPER`; and **not selected**, a passage of a long document that selection did not pick for the question. The queue returns `LABEL_QUEUE_SIZE` pairs, as equal a share from each stratum as there are pairs, ordered within a stratum by the SHA-256 of the passage id and question id, so the order is stable.
+**Label queue.** Pairs of a passage of a kept document of an active account and an applicable active question, without an active item, are split into four strata: for a selected passage, by its classification's `p_positive` — at or below `ESCALATION_LOWER`, inside the band, at or above `ESCALATION_UPPER`; and **not selected**, a passage of a long document that selection did not pick for the question. A pair is selected when it has a [`classification`](/architecture/sql-store.md#classification) at the question's current revision; `missed_evidence` uses the same test. The queue returns `LABEL_QUEUE_SIZE` pairs, as equal a share from each stratum as there are pairs, ordered within a stratum by the SHA-256 of the text `<chunk_id>:<question_id>`, so the order is stable.
 
 ## Impact
 

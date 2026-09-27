@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 from alembic.config import Config
+from pydantic import ValidationError
 
 from alembic import command
 from leadradar.api.app import create_app
@@ -33,8 +34,13 @@ def apply_migrations(settings: ApiSettings) -> None:
 
 
 def run() -> None:
-    """`leadradar-api`: applies migrations, then serves `create_app(settings)` on port 8000."""
-    settings = ApiSettings()
+    """`leadradar-api`: applies migrations, then serves `create_app(settings)`."""
+    configure_json_logging("INFO")
+    try:
+        settings = ApiSettings()
+    except ValidationError:
+        logger.exception("Invalid configuration; the api will not start")
+        sys.exit(1)
     configure_json_logging(settings.log_level)
 
     try:
@@ -45,7 +51,9 @@ def run() -> None:
 
     import uvicorn
 
-    uvicorn.run(create_app(settings), host="0.0.0.0", port=8000, log_config=None)
+    uvicorn.run(
+        create_app(settings), host=settings.api_host, port=settings.api_port, log_config=None
+    )
 
 
 if __name__ == "__main__":

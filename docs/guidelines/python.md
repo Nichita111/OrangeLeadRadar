@@ -43,6 +43,7 @@ apps/api/
 - Configuration is one `pydantic-settings` class per process, read once at start and passed in; no module reads the environment.
 - Logging with the standard library, formatted as JSON lines with `request_id` or `run_id`; never log a password, token, API key or contact name.
 - Time is `datetime` in UTC with timezone; a function that needs "now" takes it as an argument.
+- Passwords are hashed and verified with `argon2-cffi`'s `PasswordHasher` (argon2id, its default parameters).
 
 ## FastAPI
 

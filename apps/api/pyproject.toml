@@ -13,6 +13,15 @@ dependencies = [
   "alembic>=1.14",
   "pgvector>=0.3.6",
   "httpx>=0.27",
+  "argon2-cffi>=23.1",
+  "publicsuffix2>=2.20191221",
+  # `API-22` (POST /accounts/import) takes a multipart CSV upload; FastAPI's `UploadFile`
+  # form-parsing needs this parser, which is not in the standard library.
+  "python-multipart>=0.0.12",
+  "beautifulsoup4>=4.12",
+  "feedparser>=6.0",
+  "pypdf>=5.1",
+  "py3langid>=0.3",
 ]
 
 [dependency-groups]
@@ -36,6 +45,10 @@ packages = ["src/leadradar"]
 [project.scripts]
 leadradar-api = "leadradar.api.main:run"
 leadradar-worker = "leadradar.worker.main:run"
+leadradar-seed-demo = "leadradar.seed.demo:run"
+leadradar-refresh-demo = "leadradar.seed.refresh:run"
+leadradar-seed-labels = "leadradar.seed.labels:run"
+leadradar-export-labels = "leadradar.seed.labels:export_run"
 
 [tool.ruff]
 line-length = 100
@@ -44,9 +57,31 @@ target-version = "py312"
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
 
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's dependency-injection markers are meant to be called in argument defaults; this is
+# not the mutable-default-argument bug B008 otherwise catches.
+extend-immutable-calls = [
+  "fastapi.Depends",
+  "fastapi.Cookie",
+  "fastapi.Query",
+  "fastapi.Header",
+  "fastapi.Path",
+  "fastapi.Body",
+  "fastapi.File",
+  "fastapi.Form",
+]
+
 [tool.mypy]
 strict = true
 plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = "publicsuffix2"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["feedparser", "py3langid.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 markers = [
@@ -57,11 +92,11 @@ markers = [
 asyncio_mode = "auto"
 
 [tool.poe.tasks]
-format-check = "ruff format --check src tests"
-lint = "ruff check src tests"
-typecheck = "mypy src tests"
+format-check = "ruff format --check src tests alembic"
+lint = "ruff check src tests alembic"
+typecheck = "mypy src tests alembic"
 test-unit = "pytest -m unit --disable-socket --allow-unix-socket"
 test-integration = "pytest -m integration"
-test-contract = "pytest -m contract --disable-socket --allow-unix-socket"
+test-contract = "pytest -m contract"
 openapi-snapshot = { script = "leadradar.api.openapi_snapshot:main" }
 validate = ["format-check", "lint", "typecheck", "test-unit", "test-integration", "test-contract"]

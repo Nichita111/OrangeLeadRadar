@@ -69,7 +69,7 @@ Two processes run the product's code, which is one Python package: the [api serv
 
 ## Runtime
 
-One `docker compose up` starts the stack locally, and the same Compose file runs it on one cloud virtual machine in an EU region for the demo ([S-RUN-01](/requirements/system.md)).
+One `docker compose up` starts the stack locally, and the same Compose file runs it on one cloud virtual machine in an EU region for the demo ([S-RUN-01](/requirements/system.md)). The stack serves plain HTTP from `web`; on the cloud machine the cloud provider's load balancer terminates HTTPS and forwards to `web`, so the Compose file is the same in both places.
 
 | Container | Image | Role |
 |---|---|---|
@@ -81,9 +81,13 @@ One `docker compose up` starts the stack locally, and the same Compose file runs
 
 Configuration comes from environment variables only; secrets (API keys, the HubSpot token, the database and seed passwords) are never committed, logged or returned by the API. Each service's keys and defaults are in its runtime section: [api](/architecture/services/api.md#runtime), [worker](/architecture/services/worker.md#runtime), [frontend](/architecture/services/frontend.md#runtime).
 
-**Fixture mode** ([ADR-11](/architecture/adrs/adr-11-recorded-fixtures.md)). `FIXTURE_MODE` is `off`, `record` or `replay`. In `record`, every source plug-in request, every classifier and LLM call and every HubSpot exchange is stored under `FIXTURE_DIR`, keyed by a SHA-256 of the adapter name and the normalised request. In `replay`, they are answered from those files; a request with no file fails its step with `FIXTURE_MISSING` and is never sent live. The embedder is local and runs in every mode. Replay reads the clock from `CLOCK_FILE`, set to the time of the recording, so that fetch windows match the recorded requests and decay gives the same scores on every replay. Replay needs no provider key; `CLASSIFIER_PROVIDER` and the model ids must be those of the recording, because they are part of each request's key. Replay is how the demo and the acceptance tests run offline and repeatably ([S-RUN-02](/requirements/system.md)).
+The database has two roles. The owner, the `db` container's user, creates and changes the schema; only the api's migration step connects as it, through `MIGRATION_DATABASE_URL`. The application role `leadradar_app` is created by the `db` container's init script with the password `APP_DB_PASSWORD`; the api and the worker serve through `DATABASE_URL` as that role, which may read and write every table but only read and append [`audit_event`](/architecture/sql-store.md#audit_event).
 
-**Seeding.** `make seed-demo` loads the [demo dataset](#demo-dataset) into an empty database: users, industries, markets, services, questions, active scoring versions, provider facts, and the accounts with their sources, imported from the demo account file by the rules of `API-22` and then linked to their parents ([S-RUN-03](/requirements/system.md)). It never fetches. The **demo refresh** follows it: `make refresh-demo` requests a refresh of every active account through `API-33` and waits until every run is final, in replay mode for the demo and the acceptance tests; the P1 scheduler would find the same accounts due, and one refresh per account is all either can queue. Labels reference passages, which exist only after a refresh, so they are exported to `FIXTURE_DIR/evaluation_items.json` keyed by account domain, document content hash, passage ordinal, question key and revision, and `make seed-labels` loads them after the demo refresh, matching each to its passage; replay reproduces the same documents and passages, so every exported label finds its passage.
+**Fixture mode** ([ADR-11](/architecture/adrs/adr-11-recorded-fixtures.md)). `FIXTURE_MODE` is `off`, `record` or `replay`. In `record`, every source plug-in request, every classifier and LLM call and every HubSpot exchange is stored under `FIXTURE_DIR`, keyed by a SHA-256 of the adapter name and the normalised request. In `replay`, they are answered from those files; a request with no file fails its step with `FIXTURE_MISSING` and is never sent live. The embedder is local and runs in every mode. Record and replay read the clock from `CLOCK_FILE`, set to the time of the recording, so that fetch windows match the recorded requests and decay gives the same scores on every replay. Replay needs no provider key; `CLASSIFIER_PROVIDER` and the model ids must be those of the recording, because they are part of each request's key. Replay is how the demo and the acceptance tests run offline and repeatably ([S-RUN-02](/requirements/system.md)).
+
+**Fixture files.** One exchange per file, at `FIXTURE_DIR/<adapter>/<key>.json`, where `<adapter>` is `JEV` or `OPENROUTER` for an AI gateway call, `HUBSPOT` for a HubSpot exchange, or the plug-in's [`source_plugin`](/architecture/sql-store.md#source_plugin) `code` for a source request. The normalised request is `{adapter, method, url, body}`: `url` with its `api_key` query parameter, SerpAPI's credential, removed and the others sorted; `body` the parsed JSON of a JSON body, the text of any other body, or null. Headers and the `api_key` parameter are left out, so no key or credential is ever stored. `<key>` is the SHA-256, in lower-case hex, of the normalised request serialised as JSON with sorted keys, no whitespace and non-ASCII characters unescaped. The file is the JSON object `{adapter, request, response}`: `request` is the normalised request; `response` is `{status, content_type}`, plus `location`, the `Location` header, for a redirect status, with one of `json` for a JSON body, `text` for any other text and `base64` for binary content such as a PDF, or `{error}` with `TIMEOUT` or `TRANSPORT_ERROR` for an exchange that failed before an answer, which replay raises again. `record` overwrites the file of a repeated request, so a retried call keeps its last attempt.
+
+**Seeding.** `make seed-demo` loads the [demo dataset](#demo-dataset) into an empty database: users, industries, markets, services, questions, active scoring versions, provider facts, and the accounts with their sources, imported from the demo account file by the rules of `API-22` and then linked to their parents ([S-RUN-03](/requirements/system.md)). It never fetches. A repeat invocation succeeds without changing a complete matching seed; an incomplete or different existing seed fails clearly. Sources a refresh detected and attribute values its enrichment filled where the demo account file leaves them empty are the account's, not the seed's, and do not make a seed different. The **demo refresh** follows it: `make refresh-demo` requests a refresh of every active account through `API-33` and waits until every run is final, in replay mode for the demo and the acceptance tests. It fails if a requested run is missing or ends in a status other than `SUCCEEDED`; the P1 scheduler would find the same accounts due, and one refresh per account is all either can queue. Labels reference passages, which exist only after a refresh, so `make export-labels` writes every active evaluation item to `FIXTURE_DIR/evaluation_items.json`, a JSON array of `{account_domain, content_hash, ordinal, service_code, question_key, question_revision, expected_strength}` sorted by those keys, and `make seed-labels` loads them after the demo refresh, matching each to its passage and writing it as a `MANUAL` label of the demo Admin; an entry that matches no passage or question fails the command, naming it; replay reproduces the same documents and passages, so every exported label finds its passage.
 
 ## Store ownership
 
@@ -93,7 +97,7 @@ The api service owns the schema and applies migrations; both processes write the
 |---|---|---|
 | [`app_user`](/architecture/sql-store.md#app_user), [`auth_session`](/architecture/sql-store.md#auth_session) | all | deletes expired sessions |
 | [`service`](/architecture/sql-store.md#service), [`signal_question`](/architecture/sql-store.md#signal_question), [`scoring_config`](/architecture/sql-store.md#scoring_config), [`industry`](/architecture/sql-store.md#industry), [`market`](/architecture/sql-store.md#market), [`provider_fact`](/architecture/sql-store.md#provider_fact) | all | — |
-| [`account`](/architecture/sql-store.md#account) | user-entered fields, `status` | `CRUNCHBASE` and `CLASSIFIER` attributes, `crunchbase_id`, `last_refreshed_at`, `next_refresh_at` |
+| [`account`](/architecture/sql-store.md#account) | user-entered fields, including an accepted discovery candidate's attributes, `status` | `CRUNCHBASE` and `CLASSIFIER` attributes, `crunchbase_id`, `last_refreshed_at`, `next_refresh_at` |
 | [`account_alias`](/architecture/sql-store.md#account_alias) | all | — |
 | [`account_source`](/architecture/sql-store.md#account_source) | `MANUAL` rows, any row's `status` | `DETECTED` rows |
 | [`contact`](/architecture/sql-store.md#contact) | all, including persona mapping and erasure on request | erasure at the end of retention |
@@ -128,17 +132,19 @@ No role produces a score, a band, a standing or an exclusion, and no role's text
 
 ## Degradation
 
-A failure is degrading when a deterministic path remains, blocking when it does not. Nothing is replaced by a placeholder: an unavailable dependency is an error that names it.
+A failure is degrading when a deterministic path remains, blocking when it does not. Nothing is replaced by a placeholder: an unavailable dependency is an error that names it. The screen wording is each row as a user reads it: its first sentence names what is unavailable without a product, provider or model name, and what still works follows as a list.
 
-| Dependency down | What happens | What still works |
-|---|---|---|
-| One source plug-in | Its fetch step fails; the run ends `PARTIAL` naming it | The other plug-ins, the rest of the pipeline, every screen |
-| Classifier | `SIGNAL` jobs fail and are retried; the run ends `PARTIAL`; question preview, and a contact added without a persona, answer `503` | Fetching and processing; scoring from existing findings; every screen |
-| OpenRouter | Every classifier and LLM call fails, Jev's included: `SIGNAL` jobs fail and are retried and the run ends `PARTIAL`; open signals and interpretations wait for the account's next run; preview, outreach and a contact added without a persona answer `503` | Fetching and processing; scoring from existing findings; every screen |
-| LLM daily budget reached | Escalation and evidence pairs wait as `PENDING_LLM`, open signals and interpretations wait for the next run, and with the LLM classifier adapter classification waits too; preview and outreach answer `429`, and so does a contact added without a persona under the LLM classifier adapter | Classification by Jev; confident negatives; scoring from existing findings; every screen |
-| Embedder | `PROCESS` jobs fail and are retried; the run ends `PARTIAL`; question preview on an account, or on pasted text longer than `WHOLE_DOCUMENT_MAX_CHARS`, answers `503` | Scoring, every screen, preview on shorter pasted text |
-| HubSpot | The push answers `503` and the attempt is recorded; the engagement sync run fails naming HubSpot and every status stays as it was | Statuses set by people; everything else |
-| Database | Blocking: the api answers `503` and `/health` reports `DOWN`; the worker stops claiming jobs | Nothing |
+| Dependency down | What happens | What still works | Screen wording |
+|---|---|---|---|
+| One source plug-in | Its fetch step fails; the run ends `PARTIAL` naming it | The other plug-ins, the rest of the pipeline, every screen | **A source plug-in is unavailable.** Still works: The other source plug-ins · The rest of the refresh · Every screen |
+| Classifier | `SIGNAL` jobs fail and are retried; the run ends `PARTIAL`; question preview, and a contact added without a persona, answer `503` | Fetching and processing; scoring from existing findings; every screen | **Quick checks are unavailable.** Still works: Collecting and preparing new documents · Scores from the signals already found · Every screen |
+| OpenRouter | Every classifier and LLM call fails, Jev's included: `SIGNAL` jobs fail and are retried and the run ends `PARTIAL`; open signals and interpretations wait for the account's next run; preview, outreach and a contact added without a persona answer `503` | Fetching and processing; scoring from existing findings; every screen | **The AI service is unavailable.** Still works: Collecting and preparing new documents · Scores from the signals already found · Every screen |
+| LLM daily budget reached | Escalation and evidence pairs wait as `PENDING_LLM`, open signals and interpretations wait for the next run, and with the LLM classifier adapter classification waits too; preview and outreach answer `429`, and so does a contact added without a persona under the LLM classifier adapter | Classification by Jev; confident negatives; scoring from existing findings; every screen | **Today's budget for detailed checks is used up.** Still works: Scores from the signals already found · Every screen |
+| Embedder | `PROCESS` jobs fail and are retried; the run ends `PARTIAL`; question preview on an account, or on pasted text longer than `WHOLE_DOCUMENT_MAX_CHARS`, answers `503` | Scoring, every screen, preview on shorter pasted text | **Text analysis is unavailable.** Still works: Scores from the signals already found · Every screen · Try it on short pasted text |
+| HubSpot | The push answers `503` and the attempt is recorded; the engagement sync run fails naming HubSpot and every status stays as it was | Statuses set by people; everything else | **HubSpot is unavailable.** Still works: Statuses set by people · Everything else |
+| Database | Blocking: every contract except `API-61` answers `503 UPSTREAM_UNAVAILABLE`, `API-61` answers `503` with the database `DOWN`, and the worker stops claiming jobs | Nothing | **The database is unavailable.** Nothing works until it is back. |
+
+The Screen wording cells are literal cells ([Literal cells](/guidelines/documents/common.md#literal-cells-and-illustrative-ones)): the client shows them exactly as written. The cell's shape is fixed: the bold headline sentence, then either "Still works: " with the items separated by " · ", or one closing sentence.
 
 ## Production path
 
@@ -155,7 +161,7 @@ What the MVP deliberately leaves out, and how it would be added without changing
 
 The seed is the acceptance tests' concrete data and the demo's walk-through. Its literal values are the ones below.
 
-**Users.** `admin@leadradar.local` with role `ADMIN` and `sales@leadradar.local` with role `SALES`; passwords from `SEED_ADMIN_PASSWORD` and `SEED_SALES_PASSWORD`.
+**Users.** `admin@leadradar.local` with role `ADMIN` and `sales@leadradar.local` with role `SALES`, each with the email's local part as display name; passwords from `SEED_ADMIN_PASSWORD` and `SEED_SALES_PASSWORD`.
 
 **Industries.** Seeded as `ACTIVE` [`industry`](/architecture/sql-store.md#industry) rows; an Admin adds, renames and retires them afterwards. A label is the short name every screen shows.
 
@@ -223,7 +229,7 @@ The seed is the acceptance tests' concrete data and the demo's walk-through. Its
 | `NEW_EXECUTIVE` | Has the company appointed a new CIO, COO, CDO or head of transformation, automation or process excellence? | `YES_NO` | `POSITIVE` | `NEWS`, `COMPANY_PUBLICATION`, `COMPANY_PROFILE` | `MEDIUM`, half-life 180 days | appointed; new CIO; neuer CIO |
 | `SHARED_SERVICES` | Does the company consolidate processes or build or expand shared service centres? | `YES_NO` | `POSITIVE` | `NEWS`, `COMPANY_PUBLICATION` | `MEDIUM` | shared services; global business services; consolidation |
 | `IN_HOUSE_AUTOMATION` | Does the company describe a strong in-house automation or AI capability, such as its own automation centre of excellence or platform? | `SCALE` | `NEGATIVE` | `NEWS`, `COMPANY_PUBLICATION` | `MEDIUM` | centre of excellence; in-house |
-| `INCUMBENT_PROVIDER` | Does the company name an existing external provider for automation or AI services? | `CHOICE`: `NONE_NAMED` (`NONE`), `PLATFORM_VENDOR` (`WEAK`), `SERVICE_PROVIDER` (`MEDIUM`), `STRATEGIC_PARTNERSHIP` (`STRONG`) | `NEGATIVE` | `NEWS`, `COMPANY_PUBLICATION` | `LOW` | partnership; UiPath; Celonis |
+| `INCUMBENT_PROVIDER` | Does the company name an existing external provider for automation or AI services? | `CHOICE`: `NONE_NAMED` ("None named", `NONE`), `PLATFORM_VENDOR` ("Platform vendor", `WEAK`), `SERVICE_PROVIDER` ("Service provider", `MEDIUM`), `STRATEGIC_PARTNERSHIP` ("Strategic partnership", `STRONG`) | `NEGATIVE` | `NEWS`, `COMPANY_PUBLICATION` | `LOW` | partnership; UiPath; Celonis |
 | `INSOLVENCY` | Is the company in insolvency, restructuring under creditor protection, or being wound up? | `YES_NO` | `NEGATIVE` | `NEWS`, `COMPANY_PROFILE` | `NONE` | insolvency; Insolvenz |
 
 ICP: `SECTOR` (`INDUSTRY`: `AEROSPACE_AVIATION`, `LOGISTICS_TRANSPORT`, `MANUFACTURING`, `AUTOMOTIVE`, `BANKING`, `INSURANCE`; `HIGH`), `REGION` (`GEOGRAPHY`: `DE`, `AT`, `CH`, `NL`, `BE`, `LU`, `FR`, `IT`, `DK`, `SE`, `NO`, `FI`; `MEDIUM`), `SIZE` (`EMPLOYEE_RANGE` min 5000; `MEDIUM`), `COMPLEXITY` (`OPERATIONAL_COMPLEXITY`: `MEDIUM`, `HIGH`; `LOW`). Disqualifier: `INSOLVENT` ("In insolvency", on `INSOLVENCY`, min strength `MEDIUM`). All other settings are the defaults; an account outside `REGION` ranks lower and stays ranked ([ADR-22](/architecture/adrs/adr-22-icp-criteria-weigh-never-exclude.md)).
@@ -241,6 +247,15 @@ ICP: `SECTOR` (`INDUSTRY`: `AEROSPACE_AVIATION`, `LOGISTICS_TRANSPORT`, `MANUFAC
 | `INSOLVENCY` | Is the company in insolvency, restructuring under creditor protection, or being wound up? | `YES_NO` | `NEGATIVE` | `NEWS`, `COMPANY_PROFILE` | `NONE` | insolvency; Insolvenz |
 
 ICP: `SECTOR` (`INDUSTRY`: `BANKING`, `INSURANCE`, `ENERGY_UTILITIES`, `HEALTHCARE_PHARMA`, `MANUFACTURING`, `AUTOMOTIVE`, `LOGISTICS_TRANSPORT`, `AEROSPACE_AVIATION`; `HIGH`), `REGION` (as Intelligent Automation; `MEDIUM`), `SIZE` (`EMPLOYEE_RANGE` min 1000; `MEDIUM`). Disqualifier: `INSOLVENT` as Intelligent Automation. All other settings are the defaults.
+
+**Service `DATA_PLATFORM`** — not seeded; `AC-66` creates it through the REST contracts. "Data and analytics platforms". Description: "Building and modernising data platforms, warehouses and analytics so that decisions rest on current, trusted data." Value proposition: "Orange Systems designs, builds and runs data platforms that turn scattered operational data into reporting and analytics within months."
+
+| Key | Question | Answer type | Polarity | Source types | Weight | Hint terms |
+|---|---|---|---|---|---|---|
+| `DATA_PLATFORM_PROGRAM` | Does the company build or modernise a data platform, data warehouse or analytics capability? | `YES_NO` | `POSITIVE` | `NEWS`, `COMPANY_PUBLICATION` | `MEDIUM` | data platform; data warehouse; analytics |
+| `DATA_HIRING` | Is the company hiring data engineers, data scientists or analytics specialists? | `YES_NO` | `POSITIVE` | `JOB_POSTING` | `MEDIUM` | |
+
+It has no ICP criteria and no disqualifiers; all settings are the defaults, and it is activated as version 1.
 
 **Provider facts.** Seeded as `ACTIVE` [`provider_fact`](/architecture/sql-store.md#provider_fact) rows, each taken from the Orange Systems website at the address beside it; the owner reviews them and an Admin adds, edits and retires them afterwards. A fact without a service applies to every service.
 
@@ -261,7 +276,21 @@ ICP: `SECTOR` (`INDUSTRY`: `BANKING`, `INSURANCE`, `ENERGY_UTILITIES`, `HEALTHCA
 | Orange Systems' security team has more than 10 years of experience on average. | `CYBERSECURITY` | `https://systems.orange.md/cybersec/` |
 | Orange Systems' security operations automate 80% of threat detection. | `CYBERSECURITY` | `https://systems.orange.md/cybersec/` |
 
-**Fixtures.** `FIXTURE_DIR` holds a recording of one refresh of every demo account on the free core, made with `FIXTURE_MODE=record`, of the classifier and LLM calls it caused — open signals and interpretations included — and of one quality check over the exported labels under each classifier adapter. The acceptance criteria name this recording "the demo recording". Beside it, "the discovery recording" holds one discovery run for Intelligent Automation on the free core. It holds no Crunchbase exchange, since no Crunchbase key is expected ([ADR-19](/architecture/adrs/adr-19-source-provider-terms-and-limits.md)); only the P1 criterion `AC-69` needs one, recorded if a key becomes available. "The HubSpot recording" holds one engagement sync against a HubSpot test account whose contacts replied, booked a meeting and were marked unqualified, for `AC-88`.
+**Source plug-ins.** Seeded as [`source_plugin`](/architecture/sql-store.md#source_plugin) rows, one per plug-in value, each `enabled` and with no `daily_quota`.
+
+| Code | Rate limit per minute |
+|---|---|
+| `GDELT` | `10` |
+| `RSS` | `30` |
+| `WEBSITE` | `30` |
+| `CAREERS` | `30` |
+| `CRUNCHBASE` | `30` |
+| `NEWSAPI` | `30` |
+| `SERPAPI` | `30` |
+
+`GDELT`'s limit matches the pacing of `GDELT_MIN_INTERVAL_S` ([worker Runtime](/architecture/services/worker.md#runtime)).
+
+**Fixtures.** `FIXTURE_DIR` holds a recording of one refresh of every demo account on the free core, made with `FIXTURE_MODE=record`, of the classifier and LLM calls it caused — open signals and interpretations included — and of one quality check over the exported labels under each classifier adapter. The acceptance criteria name this recording "the demo recording". Beside it, "the discovery recording" holds one discovery run for Intelligent Automation on the free core. It holds no Crunchbase exchange, since no Crunchbase key is expected ([ADR-19](/architecture/adrs/adr-19-source-provider-terms-and-limits.md)); only the P1 criterion `AC-69` needs one, recorded if a key becomes available. "The scale-out recording" holds, on the free core, one refresh of every demo account made after `DATA_PLATFORM` was created, given its questions and activated beside the two seeded services, and the classifier and LLM calls it caused. "The HubSpot recording" holds one engagement sync against a HubSpot test account whose contacts replied, booked a meeting and were marked unqualified, for `AC-88`.
 
 ## Demo walkthrough
 

@@ -12,7 +12,7 @@ tags: [accounts-and-discovery, audit-trail, evaluation-and-feedback, identity-an
 
 **Transport and base path.** REST over HTTPS under `/api/v1`, JSON bodies in UTF-8, except the CSV upload of `API-22`. Identifiers are UUID strings; timestamps are ISO-8601 UTC. This file is the source of every contract; the OpenAPI document the api serves is generated from the same routes, and the frontend's typed client is generated from it, never written by hand.
 
-**Naming.** JSON field names are snake_case and carry the column name of their source of truth. Enum values are UPPER_SNAKE exactly as the [SQL store](/architecture/sql-store.md) defines them; a shape names an enum by linking its owning column and never lists its values.
+**Naming.** JSON field names are snake_case and carry the column name of their source of truth. Enum values are UPPER_SNAKE exactly as the [SQL store](/architecture/sql-store.md) defines them; a shape names an enum by linking its owning column and never lists its values. In a shape table, a field typed `optional` may be absent and is never `null`; a field whose type names `null` is always present.
 
 **Roles.** The roles column of every contracts table uses:
 
@@ -24,28 +24,43 @@ tags: [accounts-and-discovery, audit-trail, evaluation-and-feedback, identity-an
 
 Authorisation is enforced by the api on every route ([S-SEC-02](/requirements/system.md)); a signed-in user without the role gets `403 FORBIDDEN`.
 
-**Authentication.** `API-01` sets an HTTP-only, `Secure`, `SameSite=Lax` session cookie whose token is recorded as a hash in [`auth_session`](/architecture/sql-store.md#auth_session) and expires after `SESSION_TTL_HOURS`. Every other route except `API-61` requires it and accepts no other credential. `API-02` revokes it.
+**Authentication.** `API-01` and `API-78` set an HTTP-only, `Secure`, `SameSite=Lax` session cookie, named `leadradar_session`, with `Path=/api/v1` and `Max-Age` of `SESSION_TTL_HOURS`; `API-02` clears it. Its token is recorded as a hash in [`auth_session`](/architecture/sql-store.md#auth_session) and expires after `SESSION_TTL_HOURS`. Every other route except `API-61` requires it and accepts no other credential. `API-02` revokes it.
 
 **CSRF.** A `POST`, `PUT`, `PATCH` or `DELETE` without an `X-Requested-With` header is refused `403 FORBIDDEN`. The browser reaches the api only through the frontend's proxy on the same origin.
 
 **Pagination.** A list marked `Page<T>` takes `page` (from 1) and `page_size` (default `PAGE_SIZE_DEFAULT`, at most `PAGE_SIZE_MAX`) and returns `{items: T[], page, page_size, total}`.
 
+**Array parameters.** An array query parameter is repeated under its name, without brackets, e.g. `band=HOT&band=WARM`.
+
 **Runs.** A request that starts background work answers `202` with the [`Run`](#run). A refresh requested while one is queued or running for the same account answers `200` with the existing run.
 
-**Envelope.** Success returns the resource. An error returns `{"error": {"code", "message", "details"?}}`:
+**Envelope.** Success returns the resource. An error returns `{"error": {"code", "message", "details"?}}`, named `ErrorEnvelope` in the OpenAPI document:
 
 | Code | HTTP | Raised when |
 |---|---|---|
 | `UNAUTHENTICATED` | 401 | No valid session, or wrong credentials |
 | `FORBIDDEN` | 403 | The role does not allow the contract, the account is disabled, or the CSRF header is missing |
 | `NOT_FOUND` | 404 | The resource does not exist |
+| `METHOD_NOT_ALLOWED` | 405 | The resource exists but does not accept this HTTP method |
 | `CONFLICT` | 409 | A uniqueness or state rule refuses the change; `details.entity_id` names the conflicting row when there is one |
 | `NOT_CONFIGURED` | 409 | The contract needs an integration or plug-in key that is not configured |
 | `VALIDATION` | 422 | The input is invalid; `details.fields[]` lists `{field, message}`, where `field` is a body field name, a JSON pointer into it, or the name of a path or query parameter |
-| `LOCKED` | 423 | Too many failed sign-ins; `details.retry_after_min` |
+| `LOCKED` | 423 | Too many failed sign-ins; `details.retry_after_min`, the minutes until `locked_until`, rounded up |
 | `BUDGET_EXHAUSTED` | 429 | The [Budget guard](/architecture/rules.md#budget-guard) stops an LLM call; `details.resets_at` |
-| `UPSTREAM_UNAVAILABLE` | 503 | The classifier, the LLM, the embedder or a provider is unavailable or returned invalid output; `details.dependency`, `details.reason` |
+| `UPSTREAM_UNAVAILABLE` | 503 | The database, the classifier, the LLM, the embedder or HubSpot is unavailable or returned invalid output; `details.dependency` names which, as Dependencies lists, and `details.reason` says why |
+| `NOT_IMPLEMENTED` | 501 | The contract is declared but its feature is not built yet; answered to every caller after the CSRF check, before authentication and before its input is validated |
 | `INTERNAL` | 500 | Anything else |
+
+**Dependencies.** `details.dependency` takes exactly the values below; each names the row of [Degradation](/architecture/overview.md#degradation) whose behaviour applies. `BUDGET_EXHAUSTED` carries no `details.dependency`: its code alone names the LLM daily budget row. A source plug-in's failure is never the error of a contract; its run reports it.
+
+| Code | `details.dependency` | Raised when | Degradation row |
+|---|---|---|---|
+| `UPSTREAM_UNAVAILABLE` | `DATABASE` | The [SQL store](/architecture/sql-store.md) is unreachable | Database |
+| `UPSTREAM_UNAVAILABLE` | `CLASSIFIER` | A [Classifier](#classifier) call, `API-62`, fails | Classifier |
+| `UPSTREAM_UNAVAILABLE` | `LLM` | An [LLM](#llm) call, `API-63` to `API-66`, fails | OpenRouter |
+| `UPSTREAM_UNAVAILABLE` | `EMBEDDER` | An [Embedder](#embedder) call, `API-67`, fails | Embedder |
+| `UPSTREAM_UNAVAILABLE` | `HUBSPOT` | A [CRM](#crm) call, `API-70`, fails | HubSpot |
+| `BUDGET_EXHAUSTED` | — | The [Budget guard](/architecture/rules.md#budget-guard) stops an LLM call | LLM daily budget reached |
 
 Degraded behaviour is an explicit error, never a placeholder result ([Degradation](/architecture/overview.md#degradation)).
 
@@ -61,9 +76,13 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 | `API-04` | GET | `/users` | `A` | — → [`User`](#user)`[]` |
 | `API-05` | POST | `/users` | `A` | [`UserCreate`](#usercreate) → [`User`](#user) |
 | `API-06` | PATCH | `/users/{id}` | `A` | [`UserUpdate`](#userupdate) → [`User`](#user) |
+| `API-78` | POST | `/auth/demo-login` | `-` | [`DemoLoginRequest`](#demologinrequest) → [`AuthenticatedUser`](#authenticateduser) |
 
 - `API-01` — wrong email or password answers `401` with one message that does not reveal which was wrong. The failure that reaches `LOGIN_MAX_FAILURES` locks the account for `LOGIN_LOCK_MINUTES`; while locked every attempt answers `423 LOCKED`. A disabled account answers `403 FORBIDDEN` only when the password is correct.
-- `API-06` — an Admin cannot change their own role or disable themselves (`409 CONFLICT`). Disabling a user revokes their sessions.
+- `API-04` — ordered by `display_name`.
+- `API-05` — answers `200` with the created user.
+- `API-06` — an Admin cannot change their own role or disable themselves (`409 CONFLICT`). Disabling a user revokes their sessions. A password reset changes only the hash. A request that changes nothing writes no audit row.
+- `API-78` — answers only while the api runs with `FIXTURE_MODE` `replay`, and `404 NOT_FOUND` in any other mode. It signs in as the [demo dataset](/architecture/overview.md#demo-dataset) user of the requested role and answers exactly as `API-01` with that user's correct password would: the same session cookie and `LOGIN_SUCCEEDED` row, `403 FORBIDDEN` for a disabled user and `423 LOCKED` for a locked one. It answers `404 NOT_FOUND` when that user does not exist.
 
 ### Authentication and users shapes
 
@@ -73,6 +92,12 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 |---|---|---|
 | `email` | string | [`app_user`](/architecture/sql-store.md#app_user) `email` |
 | `password` | string | checked against `password_hash`; never stored or logged |
+
+#### DemoLoginRequest
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `role` | enum | [`app_user`](/architecture/sql-store.md#app_user) `role` |
 
 #### AuthenticatedUser
 
@@ -107,7 +132,7 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 | `display_name` | string, optional | [`app_user`](/architecture/sql-store.md#app_user) |
 | `role` | enum, optional | [`app_user`](/architecture/sql-store.md#app_user) `role` |
 | `status` | enum, optional | [`app_user`](/architecture/sql-store.md#app_user) `status` |
-| `password` | string, optional | a reset; hashed into `password_hash` |
+| `password` | string, optional, at least `PASSWORD_MIN_LENGTH` characters | a reset; hashed into `password_hash` |
 
 ## Services and questions
 
@@ -126,8 +151,8 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 
 - `API-08` — creates the service and its first scoring draft with the defaults of the [scoring settings document](/architecture/sql-store.md#scoring-settings-document). A code or name already used answers `409 CONFLICT`.
 - `API-10` — `code` is not accepted. Setting `status` to `ACTIVE` from `INACTIVE` enqueues one `RECLASSIFY` run per active question.
-- `API-12` — enqueues a `RECLASSIFY` run for the new question and adds it at weight `MEDIUM` to the service's draft, creating the draft from the active version if none exists.
-- `API-13` — a change to `text`, `answer_type`, `options` or `source_types` increments `revision` and enqueues a `RECLASSIFY` run ([Reclassification](/architecture/rules.md#reclassification)); deactivating removes the question from the draft; reactivating enqueues a `RECLASSIFY` run and adds it to the draft.
+- `API-12` — enqueues a `RECLASSIFY` run for the new question and adds it at weight `MEDIUM` to the service's draft, creating the draft from the active version if none exists. It answers the [`SignalQuestion`](#signalquestion) with the `run_id` of that run, an exception to Runs.
+- `API-13` — a change to `text`, `answer_type`, `options` or `source_types` increments `revision` and enqueues a `RECLASSIFY` run ([Reclassification](/architecture/rules.md#reclassification)); deactivating removes the question from the draft; reactivating enqueues a `RECLASSIFY` run and adds it to the draft. It answers the [`SignalQuestion`](#signalquestion) with the `run_id` of the `RECLASSIFY` run it enqueued, else null, an exception to Runs. Changing `answer_type` from `CHOICE` to another type clears `options`.
 - `API-14` — asks an unsaved or saved question against pasted text or against the account's stored passages, through the same classification, escalation and evidence rules as the pipeline, and stores nothing except `AI_CALL` audit rows.
 
 ### Services and questions shapes
@@ -168,6 +193,7 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 | `revision` | integer | [`signal_question`](/architecture/sql-store.md#signal_question) |
 | `status` | enum | [`signal_question`](/architecture/sql-store.md#signal_question) `status` |
 | `finding_count` | integer | in-force [`finding`](/architecture/sql-store.md#finding) rows of the question |
+| `run_id` | string, null | the `RECLASSIFY` run the request enqueued; null on reads and when none was queued |
 
 #### SignalQuestionCreate
 
@@ -535,8 +561,8 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `API-31` | POST | `/discovery-candidates/{id}/accept` | `*` | [`CandidateDecision`](#candidatedecision) → [`Account`](#account) |
 | `API-32` | POST | `/discovery-candidates/{id}/reject` | `*` | [`CandidateDecision`](#candidatedecision) → [`DiscoveryCandidate`](#discoverycandidate) |
 
-- `API-29` — one queued or running discovery per service; a second request returns it.
-- `API-30` — ordered by `fit_estimate` descending.
+- `API-29` — one queued or running discovery per service; a second request returns it. A service that is not `ACTIVE`, or has no `ACTIVE` scoring version, answers `409`.
+- `API-30` — ordered by `fit_estimate` descending, then by the naming article's `published_at` newest first and unknown last, then by `normalised_name`.
 - `API-31`, `API-32` — only a `PENDING` candidate can be decided (`409` otherwise). Acceptance follows [Discovery](/architecture/rules.md#discovery): no domain answers `422`; an existing domain answers `409` with `details.entity_id`.
 
 ### Discovery shapes
@@ -578,6 +604,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 - `API-33` — an inactive account answers `409`. The frontend polls `API-35` for progress ([ADR-13](/architecture/adrs/adr-13-run-progress-by-polling.md)).
 - `API-34` — newest first.
 - `API-36` — a `RECLASSIFY`, `RESCORE` or `EVALUATION` run can be cancelled by an Admin only (`403 FORBIDDEN` for Sales), so a user cannot leave a question's stored passages or a scoring version half applied. It cancels the run's `READY` jobs; running jobs finish their current step; the run ends `CANCELLED`. A finished run answers `409`.
+- `API-38` — a `rate_limit_per_minute` or `daily_quota` of 0 or below answers `422 VALIDATION`; `daily_quota` sent as `null` removes the quota.
 
 ### Runs and source plug-ins shapes
 
@@ -626,11 +653,11 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `API-44` | POST | `/accounts/{id}/scores/{service_id}/overrides` | `A` | [`OverrideCreate`](#overridecreate) → [`Override`](#override) |
 | `API-45` | POST | `/overrides/{id}/revoke` | `A` | — → [`Override`](#override) |
 
-- `API-39` — the current score rows of the service's active accounts; `sort` is `priority` (the ranking order of [Priority, standing and band](/architecture/rules.md#priority-standing-and-band), the default), `intent`, `fit`, `name` or `last_refreshed`.
+- `API-39` — the current score rows of the service's active accounts; `q` matches as in `API-20`; `sort` is `priority` (the ranking order of [Priority, standing and band](/architecture/rules.md#priority-standing-and-band), the default), `intent`, `fit`, `name` or `last_refreshed`.
 - `API-40` — `404` when the account has no score for the service yet.
 - `API-41` — newest first; each entry compares a score row with the one before it.
 - `API-42` — default `status` is `ACTIVE`; ordered by contribution, then `observed_at` descending.
-- `API-44` — the rule key must name a rule of the service's active settings that currently matches for the account (`422` otherwise); an active override for the same rule answers `409`. Enqueues a `RESCORE` with trigger `OVERRIDE`. `API-45` does the same on revocation.
+- `API-44` — the rule key must name a rule of the service's active settings that currently matches for the account (`422` otherwise); an active override for the same rule answers `409`. Enqueues a `RESCORE` with trigger `OVERRIDE`. `API-45` does the same on revocation. Both answer the [`Override`](#override) with the `run_id` of the `RESCORE` they enqueued, an exception to Runs.
 
 ### Prospects and evidence shapes
 
@@ -648,7 +675,9 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `rank` | integer, null | position in the ranking; null unless `RANKED` |
 | `account` | `{id, name, domain, country_code, industry}` | [`account`](/architecture/sql-store.md#account) |
 | `fit`, `intent`, `priority` | integer | current [`account_score`](/architecture/sql-store.md#account_score) |
-| `standing`, `band` | enum | current [`account_score`](/architecture/sql-store.md#account_score) |
+| `standing` | enum | current [`account_score`](/architecture/sql-store.md#account_score) |
+| `band` | enum, null | current [`account_score`](/architecture/sql-store.md#account_score) band; null unless `RANKED` |
+| `reason` | `{min_fit, disqualifier_labels, customer_marked_by_name}`, null | null when `RANKED`. When `BELOW_FIT`, `min_fit` is the score's settings `min_fit`; when `DISQUALIFIED`, `disqualifier_labels` are the `label`s of the breakdown's matched disqualifiers that are not overridden; when `CUSTOMER`, `customer_marked_by_name` is the `display_name` of the in-force [`lead_feedback`](/architecture/sql-store.md#lead_feedback)'s user; the other members are null |
 | `top_signals` | array of `{question_key, question_text, strength, observed_at}`, at most `PROSPECT_TOP_SIGNALS` | the positive findings with the most `points` in the breakdown |
 | `finding_count` | integer | in-force [`finding`](/architecture/sql-store.md#finding) rows of the service |
 | `unread_alerts` | integer | unacknowledged [`alert`](/architecture/sql-store.md#alert) rows |
@@ -664,9 +693,10 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `score_id`, `account_id`, `service_id` | string | current [`account_score`](/architecture/sql-store.md#account_score) |
 | `scoring_version` | integer | its [`scoring_config`](/architecture/sql-store.md#scoring_config) `version` |
 | `as_of`, `fit`, `intent`, `priority` | | [`account_score`](/architecture/sql-store.md#account_score) |
-| `standing`, `band` | enum | [`account_score`](/architecture/sql-store.md#account_score) |
+| `standing` | enum | [`account_score`](/architecture/sql-store.md#account_score) |
+| `band` | enum, null | [`account_score`](/architecture/sql-store.md#account_score) band; null unless `RANKED` |
 | `rank` | integer, null | as [`ProspectRow`](#prospectrow) |
-| `breakdown` | object | the [Score breakdown](/architecture/rules.md#score-breakdown), with each question entry's `question_text` added |
+| `breakdown` | object | the [Score breakdown](/architecture/rules.md#score-breakdown), with each question entry's `question_text` and its counted finding's `observed_at` added |
 | `overrides` | [`Override`](#override)`[]` | the account's overrides for the service, active and revoked |
 | `lead_feedback` | [`LeadFeedback`](#leadfeedback), null | the in-force [`lead_feedback`](/architecture/sql-store.md#lead_feedback) |
 | `last_crm_sync` | [`CrmSyncView`](#crmsyncview), null | the latest [`crm_sync`](/architecture/sql-store.md#crm_sync) of the account and service |
@@ -686,7 +716,8 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 
 | Field | Type | Source of truth |
 |---|---|---|
-| `score_id`, `as_of`, `fit`, `intent`, `priority`, `standing`, `band` | | the [`account_score`](/architecture/sql-store.md#account_score) row |
+| `score_id`, `as_of`, `fit`, `intent`, `priority`, `standing` | | the [`account_score`](/architecture/sql-store.md#account_score) row |
+| `band` | enum, null | [`account_score`](/architecture/sql-store.md#account_score) band; null unless `RANKED` |
 | `scoring_version` | integer | its [`scoring_config`](/architecture/sql-store.md#scoring_config) `version` |
 | `trigger`, `run_id` | | the row's [`pipeline_run`](/architecture/sql-store.md#pipeline_run) |
 | `change_note` | string, null | its [`scoring_config`](/architecture/sql-store.md#scoring_config) `change_note`, when the version changed |
@@ -725,7 +756,9 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `id`, `account_id`, `service_id`, `rule_key`, `note` | string | [`disqualifier_override`](/architecture/sql-store.md#disqualifier_override) |
 | `rule_label` | string | the rule's `label` in the active settings |
 | `status` | enum | [`disqualifier_override`](/architecture/sql-store.md#disqualifier_override) `status` |
-| `created_by_name`, `created_at`, `revoked_by_name`, `revoked_at` | string, null | [`disqualifier_override`](/architecture/sql-store.md#disqualifier_override) |
+| `created_by_name`, `created_at` | string | [`disqualifier_override`](/architecture/sql-store.md#disqualifier_override) |
+| `revoked_by_name`, `revoked_at` | string, null | [`disqualifier_override`](/architecture/sql-store.md#disqualifier_override) |
+| `run_id` | string, null | the `RESCORE` run the request enqueued; null on reads |
 
 #### OverrideCreate
 
@@ -806,8 +839,9 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `API-77` | GET | `/impact` | `A` | — → [`Impact`](#impact) |
 
 - `API-50` — the label queue of [Evaluation metrics](/architecture/rules.md#evaluation-metrics). A task never shows the classifier's answer, so that labels are not biased by it.
-- `API-51` — writes the `MANUAL` item for the passage, question and revision, replacing the pair's active item whatever its origin, so a manual label takes the place of one derived from finding feedback; a revision that is not current answers `409`.
-- `API-53` — one queued or running evaluation at a time.
+- `API-51` — writes the `MANUAL` item for the passage, question and revision, updating the pair's active item in place, whatever its origin, or writing one when none exists, so a manual label takes the place of one derived from finding feedback; a revision that is not current answers `409`.
+- `API-53` — one queued or running evaluation at a time: a request while one is queued or running answers `200` with that run.
+- `API-54` — newest first.
 - `API-77` — computed on read by [Impact](/architecture/rules.md#impact); writes nothing.
 
 ### Evaluation shapes
@@ -890,7 +924,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 
 - `API-56` — follows [Outreach grounding](/architecture/rules.md#outreach-grounding); an account without an in-force positive finding for the service answers `422`. There is no contract that sends a message.
 - `API-58` — changing `subject` or `body` sets `edited`; `status` may only move to `EXPORTED`.
-- `API-59` — `404` when the account has no score for the service; without `HUBSPOT_ACCESS_TOKEN` answers `409 NOT_CONFIGURED`; otherwise calls `API-70` and records the outcome in [`crm_sync`](/architecture/sql-store.md#crm_sync).
+- `API-59` — without `HUBSPOT_ACCESS_TOKEN` answers `409 NOT_CONFIGURED` and writes nothing, whatever the account's data; otherwise `404` when the account has no score for the service; otherwise calls `API-70` and records the outcome in [`crm_sync`](/architecture/sql-store.md#crm_sync), answering `503 UPSTREAM_UNAVAILABLE` with `details.dependency` `HUBSPOT` when the call fails, the `FAILED` row recorded.
 
 ### Outreach and CRM shapes
 
@@ -977,7 +1011,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `API-61` | GET | `/health` | `-` | — → [`Health`](#health) |
 
 - `API-60` — newest first; without `from` the range is the last `AUDIT_DEFAULT_RANGE_DAYS` days.
-- `API-61` — answers `200` when the database is reachable, else `503`; the other checks report without changing the status code.
+- `API-61` — answers `200` when the database is reachable, else `503`, both with the [`Health`](#health) body; the other checks report without changing the status code.
 
 ### Audit and health shapes
 
@@ -994,7 +1028,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | Field | Type | Source of truth |
 |---|---|---|
 | `status` | `OK`, `DEGRADED`, `DOWN` | `DOWN` when the database check fails; `DEGRADED` when any other check is not `OK` |
-| `checks` | object: `database`, `embedder`, `classifier`, `llm` → `OK`, `DOWN` or `NOT_CONFIGURED` | a lightweight call to each dependency, bounded by `HEALTH_TIMEOUT_MS`: `database` runs `SELECT 1`; `embedder` calls `GET {EMBEDDER_URL}/health`; `classifier` and `llm` are `NOT_CONFIGURED` when `OPENROUTER_API_KEY` is unset, else each calls `GET {OPENROUTER_BASE_URL}/key` with it; a 2xx answer is `OK`, any other answer, a timeout or an error is `DOWN`; in `replay` fixture mode `classifier` and `llm` report whether `FIXTURE_DIR` is readable, since no call leaves the machine |
+| `checks` | object: `database`, `embedder`, `classifier`, `llm` → `OK`, `DOWN` or `NOT_CONFIGURED` | a lightweight call to each dependency, bounded by `HEALTH_TIMEOUT_MS`, where a 2xx answer is `OK` and any other answer, a timeout or an error is `DOWN`: `database` runs `SELECT 1`; `embedder` calls `GET {EMBEDDER_URL}/health`; in `replay` fixture mode, whether or not `OPENROUTER_API_KEY` is set, `classifier` and `llm` make no call and are `OK` when `FIXTURE_DIR` is readable, else `DOWN`, since no call leaves the machine; in the other modes they are `NOT_CONFIGURED` when `OPENROUTER_API_KEY` is unset, else each calls `GET {OPENROUTER_BASE_URL}/key` with it |
 
 ## Classifier
 
@@ -1180,7 +1214,7 @@ The in-process port each [source plug-in](/architecture/services/worker.md#sourc
 | ID | Operation | Module | Transaction | Returns |
 |---|---|---|---|---|
 | `API-68` | `fetch(context)` | the plug-in's adapter | none | [`RawItem`](#rawitem)`[]` |
-| `API-69` | `search(query)` | `CRUNCHBASE`, `GDELT`, `NEWSAPI`, `SERPAPI` adapters | none | [`RawItem`](#rawitem)`[]` for news, organisation records for `CRUNCHBASE` |
+| `API-69` | `search(query)` | `CRUNCHBASE`, `GDELT`, `NEWSAPI`, `SERPAPI` adapters | none | [`RawItem`](#rawitem)`[]` for news, organisation records for `CRUNCHBASE`, result URLs for a `SERPAPI` web search of [Source detection](/architecture/rules.md#source-detection) |
 
 - An adapter makes no request when its plug-in is unavailable, counts every request in [`plugin_usage`](/architecture/sql-store.md#plugin_usage) and raises a typed error on failure; it never returns a partial list as if it were complete.
 
@@ -1191,7 +1225,7 @@ The in-process port each [source plug-in](/architecture/services/worker.md#sourc
 | Field | Type | Source of truth |
 |---|---|---|
 | `account` | `{id, name, domain, aliases, country_code, crunchbase_id}` | [`account`](/architecture/sql-store.md#account), [`account_alias`](/architecture/sql-store.md#account_alias) |
-| `sources` | array of `{kind, url}` | the account's `ACTIVE` [`account_source`](/architecture/sql-store.md#account_source) rows |
+| `sources` | array of `{kind, url}` | the account's `ACTIVE` [`account_source`](/architecture/sql-store.md#account_source) rows created before its run |
 | `since`, `until` | string | [Fetch window](/architecture/rules.md#fetch-window) |
 | `queries` | string[] | news queries from [Fetch window](/architecture/rules.md#fetch-window) |
 | `max_items` | integer | the plug-in's share of `MAX_DOCUMENTS_PER_REFRESH` |
@@ -1212,7 +1246,7 @@ The in-process port each [source plug-in](/architecture/services/worker.md#sourc
 
 | ID | Operation | Module | Transaction | Returns |
 |---|---|---|---|---|
-| `API-70` | `upsert_company(push)` | HubSpot adapter: CRM v3 companies API, search by `domain`, then update or create | none | the HubSpot company id, or `UPSTREAM_UNAVAILABLE` |
+| `API-70` | `upsert_company(push)` | HubSpot adapter: CRM v3 companies API at `https://api.hubapi.com`, search by `domain`, then update or create | none | the HubSpot company id, or `UPSTREAM_UNAVAILABLE` |
 | `API-89` | `read_company_engagement(domain)` | HubSpot adapter: CRM v3 companies search by `domain`, the company's contact associations, then a batch read of those contacts' `hs_sales_email_last_replied`, `hs_last_booked_meeting_date` and `hs_lead_status` only | none | [`CompanyEngagement`](#companyengagement), or `UPSTREAM_UNAVAILABLE` |
 
 The api calls `API-70`; the worker calls `API-89` for [Engagement sync](/architecture/rules.md#engagement-sync). Both honour fixture mode as the AI gateway does, so HubSpot exchanges are recorded and replayed ([ADR-11](/architecture/adrs/adr-11-recorded-fixtures.md)).
@@ -1225,9 +1259,12 @@ The api calls `API-70`; the worker calls `API-89` for [Engagement sync](/archite
 |---|---|---|
 | `domain`, `name` | string | [`account`](/architecture/sql-store.md#account) |
 | `leadradar_service` | string | [`service`](/architecture/sql-store.md#service) `name` |
-| `leadradar_priority`, `leadradar_band`, `leadradar_standing` | | the current [`account_score`](/architecture/sql-store.md#account_score) |
-| `leadradar_top_signals` | string | the question texts and quotes of up to `HUBSPOT_TOP_SIGNALS` top findings, one per line |
+| `leadradar_priority`, `leadradar_standing` | string | the current [`account_score`](/architecture/sql-store.md#account_score) |
+| `leadradar_band` | string | the current [`account_score`](/architecture/sql-store.md#account_score) `band`; empty when `band` is null |
+| `leadradar_top_signals` | string | one line per finding, `question text — "quote"`, for up to `HUBSPOT_TOP_SIGNALS` of the positive findings with the most `points` in the current breakdown, as [`ProspectRow`](#prospectrow) `top_signals`, then `observed_at` descending as `API-42`; empty when there is none |
 | `leadradar_url` | string | `APP_BASE_URL` + the account detail route |
+
+The `leadradar_*` properties are created in the target portal by its HubSpot administrator before the first push, as single-line text properties on the company object; a push against a portal without them fails and is recorded `FAILED`.
 
 #### CompanyEngagement
 

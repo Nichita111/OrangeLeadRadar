@@ -33,11 +33,15 @@ It never fetches from a source, never classifies in batch, never writes a score,
 
 **Enqueueing.** The api creates a run in status `QUEUED` with the jobs of its first stage, at the priority the [job queue](/architecture/services/worker.md#job-queue) assigns to its trigger. It never waits for a job.
 
+**Declared contracts.** Every REST contract of [interfaces](/architecture/interfaces.md) is a route with its request and response models from the start, so the OpenAPI document and the client generated from it are complete. A route whose feature is not built yet answers `501 NOT_IMPLEMENTED` ([ADR-20](/architecture/adrs/adr-20-landing-scene-mock-layer-and-demo-sign-in.md)).
+
+**Demo sign-in.** `API-78` signs in only while `FIXTURE_MODE` is `replay`, and answers `404 NOT_FOUND` otherwise. It stays in the OpenAPI document in every mode, so the client has its type.
+
 **Interactive AI calls.** Question preview (`API-14`), outreach drafting (`API-56`) and persona mapping (`API-26`, `API-27`, when no persona is given) call the AI gateway in the request, bounded by `CLASSIFIER_TIMEOUT_S` or `AI_CALL_TIMEOUT_S`. Their LLM calls pass the [Budget guard](/architecture/rules.md#budget-guard), and every call writes its `AI_CALL` audit row. Preview writes nothing else.
 
 **Sessions and passwords.** Passwords are hashed with argon2id. The session token is 32 random bytes, sent only in the cookie; the database holds its SHA-256.
 
-**Request identity.** Every request gets a request id, returned in the `X-Request-Id` header, written to every log line and audit row of the request.
+**Request identity.** Every request gets a request id, returned in the `X-Request-Id` header, written to every log line and audit row of the request. The api writes one log line for each request it serves, with `method`, `path` without the query string, `status` and `duration_ms`.
 
 **Import.** `API-22` streams the CSV, validates every row with the [`AccountImportRow`](/architecture/interfaces.md#accountimportrow) rules, and in a non-dry run writes all valid rows in one transaction with one `ACCOUNTS_IMPORTED` audit row plus one `ACCOUNT_CREATED` or `ACCOUNT_UPDATED` row per account.
 
@@ -47,8 +51,12 @@ It never fetches from a source, never classifies in batch, never writes a score,
 
 | Key | Default | Meaning |
 |---|---|---|
-| `DATABASE_URL` | — (required) | PostgreSQL connection string |
-| `POSTGRES_PASSWORD` | — (required by the Compose file) | Password of the `db` container's database user; the Compose file builds `DATABASE_URL` from it |
+| `DATABASE_URL` | — (required) | PostgreSQL connection string, as the application role of [Runtime](/architecture/overview.md#runtime) |
+| `API_HOST` | `0.0.0.0` | Interface on which the api listens |
+| `API_PORT` | `8000` | Port on which the api listens |
+| `POSTGRES_PASSWORD` | — (required by the Compose file) | Password of the `db` container's database user, the owner; the Compose file builds `MIGRATION_DATABASE_URL` from it |
+| `MIGRATION_DATABASE_URL` | — (required) | PostgreSQL connection string as the owner; used only to apply migrations at start |
+| `APP_DB_PASSWORD` | — (required by the Compose file) | Password of the application role; the `db` init script creates the role with it and the Compose file builds `DATABASE_URL` from it |
 | `APP_BASE_URL` | `http://localhost:8080` | Public base URL of the frontend, used in HubSpot links and the crawler's user agent |
 | `SESSION_TTL_HOURS` | `12` | Session lifetime |
 | `LOGIN_MAX_FAILURES` | `5` | Consecutive failed sign-ins before a lock |
@@ -74,10 +82,11 @@ It never fetches from a source, never classifies in batch, never writes a score,
 | `HEALTH_TIMEOUT_MS` | `2000` | Timeout of each health check |
 | `INTERACTIVE_P95_TARGET_MS` | `800` | Target p95 latency of interactive reads ([N-01](/requirements/system.md)) |
 | `HUBSPOT_ACCESS_TOKEN` | unset | HubSpot private-app token, with read access to companies and contacts and write access to companies; unset disables the push and the engagement sync |
+| `HUBSPOT_TIMEOUT_S` | `10` | Timeout of a HubSpot call |
 | `SEED_ADMIN_PASSWORD`, `SEED_SALES_PASSWORD` | — (required by `make seed-demo`) | Passwords of the demo users |
-| `LOG_LEVEL` | `INFO` | Log level; logs are JSON lines |
+| `LOG_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARNING` or `ERROR`; logs are JSON lines |
 
-The api also reads the AI gateway, embedder, fixture and `CLOCK_FILE` keys and `EVAL_MIN_ITEMS` of the [worker runtime](/architecture/services/worker.md#runtime).
+The api also reads the AI gateway, embedder, `FIXTURE_MODE`, `FIXTURE_DIR` and `CLOCK_FILE` keys, the source plug-in keys, which decide the [Plug-in availability](/architecture/rules.md#plug-in-availability) of a refresh's first jobs, and `EVAL_MIN_ITEMS`, `JOB_POLL_INTERVAL_S` and `REFRESH_TARGET_MINUTES` of the [worker runtime](/architecture/services/worker.md#runtime), the last two for `make refresh-demo`'s wait until every run it queued is final, and `ESCALATION_LOWER`, `ESCALATION_UPPER` and `TRIAGE_RELEVANCE_MIN_P`, for the strata and kept documents of the label queue.
 
 ## Examples
 

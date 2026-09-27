@@ -92,6 +92,12 @@ class PipelineRun(TimestampedBase):
             unique=True,
             postgresql_where=text("kind = 'DISCOVERY' AND status IN ('QUEUED', 'RUNNING')"),
         ),
+        Index(
+            "uq_pipeline_run_evaluation_active",
+            "kind",
+            unique=True,
+            postgresql_where=text("kind = 'EVALUATION' AND status IN ('QUEUED', 'RUNNING')"),
+        ),
     )
 
 

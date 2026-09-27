@@ -1,0 +1,81 @@
+"""The keys of the [AI gateway and embedder](/architecture/services/worker.md#runtime) group,
+"read by the api as well", and of [fixture mode](/architecture/overview.md#runtime) with the
+`CLOCK_FILE` it governs. Both processes' settings classes extend this one, so each key is
+declared once; the gateway takes it without knowing which process it runs in."""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Literal
+
+from pydantic import SecretStr
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from leadradar.core.enums import DocumentTriageClassifier
+
+FixtureMode = Literal["off", "record", "replay"]
+
+
+class AiGatewaySettings(BaseSettings):
+    """Fixture mode and the AI gateway's keys, with their Runtime defaults."""
+
+    model_config = SettingsConfigDict(extra="ignore")
+
+    fixture_mode: FixtureMode = "off"
+    fixture_dir: Path = Path("./fixtures")
+    clock_file: Path | None = None
+
+    classifier_provider: DocumentTriageClassifier = DocumentTriageClassifier.LLM
+    jev_model: str = "typesafe/jev-1.13"
+    jev_decisions_url: str = "https://openrouter.ai/api/alpha/decisions"
+    openrouter_api_key: SecretStr | None = None
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
+    llm_classifier_model: str | None = None
+    llm_evidence_model: str | None = None
+    llm_outreach_model: str | None = None
+    llm_daily_budget_eur: float = 20.0
+    classifier_timeout_s: float = 10.0
+    ai_call_timeout_s: float = 60.0
+    ai_transport_retries: int = 2
+    ai_transport_backoff_ms: int = 500
+    ai_concurrency: int = 8
+    usd_eur_rate: float = 0.92
+
+    #: [Embedder](/architecture/services/worker.md#runtime); read by the api as well, so it lives
+    #: here rather than in either process's own settings.
+    embedder_url: str = "http://embedder:80"
+    embedding_dim: int = 1024
+    embed_batch_size: int = 32
+
+    #: [api Runtime](/architecture/services/api.md#runtime): public base URL of the frontend,
+    #: used in HubSpot links and the crawler's user agent, so both processes read it from here.
+    app_base_url: str = "http://localhost:8080"
+
+    #: [worker Runtime](/architecture/services/worker.md#runtime) "Classification, evidence and
+    #: scoring", read by the api as well (D7 of `.work/labelling-and-quality/design.md`): the
+    #: escalation band and the kept-document threshold, for the worker's SIGNAL step and the
+    #: api's label queue; and `EVAL_MIN_ITEMS`, for the worker's EVALUATE step and the label
+    #: queue's `LabelQueue.min_items`. Declared once here rather than in each process's own
+    #: settings, since both need every one of them.
+    escalation_lower: float = 0.35
+    escalation_upper: float = 0.65
+    triage_relevance_min_p: float = 0.3
+    eval_min_items: int = 200
+
+    #: `ATTRIBUTE_MIN_P` ([worker Runtime](/architecture/services/worker.md#runtime)), read by
+    #: the api as well for the [Persona mapping](/architecture/rules.md#persona-mapping) of
+    #: `API-26` and `API-27`, so it is declared once here.
+    attribute_min_p: float = 0.6
+
+    #: [worker Runtime](/architecture/services/worker.md#runtime) evidence, chunking and
+    #: retrieval keys, read by the api as well for the question preview (`API-14`), which runs
+    #: the same classification, escalation and evidence rules as the SIGNAL step.
+    evidence_max_attempts: int = 2
+    evidence_min_quote_chars: int = 20
+    evidence_max_quote_chars: int = 400
+    evidence_max_rationale_chars: int = 300
+    whole_document_max_chars: int = 8000
+    chunk_target_chars: int = 1600
+    chunk_overlap_chars: int = 200
+    retrieval_candidates: int = 50
+    retrieval_rrf_k: int = 60

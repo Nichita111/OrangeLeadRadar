@@ -1,75 +1,49 @@
-"""Unit tests of `clock.now`: [api Runtime](/architecture/services/api.md#runtime),
-[worker Runtime](/architecture/services/worker.md#runtime), [Fixture mode]
-(/architecture/overview.md#runtime)."""
+"""Unit test of [`clock.py`](/architecture/services/worker.md#runtime) `CLOCK_FILE`."""
 
 from __future__ import annotations
 
-from datetime import UTC
+from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import pytest
+from pydantic import SecretStr
 
-from leadradar.clock import now
+from leadradar.clock import build_clock
+from leadradar.settings import ApiSettings
 
 pytestmark = pytest.mark.unit
 
 
-def test_replay_with_a_clock_file_returns_that_files_time_in_utc(tmp_path: Path) -> None:
-    clock_file = tmp_path / "now.txt"
-    clock_file.write_text("2026-01-01T12:00:00Z")
-
-    result = now(fixture_mode="replay", clock_file=clock_file)
-
-    assert result.tzinfo is not None
-    assert result.astimezone(UTC).isoformat() == "2026-01-01T12:00:00+00:00"
-
-
-def test_replay_rereads_the_file_after_it_changes(tmp_path: Path) -> None:
-    clock_file = tmp_path / "now.txt"
-    clock_file.write_text("2026-01-01T12:00:00Z")
-    first = now(fixture_mode="replay", clock_file=clock_file)
-
-    clock_file.write_text("2026-01-02T00:00:00Z")
-    second = now(fixture_mode="replay", clock_file=clock_file)
-
-    assert first != second
-    assert second.astimezone(UTC).isoformat() == "2026-01-02T00:00:00+00:00"
+def _settings(**overrides: Any) -> ApiSettings:
+    defaults: dict[str, Any] = {
+        "database_url": SecretStr("postgresql://u:p@localhost/db"),
+        "migration_database_url": SecretStr("postgresql://u:p@localhost/db"),
+    }
+    defaults.update(overrides)
+    return ApiSettings(**defaults)
 
 
-def test_fixture_mode_off_ignores_clock_file_and_uses_the_system_clock(tmp_path: Path) -> None:
-    clock_file = tmp_path / "now.txt"
-    clock_file.write_text("2000-01-01T00:00:00Z")
+@pytest.mark.parametrize("mode", ["record", "replay"])
+def test_clock_reads_clock_file_on_every_call_in_record_and_replay(
+    tmp_path: Path, mode: str
+) -> None:
+    clock_file = tmp_path / "clock"
+    clock_file.write_text("2026-01-01T00:00:00Z")
 
-    result = now(fixture_mode="off", clock_file=clock_file)
+    clock = build_clock(_settings(fixture_mode=mode, clock_file=clock_file))
+    assert clock() == datetime.fromisoformat("2026-01-01T00:00:00+00:00")
 
-    assert result.year > 2000
-
-
-def test_fixture_mode_record_ignores_clock_file_and_uses_the_system_clock(tmp_path: Path) -> None:
-    clock_file = tmp_path / "now.txt"
-    clock_file.write_text("2000-01-01T00:00:00Z")
-
-    result = now(fixture_mode="record", clock_file=clock_file)
-
-    assert result.year > 2000
+    clock_file.write_text("2026-06-15T12:30:00Z")
+    assert clock() == datetime.fromisoformat("2026-06-15T12:30:00+00:00")
 
 
-def test_replay_with_a_missing_file_raises_rather_than_falling_back(tmp_path: Path) -> None:
-    missing = tmp_path / "does-not-exist.txt"
+def test_clock_ignores_clock_file_in_off_or_when_unset(tmp_path: Path) -> None:
+    clock_file = tmp_path / "clock"
+    clock_file.write_text("2026-06-15T12:30:00Z")
 
-    with pytest.raises(FileNotFoundError):
-        now(fixture_mode="replay", clock_file=missing)
+    off_mode = build_clock(_settings(fixture_mode="off", clock_file=clock_file))
+    assert off_mode() != datetime.fromisoformat("2026-06-15T12:30:00+00:00")
 
-
-def test_replay_with_a_malformed_file_raises_rather_than_falling_back(tmp_path: Path) -> None:
-    clock_file = tmp_path / "now.txt"
-    clock_file.write_text("not-a-timestamp")
-
-    with pytest.raises(ValueError, match="not-a-timestamp"):
-        now(fixture_mode="replay", clock_file=clock_file)
-
-
-def test_replay_with_no_clock_file_uses_the_system_clock() -> None:
-    result = now(fixture_mode="replay", clock_file=None)
-
-    assert result.year > 2000
+    unset_clock_file = build_clock(_settings(fixture_mode="replay", clock_file=None))
+    assert unset_clock_file() != datetime.fromisoformat("2026-06-15T12:30:00+00:00")
