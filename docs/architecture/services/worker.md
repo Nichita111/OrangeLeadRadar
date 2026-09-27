@@ -31,7 +31,7 @@ The rules are pure functions in the product package's core module; the api impor
 
 ### Job queue
 
-A worker process runs `WORKER_CONCURRENCY` job loops. A loop claims the next job with one statement — `status = 'READY' AND not_before <= now()`, ordered by `priority` then `not_before`, `FOR UPDATE SKIP LOCKED LIMIT 1` — sets it `RUNNING` with `locked_by` and `locked_at`, runs its step, and sets it `DONE` or schedules a retry. Several worker containers can share the queue safely ([ADR-04](/architecture/adrs/adr-04-postgres-job-queue-and-a-worker.md)). A loop that finds no job waits `JOB_POLL_INTERVAL_S` before it tries again. A job whose step the worker has no code for is `FAILED` at once, without retries, and its run records the error: no job is ever set `DONE` without its step having run.
+A worker process runs `WORKER_CONCURRENCY` job loops. A loop claims the next job with one statement — `status = 'READY' AND not_before <= now()`, ordered by `priority` then `not_before`, `FOR UPDATE SKIP LOCKED LIMIT 1` — sets it `RUNNING` with `locked_by` and `locked_at`, runs its step, and sets it `DONE` or schedules a retry. Each claim writes one log line with the job's `job_id` and `step` and the claiming loop's `worker_id`, the instance id it sets as `locked_by`, so that the logs show which worker ran each job. Several worker containers can share the queue safely ([ADR-04](/architecture/adrs/adr-04-postgres-job-queue-and-a-worker.md)). A loop that finds no job waits `JOB_POLL_INTERVAL_S` before it tries again. A job whose step the worker has no code for is `FAILED` at once, without retries, and its run records the error: no job is ever set `DONE` without its step having run.
 
 | Priority | Jobs |
 |---|---|
