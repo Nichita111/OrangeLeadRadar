@@ -46,6 +46,11 @@ export function Exclusions({ settings, onChange, questions, errors }: Exclusions
       <ul className="m-0 flex list-none flex-col gap-1 p-0">
         {settings.disqualifiers.map((disqualifier, index) => {
           const pointer = `/disqualifiers/${String(index)}`;
+          const message =
+            errors[`${pointer}/key`] ??
+            errors[`${pointer}/criterion_key`] ??
+            errors[`${pointer}/question_key`] ??
+            errors[`${pointer}/min_strength`];
           return (
             <li
               key={disqualifier.key}
@@ -76,12 +81,7 @@ export function Exclusions({ settings, onChange, questions, errors }: Exclusions
               >
                 <XIcon size={14} aria-hidden />
               </Button>
-              {(errors[`${pointer}/criterion_key`] ?? errors[`${pointer}/question_key`]) !==
-                undefined && (
-                <span className="text-hint text-negative">
-                  {errors[`${pointer}/criterion_key`] ?? errors[`${pointer}/question_key`]}
-                </span>
-              )}
+              {message !== undefined && <span className="text-hint text-negative">{message}</span>}
             </li>
           );
         })}

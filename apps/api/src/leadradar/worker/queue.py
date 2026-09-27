@@ -17,7 +17,13 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from leadradar.audit.events import append_audit_event
-from leadradar.core.enums import AuditAction, JobStatus, PipelineRunKind, PipelineRunStatus
+from leadradar.core.enums import (
+    AuditAction,
+    JobStatus,
+    PipelineRunKind,
+    PipelineRunStage,
+    PipelineRunStatus,
+)
 from leadradar.core.job_queue import job_priority
 from leadradar.core.refresh_scheduling import refresh_times_after
 from leadradar.core.run_lifecycle import (
@@ -143,6 +149,25 @@ async def add_run_progress(
             raise TypeError(f"Run {run_id} progress.{key} is not a count: {current!r}")
         progress[key] = current + count
     run.progress = progress
+    await session.flush()
+
+
+async def publish_run_state(
+    session: AsyncSession,
+    *,
+    job_id: uuid.UUID,
+    run_id: uuid.UUID,
+    stage: PipelineRunStage,
+    progress: Mapping[str, int],
+) -> None:
+    """Sets the run's `stage` and the given `progress` counters to absolute values, in a
+    transaction of its own that commits before the step's own work finishes, so another session
+    sees it live ([Run lifecycle](/architecture/services/worker.md#run-lifecycle) `FR-141`).
+    Locks the job row before the run row, as this module requires; does not commit."""
+    await session.get(Job, job_id, with_for_update=True)
+    run = await _lock_run(session, run_id)
+    run.stage = stage
+    run.progress = {**run.progress, **progress}
     await session.flush()
 
 

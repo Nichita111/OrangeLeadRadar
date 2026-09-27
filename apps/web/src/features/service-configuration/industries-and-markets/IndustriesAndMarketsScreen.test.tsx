@@ -64,7 +64,7 @@ describe("IndustriesAndMarketsScreen (FR-154)", () => {
     const telecomRow = screen.getByRole("row", { name: /Telecom and media/ });
     expect(within(telecomRow).getByText("Retired")).toBeInTheDocument();
     const dachRow = screen.getByRole("row", { name: /DACH/ });
-    expect(within(dachRow).getByText("DE, AT, CH")).toBeInTheDocument();
+    expect(within(dachRow).getByText("Germany, Austria, Switzerland")).toBeInTheDocument();
   });
 });
 
@@ -187,5 +187,25 @@ describe("Rename, Retire and Restore (FR-156)", () => {
     await waitFor(() => {
       expect(bodies).toEqual([{ label: "Shipping" }]);
     });
+  });
+
+  it("a failed Retire shows an error callout instead of failing silently", async () => {
+    const user = userEvent.setup();
+    arrange([shipping], []);
+    server.use(
+      http.patch("/api/v1/industries/{code}", () =>
+        Response.json(
+          { error: { code: "CONFLICT", message: "The industry could not be retired." } },
+          { status: 409 },
+        ),
+      ),
+    );
+    await openScreen();
+    const row = await screen.findByRole("row", { name: /Shipping and ports/ });
+    await user.click(within(row).getByRole("button", { name: /Actions for/ }));
+    await user.click(await screen.findByRole("menuitem", { name: "Retire" }));
+    const dialog = await screen.findByRole("alertdialog", { name: "Retire industry" });
+    await user.click(within(dialog).getByRole("button", { name: "Retire industry" }));
+    expect(await screen.findByText("The industry could not be retired.")).toBeInTheDocument();
   });
 });

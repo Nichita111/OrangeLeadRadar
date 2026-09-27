@@ -156,6 +156,12 @@ async def process_next_job(
 
     token = run_id_var.set(str(job.run_id))
     try:
+        logger.info(
+            "Claimed job %s at step %s",
+            job.id,
+            job.step.value,
+            extra={"job_id": str(job.id), "step": job.step.value, "worker_id": worker_id},
+        )
         await _run_claimed_job(
             session_factory,
             job,

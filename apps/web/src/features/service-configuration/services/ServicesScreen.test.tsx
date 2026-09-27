@@ -49,6 +49,7 @@ describe("ServicesScreen (FR-018, FR-149)", () => {
     await openServices();
     const row = await screen.findByRole("row", { name: /Intelligent Automation/ });
     expect(within(row).getByText("Finds companies automating processes.")).toBeInTheDocument();
+    expect(within(row).getByText("INTELLIGENT_AUTOMATION")).toBeInTheDocument();
     expect(within(row).getByText("Active")).toBeInTheDocument();
     expect(within(row).getByText("v3")).toBeInTheDocument();
     expect(within(row).getByText("draft v4")).toBeInTheDocument();
@@ -171,6 +172,28 @@ describe("Deactivate and Reactivate (FR-020)", () => {
     });
   });
 
+  it("the selector's list refreshes after a status change", async () => {
+    const user = userEvent.setup();
+    const services = arrangeServices([automation]);
+    server.use(
+      http.patch("/api/v1/services/{id}", ({ response }) => {
+        services[0] = { ...automation, status: "INACTIVE" };
+        return response(200).json(services[0]);
+      }),
+    );
+    await openServices();
+    const row = await screen.findByRole("row", { name: /Intelligent Automation/ });
+    await user.click(within(row).getByRole("button", { name: /Actions for/ }));
+    await user.click(await screen.findByRole("menuitem", { name: "Deactivate" }));
+    const dialog = await screen.findByRole("alertdialog", { name: "Deactivate service" });
+    await user.click(within(dialog).getByRole("button", { name: "Deactivate service" }));
+    await waitFor(() => {
+      expect(within(row).getByText("Inactive")).toBeInTheDocument();
+    });
+    await user.click(within(row).getByRole("button", { name: /Actions for/ }));
+    expect(await screen.findByRole("menuitem", { name: "Reactivate" })).toBeInTheDocument();
+  });
+
   it("Reactivate applies at once and shows a toast", async () => {
     const user = userEvent.setup();
     arrangeServices([legacy]);
@@ -196,5 +219,23 @@ describe("Deactivate and Reactivate (FR-020)", () => {
           .some((element) => element.textContent.includes("Service reactivated")),
       ).toBe(true);
     });
+  });
+
+  it("a failed Reactivate shows an error callout instead of failing silently", async () => {
+    const user = userEvent.setup();
+    arrangeServices([legacy]);
+    server.use(
+      http.patch("/api/v1/services/{id}", () =>
+        Response.json(
+          { error: { code: "CONFLICT", message: "The service could not be reactivated." } },
+          { status: 409 },
+        ),
+      ),
+    );
+    await openServices();
+    const row = await screen.findByRole("row", { name: /Legacy Migration/ });
+    await user.click(within(row).getByRole("button", { name: /Actions for/ }));
+    await user.click(await screen.findByRole("menuitem", { name: "Reactivate" }));
+    expect(await screen.findByText("The service could not be reactivated.")).toBeInTheDocument();
   });
 });

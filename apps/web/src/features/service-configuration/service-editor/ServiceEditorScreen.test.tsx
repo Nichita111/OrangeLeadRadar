@@ -107,6 +107,24 @@ describe("Signal questions tab (FR-022, FR-150)", () => {
     expect(screen.getByText("AUTOMATION_HIRING")).toBeInTheDocument();
   });
 
+  it("shows each question's status and source types", async () => {
+    const inactiveQuestion: Schemas["SignalQuestion"] = {
+      ...automationHiring,
+      status: "INACTIVE",
+    };
+    arrange(automation, [costProgram, inactiveQuestion]);
+    await openEditor(`/services/${SERVICE_ID}?tab=questions`);
+    await screen.findAllByText("COST_PROGRAM");
+    const costRow = screen.getByText(costProgram.text).closest("li");
+    const hiringRow = screen.getByText(inactiveQuestion.text).closest("li");
+    expect(costRow).not.toBeNull();
+    expect(hiringRow).not.toBeNull();
+    expect(within(costRow as HTMLElement).getByText("Active")).toBeInTheDocument();
+    expect(within(costRow as HTMLElement).getByText("News")).toBeInTheDocument();
+    expect(within(hiringRow as HTMLElement).getByText("Inactive")).toBeInTheDocument();
+    expect(within(hiringRow as HTMLElement).getByText("Job posting")).toBeInTheDocument();
+  });
+
   it("selecting the first question shows its form at the right, with Yes/no, Scale and Choice labels", async () => {
     arrange(automation, [costProgram]);
     await openEditor(`/services/${SERVICE_ID}?tab=questions`);
@@ -197,6 +215,38 @@ describe("Question form validation and revision (FR-023, FR-024, FR-025)", () =>
       "/runs?run=bbbbbbbb-1111-1111-1111-111111111111",
     );
   });
+
+  it("keeps the run link after Add question switches the form into Edit (R-6)", async () => {
+    const user = userEvent.setup();
+    const created = {
+      ...automationHiring,
+      revision: 1,
+      run_id: "cccccccc-1111-1111-1111-111111111111",
+    };
+    const questions = [costProgram];
+    server.use(
+      http.get("/api/v1/services/{id}", ({ response }) => response(200).json(automation)),
+      http.get("/api/v1/services/{id}/questions", ({ response }) => response(200).json(questions)),
+      http.post("/api/v1/services/{id}/questions", ({ response }) => {
+        questions.push(created);
+        return response(200).json(created);
+      }),
+    );
+    await openEditor(`/services/${SERVICE_ID}?tab=questions`);
+    await screen.findByRole("heading", { name: "COST_PROGRAM", level: 3 });
+    await user.click(screen.getByRole("button", { name: "Add question" }));
+    await screen.findByRole("heading", { name: "New question", level: 3 });
+    await user.type(screen.getByLabelText("Key"), "automation hiring");
+    await user.type(screen.getByLabelText("Question"), "Is the company hiring?");
+    await user.click(screen.getByRole("checkbox", { name: "Job posting" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    // The saved question replaces "New question" with its own key: the form remounted.
+    await screen.findByRole("heading", { name: "AUTOMATION_HIRING", level: 3 });
+    expect(await screen.findByRole("link", { name: "View the run" })).toHaveAttribute(
+      "href",
+      "/runs?run=cccccccc-1111-1111-1111-111111111111",
+    );
+  });
 });
 
 describe("Deactivate and Reactivate (FR-026)", () => {
@@ -219,5 +269,24 @@ describe("Deactivate and Reactivate (FR-026)", () => {
     await waitFor(() => {
       expect(bodies).toEqual([{ status: "INACTIVE" }]);
     });
+  });
+
+  it("a failed Deactivate shows an error callout instead of failing silently", async () => {
+    const user = userEvent.setup();
+    arrange(automation, [costProgram]);
+    server.use(
+      http.patch("/api/v1/questions/{id}", () =>
+        Response.json(
+          { error: { code: "CONFLICT", message: "The question could not be deactivated." } },
+          { status: 409 },
+        ),
+      ),
+    );
+    await openEditor(`/services/${SERVICE_ID}?tab=questions`);
+    await user.click(await screen.findByRole("button", { name: "Actions for COST_PROGRAM" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Deactivate" }));
+    const dialog = await screen.findByRole("alertdialog", { name: "Deactivate question" });
+    await user.click(within(dialog).getByRole("button", { name: "Deactivate question" }));
+    expect(await screen.findByText("The question could not be deactivated.")).toBeInTheDocument();
   });
 });

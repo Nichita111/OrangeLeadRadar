@@ -2,13 +2,12 @@ import { MinusCircleIcon, PlusCircleIcon } from "@phosphor-icons/react";
 
 import type { Schemas } from "../../../api/contract";
 import { Select, Input } from "../../../components/controls";
+import { WEIGHT_LEVELS } from "../../../shell/enumValues";
 import { enumLabel } from "../../../shell/format";
 import { halfLifePlaceholder } from "./scoringDraft";
 
 type ScoringSettings = Schemas["ScoringSettings"];
 type SignalQuestion = Schemas["SignalQuestion"];
-
-const WEIGHTS: Schemas["WeightLevel"][] = ["HIGH", "MEDIUM", "LOW", "NONE"];
 
 interface SignalsSectionProps {
   settings: ScoringSettings;
@@ -38,11 +37,16 @@ export function SignalsSection({ settings, onChange, questions, errors }: Signal
       <ul className="m-0 flex list-none flex-col gap-1 p-0">
         {questions
           .filter((question) => question.status === "ACTIVE")
-          .map((question, index) => {
+          .map((question) => {
             const setting = settingFor(question.key);
             const PolarityIcon =
               question.polarity === "POSITIVE" ? PlusCircleIcon : MinusCircleIcon;
-            const pointer = `/questions/${String(index)}`;
+            // The document index, not the position in this filtered list: the pointer a
+            // `VALIDATION` error names is `/questions/<index in settings.questions>` (FR-034).
+            const documentIndex = settings.questions.findIndex(
+              (item) => item.question_key === question.key,
+            );
+            const pointer = `/questions/${String(documentIndex)}`;
             return (
               <li key={question.key} className="flex items-center gap-2 py-1">
                 <PolarityIcon
@@ -60,7 +64,7 @@ export function SignalsSection({ settings, onChange, questions, errors }: Signal
                     update(question.key, { weight: event.target.value as Schemas["WeightLevel"] });
                   }}
                 >
-                  {WEIGHTS.map((weight) => (
+                  {WEIGHT_LEVELS.map((weight) => (
                     <option key={weight} value={weight}>
                       {enumLabel(weight)}
                     </option>

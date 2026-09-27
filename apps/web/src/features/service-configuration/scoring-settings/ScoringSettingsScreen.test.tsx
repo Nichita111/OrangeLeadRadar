@@ -91,14 +91,16 @@ const costProgram: Schemas["SignalQuestion"] = {
 function arrange(options: {
   versions: Schemas["ScoringConfigSummary"][];
   configs: Record<string, Schemas["ScoringConfig"]>;
+  industries?: Schemas["Industry"][];
+  markets?: Schemas["Market"][];
 }) {
   server.use(
     http.get("/api/v1/services/{id}", ({ response }) => response(200).json(service)),
     http.get("/api/v1/services/{id}/questions", ({ response }) =>
       response(200).json([costProgram]),
     ),
-    http.get("/api/v1/industries", ({ response }) => response(200).json([])),
-    http.get("/api/v1/markets", ({ response }) => response(200).json([])),
+    http.get("/api/v1/industries", ({ response }) => response(200).json(options.industries ?? [])),
+    http.get("/api/v1/markets", ({ response }) => response(200).json(options.markets ?? [])),
     http.get("/api/v1/services/{id}/scoring-configs", ({ response }) =>
       response(200).json(options.versions),
     ),
@@ -157,12 +159,156 @@ describe("Balance (FR-029, FR-151)", () => {
   });
 });
 
-describe("Save draft validation (FR-034, AC-05)", () => {
-  it("places each violation at its JSON pointer", async () => {
+describe("ICP criteria (FR-030)", () => {
+  const industries: Schemas["Industry"][] = [
+    { code: "SHIPPING", label: "Shipping", status: "ACTIVE", account_count: 1 },
+    { code: "TELECOM_MEDIA", label: "Telecom and media", status: "INACTIVE", account_count: 1 },
+  ];
+  const dach: Schemas["Market"] = {
+    code: "DACH",
+    name: "DACH",
+    country_codes: ["DE", "AT"],
+    status: "ACTIVE",
+  };
+
+  it("shows a retired industry as a caution chip with its callout", async () => {
+    arrange({
+      versions: [draftSummary],
+      configs: {
+        [DRAFT_ID]: {
+          ...draftSummary,
+          settings: baseSettings({
+            icp_criteria: [
+              { key: "IND", kind: "INDUSTRY", weight: "HIGH", values: ["TELECOM_MEDIA"] },
+            ],
+          }),
+        },
+      },
+      industries,
+      markets: [dach],
+    });
+    await openScreen();
+    await screen.findByText("draft v4");
+    expect(
+      screen.getByText("The draft cannot be saved until TELECOM_MEDIA is removed from its criteria."),
+    ).toBeInTheDocument();
+    const row = screen.getByText("IND").closest("li");
+    expect(row).not.toBeNull();
+    expect(within(row as HTMLElement).getByText("Retired")).toBeInTheDocument();
+  });
+
+  it("a market shortcut adds its countries to a GEOGRAPHY criterion", async () => {
     const user = userEvent.setup();
     arrange({
       versions: [draftSummary],
       configs: { [DRAFT_ID]: { ...draftSummary, settings: baseSettings() } },
+      industries,
+      markets: [dach],
+    });
+    await openScreen();
+    await screen.findByText("draft v4");
+    await user.click(screen.getByRole("button", { name: "Add criterion" }));
+    const dialog = await screen.findByRole("dialog", { name: "New criterion" });
+    await user.selectOptions(within(dialog).getByLabelText("Kind"), "GEOGRAPHY");
+    await user.selectOptions(within(dialog).getByLabelText("Add a market's countries"), "DACH");
+    expect(within(dialog).getByRole("checkbox", { name: /Germany/ })).toBeChecked();
+    expect(within(dialog).getByRole("checkbox", { name: /Austria/ })).toBeChecked();
+  });
+});
+
+describe("Signals (FR-031)", () => {
+  it("shows the half-life placeholder from the question's source types", async () => {
+    arrange({
+      versions: [draftSummary],
+      configs: { [DRAFT_ID]: { ...draftSummary, settings: baseSettings() } },
+    });
+    await openScreen();
+    await screen.findByText("draft v4");
+    expect(screen.getByLabelText("COST_PROGRAM half-life days")).toHaveAttribute(
+      "placeholder",
+      "90",
+    );
+  });
+});
+
+describe("Exclusion rules (FR-032, G5)", () => {
+  it("switches the operand by kind, and is added through Add exclusion rule", async () => {
+    const user = userEvent.setup();
+    arrange({
+      versions: [draftSummary],
+      configs: { [DRAFT_ID]: { ...draftSummary, settings: baseSettings() } },
+    });
+    await openScreen();
+    await screen.findByText("draft v4");
+    await user.click(screen.getByRole("button", { name: "Add exclusion rule" }));
+    const dialog = await screen.findByRole("dialog", { name: "New exclusion rule" });
+    expect(within(dialog).getByLabelText("Criterion")).toBeInTheDocument();
+    await user.selectOptions(within(dialog).getByLabelText("Kind"), "SIGNAL");
+    expect(within(dialog).getByLabelText("Question")).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Minimum strength")).toBeInTheDocument();
+  });
+});
+
+describe("Advanced (FR-033)", () => {
+  it("is collapsed by default and opens itself when an error lands inside it", async () => {
+    const user = userEvent.setup();
+    arrange({
+      versions: [draftSummary],
+      configs: { [DRAFT_ID]: { ...draftSummary, settings: baseSettings() } },
+    });
+    server.use(
+      http.put("/api/v1/services/{id}/scoring-configs/draft", () =>
+        Response.json(
+          {
+            error: {
+              code: "VALIDATION",
+              message: "The input is invalid.",
+              details: {
+                fields: [
+                  {
+                    field: "/weight_values",
+                    message: "weight_values must have all four weight levels, non-negative.",
+                  },
+                ],
+              },
+            },
+          },
+          { status: 422 },
+        ),
+      ),
+    );
+    await openScreen();
+    await screen.findByText("draft v4");
+    const details = screen.getByText("Advanced").closest("details");
+    expect(details).not.toBeNull();
+    expect(details as HTMLElement).not.toHaveAttribute("open");
+    await user.click(screen.getByRole("button", { name: "Save draft" }));
+    await screen.findByText("weight_values must have all four weight levels, non-negative.");
+    expect(details as HTMLElement).toHaveAttribute("open");
+  });
+});
+
+describe("Save draft validation (FR-034, AC-05)", () => {
+  it("places each of the three violations at its own control", async () => {
+    const user = userEvent.setup();
+    arrange({
+      versions: [draftSummary],
+      configs: {
+        [DRAFT_ID]: {
+          ...draftSummary,
+          settings: baseSettings({
+            disqualifiers: [
+              {
+                key: "D1",
+                label: "No cost programme",
+                kind: "SIGNAL",
+                question_key: "COST_PROGRAM",
+                min_strength: "WEAK",
+              },
+            ],
+          }),
+        },
+      },
     });
     server.use(
       http.put("/api/v1/services/{id}/scoring-configs/draft", () =>
@@ -200,6 +346,7 @@ describe("Save draft validation (FR-034, AC-05)", () => {
       await screen.findByText("fit_weight and intent_weight must add up to 1."),
     ).toBeInTheDocument();
     expect(screen.getByText("warm_threshold must be less than hot_threshold.")).toBeInTheDocument();
+    expect(screen.getByText("question_key must name an existing question.")).toBeInTheDocument();
   });
 });
 
@@ -253,6 +400,21 @@ describe("Activate (FR-036, G1 b)", () => {
           activated_by_name: "Olga Admin",
           settings: baseSettings({ fit_weight: 0.3, intent_weight: 0.7 }),
         }),
+      ),
+      // After activation, the list refetch no longer carries a DRAFT: the former draft is now
+      // ACTIVE, and the former active version is RETIRED. This is what regresses the Activate
+      // dialog if it unmounts on `draft` disappearing (R-2).
+      http.get("/api/v1/services/{id}/scoring-configs", ({ response }) =>
+        response(200).json([
+          { ...activeSummary, status: "RETIRED" },
+          {
+            ...draftSummary,
+            status: "ACTIVE",
+            change_note: "Go live",
+            activated_at: "2026-09-27T00:00:00Z",
+            activated_by_name: "Olga Admin",
+          },
+        ]),
       ),
       http.get("/api/v1/runs", ({ request, response }) => {
         const url = new URL(request.url);
@@ -335,7 +497,7 @@ describe("Versions (FR-037)", () => {
     await openScreen();
     await screen.findByText("draft v4");
     await user.click(screen.getByRole("button", { name: /v3/ }));
-    expect(await screen.findByText("Version 3 (ACTIVE)")).toBeInTheDocument();
+    expect(await screen.findByText("Version 3 (Active)")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Save draft" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Back to draft" }));
     expect(await screen.findByRole("button", { name: "Save draft" })).toBeEnabled();

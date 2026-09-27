@@ -17,16 +17,7 @@ from pydantic import SecretStr
 from sqlalchemy import Connection, delete, func, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from leadradar.ai.audit import AiCallContext
 from leadradar.ai.gateway import AiGateway
-from leadradar.ai.shapes import (
-    ClassifierAnswer,
-    ClassifierRequest,
-    EscalationInput,
-    EscalationOutput,
-    EvidenceInput,
-    EvidenceOutput,
-)
 from leadradar.core.enums import (
     AccountSourceKind,
     AccountSourceOrigin,
@@ -36,7 +27,6 @@ from leadradar.core.enums import (
     DocumentTriageClassifier,
     DocumentTriageOutcome,
     FindingStatus,
-    FindingStrength,
     JobStatus,
     JobStep,
     PipelineRunKind,
@@ -44,7 +34,6 @@ from leadradar.core.enums import (
     ScoringConfigStatus,
     SourcePluginCode,
 )
-from leadradar.core.signal.triage import ABOUT_ACCOUNT_QUESTION_ID
 from leadradar.db.models.accounts import AccountAlias, AccountSource
 from leadradar.db.models.audit import AuditEvent
 from leadradar.db.models.configuration import SignalQuestion
@@ -57,9 +46,15 @@ from leadradar.worker.steps import STEP_HANDLERS
 from tests.integration import factories as f
 from tests.integration.pipeline_doubles import (
     GDELT_SEARCH,
+    HIGH,
+    MENTION,
+    MIDDLE,
+    ORIGINAL,
+    OWN,
     T0,
     Clock,
     Embedder,
+    ScriptedGateway,
     Web,
     feed,
     gdelt_articles,
@@ -72,70 +67,6 @@ from tests.integration.pipeline_doubles import (
 pytestmark = pytest.mark.integration
 
 TRANSLATION = "Translated story"
-ORIGINAL = "First story"
-MENTION = "Second story"
-OWN = "Own news"
-HIGH = "High question"
-MIDDLE = "Middle question"
-#: p_positive by (document marker, question text)
-P_POSITIVE = {
-    (ORIGINAL, HIGH): 0.9,
-    (ORIGINAL, MIDDLE): 0.5,
-    (OWN, HIGH): 0.9,
-    (OWN, MIDDLE): 0.2,
-}
-
-
-class ScriptedGateway:
-    """Answers by the markers in the request: the document's topic and the question's text."""
-
-    @property
-    def classifier(self) -> DocumentTriageClassifier:
-        return DocumentTriageClassifier.JEV
-
-    async def classify(
-        self, request: ClassifierRequest, context: AiCallContext
-    ) -> list[ClassifierAnswer]:
-        marker = next(m for m in (ORIGINAL, MENTION, OWN) if m in request.state)
-        answers = []
-        for question in request.questions:
-            if question.id == ABOUT_ACCOUNT_QUESTION_ID:
-                yes = 0.1 if marker == MENTION else 0.9
-                probs = {"YES": yes, "NO": 1 - yes}
-            elif question.id.startswith("RELEVANT_"):
-                probs = {"YES": 0.9, "NO": 0.1}
-            elif question.id.endswith("__SCALE"):
-                probs = {"WEAK": 0.0, "MEDIUM": 0.0, "STRONG": 1.0}
-            else:
-                text = HIGH if HIGH in question.text else MIDDLE
-                yes = P_POSITIVE[(marker, text)]
-                probs = {"YES": yes, "NO": 1 - yes}
-            answers.append(ClassifierAnswer(question_id=question.id, probabilities=probs))
-        return answers
-
-    @staticmethod
-    def _quote(passage: str) -> str:
-        marker = next(m for m in (ORIGINAL, OWN) if m in passage)
-        return f"{marker} announced a new logistics hub this quarter"
-
-    async def escalate(
-        self, role_input: EscalationInput, context: AiCallContext
-    ) -> EscalationOutput:
-        return EscalationOutput(
-            strength=FindingStrength.MEDIUM,
-            option_key=None,
-            confidence=0.7,
-            quote=self._quote(role_input.passage),
-            quote_en=None,
-            rationale="Announces a hub.",
-        )
-
-    async def extract_evidence(
-        self, role_input: EvidenceInput, context: AiCallContext
-    ) -> EvidenceOutput:
-        return EvidenceOutput(
-            quote=self._quote(role_input.passage), quote_en=None, rationale="Announces a hub."
-        )
 
 
 @pytest.fixture

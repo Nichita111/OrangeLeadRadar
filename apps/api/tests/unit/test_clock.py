@@ -24,17 +24,26 @@ def _settings(**overrides: Any) -> ApiSettings:
     return ApiSettings(**defaults)
 
 
-def test_clock_reads_clock_file_on_every_call_in_replay_and_ignores_it_otherwise(
-    tmp_path: Path,
+@pytest.mark.parametrize("mode", ["record", "replay"])
+def test_clock_reads_clock_file_on_every_call_in_record_and_replay(
+    tmp_path: Path, mode: str
 ) -> None:
     clock_file = tmp_path / "clock"
     clock_file.write_text("2026-01-01T00:00:00Z")
 
-    replaying = build_clock(_settings(fixture_mode="replay", clock_file=clock_file))
-    assert replaying() == datetime.fromisoformat("2026-01-01T00:00:00+00:00")
+    clock = build_clock(_settings(fixture_mode=mode, clock_file=clock_file))
+    assert clock() == datetime.fromisoformat("2026-01-01T00:00:00+00:00")
 
     clock_file.write_text("2026-06-15T12:30:00Z")
-    assert replaying() == datetime.fromisoformat("2026-06-15T12:30:00+00:00")
+    assert clock() == datetime.fromisoformat("2026-06-15T12:30:00+00:00")
 
-    not_replaying = build_clock(_settings(fixture_mode="off", clock_file=clock_file))
-    assert not_replaying() != datetime.fromisoformat("2026-06-15T12:30:00+00:00")
+
+def test_clock_ignores_clock_file_in_off_or_when_unset(tmp_path: Path) -> None:
+    clock_file = tmp_path / "clock"
+    clock_file.write_text("2026-06-15T12:30:00Z")
+
+    off_mode = build_clock(_settings(fixture_mode="off", clock_file=clock_file))
+    assert off_mode() != datetime.fromisoformat("2026-06-15T12:30:00+00:00")
+
+    unset_clock_file = build_clock(_settings(fixture_mode="replay", clock_file=None))
+    assert unset_clock_file() != datetime.fromisoformat("2026-06-15T12:30:00+00:00")

@@ -1,5 +1,5 @@
 import { useParams } from "react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import type { Schemas } from "../../../api/contract";
 import { useIndustries, useMarkets } from "../../../api/industriesAndMarkets";
@@ -11,13 +11,14 @@ import { Chip } from "../../../components/Chip";
 import { Skeleton } from "../../../components/Skeleton";
 import { useToast } from "../../../components/Toast";
 import { formErrors } from "../../../shell/formErrors";
+import { enumLabel } from "../../../shell/format";
 import { DataView } from "../../../shell/states/DataView";
 import { Advanced } from "./Advanced";
 import { ActivateDialog } from "./ActivateDialog";
 import { BalanceAndLines } from "./BalanceAndLines";
 import { Exclusions } from "./Exclusions";
 import { IcpCriteria } from "./IcpCriteria";
-import { retiredIndustryCodes, settingsChanged } from "./scoringDraft";
+import { draftFormFields, retiredIndustryCodes, settingsChanged } from "./scoringDraft";
 import { ServiceTabs } from "../service-editor/ServiceTabs";
 import { SignalsSection } from "./SignalsSection";
 import { VersionsPanel } from "./VersionsPanel";
@@ -162,7 +163,10 @@ function ReadOnlyVersion({
   const noop = () => undefined;
   return (
     <div className="flex flex-col gap-4">
-      <Callout kind="neutral" lead={`Version ${String(config.version)} (${config.status})`}>
+      <Callout
+        kind="neutral"
+        lead={`Version ${String(config.version)} (${enumLabel(config.status)})`}
+      >
         Read-only.{" "}
         <button type="button" className="underline" onClick={onBack}>
           Back to draft
@@ -212,23 +216,16 @@ function DraftEditor({
   const save = useSaveScoringDraft(serviceId);
   const { notify } = useToast();
   const unsaved = settingsChanged(config.settings, working);
-  const errors = formErrors(save.error, [
-    "/fit_weight",
-    "/intent_weight",
-    "/min_fit",
-    "/warm_threshold",
-    "/hot_threshold",
-    "/weight_values",
-    "/strength_values",
-    "/default_half_life_days",
-    "/min_decay",
-    "/negative_factor",
-    "/intent_saturation",
-    "/unknown_match",
-    "/icp_criteria",
-    "/questions",
-    "/disqualifiers",
-  ]);
+  // Sticky across activation: `draft` disappears from the list as soon as `API-18` succeeds
+  // and the versions refetch, but the Activate dialog must stay mounted to show the queued
+  // RESCORE run's progress (FR-036).
+  const [activationDraftId, setActivationDraftId] = useState<string | undefined>(draft?.id);
+  useEffect(() => {
+    if (draft !== undefined) {
+      setActivationDraftId(draft.id);
+    }
+  }, [draft]);
+  const errors = formErrors(save.error, draftFormFields(working));
   const retired = retiredIndustryCodes(working.icp_criteria, industries);
   const hasAdvancedError = [
     "/weight_values",
@@ -298,10 +295,10 @@ function DraftEditor({
         <Button type="button" variant="primary" disabled={save.isPending} onClick={saveDraft}>
           Save draft
         </Button>
-        {draft !== undefined && (
+        {activationDraftId !== undefined && (
           <ActivateDialog
             serviceId={serviceId}
-            draftId={draft.id}
+            draftId={activationDraftId}
             disabled={!canActivate}
             disabledReason={disabledReason}
           />

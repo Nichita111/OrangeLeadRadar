@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useQuestions, useUpdateQuestion } from "../../../api/servicesAndQuestions";
 import type { Schemas } from "../../../api/contract";
 import { Button } from "../../../components/Button";
+import { Callout } from "../../../components/Callout";
+import { Chip } from "../../../components/Chip";
 import { ConfirmDialog } from "../../../components/ConfirmDialog";
 import { RowMenu } from "../../../components/RowMenu";
 import { Skeleton } from "../../../components/Skeleton";
@@ -31,6 +33,9 @@ function SkeletonList() {
 export function QuestionsTab({ serviceId }: { serviceId: string }) {
   const questions = useQuestions(serviceId);
   const [selection, setSelection] = useState<Selection | null>(null);
+  // Held above the keyed `QuestionForm` (FR-025, AC-03): Add's remount into Edit on the new
+  // question's id must not lose the run link a save just queued.
+  const [queuedRunId, setQueuedRunId] = useState<string | null>(null);
 
   return (
     <DataView
@@ -57,6 +62,7 @@ export function QuestionsTab({ serviceId }: { serviceId: string }) {
                   size="small"
                   onClick={() => {
                     setSelection({ mode: "add" });
+                    setQueuedRunId(null);
                   }}
                 >
                   <PlusIcon size={14} aria-hidden />
@@ -74,6 +80,7 @@ export function QuestionsTab({ serviceId }: { serviceId: string }) {
                     active={effective.mode === "edit" && effective.id === question.id}
                     onSelect={() => {
                       setSelection({ mode: "edit", id: question.id });
+                      setQueuedRunId(null);
                     }}
                   />
                 ))}
@@ -86,6 +93,8 @@ export function QuestionsTab({ serviceId }: { serviceId: string }) {
               onSaved={(saved) => {
                 setSelection({ mode: "edit", id: saved.id });
               }}
+              queuedRunId={queuedRunId}
+              onQueuedRunIdChange={setQueuedRunId}
             />
           </div>
         );
@@ -130,8 +139,12 @@ function QuestionRow({
           <span className="flex min-w-0 flex-col">
             <span className="num truncate font-medium">{question.key}</span>
             <span className="truncate text-hint text-text-secondary">{question.text}</span>
+            <span className="truncate text-hint text-text-tertiary">
+              {question.source_types.map((type) => enumLabel(type)).join(", ")}
+            </span>
           </span>
         </button>
+        <Chip tone={isActive ? "positive" : "neutral"}>{isActive ? "Active" : "Inactive"}</Chip>
         <span className="shrink-0 text-hint text-text-tertiary">
           {enumLabel(question.answer_type)}
         </span>
@@ -165,6 +178,7 @@ function QuestionRow({
           }}
         />
       </div>
+      {update.isError && <Callout kind="error">{update.error.message}</Callout>}
     </li>
   );
 }

@@ -14,9 +14,16 @@ from leadradar.core.enums import AccountOperationalComplexity
 ATTRIBUTE_PRECEDENCE: dict[str, int] = {"CLASSIFIER": 0, "CRUNCHBASE": 1, "MANUAL": 2}
 
 
-def should_write_attribute(current_origin: str | None, new_origin: str) -> bool:
+def should_write_attribute(
+    *, current_value_is_null: bool, current_origin: str | None, new_origin: str
+) -> bool:
     """[Account attributes](/architecture/rules.md#account-attributes) Precedence: "A value is
-    written only when the attribute is null or its `attribute_origin` is of lower precedence"."""
+    written only when the attribute is null or its `attribute_origin` is of lower precedence".
+    A null value is always writable, whatever its `current_origin` — a user's manual edit that
+    cleared the field (origin `MANUAL`, value null; `accounts.commands._apply_manual_value`)
+    leaves it open to a lower-precedence origin, exactly as an attribute that was never set."""
+    if current_value_is_null:
+        return True
     if current_origin is None:
         return True
     return ATTRIBUTE_PRECEDENCE[new_origin] > ATTRIBUTE_PRECEDENCE[current_origin]

@@ -165,6 +165,43 @@ async def test_a_choice_to_yes_no_patch_answers_the_question_without_options(
     assert body["revision"] == 2
 
 
+async def test_a_choice_to_yes_no_patch_carrying_options_is_refused_422_naming_options(
+    admin_client: httpx.AsyncClient,
+) -> None:
+    service = await _create_service(admin_client)
+    created = await admin_client.post(
+        f"/api/v1/services/{service['id']}/questions",
+        json={
+            "key": "A_CHOICE",
+            "text": "Which option?",
+            "answer_type": "CHOICE",
+            "polarity": "POSITIVE",
+            "source_types": ["NEWS"],
+            "options": [
+                {"key": "YES", "label": "Yes", "strength": "STRONG"},
+                {"key": "NO", "label": "No", "strength": "NONE"},
+            ],
+        },
+    )
+    assert created.status_code == 200, created.text
+    question_id = created.json()["id"]
+
+    patched = await admin_client.patch(
+        f"/api/v1/questions/{question_id}",
+        json={
+            "answer_type": "YES_NO",
+            "options": [
+                {"key": "YES", "label": "Yes", "strength": "STRONG"},
+                {"key": "NO", "label": "No", "strength": "NONE"},
+            ],
+        },
+    )
+
+    assert patched.status_code == 422, patched.text
+    fields = patched.json()["error"]["details"]["fields"]
+    assert any(field["field"] == "/options" for field in fields)
+
+
 async def test_a_choice_question_without_a_none_option_is_refused_422_naming_options(
     admin_client: httpx.AsyncClient,
 ) -> None:

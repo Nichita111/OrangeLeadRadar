@@ -61,6 +61,29 @@ describe("formErrors (FR-007)", () => {
     });
   });
 
+  it("keeps every message that lands on the same field, instead of overwriting", () => {
+    const formFields = ["/disqualifiers/0/question_key"];
+    const error = new ApiError(
+      422,
+      errorEnvelope("VALIDATION", "Invalid.", {
+        fields: [
+          { field: "/disqualifiers/0/question_key", message: "question_key is required." },
+          {
+            field: "/disqualifiers/0/question_key",
+            message: "question_key must name an existing question.",
+          },
+        ],
+      }),
+    );
+    expect(formErrors(error, formFields)).toEqual({
+      fields: {
+        "/disqualifiers/0/question_key":
+          "question_key is required. question_key must name an existing question.",
+      },
+      callout: undefined,
+    });
+  });
+
   it("puts a pointer with no registered field or prefix in the callout", () => {
     const formFields = ["/icp_criteria/2"];
     const error = new ApiError(

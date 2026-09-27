@@ -5,20 +5,30 @@ import type { Schemas } from "../../../api/contract";
 import { Button } from "../../../components/Button";
 import { Callout } from "../../../components/Callout";
 import { Chip } from "../../../components/Chip";
-import { enumLabel } from "../../../shell/format";
+import { countryName, enumLabel } from "../../../shell/format";
 import { CriterionDialog } from "./CriterionDialog";
 import { retiredIndustryCodes } from "./scoringDraft";
 
 type ScoringSettings = Schemas["ScoringSettings"];
 type ICPCriterion = Schemas["ICPCriterion"];
 
-function operandSummary(criterion: ICPCriterion): string {
+/** FR-011: shows each operand by the same label its picker offers, not the stored code. */
+function operandSummary(criterion: ICPCriterion, industries: Schemas["Industry"][]): string {
   if (criterion.kind === "EMPLOYEE_RANGE" || criterion.kind === "REVENUE_RANGE") {
     return criterion.max === null || criterion.max === undefined
       ? `≥ ${String(criterion.min ?? 0)}`
       : `${String(criterion.min ?? 0)}–${String(criterion.max)}`;
   }
-  return (criterion.values ?? []).join(", ");
+  const values = criterion.values ?? [];
+  if (criterion.kind === "GEOGRAPHY") {
+    return values.map((code) => countryName(code)).join(", ");
+  }
+  if (criterion.kind === "INDUSTRY") {
+    return values
+      .map((code) => industries.find((industry) => industry.code === code)?.label ?? code)
+      .join(", ");
+  }
+  return values.map((value) => enumLabel(value)).join(", ");
 }
 
 interface IcpCriteriaProps {
@@ -59,41 +69,53 @@ export function IcpCriteria({ settings, onChange, industries, markets, errors }:
         </Callout>
       )}
       <ul className="m-0 flex list-none flex-col gap-1 p-0">
-        {settings.icp_criteria.map((criterion, index) => (
-          <li key={criterion.key} className="flex items-center gap-2 rounded-control px-2.5 py-1.5">
-            <span className="num w-24 shrink-0 font-medium">{criterion.key}</span>
-            <span className="min-w-0 flex-1 truncate">
-              {enumLabel(criterion.kind)}: {operandSummary(criterion)}
-              {(criterion.values ?? []).some((value) => retired.includes(value)) && (
-                <Chip tone="caution">Retired</Chip>
-              )}
-            </span>
-            <span className="shrink-0 text-hint text-text-tertiary">
-              {enumLabel(criterion.weight)}
-            </span>
-            <Button
-              type="button"
-              variant="ghost"
-              size="small"
-              onClick={() => {
-                setEditingIndex(index);
-              }}
+        {settings.icp_criteria.map((criterion, index) => {
+          const pointer = `/icp_criteria/${String(index)}`;
+          const message =
+            errors[`${pointer}/key`] ??
+            errors[`${pointer}/values`] ??
+            errors[`${pointer}/min`] ??
+            errors[`${pointer}/max`];
+          return (
+            <li
+              key={criterion.key}
+              className="flex items-center gap-2 rounded-control px-2.5 py-1.5"
             >
-              Edit
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="small"
-              aria-label={`Remove criterion ${criterion.key}`}
-              onClick={() => {
-                remove(index);
-              }}
-            >
-              <XIcon size={14} aria-hidden />
-            </Button>
-          </li>
-        ))}
+              <span className="num w-24 shrink-0 font-medium">{criterion.key}</span>
+              <span className="min-w-0 flex-1 truncate">
+                {enumLabel(criterion.kind)}: {operandSummary(criterion, industries)}
+                {(criterion.values ?? []).some((value) => retired.includes(value)) && (
+                  <Chip tone="caution">Retired</Chip>
+                )}
+              </span>
+              <span className="shrink-0 text-hint text-text-tertiary">
+                {enumLabel(criterion.weight)}
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="small"
+                onClick={() => {
+                  setEditingIndex(index);
+                }}
+              >
+                Edit
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="small"
+                aria-label={`Remove criterion ${criterion.key}`}
+                onClick={() => {
+                  remove(index);
+                }}
+              >
+                <XIcon size={14} aria-hidden />
+              </Button>
+              {message !== undefined && <span className="text-hint text-negative">{message}</span>}
+            </li>
+          );
+        })}
       </ul>
       {editingCriterion !== undefined && (
         <CriterionDialog

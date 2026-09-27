@@ -1,5 +1,6 @@
 import type { Schemas } from "../../../api/contract";
 import { Chip } from "../../../components/Chip";
+import { enumLabel } from "../../../shell/format";
 import { RelativeTime } from "../../../shell/RelativeTime";
 
 type ScoringConfigSummary = Schemas["ScoringConfigSummary"];
@@ -38,7 +39,7 @@ export function VersionsPanel({ versions, viewingId, onSelect }: VersionsPanelPr
               >
                 <div className="flex items-center gap-2">
                   <span className="num font-medium">{`v${String(version.version)}`}</span>
-                  <Chip tone={TONE[version.status]}>{version.status}</Chip>
+                  <Chip tone={TONE[version.status]}>{enumLabel(version.status)}</Chip>
                 </div>
                 {version.activated_at !== null && (
                   <span className="text-hint text-text-secondary">

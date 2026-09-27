@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { Schemas } from "../../../api/contract";
 import {
   addMarketCountries,
+  draftFormFields,
   fitShareChoices,
   halfLifePlaceholder,
   retiredIndustryCodes,
@@ -102,6 +103,48 @@ describe("retiredIndustryCodes (FR-030)", () => {
       { key: "GEO", kind: "GEOGRAPHY", weight: "HIGH", values: ["TELECOM_MEDIA"] },
     ];
     expect(retiredIndustryCodes(criteria, industries)).toEqual([]);
+  });
+});
+
+describe("draftFormFields (FR-034)", () => {
+  it("registers each list item's own pointer at its position in the document", () => {
+    const document = settings({
+      icp_criteria: [
+        { key: "GEO", kind: "GEOGRAPHY", weight: "HIGH", values: ["DE"] },
+        { key: "SIZE", kind: "EMPLOYEE_RANGE", weight: "MEDIUM", min: 10 },
+      ],
+      questions: [{ question_key: "A_SIGNAL", weight: "MEDIUM", half_life_days: null }],
+      disqualifiers: [
+        { key: "D1", label: "d", kind: "SIGNAL", question_key: "A_SIGNAL", min_strength: "WEAK" },
+      ],
+    });
+    const fields = draftFormFields(document);
+    expect(fields).toContain("/icp_criteria/0/values");
+    expect(fields).toContain("/icp_criteria/1/min");
+    expect(fields).toContain("/icp_criteria/1/max");
+    expect(fields).toContain("/questions/0/weight");
+    expect(fields).toContain("/disqualifiers/0/question_key");
+    expect(fields).toContain("/disqualifiers/0/min_strength");
+  });
+
+  it("registers only the section pointers when every list is empty", () => {
+    expect(draftFormFields(settings())).toEqual([
+      "/fit_weight",
+      "/intent_weight",
+      "/min_fit",
+      "/warm_threshold",
+      "/hot_threshold",
+      "/weight_values",
+      "/strength_values",
+      "/default_half_life_days",
+      "/min_decay",
+      "/negative_factor",
+      "/intent_saturation",
+      "/unknown_match",
+      "/icp_criteria",
+      "/questions",
+      "/disqualifiers",
+    ]);
   });
 });
 

@@ -73,3 +73,43 @@ export function halfLifePlaceholder(
   const distinct = [...new Set(sourceTypes.map((type) => defaultHalfLifeDays[type]))];
   return distinct.join(" / ");
 }
+
+/**
+ * FR-034: the JSON pointer of every control Save draft's form registers, so `formErrors` can
+ * place a `VALIDATION` field on the control that edits it rather than on the section around it.
+ * Each list item registers its own pointer at its position in the document
+ * ([Scoring settings validation](/architecture/rules.md#scoring-settings-validation) names these
+ * exact suffixes), not its position in a filtered UI list.
+ */
+export function draftFormFields(working: ScoringSettings): string[] {
+  return [
+    "/fit_weight",
+    "/intent_weight",
+    "/min_fit",
+    "/warm_threshold",
+    "/hot_threshold",
+    "/weight_values",
+    "/strength_values",
+    "/default_half_life_days",
+    "/min_decay",
+    "/negative_factor",
+    "/intent_saturation",
+    "/unknown_match",
+    "/icp_criteria",
+    ...working.icp_criteria.flatMap((_, index) => [
+      `/icp_criteria/${String(index)}/key`,
+      `/icp_criteria/${String(index)}/values`,
+      `/icp_criteria/${String(index)}/min`,
+      `/icp_criteria/${String(index)}/max`,
+    ]),
+    "/questions",
+    ...working.questions.map((_, index) => `/questions/${String(index)}/weight`),
+    "/disqualifiers",
+    ...working.disqualifiers.flatMap((_, index) => [
+      `/disqualifiers/${String(index)}/key`,
+      `/disqualifiers/${String(index)}/criterion_key`,
+      `/disqualifiers/${String(index)}/question_key`,
+      `/disqualifiers/${String(index)}/min_strength`,
+    ]),
+  ];
+}

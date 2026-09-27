@@ -3,12 +3,14 @@ import { useState } from "react";
 import type { Schemas } from "../../../api/contract";
 import { FormField } from "../../../components/FormField";
 import { Input } from "../../../components/controls";
+import {
+  DOCUMENT_SOURCE_TYPES,
+  STRENGTHS_ABOVE_NONE,
+  WEIGHT_LEVELS,
+} from "../../../shell/enumValues";
+import { enumLabel, strengthLabel } from "../../../shell/format";
 
 type ScoringSettings = Schemas["ScoringSettings"];
-
-const WEIGHT_LEVELS = ["HIGH", "MEDIUM", "LOW", "NONE"] as const;
-const STRENGTHS = ["WEAK", "MEDIUM", "STRONG"] as const;
-const SOURCE_TYPES = ["NEWS", "COMPANY_PUBLICATION", "JOB_POSTING", "COMPANY_PROFILE"] as const;
 
 interface AdvancedProps {
   settings: ScoringSettings;
@@ -54,7 +56,7 @@ export function Advanced({ settings, onChange, errors, hasError }: AdvancedProps
           </p>
           <div className="flex gap-3">
             {WEIGHT_LEVELS.map((level) => (
-              <FormField key={level} label={level}>
+              <FormField key={level} label={enumLabel(level)}>
                 {(field) => (
                   <Input
                     {...field}
@@ -78,8 +80,8 @@ export function Advanced({ settings, onChange, errors, hasError }: AdvancedProps
             How much of a signal's weight a finding of each strength contributes.
           </p>
           <div className="flex gap-3">
-            {STRENGTHS.map((level) => (
-              <FormField key={level} label={level}>
+            {STRENGTHS_ABOVE_NONE.map((level) => (
+              <FormField key={level} label={strengthLabel(level)}>
                 {(field) => (
                   <Input
                     {...field}
@@ -104,8 +106,8 @@ export function Advanced({ settings, onChange, errors, hasError }: AdvancedProps
             Days for a finding's weight to halve, by source type, when the question sets none.
           </p>
           <div className="flex gap-3">
-            {SOURCE_TYPES.map((sourceType) => (
-              <FormField key={sourceType} label={sourceType}>
+            {DOCUMENT_SOURCE_TYPES.map((sourceType) => (
+              <FormField key={sourceType} label={enumLabel(sourceType)}>
                 {(field) => (
                   <Input
                     {...field}

@@ -53,9 +53,20 @@ def _canonical_json(value: object) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
+#: SerpAPI's credential query parameter, dropped from the normalised request so it is never
+#: keyed or stored ([Runtime](/architecture/overview.md#runtime) Fixture files).
+_CREDENTIAL_QUERY_PARAM = "api_key"
+
+
 def _sorted_query_url(url: httpx.URL) -> str:
     parts = urlsplit(str(url))
-    query = urlencode(sorted(url.params.multi_items()))
+    query = urlencode(
+        sorted(
+            (key, value)
+            for key, value in url.params.multi_items()
+            if key != _CREDENTIAL_QUERY_PARAM
+        )
+    )
     return urlunsplit((parts.scheme, parts.netloc, parts.path, query, parts.fragment))
 
 
@@ -91,6 +102,8 @@ def fixture_path(fixture_dir: Path, fixture_request: FixtureRequest) -> Path:
 def _response_record(response: httpx.Response) -> dict[str, object]:
     content_type = response.headers.get("content-type", "")
     record: dict[str, object] = {"status": response.status_code, "content_type": content_type}
+    if response.has_redirect_location:
+        record["location"] = response.headers["location"]
     if _is_json(content_type):
         record["json"] = json.loads(response.content)
     else:
@@ -117,9 +130,11 @@ def _replayed_response(record: dict[str, object], request: httpx.Request) -> htt
         content = str(record["text"]).encode("utf-8")
     else:
         content = base64.b64decode(str(record["base64"]))
-    return httpx.Response(
-        status, headers={"content-type": content_type}, content=content, request=request
-    )
+    headers = {"content-type": content_type}
+    location = record.get("location")
+    if isinstance(location, str):
+        headers["location"] = location
+    return httpx.Response(status, headers=headers, content=content, request=request)
 
 
 def _write(path: Path, fixture_request: FixtureRequest, response: dict[str, object]) -> None:

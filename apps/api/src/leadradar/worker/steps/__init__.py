@@ -132,6 +132,12 @@ async def _run_process(context: StepContext) -> None:
     await run_process_step(context)
 
 
+async def _run_discover(context: StepContext) -> None:
+    from leadradar.worker.steps.discover import run_discover_step
+
+    await run_discover_step(context)
+
+
 async def _run_evaluate(context: StepContext) -> None:
     """Adapts `run_evaluate_job`, which takes the job and run rows and the AI gateway, to the
     handler shape."""
@@ -150,5 +156,6 @@ STEP_HANDLERS: Mapping[JobStep, StepHandler] = {
     JobStep.PROCESS: _run_process,
     JobStep.SIGNAL: _run_signal,
     JobStep.SCORE: _run_score,
+    JobStep.DISCOVER: _run_discover,
     JobStep.EVALUATE: _run_evaluate,
 }

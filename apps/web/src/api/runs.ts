@@ -1,10 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useConfig } from "../configContext";
 import { client, requireData } from "./client";
 import type { Schemas } from "./contract";
 
 export type Run = Schemas["Run"];
+export type SourcePlugin = Schemas["SourcePlugin"];
 
 /** One query key family for the interface family Runs and source plug-ins. */
 export const runsKeys = ["runs"] as const;
@@ -87,6 +88,42 @@ export function useLatestEvaluationRun() {
     refetchInterval: (query) => {
       const latest = query.state.data?.items[0];
       return isRunFinal(latest) || latest === undefined ? false : RUN_POLL_INTERVAL_MS;
+    },
+  });
+}
+
+const sourcePluginsKey = [...runsKeys, "source-plugins"] as const;
+
+/** `API-37`: every source plug-in, in the api's order (Admin only). */
+export function useSourcePlugins() {
+  return useQuery({
+    queryKey: sourcePluginsKey,
+    queryFn: async () => requireData((await client.GET("/api/v1/source-plugins")).data),
+  });
+}
+
+/**
+ * `API-38`: saves the switch or a limit of one plug-in. On success the returned plug-in replaces
+ * its entry in the `source-plugins` list cache; no other run query is invalidated.
+ */
+export function useUpdateSourcePlugin() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      code,
+      body,
+    }: {
+      code: Schemas["SourcePluginCode"];
+      body: Schemas["SourcePluginUpdate"];
+    }) =>
+      requireData(
+        (await client.PATCH("/api/v1/source-plugins/{code}", { params: { path: { code } }, body }))
+          .data,
+      ),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(sourcePluginsKey, (plugins: SourcePlugin[] | undefined) =>
+        plugins?.map((plugin) => (plugin.code === updated.code ? updated : plugin)),
+      );
     },
   });
 }

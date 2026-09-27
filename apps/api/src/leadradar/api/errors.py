@@ -38,6 +38,13 @@ from leadradar.auth.errors import (
     UserNotFound,
 )
 from leadradar.configuration.errors import Conflict, DraftInvalid, NotFound, QuestionInvalid
+from leadradar.discovery.errors import (
+    CandidateDomainRequired,
+    CandidateNotFound,
+    CandidateNotPending,
+    NoActiveScoringVersion,
+    ServiceNotActive,
+)
 from leadradar.evaluation.errors import (
     ChunkNotFound,
     QuestionNotFound,
@@ -399,4 +406,35 @@ def register_error_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(RevisionNotCurrent)
     async def handle_revision_not_current(request: Request, exc: RevisionNotCurrent) -> Response:
+        return JSONResponse(status_code=409, content=envelope("CONFLICT", str(exc)))
+
+    @app.exception_handler(CandidateNotFound)
+    async def handle_candidate_not_found(request: Request, exc: CandidateNotFound) -> Response:
+        return JSONResponse(status_code=404, content=envelope("NOT_FOUND", str(exc)))
+
+    @app.exception_handler(CandidateNotPending)
+    async def handle_candidate_not_pending(request: Request, exc: CandidateNotPending) -> Response:
+        return JSONResponse(status_code=409, content=envelope("CONFLICT", str(exc)))
+
+    @app.exception_handler(CandidateDomainRequired)
+    async def handle_candidate_domain_required(
+        request: Request, exc: CandidateDomainRequired
+    ) -> Response:
+        return JSONResponse(
+            status_code=422,
+            content=envelope(
+                "VALIDATION",
+                "The input is invalid.",
+                {"fields": [{"field": exc.field, "message": str(exc)}]},
+            ),
+        )
+
+    @app.exception_handler(ServiceNotActive)
+    async def handle_service_not_active(request: Request, exc: ServiceNotActive) -> Response:
+        return JSONResponse(status_code=409, content=envelope("CONFLICT", str(exc)))
+
+    @app.exception_handler(NoActiveScoringVersion)
+    async def handle_no_active_scoring_version(
+        request: Request, exc: NoActiveScoringVersion
+    ) -> Response:
         return JSONResponse(status_code=409, content=envelope("CONFLICT", str(exc)))

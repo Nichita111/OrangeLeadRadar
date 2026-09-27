@@ -1369,7 +1369,7 @@
       },
       "DiscoveryCandidateEvidence": {
         "additionalProperties": false,
-        "description": "`DiscoveryCandidate.evidence`.",
+        "description": "`DiscoveryCandidate.evidence`: the `NEWS_MENTION` document that named the company.",
         "properties": {
           "document_id": {
             "title": "Document Id",
@@ -1391,8 +1391,15 @@
             "type": "string"
           },
           "title": {
-            "title": "Title",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
           },
           "url": {
             "title": "Url",
@@ -5980,11 +5987,12 @@
       },
       "SourcePluginUpdate": {
         "additionalProperties": false,
-        "description": "[`SourcePluginUpdate`](/architecture/interfaces.md#sourcepluginupdate).",
+        "description": "[`SourcePluginUpdate`](/architecture/interfaces.md#sourcepluginupdate). A `rate_limit_per_minute`\nor `daily_quota` of `0` or below answers `422 VALIDATION`\n([`source_plugin`](/architecture/sql-store.md#source_plugin)); `null` still means \"absent\" for\nthe rate limit and \"no quota\" for the daily quota.",
         "properties": {
           "daily_quota": {
             "anyOf": [
               {
+                "exclusiveMinimum": 0.0,
                 "type": "integer"
               },
               {
@@ -6007,6 +6015,7 @@
           "rate_limit_per_minute": {
             "anyOf": [
               {
+                "exclusiveMinimum": 0.0,
                 "type": "integer"
               },
               {
@@ -7890,7 +7899,7 @@
     },
     "/api/v1/discovery-candidates": {
       "get": {
-        "description": "`API-30`.",
+        "description": "`API-30`: a service's discovery candidates, ordered by `fit_estimate` descending, then by\nthe naming article's `published_at` newest first and unknown last, then by\n`normalised_name`.",
         "operationId": "list_discovery_candidates_api_v1_discovery_candidates_get",
         "parameters": [
           {
@@ -7898,6 +7907,7 @@
             "name": "service_id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Service Id",
               "type": "string"
             }
@@ -7924,6 +7934,7 @@
             "required": false,
             "schema": {
               "default": 1,
+              "minimum": 1,
               "title": "Page",
               "type": "integer"
             }
@@ -7935,6 +7946,7 @@
             "schema": {
               "anyOf": [
                 {
+                  "minimum": 1,
                   "type": "integer"
                 },
                 {
@@ -7942,6 +7954,22 @@
                 }
               ],
               "title": "Page Size"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -7975,7 +8003,7 @@
     },
     "/api/v1/discovery-candidates/{id}/accept": {
       "post": {
-        "description": "`API-31`.",
+        "description": "`API-31`: `payload.domain` is used only when the candidate has none. Raises\n`CandidateNotFound`, `CandidateNotPending`, `CandidateDomainRequired`,\n`create_discovered_account`'s own errors (`InvalidAccountDomain`, `DomainConflict`,\n`UnknownIndustry`).",
         "operationId": "accept_discovery_candidate_api_v1_discovery_candidates__id__accept_post",
         "parameters": [
           {
@@ -7983,8 +8011,25 @@
             "name": "id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -8028,7 +8073,7 @@
     },
     "/api/v1/discovery-candidates/{id}/reject": {
       "post": {
-        "description": "`API-32`.",
+        "description": "`API-32`: `payload.reason` becomes `reject_reason`. Raises `CandidateNotFound`,\n`CandidateNotPending`.",
         "operationId": "reject_discovery_candidate_api_v1_discovery_candidates__id__reject_post",
         "parameters": [
           {
@@ -8036,8 +8081,25 @@
             "name": "id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -9984,7 +10046,7 @@
     },
     "/api/v1/services/{id}/discovery-runs": {
       "post": {
-        "description": "`API-29`.",
+        "description": "`API-29`: `202` with a new discovery run, or `200` with the one already queued or\nrunning. Raises `ServiceNotFound`, `ServiceNotActive`, `NoActiveScoringVersion` (G7).",
         "operationId": "start_discovery_run_api_v1_services__id__discovery_runs_post",
         "parameters": [
           {
@@ -9992,12 +10054,39 @@
             "name": "id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Run"
+                }
+              }
+            },
+            "description": "The discovery already queued"
+          },
           "202": {
             "content": {
               "application/json": {

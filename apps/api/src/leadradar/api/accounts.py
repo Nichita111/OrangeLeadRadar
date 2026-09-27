@@ -274,7 +274,9 @@ def _to_account_row(row: AccountRowData) -> AccountRow:
     )
 
 
-def _to_account(data: AccountData) -> Account:
+def to_account(data: AccountData) -> Account:
+    """`AccountData` shaped into the one [`Account`](/architecture/interfaces.md#account) response
+    model; `api/discovery.py` reuses it for `API-31` rather than redefining the shape."""
     return Account(
         id=data.row.id,
         name=data.row.name,
@@ -369,7 +371,7 @@ async def post_account(
     result = await create_account(
         session, data=data, actor_id=principal.id, now=request.app.state.clock()
     )
-    return _to_account(result)
+    return to_account(result)
 
 
 @router.post("/accounts/import")
@@ -428,7 +430,7 @@ async def get_account(
     if account is None:
         raise AccountNotFound(f"No account {id}.")
     result = await account_data(session, account)
-    return _to_account(result)
+    return to_account(result)
 
 
 @router.patch("/accounts/{id}")
@@ -465,4 +467,4 @@ async def patch_account(
         actor_id=principal.id,
         now=request.app.state.clock(),
     )
-    return _to_account(result)
+    return to_account(result)

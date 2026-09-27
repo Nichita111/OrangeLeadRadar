@@ -8,6 +8,7 @@ import { Dialog } from "../../../components/Dialog";
 import { FormField } from "../../../components/FormField";
 import { Input, Select } from "../../../components/controls";
 import { COUNTRY_CODES } from "../../../shell/countries";
+import { WEIGHT_LEVELS } from "../../../shell/enumValues";
 import { enumLabel, countryName } from "../../../shell/format";
 import { toUpperSnakeInput } from "../../../shell/upperSnake";
 import { addMarketCountries } from "./scoringDraft";
@@ -22,7 +23,6 @@ const KINDS: ICPCriterionKind[] = [
   "REVENUE_RANGE",
   "OPERATIONAL_COMPLEXITY",
 ];
-const WEIGHTS: Schemas["WeightLevel"][] = ["HIGH", "MEDIUM", "LOW", "NONE"];
 const COMPLEXITY_LEVELS: Schemas["AccountOperationalComplexity"][] = ["LOW", "MEDIUM", "HIGH"];
 const COUNTRY_OPTIONS = COUNTRY_CODES.map((code) => ({
   value: code,
@@ -199,7 +199,7 @@ export function CriterionDialog({
                 setWeight(event.target.value as Schemas["WeightLevel"]);
               }}
             >
-              {WEIGHTS.map((option) => (
+              {WEIGHT_LEVELS.map((option) => (
                 <option key={option} value={option}>
                   {enumLabel(option)}
                 </option>

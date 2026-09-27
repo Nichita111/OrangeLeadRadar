@@ -2,18 +2,30 @@
 loaded [`account`](/architecture/sql-store.md#account) row: the Crunchbase profile fields the
 `CRUNCHBASE` plug-in fetched, and the operational-complexity level the classifier answers.
 Precedence is [`leadradar.core.account_attributes`](../core/account_attributes.py); this module
-only writes the account row it is given, in the caller's transaction. Called by the `CRUNCHBASE`
-and `WEBSITE` adapters' fetch handling — a later task's own step handler. Writes no audit row and
-enqueues no rescore: the rule's "After" leaves that to the refresh's own `SCORE` stage."""
+only writes the account row it is given, in the caller's transaction.
+`apply_operational_complexity` is called by the `PROCESS` step; `apply_crunchbase_attributes` is
+unwired, its `CRUNCHBASE` fetch adapter being deferred (G4). Enqueues no rescore: the rule's
+"After" leaves that to the refresh's own `SCORE` stage; the worker's own `ACCOUNT_UPDATED` audit
+row is written instead ([Audit actions](/architecture/sql-store.md#audit-actions), G7)."""
 
 from __future__ import annotations
 
+import uuid
+from datetime import datetime
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from leadradar.ai.shapes import ClassifierOption, ClassifierQuestion, ClassifierRequest
+from leadradar.audit.events import append_audit_event
 from leadradar.core.account_attributes import (
     operational_complexity_from_probabilities,
     should_write_attribute,
 )
-from leadradar.core.enums import AccountOperationalComplexity, SignalQuestionAnswerType
+from leadradar.core.enums import (
+    AccountOperationalComplexity,
+    AuditAction,
+    SignalQuestionAnswerType,
+)
 from leadradar.db.models.accounts import Account
 
 #: [Account attributes](/architecture/rules.md#account-attributes) Operational complexity: the
@@ -82,7 +94,11 @@ def apply_crunchbase_attributes(
         value = values[field]
         if value is None:
             continue
-        if not should_write_attribute(_current_origin(origin, field), "CRUNCHBASE"):
+        if not should_write_attribute(
+            current_value_is_null=getattr(account, field) is None,
+            current_origin=_current_origin(origin, field),
+            new_origin="CRUNCHBASE",
+        ):
             continue
         setattr(account, field, value)
         origin[field] = "CRUNCHBASE"
@@ -92,14 +108,26 @@ def apply_crunchbase_attributes(
     return changes
 
 
-def apply_operational_complexity(
-    account: Account, probabilities: dict[str, float], *, min_p: float
+async def apply_operational_complexity(
+    session: AsyncSession,
+    account: Account,
+    probabilities: dict[str, float],
+    *,
+    min_p: float,
+    run_id: uuid.UUID,
+    occurred_at: datetime,
 ) -> AccountOperationalComplexity | None:
     """Writes the classified operational complexity to `account` at origin `CLASSIFIER`, only
     when [Account attributes](/architecture/rules.md#account-attributes) Precedence allows it and
-    a level reaches `min_p` (`ATTRIBUTE_MIN_P`); returns the level written, or `None`."""
+    a level reaches `min_p` (`ATTRIBUTE_MIN_P`); returns the level written, or `None`. When it
+    writes, appends one `ACCOUNT_UPDATED` [`audit_event`](/architecture/sql-store.md#audit_event)
+    to `session`, with no actor and the refresh's `run_id` (G7)."""
     origin = dict(account.attribute_origin)
-    if not should_write_attribute(_current_origin(origin, "operational_complexity"), "CLASSIFIER"):
+    if not should_write_attribute(
+        current_value_is_null=account.operational_complexity is None,
+        current_origin=_current_origin(origin, "operational_complexity"),
+        new_origin="CLASSIFIER",
+    ):
         return None
     level = operational_complexity_from_probabilities(probabilities, min_p)
     if level is None:
@@ -107,4 +135,14 @@ def apply_operational_complexity(
     account.operational_complexity = level
     origin["operational_complexity"] = "CLASSIFIER"
     account.attribute_origin = origin
+    await append_audit_event(
+        session,
+        action=AuditAction.ACCOUNT_UPDATED,
+        occurred_at=occurred_at,
+        actor_id=None,
+        entity_type="account",
+        entity_id=account.id,
+        payload={"operational_complexity": level.value},
+        run_id=run_id,
+    )
     return level

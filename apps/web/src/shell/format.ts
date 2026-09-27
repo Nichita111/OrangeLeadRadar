@@ -73,6 +73,10 @@ const LABELS: Record<string, string> = {
   YES_NO: "Yes/no",
   SCALE: "Scale",
   CHOICE: "Choice",
+  GDELT: "GDELT",
+  RSS: "RSS",
+  NEWSAPI: "NewsAPI",
+  SERPAPI: "SerpAPI",
 };
 
 /** Screen label of a `FindingStrength`; `MEDIUM` reads "Clear" here, though it is a weight level elsewhere. */

@@ -1,8 +1,8 @@
 """[Source detection](/architecture/rules.md#source-detection) (`S-ING-05`): which of an
 account's home-page links, and which single web-search result, become a `DETECTED`
 [`account_source`](/architecture/sql-store.md#account_source) row. Pure functions: the `WEBSITE`
-and `SERPAPI` adapters (not this task) fetch the home page and run the search; this module only
-decides, from links and terms already in hand, never touching the network itself."""
+and `SERPAPI` adapters fetch the home page and run the search; this module only decides, from
+links and terms already in hand, never touching the network itself."""
 
 from __future__ import annotations
 
@@ -106,21 +106,29 @@ def _first_link_for_kind(
     return None
 
 
+def _first_feed_on_domain(feed_urls: Iterable[str], domain: str) -> str | None:
+    for url in feed_urls:
+        if _is_on_domain(url, domain):
+            return url
+    return None
+
+
 def detect_home_page_sources(
     *,
     links: list[LinkCandidate],
-    alternate_feed_url: str | None,
+    feed_urls: list[str],
     domain: str,
     existing_kinds: frozenset[AccountSourceKind],
 ) -> list[DetectedSource]:
     """[Source detection](/architecture/rules.md#source-detection) Algorithm, the home-page half:
-    one `DetectedSource` per kind the account has no source of yet (`existing_kinds`), in kind
-    order — the first matching link for `NEWSROOM`, `INVESTOR_RELATIONS` and `CAREERS`, and
-    `alternate_feed_url` (the page's `<link rel="alternate">` of type RSS or Atom, if any) for
-    `RSS_FEED`. A kind with a `MANUAL` source is never detected: the caller excludes it from
-    `existing_kinds` only when it is `DETECTED`, per the Invariants "A kind with a `MANUAL`
-    source is never detected" — so `existing_kinds` here must already include every kind that
-    has any source, `MANUAL` or `DETECTED`."""
+    one `DetectedSource` per kind the account has no source of yet, in kind order — the first
+    matching link for `NEWSROOM`, `INVESTOR_RELATIONS` and `CAREERS`, and, for `RSS_FEED`, the
+    first of `feed_urls` (the page's `<link rel="alternate">` entries of type RSS or Atom, in
+    document order) that is on the account's registrable `domain`, exactly as every other kind's
+    link is. `existing_kinds` is every kind the account already has a source of, `MANUAL` or
+    `DETECTED` alike, whatever its status — the Invariants' "A kind with a `MANUAL` source is
+    never detected" and "An existing URL is never added twice" are the caller's to keep by
+    building it that way."""
     detected: list[DetectedSource] = []
     for kind in _LINK_KINDS:
         if kind in existing_kinds:
@@ -128,8 +136,10 @@ def detect_home_page_sources(
         url = _first_link_for_kind(kind, links, domain)
         if url is not None:
             detected.append(DetectedSource(kind=kind, url=url))
-    if AccountSourceKind.RSS_FEED not in existing_kinds and alternate_feed_url:
-        detected.append(DetectedSource(kind=AccountSourceKind.RSS_FEED, url=alternate_feed_url))
+    if AccountSourceKind.RSS_FEED not in existing_kinds:
+        feed_url = _first_feed_on_domain(feed_urls, domain)
+        if feed_url is not None:
+            detected.append(DetectedSource(kind=AccountSourceKind.RSS_FEED, url=feed_url))
     return detected
 
 

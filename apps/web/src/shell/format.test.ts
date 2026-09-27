@@ -76,6 +76,20 @@ describe("countryName and enumLabel (FR-011)", () => {
   });
 });
 
+describe("enumLabel of a source plug-in code (D2 Screen labels, FR-011)", () => {
+  it.each([
+    ["GDELT", "GDELT"],
+    ["RSS", "RSS"],
+    ["WEBSITE", "Website"],
+    ["CAREERS", "Careers"],
+    ["CRUNCHBASE", "Crunchbase"],
+    ["NEWSAPI", "NewsAPI"],
+    ["SERPAPI", "SerpAPI"],
+  ])("%s reads %s", (value, label) => {
+    expect(enumLabel(value)).toBe(label);
+  });
+});
+
 describe("languageName (FR-010)", () => {
   it("names a language in English", () => {
     expect(languageName("en")).toBe("English");

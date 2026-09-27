@@ -22,7 +22,8 @@ function namesOrIsUnder(pointer: string, formField: string): boolean {
  * `VALIDATION` field is placed on the longest registered form field that names it or a key
  * underneath it (FR-034): a flat form's exact field names behave exactly as before, and a nested
  * form's pointer (`/icp_criteria/2/values`) catches every error inside that criterion unless a
- * more specific pointer is also registered.
+ * more specific pointer is also registered. Several messages landing on the same field are kept,
+ * not overwritten.
  */
 export function formErrors(error: Error | null, formFields: readonly string[]): FormErrors {
   if (error === null) {
@@ -45,7 +46,8 @@ export function formErrors(error: Error | null, formFields: readonly string[]): 
       if (longest === undefined) {
         unplaced.push(item.message);
       } else {
-        fields[longest] = item.message;
+        const existing = fields[longest];
+        fields[longest] = existing === undefined ? item.message : `${existing} ${item.message}`;
       }
     }
     return { fields, callout: unplaced.length > 0 ? unplaced.join(" ") : undefined };

@@ -23,14 +23,19 @@ from leadradar.core.enums import (
     DiscoveryCandidateStatus,
     PipelineRunKind,
     PipelineRunTrigger,
+    ScoringConfigStatus,
+    ServiceStatus,
     SourcePluginCode,
 )
 from leadradar.db.models.accounts import DiscoveryCandidate
+from leadradar.db.models.configuration import ScoringConfig
 from leadradar.db.models.identity import AppUser
 from leadradar.discovery.errors import (
     CandidateDomainRequired,
     CandidateNotFound,
     CandidateNotPending,
+    NoActiveScoringVersion,
+    ServiceNotActive,
 )
 from leadradar.discovery.queries import DiscoveryCandidateView, get_candidate
 from leadradar.runs.enqueue import enqueue_account_refresh, enqueue_service_discovery
@@ -51,8 +56,21 @@ async def request_discovery_run(
     session: AsyncSession, *, service_id: uuid.UUID, principal: AppUser, now: datetime
 ) -> DiscoveryRunRequested:
     """`API-29`: enqueues a `USER` discovery run of the service with its `RUN_REQUESTED` audit
-    row, or returns the one already queued or running. Raises `ServiceNotFound`."""
-    await require_service(session, service_id)
+    row, or returns the one already queued or running. Raises `ServiceNotFound`, `ServiceNotActive`
+    or `NoActiveScoringVersion` (G7)."""
+    service = await require_service(session, service_id)
+    if service.status is not ServiceStatus.ACTIVE:
+        raise ServiceNotActive(f"Service {service_id} is not active.")
+    has_active_version = (
+        await session.execute(
+            select(ScoringConfig.id).where(
+                ScoringConfig.service_id == service_id,
+                ScoringConfig.status == ScoringConfigStatus.ACTIVE,
+            )
+        )
+    ).first()
+    if has_active_version is None:
+        raise NoActiveScoringVersion(f"Service {service_id} has no active scoring version.")
 
     run_id, created = await enqueue_service_discovery(
         session, service_id=service_id, requested_by=principal.id, now=now

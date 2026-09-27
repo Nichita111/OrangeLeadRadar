@@ -15,7 +15,14 @@ from fastapi import FastAPI
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from leadradar.core.enums import AccountStatus, JobStep, PipelineRunTrigger, SourcePluginCode
+from leadradar.core.enums import (
+    AccountStatus,
+    AuditAction,
+    JobStep,
+    PipelineRunTrigger,
+    SourcePluginCode,
+)
+from leadradar.db.models.audit import AuditEvent
 from leadradar.db.models.ingestion import Job
 from leadradar.db.models.ingestion import SourcePlugin as SourcePluginRow
 from leadradar.runs.enqueue import enqueue_account_rescore
@@ -318,3 +325,100 @@ async def test_disabling_gdelt_removes_its_fetch_job_from_the_next_refresh(
     assert disabled.json()["available"] is False
     assert fetched
     assert "GDELT" not in fetched
+
+
+@pytest.mark.usefixtures("seeded_plugins")
+@pytest.mark.parametrize("field", ["rate_limit_per_minute", "daily_quota"])
+@pytest.mark.parametrize("value", [0, -1])
+async def test_source_plugin_update_refuses_a_limit_of_zero_or_below(
+    admin_client: httpx.AsyncClient, field: str, value: int
+) -> None:
+    response = await admin_client.patch("/api/v1/source-plugins/GDELT", json={field: value})
+
+    assert response.status_code == 422
+    body = response.json()
+    assert body["error"]["code"] == "VALIDATION"
+    assert body["error"]["details"]["fields"][0]["field"] == field
+
+    unchanged = await admin_client.get("/api/v1/source-plugins")
+    gdelt = next(entry for entry in unchanged.json() if entry["code"] == "GDELT")
+    assert gdelt["rate_limit_per_minute"] == 60
+    assert gdelt["daily_quota"] is None
+
+
+@pytest.mark.usefixtures("seeded_plugins")
+async def test_source_plugin_update_clears_the_daily_quota_when_sent_null_and_keeps_it_when_absent(
+    admin_client: httpx.AsyncClient,
+) -> None:
+    quota_set = await admin_client.patch(
+        "/api/v1/source-plugins/GDELT", json={"daily_quota": 500}
+    )
+    kept = await admin_client.patch(
+        "/api/v1/source-plugins/GDELT", json={"rate_limit_per_minute": 45}
+    )
+    cleared = await admin_client.patch("/api/v1/source-plugins/GDELT", json={"daily_quota": None})
+
+    assert quota_set.status_code == 200
+    assert quota_set.json()["daily_quota"] == 500
+    assert kept.status_code == 200
+    assert kept.json()["daily_quota"] == 500
+    assert kept.json()["rate_limit_per_minute"] == 45
+    assert cleared.status_code == 200
+    assert cleared.json()["daily_quota"] is None
+
+
+async def _plugin_updated_rows(running_app: FastAPI) -> list[AuditEvent]:
+    async with AsyncSession(running_app.state.engine) as session:
+        return list(
+            (
+                await session.execute(
+                    select(AuditEvent).where(
+                        AuditEvent.action == AuditAction.PLUGIN_UPDATED,
+                        AuditEvent.payload["code"].astext == "GDELT",
+                    )
+                )
+            ).scalars()
+        )
+
+
+@pytest.mark.usefixtures("seeded_plugins")
+async def test_source_plugin_update_of_a_limit_returns_the_plugin_and_writes_one_audit_row(
+    admin_client: httpx.AsyncClient, running_app: FastAPI
+) -> None:
+    before = await _plugin_updated_rows(running_app)
+
+    response = await admin_client.patch(
+        "/api/v1/source-plugins/GDELT", json={"rate_limit_per_minute": 45}
+    )
+
+    assert response.status_code == 200
+    assert response.json()["rate_limit_per_minute"] == 45
+    after = await _plugin_updated_rows(running_app)
+    assert len(after) == len(before) + 1
+    assert after[-1].payload == {"code": "GDELT", "rate_limit_per_minute": 45}
+
+
+@pytest.mark.usefixtures("seeded_plugins")
+async def test_an_unchanged_source_plugin_value_writes_no_audit_row(
+    admin_client: httpx.AsyncClient, running_app: FastAPI
+) -> None:
+    before = await _plugin_updated_rows(running_app)
+
+    response = await admin_client.patch(
+        "/api/v1/source-plugins/GDELT", json={"rate_limit_per_minute": 60}
+    )
+
+    assert response.status_code == 200
+    after = await _plugin_updated_rows(running_app)
+    assert len(after) == len(before)
+
+
+@pytest.mark.usefixtures("seeded_plugins")
+async def test_source_plugin_update_without_the_csrf_header_is_refused_403(
+    running_app: FastAPI,
+) -> None:
+    async with _http_client(running_app) as http:
+        response = await http.patch("/api/v1/source-plugins/GDELT", json={"enabled": False})
+
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "FORBIDDEN"

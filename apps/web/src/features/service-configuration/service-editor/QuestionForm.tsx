@@ -11,6 +11,11 @@ import { Chip } from "../../../components/Chip";
 import { FormField } from "../../../components/FormField";
 import { Input, Select } from "../../../components/controls";
 import { useToast } from "../../../components/Toast";
+import {
+  DOCUMENT_SOURCE_TYPES,
+  FINDING_STRENGTHS,
+  SIGNAL_QUESTION_ANSWER_TYPES,
+} from "../../../shell/enumValues";
 import { formErrors } from "../../../shell/formErrors";
 import { enumLabel, strengthLabel } from "../../../shell/format";
 import { toUpperSnakeInput } from "../../../shell/upperSnake";
@@ -21,15 +26,6 @@ type AnswerType = Schemas["SignalQuestionAnswerType"];
 type SourceType = Schemas["DocumentSourceType"];
 type Option = Schemas["QuestionOption"];
 
-const ANSWER_TYPES: AnswerType[] = ["YES_NO", "SCALE", "CHOICE"];
-const SOURCE_TYPES: SourceType[] = [
-  "NEWS",
-  "COMPANY_PUBLICATION",
-  "JOB_POSTING",
-  "COMPANY_PROFILE",
-];
-const STRENGTHS: Schemas["FindingStrength"][] = ["NONE", "WEAK", "MEDIUM", "STRONG"];
-const MIN_CHOICE_OPTIONS = 2;
 const FIELDS = ["key", "text", "answer_type", "options", "polarity", "source_types"] as const;
 
 function emptyOption(): Option {
@@ -55,13 +51,23 @@ interface QuestionFormProps {
   /** Absent in Add mode; the question being edited otherwise. */
   question?: Question;
   onSaved: (question: Question) => void;
+  /** The last save's `run_id`, held above this keyed form (`QuestionsTab`) so the "View the run"
+   * link survives Add's remount into Edit (FR-025, AC-03). */
+  queuedRunId: string | null;
+  onQueuedRunIdChange: (runId: string | null) => void;
 }
 
 /**
  * FR-023 to FR-025, FR-150: one form for Add question and Edit. Try it (`FR-027`) is out of
  * scope (T16).
  */
-export function QuestionForm({ serviceId, question, onSaved }: QuestionFormProps) {
+export function QuestionForm({
+  serviceId,
+  question,
+  onSaved,
+  queuedRunId,
+  onQueuedRunIdChange,
+}: QuestionFormProps) {
   const editing = question !== undefined;
   const { notify } = useToast();
   const create = useCreateQuestion(serviceId);
@@ -79,7 +85,6 @@ export function QuestionForm({ serviceId, question, onSaved }: QuestionFormProps
   const [sourceTypes, setSourceTypes] = useState<SourceType[]>(question?.source_types ?? []);
   const [hintTerms, setHintTerms] = useState<string[]>(question?.hint_terms ?? []);
   const [hintDraft, setHintDraft] = useState("");
-  const [queuedRunId, setQueuedRunId] = useState<string | null>(null);
 
   const revisionWarning =
     editing &&
@@ -127,7 +132,7 @@ export function QuestionForm({ serviceId, question, onSaved }: QuestionFormProps
         {
           onSuccess: (saved) => {
             notify(`Revision ${String(saved.revision)} saved`);
-            setQueuedRunId(saved.run_id);
+            onQueuedRunIdChange(saved.run_id);
             onSaved(saved);
           },
         },
@@ -156,7 +161,7 @@ export function QuestionForm({ serviceId, question, onSaved }: QuestionFormProps
       {
         onSuccess: (saved) => {
           notify(`Revision ${String(saved.revision)} saved`);
-          setQueuedRunId(saved.run_id);
+          onQueuedRunIdChange(saved.run_id);
           onSaved(saved);
         },
       },
@@ -204,7 +209,7 @@ export function QuestionForm({ serviceId, question, onSaved }: QuestionFormProps
       <fieldset className="flex flex-col gap-1.5 border-0 p-0 m-0">
         <legend className="p-0 font-medium">Answer type</legend>
         <div className="flex gap-4">
-          {ANSWER_TYPES.map((type) => (
+          {SIGNAL_QUESTION_ANSWER_TYPES.map((type) => (
             <label key={type} className="flex items-center gap-1.5">
               <input
                 type="radio"
@@ -241,7 +246,7 @@ export function QuestionForm({ serviceId, question, onSaved }: QuestionFormProps
       </FormField>
       <CheckboxGroup
         label="Source types"
-        options={SOURCE_TYPES.map((type) => ({ value: type, label: enumLabel(type) }))}
+        options={DOCUMENT_SOURCE_TYPES.map((type) => ({ value: type, label: enumLabel(type) }))}
         selected={sourceTypes}
         onChange={(values) => {
           setSourceTypes(values as SourceType[]);
@@ -356,25 +361,23 @@ function OptionsEditor({
               update(index, { strength: event.target.value as Schemas["FindingStrength"] });
             }}
           >
-            {STRENGTHS.map((strength) => (
+            {FINDING_STRENGTHS.map((strength) => (
               <option key={strength} value={strength}>
                 {strengthLabel(strength)}
               </option>
             ))}
           </Select>
-          {options.length > MIN_CHOICE_OPTIONS && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="small"
-              aria-label={`Remove option ${String(index + 1)}`}
-              onClick={() => {
-                onChange(options.filter((_, i) => i !== index));
-              }}
-            >
-              <XIcon size={14} aria-hidden />
-            </Button>
-          )}
+          <Button
+            type="button"
+            variant="ghost"
+            size="small"
+            aria-label={`Remove option ${String(index + 1)}`}
+            onClick={() => {
+              onChange(options.filter((_, i) => i !== index));
+            }}
+          >
+            <XIcon size={14} aria-hidden />
+          </Button>
         </div>
       ))}
       <Button

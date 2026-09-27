@@ -114,6 +114,50 @@ async def test_a_recorded_timeout_replays_as_a_timeout(tmp_path: Path) -> None:
         await _post(build_fixture_client("replay", tmp_path))
 
 
+def test_the_api_key_query_parameter_is_dropped_from_the_key_and_the_url() -> None:
+    request = httpx.Request(
+        "GET", "https://serpapi.com/search.json?engine=google&q=acme&api_key=super-secret"
+    )
+    normalised = normalise_request("SERPAPI", request)
+
+    assert "api_key" not in normalised.url
+    assert "super-secret" not in normalised.url
+    assert normalised.url == "https://serpapi.com/search.json?engine=google&q=acme"
+    without_key = httpx.Request("GET", "https://serpapi.com/search.json?engine=google&q=acme")
+    assert fixture_key(normalised) == fixture_key(normalise_request("SERPAPI", without_key))
+
+
+async def test_a_recorded_redirect_stores_and_replays_its_location(tmp_path: Path) -> None:
+    def redirect(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(301, headers={"location": "https://www.example.test/"})
+
+    extensions = {ADAPTER_EXTENSION: "WEBSITE"}
+    async with build_fixture_client("record", tmp_path, httpx.MockTransport(redirect)) as client:
+        recorded = await client.get("https://example.test/", extensions=extensions)
+    assert recorded.status_code == 301
+    [path] = list((tmp_path / "WEBSITE").glob("*.json"))
+    document = json.loads(path.read_text())
+    assert document["response"]["location"] == "https://www.example.test/"
+
+    async with build_fixture_client("replay", tmp_path) as client:
+        replayed = await client.get("https://example.test/", extensions=extensions)
+    assert replayed.status_code == 301
+    assert replayed.headers["location"] == "https://www.example.test/"
+
+
+async def test_a_recorded_200_has_no_location(tmp_path: Path) -> None:
+    def ok(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text="hi")
+
+    extensions = {ADAPTER_EXTENSION: "WEBSITE"}
+    async with build_fixture_client("record", tmp_path, httpx.MockTransport(ok)) as client:
+        await client.get("https://example.test/page", extensions=extensions)
+
+    [path] = list((tmp_path / "WEBSITE").glob("*.json"))
+    document = json.loads(path.read_text())
+    assert "location" not in document["response"]
+
+
 async def test_binary_and_text_bodies_replay_byte_for_byte(tmp_path: Path) -> None:
     pdf = b"%PDF-1.7\n\xff\xfe\x00binary"
     responses = {

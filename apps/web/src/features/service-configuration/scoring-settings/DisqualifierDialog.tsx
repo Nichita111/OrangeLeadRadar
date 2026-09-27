@@ -6,13 +6,12 @@ import { Button } from "../../../components/Button";
 import { Dialog } from "../../../components/Dialog";
 import { FormField } from "../../../components/FormField";
 import { Input, Select } from "../../../components/controls";
+import { STRENGTHS_ABOVE_NONE } from "../../../shell/enumValues";
 import { strengthLabel } from "../../../shell/format";
 import { toUpperSnakeInput } from "../../../shell/upperSnake";
 
 type Disqualifier = Schemas["Disqualifier"];
 type DisqualifierKind = Schemas["DisqualifierKind"];
-
-const MIN_STRENGTHS: Schemas["FindingStrength"][] = ["WEAK", "MEDIUM", "STRONG"];
 
 interface DisqualifierDialogProps {
   trigger?: ReactElement;
@@ -152,7 +151,7 @@ export function DisqualifierDialog({
                     setMinStrength(event.target.value as Schemas["FindingStrength"]);
                   }}
                 >
-                  {MIN_STRENGTHS.map((strength) => (
+                  {STRENGTHS_ABOVE_NONE.map((strength) => (
                     <option key={strength} value={strength}>
                       {strengthLabel(strength)}
                     </option>

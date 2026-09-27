@@ -3598,7 +3598,10 @@ export interface components {
         SourcePluginCode: "GDELT" | "RSS" | "WEBSITE" | "CAREERS" | "CRUNCHBASE" | "NEWSAPI" | "SERPAPI";
         /**
          * SourcePluginUpdate
-         * @description [`SourcePluginUpdate`](/architecture/interfaces.md#sourcepluginupdate).
+         * @description [`SourcePluginUpdate`](/architecture/interfaces.md#sourcepluginupdate). A `rate_limit_per_minute`
+         *     or `daily_quota` of `0` or below answers `422 VALIDATION`
+         *     ([`source_plugin`](/architecture/sql-store.md#source_plugin)); `null` still means "absent" for
+         *     the rate limit and "no quota" for the daily quota.
          */
         SourcePluginUpdate: {
             /** Daily Quota */

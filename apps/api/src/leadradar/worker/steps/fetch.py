@@ -16,10 +16,12 @@ from sqlalchemy import any_, func, literal, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from leadradar.accounts.sources import existing_source_kinds
 from leadradar.ai.fixtures import FixtureMissing
 from leadradar.core.chunking import split_into_passages
 from leadradar.core.document_normalisation import normalise_item
 from leadradar.core.enums import (
+    AccountSourceKind,
     AccountSourceStatus,
     DocumentSourceType,
     JobStep,
@@ -30,7 +32,14 @@ from leadradar.core.enums import (
 from leadradar.core.fetch_window import fetch_window, news_queries_by_service, plugin_share
 from leadradar.db.models.accounts import Account, AccountAlias, AccountSource
 from leadradar.db.models.configuration import Service, SignalQuestion
-from leadradar.db.models.ingestion import Chunk, Document, Job, PluginUsage, SourcePlugin
+from leadradar.db.models.ingestion import (
+    Chunk,
+    Document,
+    Job,
+    PipelineRun,
+    PluginUsage,
+    SourcePlugin,
+)
 from leadradar.plugins.base import SourcePluginAdapter
 from leadradar.plugins.careers import CareersPlugin
 from leadradar.plugins.errors import PluginFetchFailed
@@ -55,6 +64,12 @@ class _Inputs:
     hint_terms_by_service: dict[str, list[str]]
     newest_published_at: datetime | None
     fetch_job_count: int
+    #: Every kind the account already has a source of ([Source detection]
+    #: (/architecture/rules.md#source-detection) Invariants), and `SERPAPI`'s plug-in row and
+    #: availability — the `WEBSITE` job's detection needs both; read here so detection makes no
+    #: further query once the network has been used.
+    existing_kinds: frozenset[AccountSourceKind]
+    serpapi: SourcePluginView
 
 
 async def _read_inputs(
@@ -81,14 +96,29 @@ async def _read_inputs(
             select(AccountAlias.alias).where(AccountAlias.account_id == account.id)
         )
     ).scalars()
+    run_created_at = (
+        await session.execute(
+            select(PipelineRun.created_at).where(PipelineRun.id == context.job.run_id)
+        )
+    ).scalar_one()
     sources = (
         await session.execute(
             select(AccountSource.kind, AccountSource.url).where(
                 AccountSource.account_id == account.id,
                 AccountSource.status == AccountSourceStatus.ACTIVE,
+                # A source detected during a refresh is first read by the next one ([Source
+                # detection](/architecture/rules.md#source-detection) Invariants, D1).
+                AccountSource.created_at <= run_created_at,
             )
         )
     ).all()
+    existing_kinds = await existing_source_kinds(session, account.id)
+    serpapi = await get_source_plugin(
+        session,
+        SourcePluginCode.SERPAPI,
+        keys_configured=context.settings.plugin_keys_configured(),
+        now=context.now,
+    )
 
     hint_terms_by_service: dict[str, list[str]] = {
         str(service_id): []
@@ -137,6 +167,8 @@ async def _read_inputs(
         hint_terms_by_service=hint_terms_by_service,
         newest_published_at=newest_published_at,
         fetch_job_count=fetch_job_count,
+        existing_kinds=existing_kinds,
+        serpapi=serpapi,
     )
 
 
@@ -325,8 +357,14 @@ async def run_fetch_step(context: StepContext) -> None:
     )
     error: str | None = None
     items: list[RawItem] = []
+    home_page: tuple[str, str] | None = None
     try:
-        items = await adapter.fetch(_fetch_context(context, inputs), client)
+        if isinstance(adapter, WebsitePlugin):
+            crawl = await adapter.crawl(_fetch_context(context, inputs), client)
+            items = crawl.items
+            home_page = crawl.home_page
+        else:
+            items = await adapter.fetch(_fetch_context(context, inputs), client)
     except PluginFetchFailed as failure:
         error = str(failure)
         raise StepFailed("UPSTREAM_UNAVAILABLE", error) from failure
@@ -343,3 +381,10 @@ async def run_fetch_step(context: StepContext) -> None:
             await client.aclose()
 
     await _store_items(context, items)
+
+    if code is SourcePluginCode.WEBSITE:
+        # Deferred import: `detection` reuses this module's `_record_outcome`, which would
+        # otherwise be a circular import at module load time.
+        from leadradar.worker.steps.detection import run_website_detection
+
+        await run_website_detection(context, inputs=inputs, home_page=home_page)

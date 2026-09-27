@@ -421,7 +421,9 @@ async def update_question(
 
     effective_answer_type = answer_type if answer_type is not None else question.answer_type
     clearing_options = (
-        effective_answer_type != SignalQuestionAnswerType.CHOICE and question.options is not None
+        effective_answer_type != SignalQuestionAnswerType.CHOICE
+        and options is None
+        and question.options is not None
     )
 
     if _SHAPE_FIELDS & changes.keys():

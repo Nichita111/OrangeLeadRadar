@@ -5,6 +5,7 @@ import { Link } from "react-router";
 import { useServices, useUpdateService } from "../../../api/servicesAndQuestions";
 import type { Schemas } from "../../../api/contract";
 import { Button } from "../../../components/Button";
+import { Callout } from "../../../components/Callout";
 import { Chip } from "../../../components/Chip";
 import { ConfirmDialog } from "../../../components/ConfirmDialog";
 import { RowMenu } from "../../../components/RowMenu";
@@ -24,6 +25,7 @@ function SkeletonRows() {
   );
 }
 
+const COLUMNS = ["Service", "Status", "Scoring", "Questions", "Actions"];
 const DEACTIVATE_NOTE = "will stop being refreshed, scored and listed; its data is kept.";
 
 /** FL-01, FR-018 to FR-020, FR-149, S-CFG-01: list, create, deactivate and reactivate services. */
@@ -60,7 +62,7 @@ export function ServicesScreen() {
             <table className="w-full border-collapse text-left">
               <thead>
                 <tr className="border-b border-border text-hint text-text-tertiary">
-                  {["Service", "Status", "Scoring", "Questions", "Actions"].map((column) => (
+                  {COLUMNS.map((column) => (
                     <th key={column} scope="col" className="px-4 py-3 font-medium">
                       {column}
                     </th>
@@ -87,79 +89,91 @@ function ServiceRow({ service }: { service: Schemas["Service"] }) {
   const isActive = service.status === "ACTIVE";
 
   return (
-    <tr className="border-b border-border last:border-b-0">
-      <td className="px-4 py-3">
-        <Link to={`/services/${service.id}`} className="font-medium hover:underline">
-          {service.name}
-        </Link>
-        <p className="m-0 mt-0.5 max-w-md text-hint text-text-secondary">{service.description}</p>
-      </td>
-      <td className="px-4 py-3">
-        <Chip tone={isActive ? "positive" : "neutral"}>{isActive ? "Active" : "Inactive"}</Chip>
-      </td>
-      <td className="px-4 py-3">
-        <div className="flex flex-wrap gap-1.5">
-          {service.active_version !== null && (
-            <Chip tone="positive">{`v${String(service.active_version)}`}</Chip>
-          )}
-          {service.draft_version !== null && (
-            <Chip tone="caution">{`draft v${String(service.draft_version)}`}</Chip>
-          )}
-          <Link to={`/services/${service.id}/scoring`} className="text-hint hover:underline">
-            Scoring
-          </Link>
-        </div>
-      </td>
-      <td className="px-4 py-3">
-        <Link
-          to={`/services/${service.id}?tab=questions`}
-          className="num hover:underline"
-        >{`${String(service.question_count)} questions`}</Link>
-      </td>
-      <td className="px-4 py-3">
-        <RowMenu
-          label={`Actions for ${service.name}`}
-          items={[
-            isActive
-              ? {
-                  label: "Deactivate",
-                  onSelect: () => {
-                    setConfirmOpen(true);
-                  },
-                }
-              : {
-                  label: "Reactivate",
-                  onSelect: () => {
-                    update.mutate(
-                      { id: service.id, body: { status: "ACTIVE" } },
-                      {
-                        onSuccess: () => {
-                          notify("Service reactivated");
+    <>
+      <tr className="border-b border-border last:border-b-0">
+        <td className="px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Link to={`/services/${service.id}`} className="font-medium hover:underline">
+              {service.name}
+            </Link>
+            <span className="num text-hint text-text-tertiary">{service.code}</span>
+          </div>
+          <p className="m-0 mt-0.5 max-w-md text-hint text-text-secondary">{service.description}</p>
+        </td>
+        <td className="px-4 py-3">
+          <Chip tone={isActive ? "positive" : "neutral"}>{isActive ? "Active" : "Inactive"}</Chip>
+        </td>
+        <td className="px-4 py-3">
+          <div className="flex flex-wrap gap-1.5">
+            {service.active_version !== null && (
+              <Chip tone="positive">{`v${String(service.active_version)}`}</Chip>
+            )}
+            {service.draft_version !== null && (
+              <Chip tone="caution">{`draft v${String(service.draft_version)}`}</Chip>
+            )}
+            <Link to={`/services/${service.id}/scoring`} className="text-hint hover:underline">
+              Scoring
+            </Link>
+          </div>
+        </td>
+        <td className="px-4 py-3">
+          <Link
+            to={`/services/${service.id}?tab=questions`}
+            className="num hover:underline"
+          >{`${String(service.question_count)} questions`}</Link>
+        </td>
+        <td className="px-4 py-3">
+          <RowMenu
+            label={`Actions for ${service.name}`}
+            items={[
+              isActive
+                ? {
+                    label: "Deactivate",
+                    onSelect: () => {
+                      setConfirmOpen(true);
+                    },
+                  }
+                : {
+                    label: "Reactivate",
+                    onSelect: () => {
+                      update.mutate(
+                        { id: service.id, body: { status: "ACTIVE" } },
+                        {
+                          onSuccess: () => {
+                            notify("Service reactivated");
+                          },
                         },
-                      },
-                    );
+                      );
+                    },
+                  },
+            ]}
+          />
+          <ConfirmDialog
+            open={confirmOpen}
+            onOpenChange={setConfirmOpen}
+            title="Deactivate service"
+            description={`${service.name} ${DEACTIVATE_NOTE}`}
+            confirmLabel="Deactivate service"
+            onConfirm={() => {
+              update.mutate(
+                { id: service.id, body: { status: "INACTIVE" } },
+                {
+                  onSuccess: () => {
+                    notify("Service deactivated");
                   },
                 },
-          ]}
-        />
-        <ConfirmDialog
-          open={confirmOpen}
-          onOpenChange={setConfirmOpen}
-          title="Deactivate service"
-          description={`${service.name} ${DEACTIVATE_NOTE}`}
-          confirmLabel="Deactivate service"
-          onConfirm={() => {
-            update.mutate(
-              { id: service.id, body: { status: "INACTIVE" } },
-              {
-                onSuccess: () => {
-                  notify("Service deactivated");
-                },
-              },
-            );
-          }}
-        />
-      </td>
-    </tr>
+              );
+            }}
+          />
+        </td>
+      </tr>
+      {update.isError && (
+        <tr className="border-b border-border last:border-b-0">
+          <td colSpan={COLUMNS.length} className="px-4 pb-3">
+            <Callout kind="error">{update.error.message}</Callout>
+          </td>
+        </tr>
+      )}
+    </>
   );
 }
