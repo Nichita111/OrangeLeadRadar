@@ -221,8 +221,8 @@ class SourcePlugin(BaseModel):
 
 
 class SourcePluginUpdate(BaseModel):
-    """[`SourcePluginUpdate`](/architecture/interfaces.md#sourcepluginupdate). A `rate_limit_per_minute`
-    or `daily_quota` of `0` or below answers `422 VALIDATION`
+    """[`SourcePluginUpdate`](/architecture/interfaces.md#sourcepluginupdate). A
+    `rate_limit_per_minute` or `daily_quota` of `0` or below answers `422 VALIDATION`
     ([`source_plugin`](/architecture/sql-store.md#source_plugin)); `null` still means "absent" for
     the rate limit and "no quota" for the daily quota."""
 

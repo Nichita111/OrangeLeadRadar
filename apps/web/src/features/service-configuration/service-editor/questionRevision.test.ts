@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { willIncrementRevision, type QuestionFormShape } from "./questionForm";
+import { willIncrementRevision, type QuestionFormShape } from "./questionRevision";
 
 function shape(overrides: Partial<QuestionFormShape> = {}): QuestionFormShape {
   return {

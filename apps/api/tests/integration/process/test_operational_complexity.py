@@ -146,9 +146,7 @@ async def test_a_null_complexity_is_classified_and_written_with_one_audit_row(
     await _drain(connection, gateway)
 
     assert gateway.calls == 1
-    account = (
-        await connection.execute(select(Account).where(Account.id == account_id))
-    ).one()
+    account = (await connection.execute(select(Account).where(Account.id == account_id))).one()
     assert account.operational_complexity is AccountOperationalComplexity.MEDIUM
     assert account.attribute_origin["operational_complexity"] == "CLASSIFIER"
     [audit_row] = (

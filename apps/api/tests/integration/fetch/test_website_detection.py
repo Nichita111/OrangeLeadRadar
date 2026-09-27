@@ -203,9 +203,7 @@ async def test_home_page_links_add_detected_sources_with_one_audit_row(
 
     sources = await sources_of(connection, scene_.account_id)
     detected = {
-        (row.kind, row.url): row
-        for row in sources
-        if row.origin is AccountSourceOrigin.DETECTED
+        (row.kind, row.url): row for row in sources if row.origin is AccountSourceOrigin.DETECTED
     }
     assert set(detected) == {
         (AccountSourceKind.NEWSROOM, f"https://{DOMAIN}/press"),
@@ -262,9 +260,7 @@ async def test_an_inactive_detected_source_of_a_kind_also_blocks_its_detection(
     await drain(connection, settings())
 
     sources = await sources_of(connection, scene_.account_id)
-    careers = [
-        row for row in sources if row.kind == AccountSourceKind.CAREERS
-    ]
+    careers = [row for row in sources if row.kind == AccountSourceKind.CAREERS]
     assert [c.url for c in careers] == [f"https://{DOMAIN}/old-careers"]
 
 
@@ -331,8 +327,7 @@ async def test_a_source_detected_this_run_is_not_read_by_the_same_runs_careers_j
 
     sources = await sources_of(connection, scene_.account_id)
     assert any(
-        row.kind == AccountSourceKind.CAREERS
-        and row.origin is AccountSourceOrigin.DETECTED
+        row.kind == AccountSourceKind.CAREERS and row.origin is AccountSourceOrigin.DETECTED
         for row in sources
     )
     # The CAREERS job of this same run read no CAREERS source: no request went to the ATS API,
@@ -391,8 +386,7 @@ async def test_a_redirected_home_page_is_read_and_detection_resolves_against_the
     assert [d.url for d in documents] == [HOME_URL]  # G9: the address requested, not the target
     sources = await sources_of(connection, scene_.account_id)
     assert any(
-        row.kind == AccountSourceKind.CAREERS
-        and row.url == f"https://www.{DOMAIN}/careers"
+        row.kind == AccountSourceKind.CAREERS and row.url == f"https://www.{DOMAIN}/careers"
         for row in sources
     )
 
@@ -482,9 +476,7 @@ async def test_serpapi_available_and_careers_missing_detects_the_first_on_domain
     await drain(connection, settings(serpapi_key=SecretStr("key")))
 
     sources = await sources_of(connection, scene_.account_id)
-    careers = [
-        row for row in sources if row.kind == AccountSourceKind.CAREERS
-    ]
+    careers = [row for row in sources if row.kind == AccountSourceKind.CAREERS]
     assert [c.url for c in careers] == [f"https://{DOMAIN}/careers"]
     # One robots.txt request, plus one search per missing kind (CAREERS, INVESTOR_RELATIONS).
     assert await usage(connection, SourcePluginCode.SERPAPI) == 3

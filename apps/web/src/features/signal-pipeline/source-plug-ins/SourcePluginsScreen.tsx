@@ -44,7 +44,8 @@ const CHIP_TEXT: Record<Availability["kind"], string> = {
 };
 
 // FR-060: shown under the Availability chip whenever the plug-in needs a key it does not have.
-const KEY_MISSING_NOTE = "Stays unavailable until the key is set in the deployment's configuration.";
+const KEY_MISSING_NOTE =
+  "Stays unavailable until the key is set in the deployment's configuration.";
 
 const EMPTY_RATE_LIMIT_MESSAGE = "A per-minute limit cannot be empty.";
 const FORM_FIELDS = ["enabled", "daily_quota", "rate_limit_per_minute"] as const;

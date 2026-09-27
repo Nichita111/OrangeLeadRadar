@@ -190,7 +190,9 @@ describe("ICP criteria (FR-030)", () => {
     await openScreen();
     await screen.findByText("draft v4");
     expect(
-      screen.getByText("The draft cannot be saved until TELECOM_MEDIA is removed from its criteria."),
+      screen.getByText(
+        "The draft cannot be saved until TELECOM_MEDIA is removed from its criteria.",
+      ),
     ).toBeInTheDocument();
     const row = screen.getByText("IND").closest("li");
     expect(row).not.toBeNull();
@@ -501,5 +503,40 @@ describe("Versions (FR-037)", () => {
     expect(screen.queryByRole("button", { name: "Save draft" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Back to draft" }));
     expect(await screen.findByRole("button", { name: "Save draft" })).toBeEnabled();
+  });
+});
+
+describe("Preview impact (FR-035, FR-151)", () => {
+  it("lists the accounts that would change, current and proposed, and the unchanged count", async () => {
+    const user = userEvent.setup();
+    arrange({
+      versions: [activeSummary, draftSummary],
+      configs: {
+        [DRAFT_ID]: { ...draftSummary, settings: baseSettings() },
+        [ACTIVE_ID]: { ...activeSummary, settings: baseSettings() },
+      },
+    });
+    server.use(
+      http.post("/api/v1/scoring-configs/{id}/preview", ({ response }) =>
+        response(200).json({
+          active_version: 3,
+          draft_version: 4,
+          changes: [
+            {
+              account: { id: "55555555-5555-5555-5555-555555555555", name: "Kuehne+Nagel" },
+              current: { priority: 61, band: "WARM", standing: "RANKED", rank: 4 },
+              proposed: { priority: 74, band: "HOT", standing: "RANKED", rank: 2 },
+            },
+          ],
+          unchanged_count: 17,
+        }),
+      ),
+    );
+    await openScreen();
+    const panel = await screen.findByRole("region", { name: "Impact of this draft" });
+    await user.click(within(panel).getByRole("button", { name: "Preview impact" }));
+    expect(await within(panel).findByText("Kuehne+Nagel")).toBeInTheDocument();
+    expect(within(panel).getByText("61 · Warm · #4 to 74 · Hot · #2")).toBeInTheDocument();
+    expect(within(panel).getByText("17 accounts unchanged")).toBeInTheDocument();
   });
 });

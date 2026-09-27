@@ -293,7 +293,7 @@ async def test_a_refresh_runs_from_fetch_to_score_and_a_second_one_creates_nothi
         .where(SignalQuestion.id == question_id)
         .values(text=f"{HIGH} revised", revision=2)
     )
-    user_id = await connection.run_sync(f.make_app_user)
+    user_id = await connection.run_sync(lambda sync: f.make_app_user(sync))
     async with session_factory(connection)() as session, session.begin():
         reclassify_id = await enqueue_reclassify(
             session,
@@ -321,10 +321,9 @@ async def test_a_refresh_runs_from_fetch_to_score_and_a_second_one_creates_nothi
     )
     assert await _count(connection, Document) == before[0]
     assert reclassify.progress["pairs_classified"] > 0
-    assert (
-        await connection.scalar(
-            select(func.count())
-            .select_from(Finding)
-            .where(Finding.question_id == question_id, Finding.status == FindingStatus.SUPERSEDED)
-        )
-    ) > 0
+    superseded = await connection.scalar(
+        select(func.count())
+        .select_from(Finding)
+        .where(Finding.question_id == question_id, Finding.status == FindingStatus.SUPERSEDED)
+    )
+    assert superseded is not None and superseded > 0

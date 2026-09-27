@@ -89,7 +89,7 @@ def test_no_module_outside_api_imports_the_api_package() -> None:
 
 
 def test_page_wire_model_has_one_owner() -> None:
-    page_definitions = []
+    page_definitions: list[Path] = []
     for path in (SRC_DIR / "api").glob("*.py"):
         tree = ast.parse(path.read_text(), filename=str(path))
         page_definitions.extend(

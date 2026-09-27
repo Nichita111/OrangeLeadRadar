@@ -21,6 +21,7 @@ import { IcpCriteria } from "./IcpCriteria";
 import { draftFormFields, retiredIndustryCodes, settingsChanged } from "./scoringDraft";
 import { ServiceTabs } from "../service-editor/ServiceTabs";
 import { SignalsSection } from "./SignalsSection";
+import { PreviewImpact } from "./PreviewImpact";
 import { VersionsPanel } from "./VersionsPanel";
 
 type ScoringConfigSummary = Schemas["ScoringConfigSummary"];
@@ -142,7 +143,10 @@ function ScoringBody({
           )
         }
       </DataView>
-      <VersionsPanel versions={versions} viewingId={viewingId} onSelect={setViewingId} />
+      <div className="flex flex-col gap-4">
+        <PreviewImpact draft={draft} />
+        <VersionsPanel versions={versions} viewingId={viewingId} onSelect={setViewingId} />
+      </div>
     </div>
   );
 }

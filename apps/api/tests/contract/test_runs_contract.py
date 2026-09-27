@@ -350,9 +350,7 @@ async def test_source_plugin_update_refuses_a_limit_of_zero_or_below(
 async def test_source_plugin_update_clears_the_daily_quota_when_sent_null_and_keeps_it_when_absent(
     admin_client: httpx.AsyncClient,
 ) -> None:
-    quota_set = await admin_client.patch(
-        "/api/v1/source-plugins/GDELT", json={"daily_quota": 500}
-    )
+    quota_set = await admin_client.patch("/api/v1/source-plugins/GDELT", json={"daily_quota": 500})
     kept = await admin_client.patch(
         "/api/v1/source-plugins/GDELT", json={"rate_limit_per_minute": 45}
     )

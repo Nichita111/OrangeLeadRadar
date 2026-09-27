@@ -47,9 +47,7 @@ describe("availability (FR-143, FR-060)", () => {
         plugin({ available: false, enabled: false, needs_key: true, key_configured: false }),
       ),
     ).toEqual({ kind: "SWITCHED_OFF" });
-    expect(
-      keyNote(plugin({ enabled: false, needs_key: true, key_configured: false })),
-    ).toBe(true);
+    expect(keyNote(plugin({ enabled: false, needs_key: true, key_configured: false }))).toBe(true);
   });
 
   it("is QUOTA_REACHED when enabled, keyed and requests today reached the daily quota", () => {

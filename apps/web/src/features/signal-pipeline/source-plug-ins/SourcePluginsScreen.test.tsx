@@ -2,7 +2,11 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
-import { errorEnvelope, errorResponse, olgaAdmin } from "../../../api/authenticationAndUsers.fixtures";
+import {
+  errorEnvelope,
+  errorResponse,
+  olgaAdmin,
+} from "../../../api/authenticationAndUsers.fixtures";
 import type { Schemas } from "../../../api/contract";
 import { renderApp, signedInAs } from "../../../testRender";
 import { http, server } from "../../../testServer";

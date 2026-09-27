@@ -19,7 +19,8 @@ import {
 import { formErrors } from "../../../shell/formErrors";
 import { enumLabel, strengthLabel } from "../../../shell/format";
 import { toUpperSnakeInput } from "../../../shell/upperSnake";
-import { willIncrementRevision, type QuestionFormShape } from "./questionForm";
+import { willIncrementRevision, type QuestionFormShape } from "./questionRevision";
+import { TryIt } from "./TryIt";
 
 type Question = Schemas["SignalQuestion"];
 type AnswerType = Schemas["SignalQuestionAnswerType"];
@@ -57,10 +58,7 @@ interface QuestionFormProps {
   onQueuedRunIdChange: (runId: string | null) => void;
 }
 
-/**
- * FR-023 to FR-025, FR-150: one form for Add question and Edit. Try it (`FR-027`) is out of
- * scope (T16).
- */
+/** FR-023 to FR-025, FR-150: one form for Add question and Edit, with Try it (`FR-027`) below. */
 export function QuestionForm({
   serviceId,
   question,
@@ -169,151 +167,164 @@ export function QuestionForm({
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h3 className="num m-0 text-section font-semibold">
-          {editing ? question.key : "New question"}
-        </h3>
-        {editing && <Chip tone="neutral">{`Revision ${String(question.revision)}`}</Chip>}
-      </div>
-      {!editing && (
-        <FormField
-          label="Key"
-          hint="UPPER_SNAKE. Cannot be changed later."
-          error={errors.fields["key"]}
-        >
+    <div className="flex flex-col gap-4">
+      <form onSubmit={submit} className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h3 className="num m-0 text-section font-semibold">
+            {editing ? question.key : "New question"}
+          </h3>
+          {editing && <Chip tone="neutral">{`Revision ${String(question.revision)}`}</Chip>}
+        </div>
+        {!editing && (
+          <FormField
+            label="Key"
+            hint="UPPER_SNAKE. Cannot be changed later."
+            error={errors.fields["key"]}
+          >
+            {(field) => (
+              <Input
+                {...field}
+                type="text"
+                value={key}
+                onChange={(event) => {
+                  setKey(toUpperSnakeInput(event.target.value));
+                }}
+              />
+            )}
+          </FormField>
+        )}
+        <FormField label="Question" error={errors.fields["text"]}>
           {(field) => (
             <Input
               {...field}
               type="text"
-              value={key}
+              value={text}
               onChange={(event) => {
-                setKey(toUpperSnakeInput(event.target.value));
+                setText(event.target.value);
               }}
             />
           )}
         </FormField>
-      )}
-      <FormField label="Question" error={errors.fields["text"]}>
-        {(field) => (
-          <Input
-            {...field}
-            type="text"
-            value={text}
-            onChange={(event) => {
-              setText(event.target.value);
-            }}
-          />
+        <fieldset className="flex flex-col gap-1.5 border-0 p-0 m-0">
+          <legend className="p-0 font-medium">Answer type</legend>
+          <div className="flex gap-4">
+            {SIGNAL_QUESTION_ANSWER_TYPES.map((type) => (
+              <label key={type} className="flex items-center gap-1.5">
+                <input
+                  type="radio"
+                  name="answer_type"
+                  checked={answerType === type}
+                  onChange={() => {
+                    setAnswer(type);
+                  }}
+                />
+                {enumLabel(type)}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        {answerType === "CHOICE" && (
+          <OptionsEditor options={options} onChange={setOptions} error={errors.fields["options"]} />
         )}
-      </FormField>
-      <fieldset className="flex flex-col gap-1.5 border-0 p-0 m-0">
-        <legend className="p-0 font-medium">Answer type</legend>
-        <div className="flex gap-4">
-          {SIGNAL_QUESTION_ANSWER_TYPES.map((type) => (
-            <label key={type} className="flex items-center gap-1.5">
-              <input
-                type="radio"
-                name="answer_type"
-                checked={answerType === type}
-                onChange={() => {
-                  setAnswer(type);
-                }}
-              />
-              {enumLabel(type)}
-            </label>
-          ))}
-        </div>
-      </fieldset>
-      {answerType === "CHOICE" && (
-        <OptionsEditor options={options} onChange={setOptions} error={errors.fields["options"]} />
-      )}
-      <FormField label="Polarity">
-        {() =>
-          editing ? (
-            <p className="m-0">{`${enumLabel(polarity)} (fixed)`}</p>
-          ) : (
-            <Select
-              value={polarity}
-              onChange={(event) => {
-                setPolarity(event.target.value as Schemas["SignalQuestionPolarity"]);
-              }}
-            >
-              <option value="POSITIVE">Positive</option>
-              <option value="NEGATIVE">Negative</option>
-            </Select>
-          )
-        }
-      </FormField>
-      <CheckboxGroup
-        label="Source types"
-        options={DOCUMENT_SOURCE_TYPES.map((type) => ({ value: type, label: enumLabel(type) }))}
-        selected={sourceTypes}
-        onChange={(values) => {
-          setSourceTypes(values as SourceType[]);
-        }}
-        error={errors.fields["source_types"]}
-      />
-      <div className="flex flex-col gap-1.5">
-        <span className="font-medium">Hint terms</span>
-        <div className="flex flex-wrap items-center gap-2">
-          {hintTerms.map((term) => (
-            <Chip key={term}>
-              {term}
-              <button
-                type="button"
-                aria-label={`Remove ${term}`}
-                onClick={() => {
-                  setHintTerms(hintTerms.filter((entry) => entry !== term));
+        <FormField label="Polarity">
+          {() =>
+            editing ? (
+              <p className="m-0">{`${enumLabel(polarity)} (fixed)`}</p>
+            ) : (
+              <Select
+                value={polarity}
+                onChange={(event) => {
+                  setPolarity(event.target.value as Schemas["SignalQuestionPolarity"]);
                 }}
               >
-                <XIcon size={12} aria-hidden />
-              </button>
-            </Chip>
-          ))}
-          <Input
-            type="text"
-            value={hintDraft}
-            placeholder="Add a hint term"
-            className="w-40"
-            onChange={(event) => {
-              setHintDraft(event.target.value);
-            }}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                addHintTerm();
-              }
-            }}
-          />
-          <Button type="button" variant="secondary" size="small" onClick={addHintTerm}>
-            <PlusIcon size={14} aria-hidden />
+                <option value="POSITIVE">Positive</option>
+                <option value="NEGATIVE">Negative</option>
+              </Select>
+            )
+          }
+        </FormField>
+        <CheckboxGroup
+          label="Source types"
+          options={DOCUMENT_SOURCE_TYPES.map((type) => ({ value: type, label: enumLabel(type) }))}
+          selected={sourceTypes}
+          onChange={(values) => {
+            setSourceTypes(values as SourceType[]);
+          }}
+          error={errors.fields["source_types"]}
+        />
+        <div className="flex flex-col gap-1.5">
+          <span className="font-medium">Hint terms</span>
+          <div className="flex flex-wrap items-center gap-2">
+            {hintTerms.map((term) => (
+              <Chip key={term}>
+                {term}
+                <button
+                  type="button"
+                  aria-label={`Remove ${term}`}
+                  onClick={() => {
+                    setHintTerms(hintTerms.filter((entry) => entry !== term));
+                  }}
+                >
+                  <XIcon size={12} aria-hidden />
+                </button>
+              </Chip>
+            ))}
+            <Input
+              type="text"
+              value={hintDraft}
+              placeholder="Add a hint term"
+              className="w-40"
+              onChange={(event) => {
+                setHintDraft(event.target.value);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  addHintTerm();
+                }
+              }}
+            />
+            <Button type="button" variant="secondary" size="small" onClick={addHintTerm}>
+              <PlusIcon size={14} aria-hidden />
+            </Button>
+          </div>
+          <span className="text-hint text-text-tertiary">
+            Hint terms only steer searching; they do not change the revision.
+          </span>
+        </div>
+        {revisionWarning && (
+          <Callout kind="caution">
+            Saving will increment the revision and re-check stored data.
+          </Callout>
+        )}
+        {queuedRunId !== null && (
+          <Callout kind="neutral">
+            Reclassification queued.{" "}
+            <Link to={`/runs?run=${queuedRunId}`} className="underline">
+              View the run
+            </Link>
+            .
+          </Callout>
+        )}
+        {errors.callout !== undefined && <Callout kind="error">{errors.callout}</Callout>}
+        <div className="flex justify-end">
+          <Button type="submit" variant="primary" disabled={pending}>
+            Save
           </Button>
         </div>
-        <span className="text-hint text-text-tertiary">
-          Hint terms only steer searching; they do not change the revision.
-        </span>
-      </div>
-      {revisionWarning && (
-        <Callout kind="caution">
-          Saving will increment the revision and re-check stored data.
-        </Callout>
-      )}
-      {queuedRunId !== null && (
-        <Callout kind="neutral">
-          Reclassification queued.{" "}
-          <Link to={`/runs?run=${queuedRunId}`} className="underline">
-            View the run
-          </Link>
-          .
-        </Callout>
-      )}
-      {errors.callout !== undefined && <Callout kind="error">{errors.callout}</Callout>}
-      <div className="flex justify-end">
-        <Button type="submit" variant="primary" disabled={pending}>
-          Save
-        </Button>
-      </div>
-    </form>
+      </form>
+      <TryIt
+        serviceId={serviceId}
+        question={{
+          ...(editing && { questionId: question.id }),
+          text,
+          answer_type: answerType,
+          options: answerType === "CHOICE" ? options : null,
+          source_types: sourceTypes,
+          hint_terms: hintTerms,
+        }}
+      />
+    </div>
   );
 }
 

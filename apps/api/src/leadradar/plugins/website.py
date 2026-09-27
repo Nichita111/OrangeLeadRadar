@@ -47,9 +47,7 @@ def _title_of(soup: BeautifulSoup) -> str | None:
     return None
 
 
-def home_page_candidates(
-    body: str, base_url: str
-) -> tuple[list[LinkCandidate], list[str]]:
+def home_page_candidates(body: str, base_url: str) -> tuple[list[LinkCandidate], list[str]]:
     """[Source detection](/architecture/rules.md#source-detection) Algorithm's home-page inputs:
     every `<a href>`, resolved against `base_url` and stripped of its fragment, with its visible
     text, in document order; and every `<link rel="alternate">` of type RSS or Atom, resolved."""
@@ -153,11 +151,7 @@ class WebsitePlugin:
                 if not response.is_success or fetched_content_type(response) != "HTML":
                     continue
                 text = response.text
-                if (
-                    home_page is None
-                    and depth == 0
-                    and source.kind is AccountSourceKind.WEBSITE
-                ):
+                if home_page is None and depth == 0 and source.kind is AccountSourceKind.WEBSITE:
                     home_page = (final_url, text)
                 soup = BeautifulSoup(text, "html.parser")
                 items.append(

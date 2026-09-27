@@ -138,6 +138,52 @@ describe("Signal questions tab (FR-022, FR-150)", () => {
   });
 });
 
+describe("Try it (FR-027)", () => {
+  it("runs the form's unsaved question against pasted text and shows each result", async () => {
+    const user = userEvent.setup();
+    arrange(automation, [costProgram]);
+    let sent: unknown;
+    server.use(
+      http.post("/api/v1/questions/preview", async ({ request, response }) => {
+        sent = await request.json();
+        return response(200).json({
+          classifier: "JEV",
+          results: [
+            {
+              passage: "We launch a savings programme.",
+              document: null,
+              p_positive: 0.91,
+              escalated: false,
+              strength: "STRONG",
+              quote: "We launch a savings programme.",
+              quote_en: null,
+              rationale: null,
+            },
+          ],
+        });
+      }),
+    );
+    await openEditor(`/services/${SERVICE_ID}?tab=questions`);
+    await screen.findByRole("heading", { name: "COST_PROGRAM", level: 3 });
+    const tryIt = screen.getByRole("region", { name: "Try it" });
+    expect(within(tryIt).getByText("Nothing is saved.")).toBeInTheDocument();
+    await user.type(screen.getByLabelText("Question"), " now?");
+    await user.type(within(tryIt).getByLabelText("Text"), "We launch a savings programme.");
+    await user.click(within(tryIt).getByRole("button", { name: "Try it" }));
+    expect(
+      await within(tryIt).findByText(/We launch a savings programme/, { selector: "blockquote" }),
+    ).toBeInTheDocument();
+    expect(sent).toMatchObject({
+      service_id: SERVICE_ID,
+      question_id: costProgram.id,
+      text: `${costProgram.text} now?`,
+      answer_type: "YES_NO",
+      source_types: ["NEWS"],
+      sample_text: "We launch a savings programme.",
+    });
+  });
+});
+
 describe("Question form validation and revision (FR-023, FR-024, FR-025)", () => {
   it("a 422 on options/0/strength is placed beside that option's strength control", async () => {
     const user = userEvent.setup();

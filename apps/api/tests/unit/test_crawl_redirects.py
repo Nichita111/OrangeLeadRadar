@@ -27,7 +27,9 @@ def test_each_redirect_status_with_an_absolute_location_gives_it(status: int) ->
 
 
 def test_a_subdomain_of_the_account_domain_qualifies() -> None:
-    assert redirect_target(REQUEST_URL, 301, "https://www.dhl.com/", DOMAIN) == "https://www.dhl.com/"
+    assert (
+        redirect_target(REQUEST_URL, 301, "https://www.dhl.com/", DOMAIN) == "https://www.dhl.com/"
+    )
 
 
 def test_an_off_domain_target_gives_none() -> None:

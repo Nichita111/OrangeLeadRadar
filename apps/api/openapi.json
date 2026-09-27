@@ -5990,7 +5990,7 @@
       },
       "SourcePluginUpdate": {
         "additionalProperties": false,
-        "description": "[`SourcePluginUpdate`](/architecture/interfaces.md#sourcepluginupdate). A `rate_limit_per_minute`\nor `daily_quota` of `0` or below answers `422 VALIDATION`\n([`source_plugin`](/architecture/sql-store.md#source_plugin)); `null` still means \"absent\" for\nthe rate limit and \"no quota\" for the daily quota.",
+        "description": "[`SourcePluginUpdate`](/architecture/interfaces.md#sourcepluginupdate). A\n`rate_limit_per_minute` or `daily_quota` of `0` or below answers `422 VALIDATION`\n([`source_plugin`](/architecture/sql-store.md#source_plugin)); `null` still means \"absent\" for\nthe rate limit and \"no quota\" for the daily quota.",
         "properties": {
           "daily_quota": {
             "anyOf": [
