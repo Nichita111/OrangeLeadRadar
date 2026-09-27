@@ -834,6 +834,7 @@
           "DRAFT_CREATED",
           "DRAFT_UPDATED",
           "DRAFT_EXPORTED",
+          "ENGAGEMENT_SET",
           "CRM_PUSHED",
           "AI_CALL"
         ],
@@ -951,6 +952,7 @@
           "OVERRIDE",
           "FEEDBACK",
           "OUTREACH",
+          "ENGAGEMENT",
           "CRM",
           "AI_CALL"
         ],
@@ -1612,6 +1614,90 @@
         ],
         "title": "DocumentTriageClassifier",
         "type": "string"
+      },
+      "EngagementOrigin": {
+        "enum": [
+          "MANUAL",
+          "HUBSPOT"
+        ],
+        "title": "EngagementOrigin",
+        "type": "string"
+      },
+      "EngagementStatus": {
+        "enum": [
+          "NOT_CONTACTED",
+          "CONTACTED",
+          "ANSWERED",
+          "MEETING_BOOKED",
+          "REJECTED"
+        ],
+        "title": "EngagementStatus",
+        "type": "string"
+      },
+      "EngagementStatusView": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "origin": {
+            "$ref": "#/components/schemas/EngagementOrigin"
+          },
+          "service_id": {
+            "format": "uuid",
+            "title": "Service Id",
+            "type": "string"
+          },
+          "set_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Set By Name"
+          },
+          "status": {
+            "$ref": "#/components/schemas/EngagementStatus"
+          }
+        },
+        "required": [
+          "id",
+          "service_id",
+          "status",
+          "origin",
+          "occurred_at",
+          "note",
+          "created_at",
+          "set_by_name"
+        ],
+        "title": "EngagementStatusView",
+        "type": "object"
       },
       "ErrorBody": {
         "additionalProperties": false,
@@ -3343,6 +3429,15 @@
         "title": "MarketUpdate",
         "type": "object"
       },
+      "OutreachCallToAction": {
+        "enum": [
+          "MEETING",
+          "SHARE_RESOURCE",
+          "OPEN_QUESTION"
+        ],
+        "title": "OutreachCallToAction",
+        "type": "string"
+      },
       "OutreachDraft": {
         "additionalProperties": false,
         "description": "[`OutreachDraft`](/architecture/interfaces.md#outreachdraft).",
@@ -3391,6 +3486,23 @@
             "title": "Id",
             "type": "string"
           },
+          "preferences": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OutreachPreferences"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "provider_facts": {
+            "items": {
+              "$ref": "#/components/schemas/OutreachDraftProviderFact"
+            },
+            "title": "Provider Facts",
+            "type": "array"
+          },
           "service_id": {
             "title": "Service Id",
             "type": "string"
@@ -3420,8 +3532,10 @@
           "created_at",
           "channel",
           "status",
+          "preferences",
           "contact",
           "findings",
+          "provider_facts",
           "created_by_name"
         ],
         "title": "OutreachDraft",
@@ -3486,6 +3600,25 @@
         "title": "OutreachDraftFinding",
         "type": "object"
       },
+      "OutreachDraftProviderFact": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "text"
+        ],
+        "title": "OutreachDraftProviderFact",
+        "type": "object"
+      },
       "OutreachDraftStatus": {
         "description": "`outreach_draft.status`.",
         "enum": [
@@ -3515,6 +3648,84 @@
         "title": "OutreachDraftUpdate",
         "type": "object"
       },
+      "OutreachFormality": {
+        "enum": [
+          "CASUAL",
+          "NEUTRAL",
+          "FORMAL"
+        ],
+        "title": "OutreachFormality",
+        "type": "string"
+      },
+      "OutreachLanguage": {
+        "enum": [
+          "ENGLISH",
+          "GERMAN",
+          "QUOTE_LANGUAGE"
+        ],
+        "title": "OutreachLanguage",
+        "type": "string"
+      },
+      "OutreachLength": {
+        "enum": [
+          "SHORT",
+          "STANDARD",
+          "LONG"
+        ],
+        "title": "OutreachLength",
+        "type": "string"
+      },
+      "OutreachOpening": {
+        "enum": [
+          "EVIDENCE",
+          "VALUE",
+          "QUESTION"
+        ],
+        "title": "OutreachOpening",
+        "type": "string"
+      },
+      "OutreachPersonalization": {
+        "enum": [
+          "STANDARD",
+          "TAILORED",
+          "BESPOKE"
+        ],
+        "title": "OutreachPersonalization",
+        "type": "string"
+      },
+      "OutreachPreferences": {
+        "additionalProperties": false,
+        "properties": {
+          "call_to_action": {
+            "$ref": "#/components/schemas/OutreachCallToAction"
+          },
+          "formality": {
+            "$ref": "#/components/schemas/OutreachFormality"
+          },
+          "language": {
+            "$ref": "#/components/schemas/OutreachLanguage"
+          },
+          "length": {
+            "$ref": "#/components/schemas/OutreachLength"
+          },
+          "opening": {
+            "$ref": "#/components/schemas/OutreachOpening"
+          },
+          "personalization": {
+            "$ref": "#/components/schemas/OutreachPersonalization"
+          }
+        },
+        "required": [
+          "personalization",
+          "language",
+          "formality",
+          "length",
+          "opening",
+          "call_to_action"
+        ],
+        "title": "OutreachPreferences",
+        "type": "object"
+      },
       "OutreachRequest": {
         "additionalProperties": false,
         "description": "[`OutreachRequest`](/architecture/interfaces.md#outreachrequest).",
@@ -3525,6 +3736,10 @@
           "contact_id": {
             "title": "Contact Id",
             "type": "string"
+          },
+          "preferences": {
+            "$ref": "#/components/schemas/OutreachPreferences",
+            "title": "Preferences"
           }
         },
         "required": [
@@ -4159,6 +4374,91 @@
         ],
         "title": "ProspectTopSignal",
         "type": "object"
+      },
+      "ProviderFact": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "services": {
+            "items": {
+              "$ref": "#/components/schemas/ProviderFactService"
+            },
+            "title": "Services",
+            "type": "array"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ProviderFactStatus"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "text",
+          "source_url",
+          "services",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ProviderFact",
+        "type": "object"
+      },
+      "ProviderFactService": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "ProviderFactService",
+        "type": "object"
+      },
+      "ProviderFactStatus": {
+        "description": "`provider_fact.status`.",
+        "enum": [
+          "ACTIVE",
+          "INACTIVE"
+        ],
+        "title": "ProviderFactStatus",
+        "type": "string"
       },
       "QuestionOption": {
         "additionalProperties": false,
@@ -6046,6 +6346,85 @@
         },
         "title": "SourcePluginUpdate",
         "type": "object"
+      },
+      "ToneCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "notes": {
+            "items": {
+              "$ref": "#/components/schemas/ToneNote"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "verdict": {
+            "$ref": "#/components/schemas/ToneVerdict"
+          }
+        },
+        "required": [
+          "verdict",
+          "summary",
+          "notes"
+        ],
+        "title": "ToneCheck",
+        "type": "object"
+      },
+      "ToneCheckRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "subject": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject"
+          }
+        },
+        "required": [
+          "subject",
+          "body"
+        ],
+        "title": "ToneCheckRequest",
+        "type": "object"
+      },
+      "ToneNote": {
+        "additionalProperties": false,
+        "properties": {
+          "phrase": {
+            "title": "Phrase",
+            "type": "string"
+          },
+          "suggested_rewrite": {
+            "title": "Suggested Rewrite",
+            "type": "string"
+          }
+        },
+        "required": [
+          "phrase",
+          "suggested_rewrite"
+        ],
+        "title": "ToneNote",
+        "type": "object"
+      },
+      "ToneVerdict": {
+        "enum": [
+          "GOOD",
+          "REVIEW"
+        ],
+        "title": "ToneVerdict",
+        "type": "string"
       },
       "User": {
         "additionalProperties": false,
@@ -9417,6 +9796,136 @@
         ]
       }
     },
+    "/api/v1/outreach-drafts/{id}/mark-contacted": {
+      "post": {
+        "description": "`API-93`: atomically mark an exported draft contacted.",
+        "operationId": "post_mark_contacted_api_v1_outreach_drafts__id__mark_contacted_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EngagementStatusView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Post Mark Contacted",
+        "tags": [
+          "outreach-and-crm"
+        ]
+      }
+    },
+    "/api/v1/outreach-drafts/{id}/tone-check": {
+      "post": {
+        "description": "`API-91`: advisory check of current editor text through the AI gateway.",
+        "operationId": "post_tone_check_api_v1_outreach_drafts__id__tone_check_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ToneCheckRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ToneCheck"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Post Tone Check",
+        "tags": [
+          "outreach-and-crm"
+        ]
+      }
+    },
     "/api/v1/overrides/{id}/revoke": {
       "post": {
         "description": "`API-45`: enqueues a `RESCORE` with trigger `OVERRIDE`.",
@@ -9474,6 +9983,94 @@
         "summary": "Post Override Revoke",
         "tags": [
           "prospects-and-evidence"
+        ]
+      }
+    },
+    "/api/v1/provider-facts": {
+      "get": {
+        "description": "`API-79`: active facts applicable to the selected service.",
+        "operationId": "get_provider_facts_api_v1_provider_facts_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ProviderFactStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": "ACTIVE",
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "service_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Service Id"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProviderFact"
+                  },
+                  "title": "Response Get Provider Facts Api V1 Provider Facts Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get Provider Facts",
+        "tags": [
+          "outreach-and-crm"
         ]
       }
     },

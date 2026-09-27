@@ -519,6 +519,8 @@ def make_outreach_draft(
         "subject": "Subject",
         "body": "Body",
         "finding_ids": [],
+        "provider_fact_ids": [],
+        "preferences": None,
         "edited": False,
         "status": OutreachDraftStatus.DRAFT,
         "created_by": created_by,

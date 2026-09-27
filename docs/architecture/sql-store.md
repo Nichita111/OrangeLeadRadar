@@ -760,9 +760,23 @@ A message draft for a person to send themselves ([RULE-06](/requirements/busines
 | `body` | text | Message text. |
 | `finding_ids` | uuid[] | The findings the draft cites; each an id of [`finding`](#finding). |
 | `provider_fact_ids` | uuid[] | The provider facts the draft cites; each an id of [`provider_fact`](#provider_fact). |
+| `preferences` | jsonb, null | The optional [`OutreachPreferences`](#outreachpreferences) supplied at generation; null for drafts created before [ADR-27](/architecture/adrs/adr-27-outreach-personalization-and-tone-check.md). |
 | `edited` | boolean | True once a user changed the generated text. |
 | `status` | enum: `DRAFT`, `EXPORTED` | `EXPORTED` once copied or downloaded. |
 | `created_by` | uuid FK → [`app_user`](#app_user) | Who generated it. |
+
+#### OutreachPreferences
+
+All fields are required when the object is non-null.
+
+| Field | Values |
+|---|---|
+| `personalization` | `STANDARD`, `TAILORED`, `BESPOKE` |
+| `language` | `ENGLISH`, `GERMAN`, `QUOTE_LANGUAGE` |
+| `formality` | `CASUAL`, `NEUTRAL`, `FORMAL` |
+| `length` | `SHORT`, `STANDARD`, `LONG` |
+| `opening` | `EVIDENCE`, `VALUE`, `QUESTION` |
+| `call_to_action` | `MEETING`, `SHARE_RESOURCE`, `OPEN_QUESTION` |
 
 ### crm_sync
 
@@ -813,7 +827,7 @@ The append-only record of who did what ([RULE-09](/requirements/business.md#busi
 
 ## Audit actions
 
-The closed vocabulary of `audit_event.action`. **AI call payload**: `ai_role` (a role of [AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries)), `provider` (`JEV` or `OPENROUTER`), `model` (the OpenRouter model id for `OPENROUTER`), `prompt_version` (null for `JEV`), `items` (passages or questions in the call), `input_tokens`, `output_tokens`, `cost_eur`, `latency_ms`, `outcome` (`OK`, `TIMEOUT`, `ERROR`, `INVALID_OUTPUT`), `fixture` (true when replayed). **Changed fields**: an object mapping each changed field to its new value; `password` maps to null, so a reset is recorded without its value.
+The closed vocabulary of `audit_event.action`. **AI call payload**: `ai_role` (a role of [AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries), including `TONE_CHECK`), `provider` (`JEV` or `OPENROUTER`), `model` (the OpenRouter model id for `OPENROUTER`), `prompt_version` (null for `JEV`), `items` (passages or questions in the call), `input_tokens`, `output_tokens`, `cost_eur`, `latency_ms`, `outcome` (`OK`, `TIMEOUT`, `ERROR`, `INVALID_OUTPUT`), `fixture` (true when replayed). **Changed fields**: an object mapping each changed field to its new value; `password` maps to null, so a reset is recorded without its value.
 
 | Action | Kind | Entity | Payload |
 |---|---|---|---|

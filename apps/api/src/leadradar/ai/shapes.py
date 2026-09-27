@@ -13,8 +13,15 @@ from pydantic import BaseModel, ConfigDict, Field
 from leadradar.core.enums import (
     ContactPersona,
     FindingStrength,
+    OutreachCallToAction,
     OutreachDraftChannel,
+    OutreachFormality,
+    OutreachLanguage,
+    OutreachLength,
+    OutreachOpening,
+    OutreachPersonalization,
     SignalQuestionAnswerType,
+    ToneVerdict,
 )
 
 YES = "YES"
@@ -142,11 +149,17 @@ class OutreachFinding(_Shape):
     quote_en: str | None
     observed_at: datetime
     url: str
+    language: str
 
 
 class OutreachService(_Shape):
     name: str
     value_proposition: str
+
+
+class OutreachProviderFact(_Shape):
+    id: str
+    text: str
 
 
 class OutreachContact(_Shape):
@@ -155,15 +168,26 @@ class OutreachContact(_Shape):
     persona: ContactPersona
 
 
+class OutreachPreferences(_Shape):
+    personalization: OutreachPersonalization
+    language: OutreachLanguage
+    formality: OutreachFormality
+    length: OutreachLength
+    opening: OutreachOpening
+    call_to_action: OutreachCallToAction
+
+
 class OutreachInput(_Shape):
     """[`OutreachInput`](/architecture/interfaces.md#outreachinput)."""
 
     account_name: str
     service: OutreachService
     findings: list[OutreachFinding]
+    provider_facts: list[OutreachProviderFact]
     contact: OutreachContact | None
     channel: OutreachDraftChannel
     sender_name: str
+    preferences: OutreachPreferences | None
 
 
 class OutreachOutput(_Shape):
@@ -172,3 +196,22 @@ class OutreachOutput(_Shape):
     subject: str | None
     body: str
     cited_finding_ids: list[str]
+    cited_provider_fact_ids: list[str]
+
+
+class ToneNote(_Shape):
+    phrase: str
+    suggested_rewrite: str
+
+
+class ToneCheckInput(_Shape):
+    channel: OutreachDraftChannel
+    preferences: OutreachPreferences | None
+    subject: str | None
+    body: str
+
+
+class ToneCheckOutput(_Shape):
+    verdict: ToneVerdict
+    summary: str
+    notes: list[ToneNote]

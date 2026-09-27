@@ -22,22 +22,30 @@ from leadradar.ai.shapes import (
     OutreachFinding,
     OutreachInput,
     OutreachOutput,
+    OutreachPreferences,
+    OutreachProviderFact,
     OutreachService,
+    ToneCheckInput,
+    ToneCheckOutput,
 )
 from leadradar.audit.events import append_audit_event
 from leadradar.core.enums import (
     AuditAction,
     Dependency,
+    EngagementOrigin,
+    EngagementStatus,
     FindingStatus,
     OutreachDraftChannel,
     OutreachDraftStatus,
+    OutreachPersonalization,
+    ProviderFactStatus,
 )
 from leadradar.core.outreach_grounding import grounding_violations
 from leadradar.db.models.accounts import Account, Contact
-from leadradar.db.models.configuration import Service, SignalQuestion
+from leadradar.db.models.configuration import ProviderFact, Service, SignalQuestion
 from leadradar.db.models.identity import AppUser
 from leadradar.db.models.ingestion import Chunk, Document
-from leadradar.db.models.outreach import OutreachDraft
+from leadradar.db.models.outreach import EngagementStatusRow, OutreachDraft
 from leadradar.db.models.signals import AccountScore, Finding
 from leadradar.outreach.company_push import intent_question_entries, top_finding_ids
 from leadradar.outreach.errors import OutreachNotFound, OutreachValidationError
@@ -62,6 +70,12 @@ class DraftContactView:
 
 
 @dataclass(frozen=True)
+class DraftProviderFactView:
+    id: uuid.UUID
+    text: str
+
+
+@dataclass(frozen=True)
 class DraftView:
     """[`OutreachDraft`](/architecture/interfaces.md#outreachdraft)."""
 
@@ -74,9 +88,23 @@ class DraftView:
     created_at: datetime
     channel: OutreachDraftChannel
     status: OutreachDraftStatus
+    preferences: OutreachPreferences | None
     contact: DraftContactView | None
     findings: list[DraftFindingView]
+    provider_facts: list[DraftProviderFactView]
     created_by_name: str
+
+
+@dataclass(frozen=True)
+class EngagementView:
+    id: uuid.UUID
+    service_id: uuid.UUID
+    status: EngagementStatus
+    origin: EngagementOrigin
+    occurred_at: datetime
+    note: str | None
+    created_at: datetime
+    set_by_name: str | None
 
 
 @dataclass(frozen=True)
@@ -87,6 +115,32 @@ class _GroundingFinding:
     quote_en: str | None
     observed_at: datetime
     url: str
+    language: str
+
+
+@dataclass(frozen=True)
+class _GroundingProviderFact:
+    id: uuid.UUID
+    text: str
+
+
+async def _provider_facts(
+    session: AsyncSession, service_id: uuid.UUID, limit: int
+) -> list[_GroundingProviderFact]:
+    rows = (
+        (
+            await session.execute(
+                select(ProviderFact)
+                .where(ProviderFact.status == ProviderFactStatus.ACTIVE)
+                .order_by(ProviderFact.created_at.desc(), ProviderFact.id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    applicable = [row for row in rows if not row.service_ids or service_id in row.service_ids]
+    applicable.sort(key=lambda row: service_id not in row.service_ids)
+    return [_GroundingProviderFact(row.id, row.text) for row in applicable[:limit]]
 
 
 async def _grounding_findings(
@@ -121,6 +175,7 @@ async def _grounding_findings(
                 Finding.quote_en,
                 Finding.observed_at,
                 Document.url,
+                Document.language,
             )
             .join(SignalQuestion, SignalQuestion.id == Finding.question_id)
             .join(Chunk, Chunk.id == Finding.chunk_id)
@@ -142,6 +197,8 @@ def _output_violations(
     output: OutreachOutput,
     channel: OutreachDraftChannel,
     findings: Sequence[_GroundingFinding],
+    provider_facts: Sequence[_GroundingProviderFact],
+    preferences: OutreachPreferences | None,
     max_chars: int,
 ) -> list[str]:
     violations = grounding_violations(
@@ -153,12 +210,31 @@ def _output_violations(
     )
     if channel == OutreachDraftChannel.EMAIL and not (output.subject or "").strip():
         violations.append("an email has no subject")
+    finding_ids = {str(finding.id) for finding in findings}
+    fact_ids = {str(fact.id) for fact in provider_facts}
+    cited_findings = set(output.cited_finding_ids)
+    if not cited_findings <= finding_ids:
+        violations.append("a cited finding was not supplied")
+    if not set(output.cited_provider_fact_ids) <= fact_ids:
+        violations.append("a cited provider fact was not supplied")
+    expected = (
+        1
+        if preferences is not None
+        and preferences.personalization == OutreachPersonalization.STANDARD
+        else 2
+        if preferences is not None
+        and preferences.personalization == OutreachPersonalization.TAILORED
+        else None
+    )
+    if expected is not None and len(cited_findings) != expected:
+        violations.append(f"personalization requires exactly {expected} cited findings")
     return violations
 
 
 async def _views(session: AsyncSession, drafts: Sequence[OutreachDraft]) -> list[DraftView]:
     finding_ids = {finding_id for draft in drafts for finding_id in draft.finding_ids}
     contact_ids = {draft.contact_id for draft in drafts if draft.contact_id is not None}
+    provider_fact_ids = {fact_id for draft in drafts for fact_id in draft.provider_fact_ids}
     user_ids = {draft.created_by for draft in drafts}
     findings = {
         row[0]: DraftFindingView(*row)
@@ -176,6 +252,16 @@ async def _views(session: AsyncSession, drafts: Sequence[OutreachDraft]) -> list
             await session.execute(
                 select(Contact.id, Contact.full_name, Contact.job_title).where(
                     Contact.id.in_(list(contact_ids))
+                )
+            )
+        ).all()
+    }
+    provider_facts = {
+        row[0]: DraftProviderFactView(*row)
+        for row in (
+            await session.execute(
+                select(ProviderFact.id, ProviderFact.text).where(
+                    ProviderFact.id.in_(list(provider_fact_ids))
                 )
             )
         ).all()
@@ -199,8 +285,16 @@ async def _views(session: AsyncSession, drafts: Sequence[OutreachDraft]) -> list
             created_at=draft.created_at,
             channel=draft.channel,
             status=draft.status,
+            preferences=(
+                None
+                if draft.preferences is None
+                else OutreachPreferences.model_validate(draft.preferences)
+            ),
             contact=contacts.get(draft.contact_id) if draft.contact_id is not None else None,
             findings=[findings[i] for i in draft.finding_ids if i in findings],
+            provider_facts=[
+                provider_facts[i] for i in draft.provider_fact_ids if i in provider_facts
+            ],
             created_by_name=names.get(draft.created_by, ""),
         )
         for draft in drafts
@@ -214,9 +308,11 @@ async def create_draft(
     service_id: uuid.UUID,
     channel: OutreachDraftChannel,
     contact_id: uuid.UUID | None,
+    preferences: OutreachPreferences | None,
     gateway: AiGateway,
     max_findings: int,
     max_chars: int,
+    max_provider_facts: int,
     principal: AppUser,
     now: datetime,
 ) -> DraftView:
@@ -250,6 +346,21 @@ async def create_draft(
         raise OutreachValidationError(
             "service_id", "The account has no in-force positive finding for the service."
         )
+    if preferences is not None:
+        if preferences.personalization == OutreachPersonalization.TAILORED:
+            if len(findings) < 2:
+                raise OutreachValidationError(
+                    "preferences.personalization", "Tailored needs at least two eligible signals."
+                )
+            findings = findings[:2]
+        elif preferences.personalization == OutreachPersonalization.STANDARD:
+            findings = findings[:1]
+        elif contact is None:
+            raise OutreachValidationError(
+                "preferences.personalization", "Bespoke needs a selected contact."
+            )
+
+    provider_facts = await _provider_facts(session, service_id, max_provider_facts)
 
     role_input = OutreachInput(
         account_name=account_name,
@@ -262,8 +373,12 @@ async def create_draft(
                 quote_en=finding.quote_en,
                 observed_at=finding.observed_at,
                 url=finding.url,
+                language=finding.language,
             )
             for finding in findings
+        ],
+        provider_facts=[
+            OutreachProviderFact(id=str(fact.id), text=fact.text) for fact in provider_facts
         ],
         contact=(
             None
@@ -274,12 +389,15 @@ async def create_draft(
         ),
         channel=channel,
         sender_name=principal.display_name,
+        preferences=preferences,
     )
     context = AiCallContext(entity_type="account", entity_id=account_id, actor_id=principal.id)
     output: OutreachOutput | None = None
     for _ in range(_ATTEMPTS):
         candidate = await gateway.draft_outreach(role_input, context)
-        if not _output_violations(candidate, channel, findings, max_chars):
+        if not _output_violations(
+            candidate, channel, findings, provider_facts, preferences, max_chars
+        ):
             output = candidate
             break
     if output is None:
@@ -288,6 +406,7 @@ async def create_draft(
         )
 
     cited = [uuid.UUID(finding_id) for finding_id in dict.fromkeys(output.cited_finding_ids)]
+    cited_facts = [uuid.UUID(fact_id) for fact_id in dict.fromkeys(output.cited_provider_fact_ids)]
     draft = OutreachDraft(
         account_id=account_id,
         service_id=service_id,
@@ -296,6 +415,8 @@ async def create_draft(
         subject=output.subject if channel == OutreachDraftChannel.EMAIL else None,
         body=output.body,
         finding_ids=cited,
+        provider_fact_ids=cited_facts,
+        preferences=None if preferences is None else preferences.model_dump(mode="json"),
         edited=False,
         status=OutreachDraftStatus.DRAFT,
         created_by=principal.id,
@@ -310,7 +431,11 @@ async def create_draft(
         actor_id=principal.id,
         entity_type="outreach_draft",
         entity_id=draft.id,
-        payload={"channel": channel.value, "finding_ids": [str(i) for i in cited]},
+        payload={
+            "channel": channel.value,
+            "finding_ids": [str(i) for i in cited],
+            "provider_fact_ids": [str(i) for i in cited_facts],
+        },
     )
     [view] = await _views(session, [draft])
     await session.commit()
@@ -396,3 +521,133 @@ async def update_draft(
     [view] = await _views(session, [draft])
     await session.commit()
     return view
+
+
+async def check_tone(
+    session: AsyncSession,
+    *,
+    draft_id: uuid.UUID,
+    subject: str | None,
+    body: str,
+    gateway: AiGateway,
+    actor_id: uuid.UUID,
+) -> ToneCheckOutput:
+    """`API-91`: checks current editor text without changing the draft."""
+    draft = (
+        await session.execute(select(OutreachDraft).where(OutreachDraft.id == draft_id))
+    ).scalar_one_or_none()
+    if draft is None:
+        raise OutreachNotFound(f"No outreach draft {draft_id}.")
+    if draft.channel == OutreachDraftChannel.EMAIL and not (subject or "").strip():
+        raise OutreachValidationError("subject", "An email needs a subject.")
+    if draft.channel == OutreachDraftChannel.LINKEDIN_INMAIL and subject is not None:
+        raise OutreachValidationError("subject", "LinkedIn InMail has no subject.")
+    preferences = (
+        None if draft.preferences is None else OutreachPreferences.model_validate(draft.preferences)
+    )
+    return await gateway.check_outreach_tone(
+        ToneCheckInput(
+            channel=draft.channel,
+            preferences=preferences,
+            subject=subject,
+            body=body,
+        ),
+        AiCallContext(entity_type="outreach_draft", entity_id=draft.id, actor_id=actor_id),
+    )
+
+
+async def mark_contacted(
+    session: AsyncSession,
+    *,
+    draft_id: uuid.UUID,
+    principal: AppUser,
+    now: datetime,
+) -> EngagementView:
+    """`API-93`: atomically marks an exported draft contacted without downgrading a later status."""
+    draft = (
+        await session.execute(
+            select(OutreachDraft).where(OutreachDraft.id == draft_id).with_for_update()
+        )
+    ).scalar_one_or_none()
+    if draft is None:
+        raise OutreachNotFound(f"No outreach draft {draft_id}.")
+    if draft.status != OutreachDraftStatus.EXPORTED:
+        raise OutreachValidationError("status", "Export the draft before marking it contacted.")
+    current = (
+        await session.execute(
+            select(EngagementStatusRow)
+            .where(
+                EngagementStatusRow.account_id == draft.account_id,
+                EngagementStatusRow.service_id == draft.service_id,
+            )
+            .order_by(EngagementStatusRow.occurred_at.desc(), EngagementStatusRow.created_at.desc())
+            .limit(1)
+            .with_for_update()
+        )
+    ).scalar_one_or_none()
+    if current is not None:
+        if current.status != EngagementStatus.CONTACTED:
+            setter = (
+                None
+                if current.set_by is None
+                else (
+                    await session.execute(
+                        select(AppUser.display_name).where(AppUser.id == current.set_by)
+                    )
+                ).scalar_one_or_none()
+            )
+            view = EngagementView(
+                current.id,
+                current.service_id,
+                current.status,
+                current.origin,
+                current.occurred_at,
+                current.note,
+                current.created_at,
+                setter,
+            )
+        else:
+            view = EngagementView(
+                current.id,
+                current.service_id,
+                current.status,
+                current.origin,
+                current.occurred_at,
+                current.note,
+                current.created_at,
+                principal.display_name if current.set_by == principal.id else None,
+            )
+        await session.commit()
+        return view
+    row = EngagementStatusRow(
+        account_id=draft.account_id,
+        service_id=draft.service_id,
+        status=EngagementStatus.CONTACTED,
+        origin=EngagementOrigin.MANUAL,
+        set_by=principal.id,
+        occurred_at=now,
+        note=None,
+    )
+    session.add(row)
+    await session.flush()
+    await session.refresh(row)
+    await append_audit_event(
+        session,
+        action=AuditAction.ENGAGEMENT_SET,
+        occurred_at=now,
+        actor_id=principal.id,
+        entity_type="engagement_status",
+        entity_id=row.id,
+        payload={"status": row.status.value, "service_id": str(row.service_id)},
+    )
+    await session.commit()
+    return EngagementView(
+        row.id,
+        row.service_id,
+        row.status,
+        row.origin,
+        row.occurred_at,
+        row.note,
+        row.created_at,
+        principal.display_name,
+    )

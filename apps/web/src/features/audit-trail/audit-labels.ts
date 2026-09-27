@@ -149,6 +149,7 @@ const SUBJECT_BUILDERS: Record<AuditAction, (payload: Payload) => string> = {
   },
   DRAFT_UPDATED: (payload) => changedFieldNames(payload),
   DRAFT_EXPORTED: () => "—",
+  ENGAGEMENT_SET: (payload) => titleCaseEnum(str(payload, "status") ?? "CONTACTED"),
   CRM_PUSHED: (payload) =>
     [str(payload, "target"), str(payload, "status")]
       .filter(Boolean)

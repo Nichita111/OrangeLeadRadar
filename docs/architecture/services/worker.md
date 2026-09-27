@@ -123,7 +123,7 @@ A call stopped before it is sent — by the budget guard, by a missing recording
 
 **LLM classifier adapter.** Sends the same request through the OpenRouter adapter to `LLM_CLASSIFIER_MODEL`, with a response schema that requires a probability for every answer value of every question, and normalises each question's probabilities to sum to 1.
 
-**OpenRouter adapter.** Every generation role, and the LLM classifier adapter, has a prompt versioned in the repository as `prompts/<role>/v<n>.md`, `<role>` being the AI role in lower case; the highest `n` is the one in use, and `v<n>` is recorded in the audit as `prompt_version`. The prompt is the system message; the user message is the role's input shape as JSON. Calls go to `{OPENROUTER_BASE_URL}/chat/completions` in the OpenAI chat format with the `OPENROUTER_API_KEY` bearer token, at temperature 0, with a `response_format` of type `json_schema` whose schema is the role's output shape of [LLM shapes](/architecture/interfaces.md#llm-shapes), with `provider.require_parameters` true so that only providers that honour the schema serve the call, and with `usage.include` true so that the response carries its cost; the rule that owns the role then validates the content ([ADR-15](/architecture/adrs/adr-15-openrouter-as-the-llm-provider.md)).
+**OpenRouter adapter.** Every generation role, including `TONE_CHECK`, and the LLM classifier adapter, has a prompt versioned in the repository as `prompts/<role>/v<n>.md`, `<role>` being the AI role in lower case; the highest `n` is the one in use, and `v<n>` is recorded in the audit as `prompt_version`. `OUTREACH` and `TONE_CHECK` both use `LLM_OUTREACH_MODEL`. The prompt is the system message; the user message is the role's input shape as JSON. Calls go to `{OPENROUTER_BASE_URL}/chat/completions` in the OpenAI chat format with the `OPENROUTER_API_KEY` bearer token, at temperature 0, with a `response_format` of type `json_schema` whose schema is the role's output shape of [LLM shapes](/architecture/interfaces.md#llm-shapes), with `provider.require_parameters` true so that only providers that honour the schema serve the call, and with `usage.include` true so that the response carries its cost; the rule that owns the role then validates the content ([ADR-15](/architecture/adrs/adr-15-openrouter-as-the-llm-provider.md), [ADR-27](/architecture/adrs/adr-27-outreach-personalization-and-tone-check.md)).
 
 ### Source plug-ins
 
@@ -252,7 +252,7 @@ One worker at a time runs the scheduler: each loop takes a PostgreSQL advisory l
 | `LLM_CLASSIFIER_MODEL` | — (required with `OPENROUTER_API_KEY`) | OpenRouter model id, `organisation/model` such as `google/gemini-2.5-flash`, of the LLM classifier adapter |
 | `LLM_EVIDENCE_MODEL` | — (required with `OPENROUTER_API_KEY`) | OpenRouter model id of escalation, evidence, open signals and discovery extraction |
 | `LLM_INTERPRETATION_MODEL` | — (required with `OPENROUTER_API_KEY`) | OpenRouter model id of interpretation |
-| `LLM_OUTREACH_MODEL` | — (required with `OPENROUTER_API_KEY`) | OpenRouter model id of outreach drafting |
+| `LLM_OUTREACH_MODEL` | — (required with `OPENROUTER_API_KEY`) | OpenRouter model id of outreach drafting and tone checking |
 | `PROVIDER_FACTS_PER_CALL` | `8` | Provider facts given to one draft or interpretation |
 | `LLM_DAILY_BUDGET_EUR` | `20` | Daily OpenRouter spend cap ([Budget guard](/architecture/rules.md#budget-guard)) |
 | `CLASSIFIER_TIMEOUT_S` | `10` | Timeout of one classifier call |

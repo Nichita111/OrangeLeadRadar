@@ -77,6 +77,13 @@ class MarketStatus(StrEnum):
     INACTIVE = "INACTIVE"
 
 
+class ProviderFactStatus(StrEnum):
+    """`provider_fact.status`."""
+
+    ACTIVE = "ACTIVE"
+    INACTIVE = "INACTIVE"
+
+
 class AccountOperationalComplexity(StrEnum):
     """`account.operational_complexity`."""
 
@@ -371,6 +378,60 @@ class OutreachDraftStatus(StrEnum):
     EXPORTED = "EXPORTED"
 
 
+class OutreachPersonalization(StrEnum):
+    STANDARD = "STANDARD"
+    TAILORED = "TAILORED"
+    BESPOKE = "BESPOKE"
+
+
+class OutreachLanguage(StrEnum):
+    ENGLISH = "ENGLISH"
+    GERMAN = "GERMAN"
+    QUOTE_LANGUAGE = "QUOTE_LANGUAGE"
+
+
+class OutreachFormality(StrEnum):
+    CASUAL = "CASUAL"
+    NEUTRAL = "NEUTRAL"
+    FORMAL = "FORMAL"
+
+
+class OutreachLength(StrEnum):
+    SHORT = "SHORT"
+    STANDARD = "STANDARD"
+    LONG = "LONG"
+
+
+class OutreachOpening(StrEnum):
+    EVIDENCE = "EVIDENCE"
+    VALUE = "VALUE"
+    QUESTION = "QUESTION"
+
+
+class OutreachCallToAction(StrEnum):
+    MEETING = "MEETING"
+    SHARE_RESOURCE = "SHARE_RESOURCE"
+    OPEN_QUESTION = "OPEN_QUESTION"
+
+
+class ToneVerdict(StrEnum):
+    GOOD = "GOOD"
+    REVIEW = "REVIEW"
+
+
+class EngagementStatus(StrEnum):
+    NOT_CONTACTED = "NOT_CONTACTED"
+    CONTACTED = "CONTACTED"
+    ANSWERED = "ANSWERED"
+    MEETING_BOOKED = "MEETING_BOOKED"
+    REJECTED = "REJECTED"
+
+
+class EngagementOrigin(StrEnum):
+    MANUAL = "MANUAL"
+    HUBSPOT = "HUBSPOT"
+
+
 class CrmSyncTarget(StrEnum):
     """`crm_sync.target`."""
 
@@ -396,6 +457,7 @@ class AuditEventKind(StrEnum):
     OVERRIDE = "OVERRIDE"
     FEEDBACK = "FEEDBACK"
     OUTREACH = "OUTREACH"
+    ENGAGEMENT = "ENGAGEMENT"
     CRM = "CRM"
     AI_CALL = "AI_CALL"
 
@@ -441,6 +503,7 @@ class AuditAction(StrEnum):
     DRAFT_CREATED = "DRAFT_CREATED"
     DRAFT_UPDATED = "DRAFT_UPDATED"
     DRAFT_EXPORTED = "DRAFT_EXPORTED"
+    ENGAGEMENT_SET = "ENGAGEMENT_SET"
     CRM_PUSHED = "CRM_PUSHED"
     AI_CALL = "AI_CALL"
 
@@ -481,6 +544,7 @@ AUDIT_ACTION_KIND: Mapping[AuditAction, AuditEventKind] = {
     AuditAction.DRAFT_CREATED: AuditEventKind.OUTREACH,
     AuditAction.DRAFT_UPDATED: AuditEventKind.OUTREACH,
     AuditAction.DRAFT_EXPORTED: AuditEventKind.OUTREACH,
+    AuditAction.ENGAGEMENT_SET: AuditEventKind.ENGAGEMENT,
     AuditAction.CRM_PUSHED: AuditEventKind.CRM,
     AuditAction.AI_CALL: AuditEventKind.AI_CALL,
 }
@@ -496,6 +560,7 @@ class AiRole(StrEnum):
     EVIDENCE = "EVIDENCE"
     DISCOVERY_EXTRACTION = "DISCOVERY_EXTRACTION"
     OUTREACH = "OUTREACH"
+    TONE_CHECK = "TONE_CHECK"
 
 
 class AiCallProvider(StrEnum):

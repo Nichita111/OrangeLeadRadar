@@ -8,21 +8,37 @@ import uuid
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, ConfigDict
 from pydantic.json_schema import SkipJsonSchema
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from leadradar.ai.shapes import OutreachPreferences
 from leadradar.api.authentication import CurrentUser
 from leadradar.core.enums import (
     CrmSyncStatus,
     CrmSyncTarget,
+    EngagementOrigin,
+    EngagementStatus,
     OutreachDraftChannel,
     OutreachDraftStatus,
+    ProviderFactStatus,
+    ToneVerdict,
 )
+from leadradar.db.models.configuration import ProviderFact as ProviderFactRow
+from leadradar.db.models.configuration import Service
 from leadradar.db.session import get_session
 from leadradar.outreach.commands import push_to_crm
-from leadradar.outreach.drafts import DraftView, create_draft, list_drafts, update_draft
+from leadradar.outreach.drafts import (
+    DraftView,
+    EngagementView,
+    check_tone,
+    create_draft,
+    list_drafts,
+    mark_contacted,
+    update_draft,
+)
 from leadradar.outreach.errors import OutreachValidationError
 
 router = APIRouter(tags=["outreach-and-crm"])
@@ -35,6 +51,7 @@ class OutreachRequest(BaseModel):
 
     channel: OutreachDraftChannel
     contact_id: str | SkipJsonSchema[None] = None
+    preferences: OutreachPreferences | SkipJsonSchema[None] = None
 
 
 class OutreachDraftContact(BaseModel):
@@ -57,6 +74,13 @@ class OutreachDraftFinding(BaseModel):
     quote: str
 
 
+class OutreachDraftProviderFact(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    id: str
+    text: str
+
+
 class OutreachDraft(BaseModel):
     """[`OutreachDraft`](/architecture/interfaces.md#outreachdraft)."""
 
@@ -71,8 +95,10 @@ class OutreachDraft(BaseModel):
     created_at: str
     channel: OutreachDraftChannel
     status: OutreachDraftStatus
+    preferences: OutreachPreferences | None
     contact: OutreachDraftContact | None
     findings: list[OutreachDraftFinding]
+    provider_facts: list[OutreachDraftProviderFact]
     created_by_name: str
 
 
@@ -97,6 +123,109 @@ class CrmSyncView(BaseModel):
     created_at: datetime
     target: CrmSyncTarget
     status: CrmSyncStatus
+
+
+class ToneCheckRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    subject: str | None
+    body: str
+
+
+class ToneNote(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    phrase: str
+    suggested_rewrite: str
+
+
+class ToneCheck(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    verdict: ToneVerdict
+    summary: str
+    notes: list[ToneNote]
+
+
+class EngagementStatusView(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    id: uuid.UUID
+    service_id: uuid.UUID
+    status: EngagementStatus
+    origin: EngagementOrigin
+    occurred_at: datetime
+    note: str | None
+    created_at: datetime
+    set_by_name: str | None
+
+
+class ProviderFactService(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    id: uuid.UUID
+    name: str
+
+
+class ProviderFact(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    id: uuid.UUID
+    text: str
+    source_url: str | None
+    services: list[ProviderFactService]
+    status: ProviderFactStatus
+    created_at: datetime
+    updated_at: datetime
+
+
+@router.get("/provider-facts", response_model=list[ProviderFact])
+async def get_provider_facts(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _principal: CurrentUser,
+    status: Annotated[ProviderFactStatus | None, Query()] = ProviderFactStatus.ACTIVE,
+    service_id: Annotated[uuid.UUID | None, Query()] = None,
+) -> list[ProviderFact]:
+    """`API-79`: active facts applicable to the selected service."""
+    rows = (
+        (
+            await session.execute(
+                select(ProviderFactRow).order_by(
+                    ProviderFactRow.created_at.desc(), ProviderFactRow.id
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    if status is not None:
+        rows = [row for row in rows if row.status == status]
+    if service_id is not None:
+        rows = [row for row in rows if not row.service_ids or service_id in row.service_ids]
+        rows.sort(key=lambda row: service_id not in row.service_ids)
+    service_ids = {item for row in rows for item in row.service_ids}
+    service_rows = (
+        (await session.execute(select(Service).where(Service.id.in_(list(service_ids)))))
+        .scalars()
+        .all()
+    )
+    services = {row.id: row.name for row in service_rows}
+    return [
+        ProviderFact(
+            id=row.id,
+            text=row.text,
+            source_url=row.source_url,
+            services=[
+                ProviderFactService(id=item, name=services[item])
+                for item in row.service_ids
+                if item in services
+            ],
+            status=row.status,
+            created_at=row.created_at,
+            updated_at=row.updated_at,
+        )
+        for row in rows
+    ]
 
 
 @router.post("/accounts/{id}/scores/{service_id}/crm-push")
@@ -140,6 +269,7 @@ def _to_outreach_draft(view: DraftView) -> OutreachDraft:
         created_at=view.created_at.isoformat(),
         channel=view.channel,
         status=view.status,
+        preferences=view.preferences,
         contact=(
             None
             if view.contact is None
@@ -152,6 +282,9 @@ def _to_outreach_draft(view: DraftView) -> OutreachDraft:
         findings=[
             OutreachDraftFinding(id=str(f.id), question_text=f.question_text, quote=f.quote)
             for f in view.findings
+        ],
+        provider_facts=[
+            OutreachDraftProviderFact(id=str(f.id), text=f.text) for f in view.provider_facts
         ],
         created_by_name=view.created_by_name,
     )
@@ -176,8 +309,10 @@ async def create_outreach_draft(
         service_id=service_id,
         channel=channel,
         contact_id=_contact_id(payload.contact_id),
+        preferences=payload.preferences,
         gateway=request.app.state.ai_gateway,
         max_findings=settings.outreach_max_findings,
+        max_provider_facts=settings.provider_facts_per_call,
         max_chars=(
             settings.outreach_email_max_chars
             if channel == OutreachDraftChannel.EMAIL
@@ -187,6 +322,61 @@ async def create_outreach_draft(
         now=request.app.state.clock(),
     )
     return _to_outreach_draft(view)
+
+
+@router.post("/outreach-drafts/{id}/tone-check", response_model=ToneCheck)
+async def post_tone_check(
+    id: uuid.UUID,
+    payload: ToneCheckRequest,
+    request: Request,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    principal: CurrentUser,
+) -> ToneCheck:
+    """`API-91`: advisory check of current editor text through the AI gateway."""
+    result = await check_tone(
+        session,
+        draft_id=id,
+        subject=payload.subject,
+        body=payload.body,
+        gateway=request.app.state.ai_gateway,
+        actor_id=principal.id,
+    )
+    return ToneCheck(
+        verdict=result.verdict,
+        summary=result.summary,
+        notes=[ToneNote(**note.model_dump()) for note in result.notes],
+    )
+
+
+def _engagement(view: EngagementView) -> EngagementStatusView:
+    return EngagementStatusView(
+        id=view.id,
+        service_id=view.service_id,
+        status=view.status,
+        origin=view.origin,
+        occurred_at=view.occurred_at,
+        note=view.note,
+        created_at=view.created_at,
+        set_by_name=view.set_by_name,
+    )
+
+
+@router.post("/outreach-drafts/{id}/mark-contacted", response_model=EngagementStatusView)
+async def post_mark_contacted(
+    id: uuid.UUID,
+    request: Request,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    principal: CurrentUser,
+) -> EngagementStatusView:
+    """`API-93`: atomically mark an exported draft contacted."""
+    return _engagement(
+        await mark_contacted(
+            session,
+            draft_id=id,
+            principal=principal,
+            now=request.app.state.clock(),
+        )
+    )
 
 
 @router.get("/accounts/{id}/outreach-drafts", response_model=list[OutreachDraft])
