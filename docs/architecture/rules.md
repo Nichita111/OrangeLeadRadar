@@ -32,7 +32,7 @@ Rounding is half up, to an integer, wherever a rule says "rounded".
 
 **Crunchbase mapping.** Headquarters country → `country_code`; category → `industry` through the category table of the [Crunchbase adapter](/architecture/services/worker.md#source-plug-ins), only when the industry it maps to is `ACTIVE`; the lower bound of the employee range → `employee_count`; the lower bound of the revenue range, converted at `USD_EUR_RATE` → `revenue_eur`.
 
-**Operational complexity.** When the attribute has no `MANUAL` or `CRUNCHBASE` value, the classifier answers the scale question "How complex are this company's operations, judged by the countries it operates in and its business units?" with levels `LOW`, `MEDIUM`, `HIGH`, each labelled with its meaning under [`account`](/architecture/sql-store.md#account) `operational_complexity`, over the profile or home page text. The most probable level is stored with origin `CLASSIFIER` when its probability is at least `ATTRIBUTE_MIN_P`; otherwise the attribute stays unknown.
+**Operational complexity.** When the attribute is null, the classifier answers the scale question "How complex are this company's operations, judged by the countries it operates in and its business units?" with levels `LOW`, `MEDIUM`, `HIGH`, each labelled with its meaning under [`account`](/architecture/sql-store.md#account) `operational_complexity`, over the text of the account's newest `WEBSITE` document of its home page, or its `COMPANY_PROFILE` document. The most probable level is stored with origin `CLASSIFIER` when its probability is at least `ATTRIBUTE_MIN_P`; otherwise the attribute stays unknown.
 
 **After.** An attribute a user changes enqueues, from the api, a `RESCORE` run with trigger `ACCOUNT_CHANGE` for every active service ([Rescoring](#rescoring)). An attribute written by a plug-in or the classifier during a refresh is scored by that refresh's own `SCORE` stage, so the worker enqueues no run for it.
 
@@ -55,9 +55,9 @@ Rounding is half up, to an integer, wherever a rule says "rounded".
 | `CAREERS` | `careers`, `career`, `jobs`, `karriere`, `stellenangebote` |
 | `RSS_FEED` | a `<link rel="alternate">` of type RSS or Atom |
 
-When `SERPAPI` is available and a kind is still missing, one web search `"{name}" careers` or `"{name}" investor relations annual report` records the first result on the account's domain. Detected sources have origin `DETECTED`.
+When `SERPAPI` is available, the `WEBSITE` job searches the web once for each of `CAREERS` and `INVESTOR_RELATIONS` still missing, with `"{name}" careers` and `"{name}" investor relations annual report`, and records the first result on the account's domain; `NEWSROOM` and `RSS_FEED` are not searched. A failed search adds an entry `{stage FETCH, plugin_code SERPAPI, code}` to the run's `errors`, and detection keeps what the home page gave. Detected sources have origin `DETECTED`.
 
-**Invariants.** At most one detected source per kind. A kind with a `MANUAL` source is never detected. An existing URL is never added twice.
+**Invariants.** At most one detected source per kind. A kind with a `MANUAL` source is never detected. An existing URL is never added twice. A source detected during a refresh is first read by the next refresh.
 
 ## Plug-in availability
 
@@ -75,13 +75,13 @@ When `SERPAPI` is available and a kind is still missing, one web search `"{name}
 
 1. The window is the last `FETCH_LOOKBACK_DAYS` days. Per plug-in, the lower bound is raised to one day before the newest `published_at` of the account's documents from that plug-in, so a refresh asks only for new items. A provider whose search reaches back less far than the window is asked for what it holds; older company publications come from `WEBSITE`.
 2. A news plug-in (`GDELT`, `NEWSAPI`, `SERPAPI`) sends one query per active service: the account's name or any alias, combined with any `hint_terms` of that service's active questions whose `source_types` include `NEWS`; a service without such terms queries the name alone.
-3. `WEBSITE` reads the account's `WEBSITE`, `NEWSROOM` and `INVESTOR_RELATIONS` sources and same-host links, at most `CRAWL_MAX_PAGES_PER_SITE` pages to link depth 2, newest first by sitemap date when the site has a sitemap, plus at most `CRAWL_MAX_PDFS` of the newest linked PDF reports.
+3. `WEBSITE` reads the account's `WEBSITE`, `NEWSROOM` and `INVESTOR_RELATIONS` sources and same-host links, at most `CRAWL_MAX_PAGES_PER_SITE` pages to link depth 2, newest first by sitemap date when the site has a sitemap, plus at most `CRAWL_MAX_PDFS` of the newest linked PDF reports. A page or report that answers a redirect (301, 302, 303, 307 or 308) is read at its target when the target is on the account's registrable domain and has not been requested in this job; each hop is one request and counts as one of the source's pages, or one of the `CRAWL_MAX_PDFS` reports. When a source's own URL redirects, its same-host links are those of the host it leads to.
 4. `CAREERS` reads every posting listed on the account's `CAREERS` sources that was posted within the window.
 5. `CRUNCHBASE` reads the matched organisation's profile, key people and events once per refresh.
 6. `RSS` reads each `RSS_FEED` source.
 7. Across plug-ins at most `MAX_DOCUMENTS_PER_REFRESH` documents are kept per refresh, split evenly across the available plug-ins, newest first.
 
-**Invariants.** Nothing older than the window is fetched. No request goes to `linkedin.com`, and no Google News feed is read ([ADR-19](/architecture/adrs/adr-19-source-provider-terms-and-limits.md)). The crawler honours `robots.txt`, identifies itself with `CRAWLER_USER_AGENT` and waits `CRAWL_HOST_DELAY_MS` between requests to one host ([N-09](/requirements/system.md)).
+**Invariants.** Nothing older than the window is fetched. No request goes to `linkedin.com`, and no Google News feed is read ([ADR-19](/architecture/adrs/adr-19-source-provider-terms-and-limits.md)). The crawler honours `robots.txt`, identifies itself with `CRAWLER_USER_AGENT` and waits `CRAWL_HOST_DELAY_MS` between requests to one host ([N-09](/requirements/system.md)). A redirect to another registrable domain is never followed.
 
 ## Document normalisation
 

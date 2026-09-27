@@ -1031,7 +1031,7 @@ The in-process port each [source plug-in](/architecture/services/worker.md#sourc
 | ID | Operation | Module | Transaction | Returns |
 |---|---|---|---|---|
 | `API-68` | `fetch(context)` | the plug-in's adapter | none | [`RawItem`](#rawitem)`[]` |
-| `API-69` | `search(query)` | `CRUNCHBASE`, `GDELT`, `NEWSAPI`, `SERPAPI` adapters | none | [`RawItem`](#rawitem)`[]` for news, organisation records for `CRUNCHBASE` |
+| `API-69` | `search(query)` | `CRUNCHBASE`, `GDELT`, `NEWSAPI`, `SERPAPI` adapters | none | [`RawItem`](#rawitem)`[]` for news, organisation records for `CRUNCHBASE`, result URLs for a `SERPAPI` web search of [Source detection](/architecture/rules.md#source-detection) |
 
 - An adapter makes no request when its plug-in is unavailable, counts every request in [`plugin_usage`](/architecture/sql-store.md#plugin_usage) and raises a typed error on failure; it never returns a partial list as if it were complete.
 
@@ -1042,7 +1042,7 @@ The in-process port each [source plug-in](/architecture/services/worker.md#sourc
 | Field | Type | Source of truth |
 |---|---|---|
 | `account` | `{id, name, domain, aliases, country_code, crunchbase_id}` | [`account`](/architecture/sql-store.md#account), [`account_alias`](/architecture/sql-store.md#account_alias) |
-| `sources` | array of `{kind, url}` | the account's `ACTIVE` [`account_source`](/architecture/sql-store.md#account_source) rows |
+| `sources` | array of `{kind, url}` | the account's `ACTIVE` [`account_source`](/architecture/sql-store.md#account_source) rows created before its run |
 | `since`, `until` | string | [Fetch window](/architecture/rules.md#fetch-window) |
 | `queries` | string[] | news queries from [Fetch window](/architecture/rules.md#fetch-window) |
 | `max_items` | integer | the plug-in's share of `MAX_DOCUMENTS_PER_REFRESH` |

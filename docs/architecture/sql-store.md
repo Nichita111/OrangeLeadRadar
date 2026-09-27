@@ -410,7 +410,7 @@ The work queue behind runs ([ADR-04](/architecture/adrs/adr-04-postgres-job-queu
 | Column | Type | Notes |
 |---|---|---|
 | `run_id` | uuid FK → [`pipeline_run`](#pipeline_run) | Owning run. |
-| `step` | enum: `FETCH`, `PROCESS`, `SIGNAL`, `SCORE`, `DISCOVER`, `EVALUATE` | `FETCH`: one plug-in for one account; stores each new item it fetches as a normalised document with its passages. `PROCESS`: embed the passages of a batch of fetched documents and mark near duplicates. `SIGNAL`: run the [signal graph](/architecture/services/worker.md#signal-graph) over a batch of documents or passages. `SCORE`: rescore. `DISCOVER`: one discovery source for one service. `EVALUATE`: the labelled pairs of its run. |
+| `step` | enum: `FETCH`, `PROCESS`, `SIGNAL`, `SCORE`, `DISCOVER`, `EVALUATE` | `FETCH`: one plug-in for one account; stores each new item it fetches as a normalised document with its passages. `PROCESS`: embed the passages of a batch of fetched documents, mark near duplicates, and classify the account's operational complexity. `SIGNAL`: run the [signal graph](/architecture/services/worker.md#signal-graph) over a batch of documents or passages. `SCORE`: rescore. `DISCOVER`: one discovery source for one service. `EVALUATE`: the labelled pairs of its run. |
 | `payload` | jsonb | Step input: identifiers only, never document text. |
 | `status` | enum: `READY`, `RUNNING`, `DONE`, `FAILED`, `CANCELLED` | `FAILED` after `JOB_MAX_ATTEMPTS` attempts. |
 | `priority` | smallint | Lower runs first, as the [job queue](/architecture/services/worker.md#job-queue) assigns it. |
@@ -430,7 +430,7 @@ One fetched item: a news article, a web page, a report, a job posting or a compa
 | `run_id` | uuid FK → [`pipeline_run`](#pipeline_run) | The run that fetched it. |
 | `plugin_code` | enum | A [`source_plugin`](#source_plugin) `code` value. |
 | `source_type` | enum: `NEWS`, `COMPANY_PUBLICATION`, `JOB_POSTING`, `COMPANY_PROFILE` | `NEWS`: third-party reporting. `COMPANY_PUBLICATION`: the company's own website, newsroom, reports and feeds. `JOB_POSTING`: a job advertisement. `COMPANY_PROFILE`: a structured profile or corporate event from a data provider. |
-| `url` | text | As fetched. |
+| `url` | text | As requested, before any redirect ([Fetch window](/architecture/rules.md#fetch-window) step 3). |
 | `canonical_url` | text | After [Document normalisation](/architecture/rules.md#document-normalisation). |
 | `title` | text, null | Title, when the source has one. |
 | `language` | text | ISO 639-1 code, detected. |
@@ -772,7 +772,7 @@ The closed vocabulary of `audit_event.action`. **AI call payload**: `ai_role` (a
 | `SCORING_ACTIVATED` | `CONFIG` | `scoring_config` | `version`, `previous_version`, `change_note` |
 | `PLUGIN_UPDATED` | `CONFIG` | `source_plugin` | changed fields |
 | `ACCOUNT_CREATED` | `ACCOUNT` | `account` | `domain`, `origin` |
-| `ACCOUNT_UPDATED` | `ACCOUNT` | `account` | changed fields |
+| `ACCOUNT_UPDATED` | `ACCOUNT` | `account` | changed fields; also written by the worker, with no actor and with its run, when a refresh detects sources or writes an attribute; the payload names the changed fields |
 | `ACCOUNTS_IMPORTED` | `ACCOUNT` | — | `rows`, `created`, `updated`, `duplicates`, `invalid` |
 | `CANDIDATE_ACCEPTED` | `ACCOUNT` | `discovery_candidate` | `account_id` |
 | `CANDIDATE_REJECTED` | `ACCOUNT` | `discovery_candidate` | `reason` |
