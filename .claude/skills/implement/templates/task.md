@@ -32,6 +32,7 @@ Human decisions, newest last, each dated: the question, the answer, and who deci
 - [ ] Design written
 - [ ] Design approved
 - [ ] Built
+- [ ] QA run
 - [ ] Critic passed
 - [ ] Committed
 

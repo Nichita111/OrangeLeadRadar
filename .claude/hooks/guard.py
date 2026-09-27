@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """PreToolUse guard for the /implement chain: keeps each agent inside its lane.
 
-Usage (from an agent's frontmatter hook): guard.py <architect|coder|critic>
+Usage (from an agent's frontmatter hook): guard.py <architect|coder|qa|critic>
 Reads the hook JSON on stdin; exits 2 with a reason on stderr to block the tool call,
 0 to allow it. The lanes are those of AGENTS.md.
 
@@ -28,12 +28,14 @@ PHASES = ("docs", "code")
 WORK_FILES = {
     "architect": {"design.md"},
     "coder": {"coder-notes.md"},
+    "qa": {"qa-report.md"},
     "critic": {"review.md"},
 }
 # Where each role may write outside the work directory; None means anywhere not denied.
 WRITE_ALLOW: dict[str, list[str] | None] = {
     "architect": [],
     "critic": [],
+    "qa": ["tests/acceptance/", "tests/e2e/"],
     "coder": None,
 }
 CODER_WRITE_DENY = [
@@ -46,6 +48,10 @@ CODER_WRITE_DENY = [
     "docs/reference/",
     "docs/requirements/traceability.md",
 ]
+# QA reads only the specification: never the implementation or the notes about it.
+QA_READ_DENY = ["apps/", "packages/"]
+QA_READ_DENY_WORK = {"design.md", "coder-notes.md", "review.md"}
+QA_SEARCH_ALLOW = ["docs/", "tests/", "fixtures/", "scripts/"]
 
 READONLY_BASH = re.compile(
     r"\bgit\s+(commit|push|checkout|switch|reset|rebase|merge|stash|add|rm|mv|restore|clean|tag|cherry-pick)\b"
@@ -56,6 +62,12 @@ READONLY_BASH = re.compile(
 CODER_BASH_PROTECTED = [*CODER_WRITE_DENY[:6], GATE]
 CODER_BASH_DENY = re.compile(r"\bgit\s+(push|commit|reset\s+--hard|clean|checkout\s+--)\b")
 WRITE_OPS = re.compile(r"(?<![0-9&])>>?|\btee\b|\bsed\s+-i|\b(rm|mv|cp)\s")
+QA_BASH_DENY = re.compile(
+    r"(^|[\s'\"=:(/])(\./)?(apps|packages)/"
+    r"|\bgit\s+(?!status\b)\w"
+    r"|\bdocker\s+(compose\s+)?cp\b"
+    r"|\bexec\b.*\b(cat|less|more|head|tail|grep|rg|find|ls|sed|awk|strings)\b"
+)
 
 
 def block(reason: str) -> None:
@@ -130,6 +142,16 @@ def check_write(role: str, r: str | None, raw: str) -> None:
         block(f"{role} may write only under {where}; not {r}.")
 
 
+def check_qa_read(r: str | None) -> None:
+    if r is None:
+        return
+    if any(r == d.rstrip("/") or r.startswith(d) for d in QA_READ_DENY):
+        block(f"QA writes tests from the specification only and may not read {r}. "
+              "Use docs/ (acceptance criteria, interfaces, demo dataset) and the running stack.")
+    if r.startswith(WORK) and work_file(r) in QA_READ_DENY_WORK:
+        block(f"QA may not read {r}: it describes the implementation. Read task.md and docs/.")
+
+
 def main() -> None:
     role = sys.argv[1] if len(sys.argv) > 1 else ""
     if role not in WORK_FILES:
@@ -142,6 +164,17 @@ def main() -> None:
     if tool in ("Edit", "Write", "MultiEdit", "NotebookEdit"):
         raw = tin.get("file_path") or tin.get("notebook_path") or ""
         check_write(role, rel(raw, cwd), raw)
+    elif tool == "Read" and role == "qa":
+        check_qa_read(rel(tin.get("file_path"), cwd))
+    elif tool in ("Grep", "Glob") and role == "qa":
+        target = rel(tin.get("path") or cwd, cwd)
+        pattern = f"{tin.get('pattern', '')} {tin.get('glob', '')}"
+        if re.search(r"(^|[/\s*])(apps|packages)(/|\b)", pattern):
+            block("QA may not search the implementation.")
+        if target is None or not any(target.startswith(a.rstrip("/")) for a in QA_SEARCH_ALLOW):
+            block(f"QA searches must name a path under {', '.join(QA_SEARCH_ALLOW)}; "
+                  f"searching {target or 'outside the project'} would include the implementation.")
+        check_qa_read(target)
     elif tool == "Bash":
         cmd = tin.get("command", "")
         if role in ("architect", "critic") and READONLY_BASH.search(cmd):
@@ -152,7 +185,7 @@ def main() -> None:
                 block("the coder does not commit, push or discard work; the /implement "
                       "orchestrator commits once the Critic passes.")
             if WRITE_OPS.search(cmd) and any(d in cmd for d in CODER_BASH_PROTECTED):
-                block("the coder may not change the chain's own files or the approval "
+                block("the coder may not change QA's tests, the chain's own files or the approval "
                       "gate from the shell.")
             phase = gate_phase()
             if WRITE_OPS.search(cmd):
@@ -161,6 +194,18 @@ def main() -> None:
                 if phase == "code" and re.search(r"(^|[\s'\"=:(/])(\./)?docs/", cmd):
                     block("code phase: documents are frozen; record the needed change in "
                           "coder-notes.md and stop.")
+        if role == "qa" and QA_BASH_DENY.search(cmd):
+            block("QA may run the stack and its tests but may not read the implementation, "
+                  "use git history, or copy files out of containers.")
+        if role == "qa":
+            for token in re.findall(r"\.work/\S*", cmd):
+                if not re.search(r"/(task|qa-report)\.md['\"]?$", token):
+                    block("QA may use only task.md and qa-report.md of the task directory.")
+        if role == "qa" and WRITE_OPS.search(cmd):
+            targets = re.findall(r"(?:>>?|tee\s+(?:-a\s+)?)\s*([^\s;|&]+)", cmd)
+            for t in targets:
+                if t != "/dev/null":
+                    check_write(role, rel(t, cwd), t)
     sys.exit(0)
 
 
