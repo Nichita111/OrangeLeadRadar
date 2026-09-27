@@ -11,10 +11,15 @@ import {
   accounts,
   evidenceFor,
   findings,
+  industries,
+  markets,
   prospectRows,
   scoreViews,
   scoringConfig,
+  scoringSummaries,
+  services,
 } from "./prospectsAndEvidence.fixtures";
+import type { MockStore } from "./store";
 
 type Band = Schemas["AccountScoreBand"];
 type Override = Schemas["Override"];
@@ -27,9 +32,9 @@ const PAGE_SIZE_MAX = 200;
 
 const BANDS: Band[] = ["HOT", "WARM", "COLD"];
 const { settings } = scoringConfig;
-const minFit = Number(settings.min_fit);
-const hotThreshold = Number(settings.hot_threshold);
-const warmThreshold = Number(settings.warm_threshold);
+const minFit = settings.min_fit;
+const hotThreshold = settings.hot_threshold;
+const warmThreshold = settings.warm_threshold;
 
 /** The ranking order of Priority, standing and band. */
 function byRanking(left: ProspectRow, right: ProspectRow): number {
@@ -66,7 +71,8 @@ function validation(field: string, message: string): Response {
   );
 }
 
-export function createProspectsHandlers() {
+/** With `store`, a row's unread alerts are counted from the store's alerts, as acknowledged there. */
+export function createProspectsHandlers(store?: MockStore) {
   const http = createOpenApiHttp<paths>({ baseUrl: window.location.origin });
   const overrideRows: Override[] = [];
   let nextId = 1;
@@ -125,6 +131,13 @@ export function createProspectsHandlers() {
         .map((rule) => rule.label);
       return {
         ...row,
+        ...(store === undefined
+          ? {}
+          : {
+              unread_alerts: store.alerts.filter(
+                (alert) => alert.account.id === row.account.id && alert.acknowledged_at === null,
+              ).length,
+            }),
         standing: score.standing,
         band: score.band,
         reason:
@@ -143,6 +156,13 @@ export function createProspectsHandlers() {
   }
 
   return [
+    http.get("/api/v1/services", ({ response }) => response(200).json(services)),
+    http.get("/api/v1/industries", ({ response }) => response(200).json(industries)),
+    http.get("/api/v1/markets", ({ response }) => response(200).json(markets)),
+    http.get("/api/v1/services/{id}/scoring-configs", ({ response }) =>
+      response(200).json(scoringSummaries),
+    ),
+    http.get("/api/v1/scoring-configs/{id}", ({ response }) => response(200).json(scoringConfig)),
     http.get("/api/v1/services/{id}/prospects", ({ query, response }) => {
       const standing = query.get("standing") ?? "RANKED";
       const bands = query.getAll("band");

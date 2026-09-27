@@ -1,6 +1,13 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
+import {
+  expectFullKeyboardCoverage,
+  expectNoSalesForbiddenWording,
+  expectNoSeriousOrCriticalViolations,
+  tabOrderWithin,
+} from "../../../accessibilityTestSupport";
 import { errorEnvelope, errorResponse } from "../../../api/authenticationAndUsers.fixtures";
 import { http, server } from "../../../testServer";
 import { renderAt } from "../testSupport";
@@ -10,9 +17,9 @@ describe("AccountDetailScreen", () => {
     renderAt("/accounts/acc-lh");
 
     expect(await screen.findByRole("heading", { name: "Lufthansa Group" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "lufthansa.com" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "lufthansagroup.com" })).toHaveAttribute(
       "href",
-      "https://lufthansa.com",
+      "https://lufthansagroup.com",
     );
     expect(await screen.findByText("Germany, Aerospace and aviation")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Lufthansa Holding" })).toHaveAttribute(
@@ -148,5 +155,50 @@ describe("AccountDetailScreen", () => {
       await screen.findByText("The full text of this page is no longer stored."),
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open original" })).toBeInTheDocument();
+  });
+});
+
+describe("Accessibility (N-10, FR-016)", () => {
+  it.each(["SALES", "ADMIN"] as const)(
+    "has no serious or critical axe violation on the Why tab as %s",
+    async (role) => {
+      const { container } = renderAt("/accounts/acc-lh", role);
+      await screen.findByRole("heading", { name: "Lufthansa Group" });
+
+      await expectNoSeriousOrCriticalViolations(container);
+    },
+  );
+
+  it.each(["SALES", "ADMIN"] as const)(
+    "has no serious or critical axe violation on the Signals tab with evidence open as %s",
+    async (role) => {
+      const { container } = renderAt("/accounts/acc-lh?tab=signals&finding=fnd-cost", role);
+      await screen.findByText("Wir senken die Kosten um 500 Millionen Euro.", { selector: "mark" });
+
+      await expectNoSeriousOrCriticalViolations(container);
+    },
+  );
+
+  it("tabs through every action of the Why tab with each one taking focus in turn", async () => {
+    const { container } = renderAt("/accounts/acc-lh");
+    await screen.findByRole("heading", { name: "Lufthansa Group" });
+
+    const visited = await tabOrderWithin(userEvent.setup(), container);
+
+    expectFullKeyboardCoverage(container, visited);
+  });
+
+  it("shows Sales no escalation, triage or fixture probability wording on the Why tab", async () => {
+    const { container } = renderAt("/accounts/acc-lh", "SALES");
+    await screen.findByRole("heading", { name: "Lufthansa Group" });
+
+    expectNoSalesForbiddenWording(container);
+  });
+
+  it("shows Sales no escalation, triage or fixture probability wording on the Signals tab", async () => {
+    const { container } = renderAt("/accounts/acc-lh?tab=signals&finding=fnd-cost", "SALES");
+    await screen.findByText("Wir senken die Kosten um 500 Millionen Euro.", { selector: "mark" });
+
+    expectNoSalesForbiddenWording(container);
   });
 });

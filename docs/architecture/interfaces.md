@@ -923,10 +923,14 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | `API-57` | GET | `/accounts/{id}/outreach-drafts` | `*` | query `service_id` → [`OutreachDraft`](#outreachdraft)`[]` |
 | `API-58` | PATCH | `/outreach-drafts/{id}` | `*` | [`OutreachDraftUpdate`](#outreachdraftupdate) → [`OutreachDraft`](#outreachdraft) |
 | `API-59` | POST | `/accounts/{id}/scores/{service_id}/crm-push` | `*` | — → [`CrmSyncView`](#crmsyncview) |
+| `API-91` | POST | `/outreach-drafts/{id}/tone-check` | `*` | [`ToneCheckRequest`](#tonecheckrequest) → [`ToneCheck`](#tonecheck) |
+| `API-93` | POST | `/outreach-drafts/{id}/mark-contacted` | `*` | — → [`EngagementStatusView`](#engagementstatusview) |
 
 - `API-56` — follows [Outreach grounding](/architecture/rules.md#outreach-grounding); an account without an in-force positive finding for the service answers `422`. There is no contract that sends a message.
 - `API-58` — changing `subject` or `body` sets `edited`; `status` may only move to `EXPORTED`.
 - `API-59` — without `HUBSPOT_ACCESS_TOKEN` answers `409 NOT_CONFIGURED` and writes nothing, whatever the account's data; otherwise `404` when the account has no score for the service; otherwise calls `API-70` and records the outcome in [`crm_sync`](/architecture/sql-store.md#crm_sync), answering `503 UPSTREAM_UNAVAILABLE` with `details.dependency` `HUBSPOT` when the call fails, the `FAILED` row recorded.
+- `API-91` — supplies the draft's saved preferences and channel with the request's current, possibly unsaved text to `API-92`. It writes no draft or `DRAFT_UPDATED` audit row. A stopped budget answers `429`; an unavailable LLM answers `503` as `API-56` does.
+- `API-93` — atomically locks the exported draft and the account and service's engagement status in force. From no status or `CONTACTED`, it applies the `API-86` manual `CONTACTED` write; an in-force `ANSWERED`, `MEETING_BOOKED` or `REJECTED` is returned unchanged with no write.
 
 ### Outreach and CRM shapes
 
@@ -936,6 +940,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 |---|---|---|
 | `channel` | enum | [`outreach_draft`](/architecture/sql-store.md#outreach_draft) `channel` |
 | `contact_id` | string, optional | a [`contact`](/architecture/sql-store.md#contact) of the account |
+| `preferences` | [`OutreachPreferences`](/architecture/sql-store.md#outreachpreferences), optional | generation choices; omitted preserves legacy generation |
 
 #### OutreachDraft
 
@@ -943,6 +948,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 |---|---|---|
 | `id`, `account_id`, `service_id`, `subject`, `body`, `edited`, `created_at` | | [`outreach_draft`](/architecture/sql-store.md#outreach_draft) |
 | `channel`, `status` | enum | [`outreach_draft`](/architecture/sql-store.md#outreach_draft) |
+| `preferences` | [`OutreachPreferences`](/architecture/sql-store.md#outreachpreferences), null | [`outreach_draft`](/architecture/sql-store.md#outreach_draft) |
 | `contact` | `{id, full_name, job_title}`, null | [`contact`](/architecture/sql-store.md#contact) |
 | `findings` | array of `{id, question_text, quote}` | the [`finding`](/architecture/sql-store.md#finding) rows of `finding_ids` |
 | `provider_facts` | array of `{id, text}` | the [`provider_fact`](/architecture/sql-store.md#provider_fact) rows of `provider_fact_ids` |
@@ -954,6 +960,28 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 |---|---|---|
 | `subject`, `body` | string, optional | [`outreach_draft`](/architecture/sql-store.md#outreach_draft) |
 | `status` | enum, optional | [`outreach_draft`](/architecture/sql-store.md#outreach_draft) `status` |
+
+#### ToneCheckRequest
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `subject` | string, null | current editor subject; null for `LINKEDIN_INMAIL` |
+| `body` | string | current editor body |
+
+#### ToneCheck
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `verdict` | enum: `GOOD`, `REVIEW` | the advisory result |
+| `summary` | string | one-line summary |
+| `notes` | [`ToneNote`](#tonenote)`[]` | issues found; empty for `GOOD` |
+
+#### ToneNote
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `phrase` | string | phrase in the current text with the issue |
+| `suggested_rewrite` | string | suggested replacement |
 
 #### CrmSyncView
 
@@ -1064,7 +1092,7 @@ The in-process port every classification goes through ([ADR-02](/architecture/ad
 
 ## LLM
 
-The in-process port for the six generation roles, all calling OpenRouter's chat completions API with a versioned prompt and structured output ([AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries)).
+The in-process port for the generation roles, all calling OpenRouter's chat completions API with a versioned prompt and structured output ([AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries)).
 
 ### LLM contracts
 
@@ -1076,6 +1104,7 @@ The in-process port for the six generation roles, all calling OpenRouter's chat 
 | `API-66` | `draft_outreach(input)` | AI gateway, `LLM_OUTREACH_MODEL` | none | [`OutreachOutput`](#outreachoutput) |
 | `API-84` | `extract_open_signals(input)` | AI gateway, `LLM_EVIDENCE_MODEL` | none | [`OpenSignalOutput`](#opensignaloutput)`[]` |
 | `API-85` | `interpret(input)` | AI gateway, `LLM_INTERPRETATION_MODEL` | none | [`InterpretationOutput`](#interpretationoutput) |
+| `API-92` | `check_outreach_tone(input)` | AI gateway, `LLM_OUTREACH_MODEL` | none | [`ToneCheckOutput`](#tonecheckoutput) |
 
 - Every call passes the [Budget guard](/architecture/rules.md#budget-guard) first, times out after `AI_CALL_TIMEOUT_S`, writes one `AI_CALL` audit row and returns output that its rule has validated, or fails with `UPSTREAM_UNAVAILABLE` or `BUDGET_EXHAUSTED`.
 
@@ -1138,6 +1167,7 @@ The in-process port for the six generation roles, all calling OpenRouter's chat 
 | `contact` | `{full_name, job_title, persona}`, null | [`contact`](/architecture/sql-store.md#contact) |
 | `channel` | enum | [`outreach_draft`](/architecture/sql-store.md#outreach_draft) `channel` |
 | `sender_name` | string | the user's `display_name` |
+| `preferences` | [`OutreachPreferences`](/architecture/sql-store.md#outreachpreferences), null | the generation choices |
 
 #### OutreachOutput
 
@@ -1147,6 +1177,25 @@ The in-process port for the six generation roles, all calling OpenRouter's chat 
 | `body` | string | validated by [Outreach grounding](/architecture/rules.md#outreach-grounding) |
 | `cited_finding_ids` | string[] | becomes [`outreach_draft`](/architecture/sql-store.md#outreach_draft) `finding_ids` |
 | `cited_provider_fact_ids` | string[] | becomes [`outreach_draft`](/architecture/sql-store.md#outreach_draft) `provider_fact_ids` |
+
+#### ToneCheckInput
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `channel` | enum | [`outreach_draft`](/architecture/sql-store.md#outreach_draft) `channel` |
+| `preferences` | [`OutreachPreferences`](/architecture/sql-store.md#outreachpreferences), null | [`outreach_draft`](/architecture/sql-store.md#outreach_draft) `preferences` |
+| `subject` | string, null | current editor subject; null for `LINKEDIN_INMAIL` |
+| `body` | string | current editor body |
+
+#### ToneCheckOutput
+
+The LLM output shape of [`ToneCheck`](#tonecheck).
+
+| Field | Type | Source of truth |
+|---|---|---|
+| `verdict` | enum: `GOOD`, `REVIEW` | [`ToneCheck`](#tonecheck) |
+| `summary` | string | [`ToneCheck`](#tonecheck) |
+| `notes` | [`ToneNote`](#tonenote)`[]` | [`ToneCheck`](#tonecheck) |
 
 #### OpenSignalInput
 

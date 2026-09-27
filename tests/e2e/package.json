@@ -1,0 +1,14 @@
+{
+  "name": "leadradar-e2e-tests",
+  "version": "0.1.0",
+  "private": true,
+  "description": "End-to-end tests driven through the browser against the composed stack (docs/architecture/overview.md#runtime), following the journeys of the business scenarios and the criteria that need a screen (docs/guidelines/testing.md#end-to-end-tests). Written from the specification only, never from the implementation.",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.1",
+    "@playwright/test": "^1.48.0",
+    "@types/node": "^22.9.0"
+  }
+}

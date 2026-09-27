@@ -19,6 +19,8 @@ from leadradar.core.enums import (
     AppUserStatus,
     AuditEventKind,
     ClassificationStatus,
+    ContactPersona,
+    ContactPersonaOrigin,
     DisqualifierOverrideStatus,
     DocumentSourceType,
     DocumentTriageClassifier,
@@ -34,6 +36,8 @@ from leadradar.core.enums import (
     JobStep,
     LeadFeedbackVerdict,
     MarketStatus,
+    OutreachDraftChannel,
+    OutreachDraftStatus,
     PipelineRunKind,
     PipelineRunStatus,
     PipelineRunTrigger,
@@ -44,7 +48,7 @@ from leadradar.core.enums import (
     SignalQuestionStatus,
     SourcePluginCode,
 )
-from leadradar.db.models.accounts import Account
+from leadradar.db.models.accounts import Account, Contact
 from leadradar.db.models.audit import AuditEvent
 from leadradar.db.models.configuration import (
     Industry,
@@ -61,6 +65,7 @@ from leadradar.db.models.feedback import (
 )
 from leadradar.db.models.identity import AppUser, AuthSession
 from leadradar.db.models.ingestion import Chunk, Document, Job, PipelineRun, SourcePlugin
+from leadradar.db.models.outreach import OutreachDraft
 from leadradar.db.models.signals import (
     AccountScore,
     Alert,
@@ -177,6 +182,20 @@ def make_account(connection: Connection, **overrides: Any) -> uuid.UUID:
     }
     values.update(overrides)
     return _insert(connection, Account.__table__, **values)
+
+
+def make_contact(connection: Connection, account_id: uuid.UUID, **overrides: Any) -> uuid.UUID:
+    values: dict[str, Any] = {
+        "account_id": account_id,
+        "full_name": "Jamie Contact",
+        "job_title": "Head of IT",
+        "persona": ContactPersona.CIO,
+        "persona_origin": ContactPersonaOrigin.CLASSIFIER,
+        "source_url": f"https://example.com/{uuid.uuid4().hex}",
+        "retain_until": date.today() + timedelta(days=730),
+    }
+    values.update(overrides)
+    return _insert(connection, Contact.__table__, **values)
 
 
 def make_pipeline_run(connection: Connection, **overrides: Any) -> uuid.UUID:
@@ -482,6 +501,32 @@ def make_job(connection: Connection, run_id: uuid.UUID, **overrides: Any) -> uui
     }
     values.update(overrides)
     return _insert(connection, Job.__table__, **values)
+
+
+def make_outreach_draft(
+    connection: Connection,
+    account_id: uuid.UUID,
+    service_id: uuid.UUID,
+    contact_id: uuid.UUID | None,
+    created_by: uuid.UUID,
+    **overrides: Any,
+) -> uuid.UUID:
+    values: dict[str, Any] = {
+        "account_id": account_id,
+        "service_id": service_id,
+        "contact_id": contact_id,
+        "channel": OutreachDraftChannel.EMAIL,
+        "subject": "Subject",
+        "body": "Body",
+        "finding_ids": [],
+        "provider_fact_ids": [],
+        "preferences": None,
+        "edited": False,
+        "status": OutreachDraftStatus.DRAFT,
+        "created_by": created_by,
+    }
+    values.update(overrides)
+    return _insert(connection, OutreachDraft.__table__, **values)
 
 
 def make_disqualifier_override(

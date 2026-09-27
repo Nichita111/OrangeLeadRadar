@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useConfig } from "../configContext";
+import { accountsKeys } from "./accounts";
 import { client, requireData } from "./client";
 import type { Schemas } from "./contract";
 
@@ -182,6 +183,10 @@ export function useRefreshAccount() {
           })
         ).data,
       ),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: runsKeys }),
+    // The account now carries the run as `active_run_id`, which Accounts marks (`FR-137`).
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: runsKeys });
+      await queryClient.invalidateQueries({ queryKey: accountsKeys });
+    },
   });
 }

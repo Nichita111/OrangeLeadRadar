@@ -53,7 +53,7 @@ from leadradar.db.models.feedback import EvaluationItem, EvaluationResult, LeadF
 from leadradar.db.models.ingestion import Chunk, Document, Job, PipelineRun
 from leadradar.db.models.signals import AccountScore, Classification
 from leadradar.worker.settings import WorkerSettings
-from leadradar.worker.steps import StepFailed
+from leadradar.worker.steps import step_failure
 
 
 @dataclass(frozen=True)
@@ -282,13 +282,7 @@ async def run_evaluate_step(
                     final_strengths[row.item_id] = escalation_output.strength
                     escalated_by_item[row.item_id] = True
     except (UpstreamUnavailable, BudgetExhausted, FixtureMissing) as error:
-        if isinstance(error, BudgetExhausted):
-            raise StepFailed("BUDGET_EXHAUSTED", str(error)) from error
-        if isinstance(error, FixtureMissing):
-            raise StepFailed("FIXTURE_MISSING", str(error)) from error
-        if error.reason == "NOT_CONFIGURED":
-            raise StepFailed("NOT_CONFIGURED", str(error)) from error
-        raise StepFailed("UPSTREAM_UNAVAILABLE", str(error)) from error
+        raise step_failure(error) from error
 
     predictions = [
         ItemPrediction(

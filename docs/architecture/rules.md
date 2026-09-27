@@ -225,7 +225,7 @@ An invalid output is requested again, up to `EVIDENCE_MAX_ATTEMPTS` attempts in 
 
 **Inputs.** `LLM_DAILY_BUDGET_EUR`; the `cost_eur` of today's `AI_CALL` rows with provider `OPENROUTER` in [`audit_event`](/architecture/sql-store.md#audit_event); the clock.
 
-**Algorithm.** Before every LLM call — a call to OpenRouter's chat completions API: escalation, evidence, open signals, discovery extraction, interpretation, outreach, question preview, and classification when `CLASSIFIER_PROVIDER` is `LLM` — the spend since 00:00 UTC is summed. Jev calls go to OpenRouter's Decisions API and are not LLM calls. When it has reached `LLM_DAILY_BUDGET_EUR`:
+**Algorithm.** Before every LLM call — a call to OpenRouter's chat completions API: escalation, evidence, open signals, discovery extraction, interpretation, outreach generation, outreach tone check, question preview, and classification when `CLASSIFIER_PROVIDER` is `LLM` — the spend since 00:00 UTC is summed. Jev calls go to OpenRouter's Decisions API and are not LLM calls. When it has reached `LLM_DAILY_BUDGET_EUR`:
 
 - in the worker, a stopped classifier call leaves its passages unclassified, a stopped escalation or evidence call leaves its pairs `PENDING_LLM`, and a stopped open-signal or interpretation call leaves its document or score for the next run; the run's `progress.pending_budget` counts them and the run finishes `PARTIAL`; the account's next refresh resumes them, so the budget reset at 00:00 UTC is picked up by the next refresh after it;
 - in the api, the request answers `429 BUDGET_EXHAUSTED`.
@@ -448,11 +448,14 @@ Numbers are rounded to two decimals.
 
 ## Outreach grounding
 
-**Inputs.** The account; the service's name and `value_proposition`; up to `OUTREACH_MAX_FINDINGS` in-force findings of the service's positive questions, ordered by their `points` in the current breakdown; at most `PROVIDER_FACTS_PER_CALL` `ACTIVE` [provider facts](/architecture/sql-store.md#provider_fact) that apply to the service, those naming it first, then the newest; the contact's `full_name`, `job_title` and `persona`, when one is chosen; the channel; the requesting user's display name.
+**Inputs.** The account; the service's name and `value_proposition`; up to `OUTREACH_MAX_FINDINGS` in-force findings of the service's positive questions, ordered by their `points` in the current breakdown; at most `PROVIDER_FACTS_PER_CALL` `ACTIVE` [provider facts](/architecture/sql-store.md#provider_fact) that apply to the service, those naming it first, then the newest; the contact's `full_name`, `job_title` and `persona`, when one is chosen; the channel; the requesting user's display name; optional [`OutreachPreferences`](/architecture/sql-store.md#outreachpreferences).
+
+**Selection.** Null preferences preserve the legacy selection of up to `OUTREACH_MAX_FINDINGS`. Otherwise `STANDARD` selects and requires exactly one finding; `TAILORED` selects and requires exactly two and is refused when fewer than two are eligible; `BESPOKE` selects and cites from one through `OUTREACH_MAX_FINDINGS` and requires a selected contact, whose job title is supplied. `QUOTE_LANGUAGE` means the source language of the highest-points selected finding. German with `NEUTRAL` formality uses neither Sie nor Du. `SHORT`, `STANDARD` and `LONG` are prompt guidance under the channel's existing maximum. The preferences and selected inputs are sent through `API-66`.
 
 **Algorithm.** The [LLM draft outreach](/architecture/interfaces.md#llm) call returns a subject (email only), a body, the ids of the findings it cites and the ids of the provider facts it cites. The output is valid when:
 
 - the cited finding ids are a non-empty subset of the findings given, and the cited fact ids a subset of the facts given;
+- with non-null preferences, the cited finding count is exactly one for `STANDARD`, exactly two for `TAILORED`, and from one through `OUTREACH_MAX_FINDINGS` for `BESPOKE`;
 - the subject and body state no number that the cited findings' quotes and translations or the cited facts do not carry ([Numbers in generated text](#rules)), so a draft claims nothing about Orange Systems beyond its facts;
 - the body is at most `OUTREACH_EMAIL_MAX_CHARS` or `OUTREACH_INMAIL_MAX_CHARS` characters;
 - it contains no URL except the cited findings' document URLs, and no email address or phone number.
@@ -510,7 +513,7 @@ The daily cycle: every account is refreshed, every service searched for new comp
 
 **Algorithm.** The worker's daily housekeeping:
 
-- A document past `purge_after` gets `text` = null and `purged_at` set; its passages get `text` and `embedding` = null, except a passage an active [`evaluation_item`](/architecture/sql-store.md#evaluation_item) references, which keeps its text. The document row, its URL and title, and its findings with their quotes remain.
+- A document past `purge_after` gets `text` = null and `purged_at` set; its passages get `text` and `embedding` = null, except that a passage an active [`evaluation_item`](/architecture/sql-store.md#evaluation_item) references keeps its text; its embedding is removed like the others. The document row, its URL and title, and its findings with their quotes remain.
 - A contact past `retain_until` is deleted, drafts addressed to it lose their `contact_id`, and a `CONTACT_ERASED` audit row with reason `RETENTION` and no personal data is written. An erasure on request does the same immediately with reason `REQUEST`.
 - Sessions that expired or were revoked more than `SESSION_TTL_HOURS` ago are deleted.
 

@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from leadradar.api.authentication import CurrentUser, require_admin
 from leadradar.api.pagination import Page, PageRequest, page_request
 from leadradar.core.enums import (
+    Dependency,
     PipelineRunKind,
     PipelineRunStage,
     PipelineRunStatus,
@@ -57,12 +58,17 @@ class RunQuestion(BaseModel):
 
 class RunError(BaseModel):
     """One entry of `Run.errors`, as [`pipeline_run`](/architecture/sql-store.md#pipeline_run)
-    `errors` states it."""
+    `errors` states it. `plugin_code` and `dependency` are absent, never `null`, when the run's
+    stored entry has none (G1): `to_run` builds each from the exact stored dict via
+    `model_validate`, and every route that answers a `Run` or `Page[Run]` dumps its response
+    with `response_model_exclude_unset=True`, so an unset field of the stored entry stays unset
+    on the wire."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     stage: PipelineRunStage
     plugin_code: SourcePluginCode | None = None
+    dependency: Dependency | None = None
     code: str
     message: str
 
@@ -132,6 +138,9 @@ def plugins_with_a_key(settings: ApiSettings) -> frozenset[SourcePluginCode]:
     responses={
         http_status.HTTP_200_OK: {"model": Run, "description": "The refresh already queued"}
     },
+    # `RunError.plugin_code` and `.dependency` stay unset, never `null`, on the wire (G1): `Run`'s
+    # other fields are always explicitly set by `to_run`, so this changes nothing about them.
+    response_model_exclude_unset=True,
 )
 async def post_account_refresh(
     id: uuid.UUID,
@@ -153,7 +162,7 @@ async def post_account_refresh(
     return to_run(result.run)
 
 
-@router.get("/runs")
+@router.get("/runs", response_model_exclude_unset=True)
 async def get_runs(
     session: Annotated[AsyncSession, Depends(get_session)],
     principal: CurrentUser,
@@ -178,7 +187,7 @@ async def get_runs(
     )
 
 
-@router.get("/runs/{id}")
+@router.get("/runs/{id}", response_model_exclude_unset=True)
 async def get_run_by_id(
     id: uuid.UUID,
     session: Annotated[AsyncSession, Depends(get_session)],
@@ -188,7 +197,7 @@ async def get_run_by_id(
     return to_run(await get_run(session, id))
 
 
-@router.post("/runs/{id}/cancel")
+@router.post("/runs/{id}/cancel", response_model_exclude_unset=True)
 async def post_run_cancel(
     id: uuid.UUID,
     request: Request,

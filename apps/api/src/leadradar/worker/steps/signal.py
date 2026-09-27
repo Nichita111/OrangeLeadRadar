@@ -42,6 +42,7 @@ from leadradar.ai.shapes import (
 from leadradar.core.enums import (
     AccountStatus,
     ClassificationStatus,
+    Dependency,
     DocumentTriageClassifier,
     DocumentTriageOutcome,
     EvaluationItemStatus,
@@ -79,9 +80,9 @@ from leadradar.db.models.configuration import Service, SignalQuestion
 from leadradar.db.models.feedback import EvaluationItem
 from leadradar.db.models.ingestion import Chunk, Document, Job, PipelineRun
 from leadradar.db.models.signals import Classification, DocumentTriage, Finding
-from leadradar.worker.queue import add_run_error, add_run_progress
+from leadradar.worker.queue import add_run_error, add_run_progress, build_run_error
 from leadradar.worker.settings import WorkerSettings
-from leadradar.worker.steps import StepFailed
+from leadradar.worker.steps import StepFailed, step_failure
 from leadradar.worker.steps.passage_selection import select_document_passages
 
 # ── State ──────────────────────────────────────────────────────────────────────
@@ -381,7 +382,7 @@ async def _node_select(state: SignalBatch, session: AsyncSession) -> None:
                         [" ".join([q["text"], *q["hint_terms"]]) for q in missing]
                     )
                 except UpstreamUnavailable as error:
-                    raise StepFailed("UPSTREAM_UNAVAILABLE", str(error)) from error
+                    raise step_failure(error) from error
                 vectors.update(
                     {q["id"]: vector for q, vector in zip(missing, embedded, strict=True)}
                 )
@@ -596,9 +597,14 @@ async def _node_classify(state: SignalBatch, session: AsyncSession) -> None:
 
 async def _node_evidence(state: SignalBatch, session: AsyncSession) -> None:
     """Escalate and extract evidence for this job's new pairs, then for the pairs an earlier job
-    left waiting; writes the final ``classification`` status and the ``finding`` rows."""
+    left waiting; writes the final ``classification`` status and the ``finding`` rows. Once the
+    LLM is unavailable, every remaining pair is left ``PENDING_LLM`` with no further LLM call
+    ([Signal graph](/architecture/services/worker.md#signal-graph))."""
     for item in [*state.finding_inputs, *state.pending_inputs]:
         clf_id = uuid.UUID(item["classification_id"])
+        if state.llm_unavailable is not None:
+            await _update_classification(session, clf_id, ClassificationStatus.PENDING_LLM, None)
+            continue
         if item["was_failed"]:
             await session.execute(
                 update(Classification)
@@ -747,13 +753,12 @@ async def _resolve_escalated(
 async def _classify_call(
     state: SignalBatch, request: ClassifierRequest, context: AiCallContext
 ) -> list[ClassifierAnswer]:
-    """One classifier call; an unavailable classifier or a missing recording fails the job."""
+    """One classifier call; an unavailable classifier or a missing recording fails the job, the
+    run error naming the dependency ([Job queue](/architecture/services/worker.md#job-queue))."""
     try:
         return await state.gateway.classify(request, context)
-    except UpstreamUnavailable as error:
-        raise StepFailed("UPSTREAM_UNAVAILABLE", str(error)) from error
-    except FixtureMissing as error:
-        raise StepFailed("FIXTURE_MISSING", str(error)) from error
+    except (UpstreamUnavailable, FixtureMissing) as error:
+        raise step_failure(error) from error
 
 
 def _escalation_question(q: dict[str, Any]) -> EscalationQuestion:
@@ -900,11 +905,12 @@ async def run_signal_step(
                 session,
                 job_id=batch.job_id,
                 run_id=batch.run_id,
-                error={
-                    "stage": PipelineRunStage.EVIDENCE.value,
-                    "code": "UPSTREAM_UNAVAILABLE",
-                    "message": batch.llm_unavailable,
-                },
+                error=build_run_error(
+                    stage=PipelineRunStage.EVIDENCE,
+                    code="UPSTREAM_UNAVAILABLE",
+                    message=batch.llm_unavailable,
+                    dependency=Dependency.LLM,
+                ),
             )
 
 

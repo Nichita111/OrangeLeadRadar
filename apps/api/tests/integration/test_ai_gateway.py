@@ -36,6 +36,7 @@ from leadradar.ai.shapes import (
 )
 from leadradar.core.enums import (
     AuditEventKind,
+    Dependency,
     DocumentTriageClassifier,
     FindingStrength,
     SignalQuestionAnswerType,
@@ -318,7 +319,7 @@ async def test_invalid_output_is_audited_with_its_cost_and_raised(
     with pytest.raises(UpstreamUnavailable) as excinfo:
         await gateway.escalate(ESCALATION_INPUT, AiCallContext())
 
-    assert (excinfo.value.dependency, excinfo.value.reason) == ("llm", "INVALID_OUTPUT")
+    assert (excinfo.value.dependency, excinfo.value.reason) == (Dependency.LLM, "INVALID_OUTPUT")
     [row] = await _ai_calls(async_connection)
     assert row.payload["outcome"] == "INVALID_OUTPUT"
     assert row.payload["cost_eur"] == pytest.approx(0.02 * 0.92)
@@ -358,7 +359,7 @@ async def test_a_classifier_timeout_after_its_retries_is_audited_as_timeout(
     with pytest.raises(UpstreamUnavailable) as excinfo:
         await gateway.classify(CLASSIFIER_REQUEST, AiCallContext())
 
-    assert (excinfo.value.dependency, excinfo.value.reason) == ("classifier", "TIMEOUT")
+    assert (excinfo.value.dependency, excinfo.value.reason) == (Dependency.CLASSIFIER, "TIMEOUT")
     assert len(attempts) == 2
     [row] = await _ai_calls(async_connection)
     assert row.payload["outcome"] == "TIMEOUT"
@@ -380,6 +381,12 @@ async def test_an_unset_key_or_model_is_not_configured_and_sends_nothing(
     with pytest.raises(UpstreamUnavailable) as model_error:
         await without_model.escalate(ESCALATION_INPUT, AiCallContext())
 
-    assert (key_error.value.dependency, key_error.value.reason) == ("classifier", "NOT_CONFIGURED")
-    assert (model_error.value.dependency, model_error.value.reason) == ("llm", "NOT_CONFIGURED")
+    assert (key_error.value.dependency, key_error.value.reason) == (
+        Dependency.CLASSIFIER,
+        "NOT_CONFIGURED",
+    )
+    assert (model_error.value.dependency, model_error.value.reason) == (
+        Dependency.LLM,
+        "NOT_CONFIGURED",
+    )
     assert await _ai_calls(async_connection) == []

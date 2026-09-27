@@ -1,6 +1,13 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
+import {
+  expectFullKeyboardCoverage,
+  expectNoSalesForbiddenWording,
+  expectNoSeriousOrCriticalViolations,
+  tabOrderWithin,
+} from "../../../accessibilityTestSupport";
 import { services } from "../../../mocks/prospectsAndEvidence.fixtures";
 import { http, server } from "../../../testServer";
 import { renderAt, requestedUrls } from "../testSupport";
@@ -123,5 +130,33 @@ describe("ProspectsScreen", () => {
     const listUrl = requestedUrls().find((url) => url.includes("/prospects?")) ?? "";
     expect(listUrl).toContain("sort=priority");
     expect(listUrl).toContain("page=1");
+  });
+});
+
+describe("Accessibility (N-10, FR-016)", () => {
+  it.each(["SALES", "ADMIN"] as const)(
+    "has no serious or critical axe violation as %s",
+    async (role) => {
+      const { container } = renderAt("/prospects", role);
+      await screen.findByRole("button", { name: "DHL Group" });
+
+      await expectNoSeriousOrCriticalViolations(container);
+    },
+  );
+
+  it("tabs through every action with each one taking focus in turn", async () => {
+    const { container } = renderAt("/prospects");
+    await screen.findByRole("button", { name: "DHL Group" });
+
+    const visited = await tabOrderWithin(userEvent.setup(), container);
+
+    expectFullKeyboardCoverage(container, visited);
+  });
+
+  it("shows Sales no escalation, triage or fixture probability wording", async () => {
+    const { container } = renderAt("/prospects", "SALES");
+    await screen.findByRole("button", { name: "DHL Group" });
+
+    expectNoSalesForbiddenWording(container);
   });
 });
