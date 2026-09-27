@@ -245,6 +245,37 @@ export function mountScene(targets: SceneTargets): (() => void) | null {
   at("fly", 6500, 450);
   const TOTAL = (steps - 1) * 1000;
 
+  // The floor: a grid under the disc, fading into the Page toward its edges
+  const FLOOR = 14;
+  const CELL = 0.7;
+  const floorPos: number[] = [];
+  const floorCol: number[] = [];
+  const floorTone = (x: number, z: number) =>
+    C.line.clone().lerp(C.page, clamp((Math.hypot(x, z) - 4) / (FLOOR - 4)));
+  for (let v = -FLOOR; v <= FLOOR + 1e-6; v += CELL) {
+    for (let u = -FLOOR; u < FLOOR - 1e-6; u += CELL) {
+      for (const [x1, z1, x2, z2] of [
+        [u, v, u + CELL, v],
+        [v, u, v, u + CELL],
+      ] as const) {
+        floorPos.push(x1, -0.02, z1, x2, -0.02, z2);
+        const a = floorTone(x1, z1);
+        const b = floorTone(x2, z2);
+        floorCol.push(a.r, a.g, a.b, b.r, b.g, b.b);
+      }
+    }
+  }
+  const floorGeo = new THREE.BufferGeometry();
+  floorGeo.setAttribute("position", new THREE.Float32BufferAttribute(floorPos, 3));
+  floorGeo.setAttribute("color", new THREE.Float32BufferAttribute(floorCol, 3));
+  const floorMat = new THREE.LineBasicMaterial({
+    vertexColors: true,
+    transparent: true,
+    opacity: 1,
+  });
+  const floor = new THREE.LineSegments(floorGeo, floorMat);
+  scene.add(floor);
+
   // The disc: range rings and a sector tick at each boundary
   const disc = new THREE.Group();
   scene.add(disc);
@@ -914,6 +945,12 @@ export function mountScene(targets: SceneTargets): (() => void) | null {
 
     const away = Math.max(S.focus * (1 - S.unfocus), 0);
     const sceneOut = S.flat;
+    floorMat.opacity =
+      (1 - 0.5 * away) *
+      (1 - clamp(S.sift * 6) * (1 - S.focus) * 0.8) *
+      (1 - S.sort * 0.6) *
+      (1 - sceneOut);
+    floor.visible = floorMat.opacity > 0.004;
     discMats.forEach(([m, o]) => {
       m.opacity = o * (1 - 0.6 * away) * (1 - S.sort * 0.85) * (1 - sceneOut);
     });
