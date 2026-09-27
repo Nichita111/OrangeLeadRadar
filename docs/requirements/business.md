@@ -70,6 +70,7 @@ Each requirement states one business obligation and carries a priority. `P0` is 
 | `B-09` | Sales shall record decision-makers with the minimum personal data. | P1 |
 | `B-10` | The product shall suggest new accounts that fit a service, and Sales shall accept or reject each suggestion. | P1 |
 | `B-37` | The product shall fill in an account's missing profile details from data providers and by classification. | P1 |
+| `B-41` | Sales shall record the team's relationship with each company — prospect, in talks, client, past client or do not contact — and see it where accounts and prospects are worked. | P1 |
 
 ### Detect signals
 
