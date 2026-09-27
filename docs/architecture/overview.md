@@ -243,6 +243,15 @@ ICP: `SECTOR` (`INDUSTRY`: `AEROSPACE_AVIATION`, `LOGISTICS_TRANSPORT`, `MANUFAC
 
 ICP: `SECTOR` (`INDUSTRY`: `BANKING`, `INSURANCE`, `ENERGY_UTILITIES`, `HEALTHCARE_PHARMA`, `MANUFACTURING`, `AUTOMOTIVE`, `LOGISTICS_TRANSPORT`, `AEROSPACE_AVIATION`; `HIGH`), `REGION` (as Intelligent Automation; `MEDIUM`), `SIZE` (`EMPLOYEE_RANGE` min 1000; `MEDIUM`). Disqualifier: `INSOLVENT` as Intelligent Automation. All other settings are the defaults.
 
+**Service `DATA_PLATFORM`** — not seeded; `AC-66` creates it through the REST contracts. "Data and analytics platforms". Description: "Building and modernising data platforms, warehouses and analytics so that decisions rest on current, trusted data." Value proposition: "Orange Systems designs, builds and runs data platforms that turn scattered operational data into reporting and analytics within months."
+
+| Key | Question | Answer type | Polarity | Source types | Weight | Hint terms |
+|---|---|---|---|---|---|---|
+| `DATA_PLATFORM_PROGRAM` | Does the company build or modernise a data platform, data warehouse or analytics capability? | `YES_NO` | `POSITIVE` | `NEWS`, `COMPANY_PUBLICATION` | `MEDIUM` | data platform; data warehouse; analytics |
+| `DATA_HIRING` | Is the company hiring data engineers, data scientists or analytics specialists? | `YES_NO` | `POSITIVE` | `JOB_POSTING` | `MEDIUM` | |
+
+It has no ICP criteria and no disqualifiers; all settings are the defaults, and it is activated as version 1.
+
 **Source plug-ins.** Seeded as [`source_plugin`](/architecture/sql-store.md#source_plugin) rows, one per plug-in value, each `enabled` and with no `daily_quota`.
 
 | Code | Rate limit per minute |
@@ -257,7 +266,7 @@ ICP: `SECTOR` (`INDUSTRY`: `BANKING`, `INSURANCE`, `ENERGY_UTILITIES`, `HEALTHCA
 
 `GDELT`'s limit matches the pacing of `GDELT_MIN_INTERVAL_S` ([worker Runtime](/architecture/services/worker.md#runtime)).
 
-**Fixtures.** `FIXTURE_DIR` holds a recording of one refresh of every demo account on the free core, made with `FIXTURE_MODE=record`, of the classifier and LLM calls it caused, and of one quality check over the exported labels under each classifier adapter. The acceptance criteria name this recording "the demo recording". Beside it, "the discovery recording" holds one discovery run for Intelligent Automation on the free core. It holds no Crunchbase exchange, since no Crunchbase key is expected ([ADR-19](/architecture/adrs/adr-19-source-provider-terms-and-limits.md)); only the P1 criterion `AC-69` needs one, recorded if a key becomes available.
+**Fixtures.** `FIXTURE_DIR` holds a recording of one refresh of every demo account on the free core, made with `FIXTURE_MODE=record`, of the classifier and LLM calls it caused, and of one quality check over the exported labels under each classifier adapter. The acceptance criteria name this recording "the demo recording". Beside it, "the discovery recording" holds one discovery run for Intelligent Automation on the free core. "The scale-out recording" holds, on the free core, one refresh of every demo account made after `DATA_PLATFORM` was created, given its questions and activated beside the two seeded services, and the classifier and LLM calls it caused. It holds no Crunchbase exchange, since no Crunchbase key is expected ([ADR-19](/architecture/adrs/adr-19-source-provider-terms-and-limits.md)); only the P1 criterion `AC-69` needs one, recorded if a key becomes available.
 
 ## Demo walkthrough
 
