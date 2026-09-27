@@ -13,3 +13,5 @@ apps/web/dist/
 apps/web/coverage/
 apps/web/*.tsbuildinfo
 .embedder-cache/
+.idea/
+.DS_Store

@@ -11,6 +11,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile
 from pydantic import BaseModel, ConfigDict, ValidationInfo, field_validator
+from pydantic.json_schema import SkipJsonSchema
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -31,7 +32,8 @@ from leadradar.accounts.queries import (
     list_accounts,
 )
 from leadradar.api.authentication import CurrentUser
-from leadradar.core.account_import import is_refused_feed
+from leadradar.api.pagination import Page
+from leadradar.core.account_import import ImportRowOutcome, is_refused_feed
 from leadradar.core.enums import (
     AccountOperationalComplexity,
     AccountOrigin,
@@ -44,17 +46,6 @@ from leadradar.db.models.accounts import Account as AccountModel
 from leadradar.db.session import get_session
 
 router = APIRouter(tags=["accounts-and-contacts"])
-
-
-class Page[ItemT](BaseModel):
-    """`Page<T>` ([Conventions](/architecture/interfaces.md#conventions) Pagination)."""
-
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    items: list[ItemT]
-    page: int
-    page_size: int
-    total: int
 
 
 class AccountRow(BaseModel):
@@ -148,16 +139,33 @@ class AccountCreate(BaseModel):
 
     domain: str
     name: str
-    country_code: str | None = None
-    industry: str | None = None
-    employee_count: int | None = None
-    revenue_eur: int | None = None
-    operational_complexity: AccountOperationalComplexity | None = None
-    parent_account_id: uuid.UUID | None = None
-    linkedin_url: str | None = None
-    notes: str | None = None
+    country_code: str | SkipJsonSchema[None] = None
+    industry: str | SkipJsonSchema[None] = None
+    employee_count: int | SkipJsonSchema[None] = None
+    revenue_eur: int | SkipJsonSchema[None] = None
+    operational_complexity: AccountOperationalComplexity | SkipJsonSchema[None] = None
+    parent_account_id: uuid.UUID | SkipJsonSchema[None] = None
+    linkedin_url: str | SkipJsonSchema[None] = None
+    notes: str | SkipJsonSchema[None] = None
     aliases: list[str] = []
     sources: list[AccountCreateSource] = []
+
+    @field_validator(
+        "country_code",
+        "industry",
+        "employee_count",
+        "revenue_eur",
+        "operational_complexity",
+        "parent_account_id",
+        "linkedin_url",
+        "notes",
+        mode="before",
+    )
+    @classmethod
+    def _optional_field_is_not_null(cls, value: object) -> object:
+        if value is None:
+            raise ValueError("Omit this field instead of sending null.")
+        return value
 
 
 class AccountUpdateSource(BaseModel):
@@ -182,17 +190,39 @@ class AccountUpdate(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    country_code: str | None = None
-    industry: str | None = None
-    employee_count: int | None = None
-    revenue_eur: int | None = None
-    operational_complexity: AccountOperationalComplexity | None = None
-    parent_account_id: uuid.UUID | None = None
-    linkedin_url: str | None = None
-    notes: str | None = None
-    status: AccountStatus | None = None
-    aliases: list[str] | None = None
-    sources: list[AccountUpdateSource] | None = None
+    name: str | SkipJsonSchema[None] = None
+    country_code: str | SkipJsonSchema[None] = None
+    industry: str | SkipJsonSchema[None] = None
+    employee_count: int | SkipJsonSchema[None] = None
+    revenue_eur: int | SkipJsonSchema[None] = None
+    operational_complexity: AccountOperationalComplexity | SkipJsonSchema[None] = None
+    parent_account_id: uuid.UUID | SkipJsonSchema[None] = None
+    linkedin_url: str | SkipJsonSchema[None] = None
+    notes: str | SkipJsonSchema[None] = None
+    status: AccountStatus | SkipJsonSchema[None] = None
+    aliases: list[str] | SkipJsonSchema[None] = None
+    sources: list[AccountUpdateSource] | SkipJsonSchema[None] = None
+
+    @field_validator(
+        "name",
+        "country_code",
+        "industry",
+        "employee_count",
+        "revenue_eur",
+        "operational_complexity",
+        "parent_account_id",
+        "linkedin_url",
+        "notes",
+        "status",
+        "aliases",
+        "sources",
+        mode="before",
+    )
+    @classmethod
+    def _optional_field_is_not_null(cls, value: object) -> object:
+        if value is None:
+            raise ValueError("Omit this field instead of sending null.")
+        return value
 
 
 class ImportRowFieldError(BaseModel):
@@ -205,14 +235,14 @@ class ImportRowFieldError(BaseModel):
     message: str
 
 
-class ImportRowItem(BaseModel):
+class ImportRowResult(BaseModel):
     """One entry of `ImportResult.rows`."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     line: int
     domain: str | None
-    outcome: str
+    outcome: ImportRowOutcome
     account_id: uuid.UUID | None
     errors: list[ImportRowFieldError]
 
@@ -223,7 +253,7 @@ class ImportResult(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     dry_run: bool
-    rows: list[ImportRowItem]
+    rows: list[ImportRowResult]
     created: int
     updated: int
     duplicates: int
@@ -369,7 +399,7 @@ async def post_accounts_import(
     return ImportResult(
         dry_run=result.dry_run,
         rows=[
-            ImportRowItem(
+            ImportRowResult(
                 line=row.line,
                 domain=row.domain,
                 outcome=row.outcome.value,
@@ -411,6 +441,7 @@ async def patch_account(
 ) -> Account:
     """`API-24`."""
     data = AccountUpdateData(
+        name=body.name,
         country_code=body.country_code,
         industry=body.industry,
         employee_count=body.employee_count,

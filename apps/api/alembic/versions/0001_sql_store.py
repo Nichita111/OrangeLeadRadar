@@ -27,7 +27,8 @@ branch_labels: Sequence[str] | str | None = None
 depends_on: Sequence[str] | str | None = None
 
 # Read from the `ApiSettings` the entry point passed to `alembic/env.py`; frozen into the
-# database at the dimension in force when this migration runs (see Risks, design).
+# database at the dimension in force when this migration runs (changing the key later needs a
+# new migration).
 EMBEDDING_DIM: int = context.config.attributes["embedding_dim"]
 
 

@@ -15,7 +15,13 @@ from datetime import UTC, datetime
 import pytest
 
 from leadradar.core.enums import FindingStrength, SignalQuestionAnswerType
-from leadradar.core.signal.classification import map_answer, observed_at
+from leadradar.core.signal.classification import (
+    SCALE_SUFFIX,
+    classifier_questions_for,
+    map_answer,
+    merge_yes_no_probabilities,
+    observed_at,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -168,6 +174,64 @@ class TestChoice:
                 probabilities={"A": 0.5, "B": 0.5},
                 options=None,
             )
+
+
+class TestClassifierQuestionsFor:
+    """`test_classifier_questions_for_yes_no_scale_and_choice` (Tests for the coder, design.md)."""
+
+    def test_yes_no_carries_its_strength_scale_sub_question(self) -> None:
+        specs = classifier_questions_for(
+            question_id="q1",
+            account_name="Lufthansa Group",
+            question_text="Does the company run a cost programme?",
+            answer_type=SignalQuestionAnswerType.YES_NO,
+        )
+        assert [spec.id for spec in specs] == ["q1", f"q1{SCALE_SUFFIX}"]
+        assert specs[0].text == "About Lufthansa Group: Does the company run a cost programme?"
+        assert specs[0].options is None
+        assert specs[1].answer_type is SignalQuestionAnswerType.SCALE
+        assert [option.key for option in specs[1].options or []] == ["WEAK", "MEDIUM", "STRONG"]
+
+    def test_scale_carries_the_none_level(self) -> None:
+        specs = classifier_questions_for(
+            question_id="q2",
+            account_name="Lufthansa Group",
+            question_text="How strong is the automation initiative?",
+            answer_type=SignalQuestionAnswerType.SCALE,
+        )
+        assert len(specs) == 1
+        assert [option.key for option in specs[0].options or []] == [
+            "NONE",
+            "WEAK",
+            "MEDIUM",
+            "STRONG",
+        ]
+        assert specs[0].text == ("About Lufthansa Group: How strong is the automation initiative?")
+
+    def test_choice_carries_only_key_and_label(self) -> None:
+        specs = classifier_questions_for(
+            question_id="q3",
+            account_name="Lufthansa Group",
+            question_text="Which provider is named?",
+            answer_type=SignalQuestionAnswerType.CHOICE,
+            options=[
+                {"key": "NONE_NAMED", "label": "None named", "strength": "NONE"},
+                {"key": "PLATFORM_VENDOR", "label": "Platform vendor", "strength": "WEAK"},
+            ],
+        )
+        assert len(specs) == 1
+        assert [(o.key, o.label) for o in specs[0].options or []] == [
+            ("NONE_NAMED", "None named"),
+            ("PLATFORM_VENDOR", "Platform vendor"),
+        ]
+
+
+class TestMergeYesNoProbabilities:
+    def test_yes_no_answer_merges_its_strength_scale(self) -> None:
+        merged = merge_yes_no_probabilities(
+            {"YES": 0.9, "NO": 0.1}, {"WEAK": 0.2, "MEDIUM": 0.3, "STRONG": 0.5}
+        )
+        assert merged == {"YES": 0.9, "NO": 0.1, "WEAK": 0.2, "MEDIUM": 0.3, "STRONG": 0.5}
 
 
 class TestObservedAt:

@@ -73,7 +73,7 @@ export function WhyTab({
     if (criterion.attribute === null) {
       return "unknown";
     }
-    const raw = String(criterion.attribute);
+    const raw = criterion.attribute;
     switch (criterion.kind) {
       case "INDUSTRY":
         return industries.data?.find((item) => item.code === raw)?.label ?? raw;

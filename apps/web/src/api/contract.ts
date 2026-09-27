@@ -1,7 +1,7 @@
-// The one import point for contract types. While the pending fragment exists it is composed with the
-// api's snapshot; when task 2's snapshot declares the paths, this file reduces to the api's types.
-import type { components as PendingComponents, paths as PendingPaths } from "./pending/schema.gen";
-import type { components as ApiComponents, paths as ApiPaths } from "./schema.gen";
+// The one import point for contract types: the api's generated client. Every REST contract of
+// interfaces.md is declared from the start (`api Design` "Declared contracts"), so this file
+// holds no hand-written fragment.
+import type { components, paths as ApiPaths } from "./schema.gen";
 
-export type paths = ApiPaths & PendingPaths;
-export type Schemas = ApiComponents["schemas"] & PendingComponents["schemas"];
+export type paths = ApiPaths;
+export type Schemas = components["schemas"];

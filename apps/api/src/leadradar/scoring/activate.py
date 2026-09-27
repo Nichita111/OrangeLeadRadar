@@ -34,9 +34,9 @@ from leadradar.core.enums import (
     PipelineRunTrigger,
     ScoringConfigStatus,
 )
-from leadradar.core.scoring_settings import (
+from leadradar.core.scoring.settings import (
     FieldError,
-    ScoringSettingsDocument,
+    ScoringSettings,
     validate_scoring_settings,
 )
 from leadradar.db.models.configuration import ScoringConfig
@@ -85,7 +85,7 @@ async def activate_scoring_config(
 
     service_id = row.service_id
     try:
-        document = ScoringSettingsDocument.model_validate(row.settings)
+        document = ScoringSettings.model_validate(row.settings)
     except ValidationError as exc:
         raise DraftInvalid(
             [

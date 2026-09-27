@@ -92,7 +92,9 @@ class Run(BaseModel):
 _PROGRESS = TypeAdapter(dict[str, int])
 
 
-def _run(view: RunView) -> Run:
+def to_run(view: RunView) -> Run:
+    """`RunView` shaped into the one [`Run`](/architecture/interfaces.md#run) response model;
+    `api/evaluation.py` reuses it for `API-53` rather than redefining the shape."""
     return Run(
         id=view.id,
         kind=view.kind,
@@ -148,7 +150,7 @@ async def post_account_refresh(
     )
     if not result.created:
         response.status_code = http_status.HTTP_200_OK
-    return _run(result.run)
+    return to_run(result.run)
 
 
 @router.get("/runs")
@@ -169,7 +171,7 @@ async def get_runs(
         page_size=paging.page_size,
     )
     return Page[Run](
-        items=[_run(view) for view in views],
+        items=[to_run(view) for view in views],
         page=paging.page,
         page_size=paging.page_size,
         total=total,
@@ -183,7 +185,7 @@ async def get_run_by_id(
     principal: CurrentUser,
 ) -> Run:
     """`API-35`: one run with its stage, progress and errors."""
-    return _run(await get_run(session, id))
+    return to_run(await get_run(session, id))
 
 
 @router.post("/runs/{id}/cancel")
@@ -195,7 +197,7 @@ async def post_run_cancel(
 ) -> Run:
     """`API-36`: cancels a queued or running run; Admin only for `RECLASSIFY`, `RESCORE` and
     `EVALUATION` runs."""
-    return _run(
+    return to_run(
         await cancel_run(session, run_id=id, principal=principal, now=request.app.state.clock())
     )
 

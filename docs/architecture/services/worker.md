@@ -64,7 +64,7 @@ stateDiagram-v2
 | `RECLASSIFY` | `TRIAGE` → `CLASSIFY` → `EVIDENCE` → `SCORE` | one `SIGNAL` per active account, over its stored documents; one `SCORE` for the service, the first job when no account is active |
 | `RESCORE` | `SCORE` | one `SCORE` |
 | `DISCOVERY` | `FETCH` → `TRIAGE` → `SCORE` | one `DISCOVER` per available discovery source; the last one ranks and caps candidates |
-| `EVALUATION` | `CLASSIFY` | `EVALUATE` per batch of items; the last one writes the [`evaluation_result`](/architecture/sql-store.md#evaluation_result) |
+| `EVALUATION` | `CLASSIFY` | one `EVALUATE` over every active item of an active question; it writes the [`evaluation_result`](/architecture/sql-store.md#evaluation_result) |
 
 A `SCORE` job's `payload` is `{}`: its scope is its run's `account_id` and `service_id`, as the Jobs column states. A `FETCH` job's `payload` is `{plugin_code}`: its account is its run's `account_id`. A `PROCESS` job's `payload` is `{}`: it covers the documents its run fetched; when it fails after its retries, those documents stay stored without embeddings and are not triaged or classified. A `SIGNAL` job's `payload` is `{}` in a refresh, whose account is its run's `account_id`, and `{account_id}` in a `RECLASSIFY` run, whose question is its run's `question_id`. A refresh requested when no plug-in is available starts with its `SCORE` job.
 

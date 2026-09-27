@@ -10,7 +10,9 @@ import logging
 import os
 import signal
 import socket
+import sys
 
+from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from leadradar.ai.embedder import build_embedder_client
@@ -70,7 +72,12 @@ async def _serve(settings: WorkerSettings) -> None:
 
 def run() -> None:
     """`leadradar-worker`: runs the job loops until a stop signal, then exits `0`."""
-    settings = WorkerSettings()
+    configure_json_logging("INFO")
+    try:
+        settings = WorkerSettings()
+    except ValidationError:
+        logger.exception("Invalid configuration; the worker will not start")
+        sys.exit(1)
     configure_json_logging(settings.log_level)
     logger.info("Worker started")
     asyncio.run(_serve(settings))

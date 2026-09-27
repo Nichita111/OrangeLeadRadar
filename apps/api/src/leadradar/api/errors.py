@@ -1,18 +1,26 @@
-"""Maps every typed error onto the envelope of
-[Conventions](/architecture/interfaces.md#conventions), once, at the edge
+"""Maps every error onto the `ErrorEnvelope` of
+[Conventions](/architecture/interfaces.md#conventions): an unknown path (`NOT_FOUND`), a method
+the path does not accept (`METHOD_NOT_ALLOWED`), a declared contract not yet built
+(`NOT_IMPLEMENTED`), a malformed request body or an invalid path, query or body field
+(`VALIDATION`), and every typed capability error, once, at the edge
 ([coding Errors](/guidelines/coding.md#errors)). An unhandled exception is caught by the
 outermost middleware ([`request_identity.py`](request_identity.py)) instead of a registered
-handler here, because Starlette's `ServerErrorMiddleware` sits outside every layer `add_middleware`
-adds and would send its response without `X-Request-Id`.
+handler here, because Starlette's `ServerErrorMiddleware` sits outside every layer
+`add_middleware` adds and would send its response without `X-Request-Id`.
 """
 
 from __future__ import annotations
 
+from datetime import datetime
+from enum import StrEnum
 from http import HTTPStatus
+from uuid import UUID
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel, ConfigDict
+from pydantic.json_schema import SkipJsonSchema
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.responses import Response
 
@@ -30,6 +38,13 @@ from leadradar.auth.errors import (
     UserNotFound,
 )
 from leadradar.configuration.errors import Conflict, DraftInvalid, NotFound, QuestionInvalid
+from leadradar.evaluation.errors import (
+    ChunkNotFound,
+    QuestionNotFound,
+    ResultNotFound,
+    RevisionNotCurrent,
+    ServiceNotFound,
+)
 from leadradar.feedback.errors import FeedbackError
 from leadradar.outreach.errors import CrmUnavailable, HubspotNotConfigured, ScoreNotFound
 from leadradar.runs.errors import (
@@ -41,26 +56,94 @@ from leadradar.runs.errors import (
 )
 
 
+class Dependency(StrEnum):
+    """`details.dependency` of `UPSTREAM_UNAVAILABLE`, exactly the
+    [Dependencies](/architecture/interfaces.md#conventions) table's column: a wire-only enum,
+    owned by interfaces and defined here once."""
+
+    DATABASE = "DATABASE"
+    CLASSIFIER = "CLASSIFIER"
+    LLM = "LLM"
+    EMBEDDER = "EMBEDDER"
+    HUBSPOT = "HUBSPOT"
+
+
+class ErrorDetailField(BaseModel):
+    """One entry of `details.fields[]` ([Conventions](/architecture/interfaces.md#conventions)
+    `VALIDATION`)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    field: str
+    message: str
+
+
+class ErrorDetails(BaseModel):
+    """`details` of [Conventions](/architecture/interfaces.md#conventions) `ErrorEnvelope`: the
+    closed set of names the Envelope table gives. Every field is optional and, per the Naming
+    paragraph (G10), absent rather than `null` when unset."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    fields: list[ErrorDetailField] | SkipJsonSchema[None] = None
+    entity_id: UUID | SkipJsonSchema[None] = None
+    retry_after_min: int | SkipJsonSchema[None] = None
+    resets_at: datetime | SkipJsonSchema[None] = None
+    dependency: Dependency | SkipJsonSchema[None] = None
+    reason: str | SkipJsonSchema[None] = None
+
+
+class ErrorBody(BaseModel):
+    """`error` of [Conventions](/architecture/interfaces.md#conventions) `ErrorEnvelope`."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    code: str
+    message: str
+    details: ErrorDetails | SkipJsonSchema[None] = None
+
+
+class ErrorEnvelope(BaseModel):
+    """The `{"error": {...}}` shape of [Conventions](/architecture/interfaces.md#conventions),
+    named `ErrorEnvelope` in the OpenAPI document."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    error: ErrorBody
+
+
+class ContractNotBuilt(Exception):
+    """Raised by [`contract_not_built`](not_built.py) for a declared contract whose feature is
+    not built yet; mapped onto `501 NOT_IMPLEMENTED`
+    ([Conventions](/architecture/interfaces.md#conventions))."""
+
+
 def envelope(
     code: str, message: str, details: dict[str, object] | None = None
 ) -> dict[str, object]:
     """The one `{"error": {"code", "message", "details"?}}` shape of
     [Conventions](/architecture/interfaces.md#conventions)."""
-    error: dict[str, object] = {"code": code, "message": message}
+    body: dict[str, object] = {"code": code, "message": message}
     if details is not None:
-        error["details"] = details
-    return {"error": error}
+        body["details"] = details
+    return {"error": body}
 
 
 def _field_name(location: tuple[int | str, ...]) -> str:
     """The `field` of a `VALIDATION` error ([Conventions](/architecture/interfaces.md#conventions)
     Envelope): a bare body field name, a JSON pointer into it, or the name of a path or query
     parameter. FastAPI's `loc` is `("body", "field", ...)`, `("path", "name")` or
-    `("query", "name")`; a single remaining part is a bare name, several are a JSON pointer."""
-    parts = [str(part) for part in location[1:]]
-    if len(parts) <= 1:
-        return parts[0] if parts else str(location[-1])
-    return "/" + "/".join(parts)
+    `("query", "name")`; a single string part is a bare name, anything else — several parts, none
+    (a malformed body), or a single non-string part such as a malformed body's index — is a JSON
+    pointer."""
+    # Pydantic inserts a union branch label before a nested list error when an optional
+    # request field contains an invalid item. That label is not part of the JSON body.
+    parts = tuple(
+        part for part in location[1:] if not (isinstance(part, str) and part.startswith("list["))
+    )
+    if len(parts) == 1 and isinstance(parts[0], str):
+        return parts[0]
+    return "/" + "/".join(str(part) for part in parts)
 
 
 _INVALID_CREDENTIALS_MESSAGE = "Incorrect email or password."
@@ -68,7 +151,8 @@ _UNAUTHENTICATED_MESSAGE = "Sign-in required."
 
 
 def register_error_handlers(app: FastAPI) -> None:
-    """Registers typed capability errors, validation errors, and all HTTP exceptions."""
+    """Registers every HTTP exception, `NOT_IMPLEMENTED`, `VALIDATION` and every typed capability
+    error's handler, once, at the edge."""
 
     @app.exception_handler(StarletteHTTPException)
     async def handle_http_exception(request: Request, exc: StarletteHTTPException) -> Response:
@@ -95,6 +179,13 @@ def register_error_handlers(app: FastAPI) -> None:
             status_code=exc.status_code,
             content=envelope(code, message),
             headers=exc.headers,
+        )
+
+    @app.exception_handler(ContractNotBuilt)
+    async def handle_contract_not_built(request: Request, exc: ContractNotBuilt) -> Response:
+        return JSONResponse(
+            status_code=501,
+            content=envelope("NOT_IMPLEMENTED", "This contract is declared but not built yet."),
         )
 
     @app.exception_handler(InvalidCredentials)
@@ -175,6 +266,7 @@ def register_error_handlers(app: FastAPI) -> None:
                 "message": error["msg"],
             }
             for error in exc.errors()
+            if error["type"] != "none_required"
         ]
         return JSONResponse(
             status_code=422,
@@ -297,3 +389,14 @@ def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(AlertNotFound)
     async def handle_alert_not_found(request: Request, exc: AlertNotFound) -> Response:
         return JSONResponse(status_code=404, content=envelope("NOT_FOUND", str(exc)))
+
+    @app.exception_handler(ServiceNotFound)
+    @app.exception_handler(ChunkNotFound)
+    @app.exception_handler(QuestionNotFound)
+    @app.exception_handler(ResultNotFound)
+    async def handle_evaluation_not_found(request: Request, exc: Exception) -> Response:
+        return JSONResponse(status_code=404, content=envelope("NOT_FOUND", str(exc)))
+
+    @app.exception_handler(RevisionNotCurrent)
+    async def handle_revision_not_current(request: Request, exc: RevisionNotCurrent) -> Response:
+        return JSONResponse(status_code=409, content=envelope("CONFLICT", str(exc)))

@@ -80,8 +80,7 @@ export function useUpdateUser() {
   return useMutation({
     mutationFn: async ({ id, body }: { id: string; body: Schemas["UserUpdate"] }) =>
       requireData(
-        (await client.PATCH("/api/v1/users/{user_id}", { params: { path: { user_id: id } }, body }))
-          .data,
+        (await client.PATCH("/api/v1/users/{id}", { params: { path: { id: id } }, body })).data,
       ),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: authenticationAndUsersKeys.users });

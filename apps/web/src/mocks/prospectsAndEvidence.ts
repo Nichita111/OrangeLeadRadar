@@ -1,24 +1,11 @@
-// The mock of the pending contracts API-07, API-15, API-16, API-23, API-39 to API-45, API-71 and
-// API-74. Temporary: `API-39` filters only by exact `standing` and `band`, the
+// The development mock of the Prospects and evidence screens' contracts (TypeScript Mock layer).
+// Temporary: `API-39` filters only by exact `standing` and `band`, the
 // fixture order is the ranking, and `API-44` and `API-45` change the override list and nothing else.
 import { createOpenApiHttp } from "openapi-msw";
 
-import { errorEnvelope, errorResponse, olgaAdmin } from "../authenticationAndUsers.fixtures";
-import type { Schemas, paths } from "../contract";
-import {
-  accounts,
-  evidenceFor,
-  findings,
-  industries,
-  markets,
-  prospectRows,
-  scoreViews,
-  scoringConfig,
-  scoringSummaries,
-  services,
-} from "./prospectsAndEvidence.fixtures";
-
-const FIXTURE_SERVICE = "svc-1";
+import { errorEnvelope, errorResponse, olgaAdmin } from "../api/authenticationAndUsers.fixtures";
+import type { Schemas, paths } from "../api/contract";
+import { evidenceFor, findings, prospectRows, scoreViews } from "./prospectsAndEvidence.fixtures";
 
 export function createProspectsHandlers() {
   const http = createOpenApiHttp<paths>({ baseUrl: window.location.origin });
@@ -27,21 +14,6 @@ export function createProspectsHandlers() {
   const notFound = errorEnvelope("NOT_FOUND", "Not found.");
 
   return [
-    http.get("/api/v1/services", ({ response }) => response(200).json(services)),
-    http.get("/api/v1/industries", ({ response }) => response(200).json(industries)),
-    http.get("/api/v1/markets", ({ response }) => response(200).json(markets)),
-    http.get("/api/v1/services/{id}/scoring-configs", ({ params, response }) =>
-      response(200).json(params.id === FIXTURE_SERVICE ? scoringSummaries : []),
-    ),
-    http.get("/api/v1/scoring-configs/{id}", ({ params, response }) =>
-      params.id === scoringConfig.id
-        ? response(200).json(scoringConfig)
-        : errorResponse(notFound, 404),
-    ),
-    http.get("/api/v1/accounts/{id}", ({ params, response }) => {
-      const found = accounts.find((candidate) => candidate.id === params.id);
-      return found === undefined ? errorResponse(notFound, 404) : response(200).json(found);
-    }),
     http.get("/api/v1/services/{id}/prospects", ({ request, response }) => {
       const query = new URL(request.url).searchParams;
       const standing = query.get("standing") ?? "RANKED";

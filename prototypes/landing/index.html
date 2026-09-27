@@ -1,0 +1,708 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body { margin: 0; } img { max-width: 100%; } [hidden] { display: none !important; }</style>
+<title>LeadRadar Landing Scene</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+  /* The app's dark tokens (Visual language, frontend.md). Landing is dark in both schemes (FR-106 exception).
+     Orange marks only what the current step is about. */
+  :root {
+    color-scheme: dark;
+    --page: #0E0E10;
+    --surface: #17171A;
+    --border: #2A2A30;
+    --text: #ECECEE;
+    --text-2: #A1A1AA;
+    --text-3: #8A8A93;
+    --accent: #F0803F;
+    --accent-soft: #2A1B12;
+    --accent-ink: #FDBA8C;
+    --cool: #A8B5C7;
+    --cool-soft: #1D232C;
+    --sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+    --gutter: clamp(16px, 4vw, 48px);
+  }
+  html { background: var(--page); }
+  body { background: var(--page); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  button { font-family: inherit; }
+
+  .top { position: fixed; inset: 0 0 auto 0; z-index: 30; display: flex; align-items: center; justify-content: space-between;
+    padding: calc(env(safe-area-inset-top, 0px) + 14px) var(--gutter) 14px;
+    background: linear-gradient(to bottom, rgba(14,14,16,.95), rgba(14,14,16,0)); }
+  .mark { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; letter-spacing: -.01em; }
+  .mark svg { width: 20px; height: 20px; }
+  .btn { font: 500 13px/1 var(--sans); color: #1A0D05; background: var(--accent); border: 0; border-radius: 8px; height: 36px; padding: 0 14px; cursor: pointer; white-space: nowrap; }
+  .btn:hover { filter: brightness(1.07); }
+  .btn:active { transform: translateY(1px); }
+  .btn.sec { background: transparent; color: var(--text); box-shadow: inset 0 0 0 1px #3A3A44; }
+  .btn.sec:hover { background: rgba(255,255,255,.04); filter: none; }
+  .btn.lg { height: 40px; padding: 0 16px; font-size: 14px; }
+  .btn:focus-visible, .dot:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 3px; }
+
+  .scroll { position: relative; }
+  .stage { position: sticky; top: 0; height: 100vh; height: 100dvh; overflow: hidden; }
+  .stage canvas { display: block; width: 100%; height: 100%; }
+  .scrim { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, rgba(14,14,16,.92) 0%, rgba(14,14,16,.7) 28%, rgba(14,14,16,0) 46%); }
+  .overlay { position: absolute; inset: 0; pointer-events: none; }
+
+  .steps { position: relative; margin-top: -100vh; margin-top: -100dvh; z-index: 5; }
+  .step { min-height: 100vh; min-height: 100dvh; display: flex; align-items: center; padding-inline: var(--gutter); }
+  .copy { max-width: 30rem; display: grid; gap: 14px; padding-block: 22px; }
+  h1, h2 { margin: 0; font-weight: 600; letter-spacing: -.03em; text-wrap: balance; line-height: 1.06; }
+  h1 { font-size: clamp(32px, 4vw, 52px); }
+  h2 { font-size: clamp(28px, 3.3vw, 42px); }
+  .lead { margin: 0; color: var(--text-2); font-size: clamp(15px, 1.2vw, 17px); max-width: 38ch; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+
+  .nm { position: absolute; transform: translate(9px, -50%); font: 400 11px/1 var(--mono); color: var(--text-3); white-space: nowrap; opacity: 0;
+    text-shadow: 0 0 4px var(--page), 0 0 2px var(--page); }
+  .nm.on { color: var(--text); }
+  .nm.focus { color: var(--accent); }
+  .port { position: absolute; transform: translate(-50%, -50%); font: 500 11px/1 var(--mono); color: var(--text-2); white-space: nowrap; opacity: 0;
+    padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--page); }
+  .seg-l { position: absolute; transform: translate(0, -50%); display: flex; gap: 8px; align-items: baseline; font-size: 12px; white-space: nowrap; opacity: 0; }
+  .seg-l.left { transform: translate(-100%, -50%); flex-direction: row-reverse; }
+  .seg-l b { font-weight: 500; color: var(--text); }
+  .seg-l span { color: var(--text-3); }
+  .seg-l em { font: 500 12px/1 var(--mono); font-style: normal; color: var(--text-2); font-variant-numeric: tabular-nums; }
+  .seg-l.int em { color: var(--accent); }
+  .seg-l.unk b, .seg-l.unk em { color: var(--text-3); }
+  .cnt { position: absolute; transform: translate(-50%, 0); text-align: center; opacity: 0; white-space: nowrap; }
+  .cnt strong { display: block; font: 600 20px/1.1 var(--mono); font-variant-numeric: tabular-nums; }
+  .cnt span { font-size: 12px; color: var(--text-3); }
+  .prio-l { position: absolute; transform: translate(12px, -50%); display: flex; align-items: center; gap: 10px; opacity: 0; white-space: nowrap; }
+  .prio-l strong { font: 600 26px/1 var(--mono); font-variant-numeric: tabular-nums; }
+  .prio-l span { font-size: 12px; color: var(--text-3); }
+
+  .chip { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px 0 7px; border-radius: 999px; font: 500 12px/1 var(--sans); white-space: nowrap; }
+  .chip svg { width: 13px; height: 13px; flex: none; }
+  .chip.hot { background: var(--accent); color: #1A0D05; }
+  .chip.warm { background: var(--accent-soft); color: var(--accent-ink); box-shadow: inset 0 0 0 1px rgba(253,186,140,.22); }
+  .chip.cold { background: var(--cool-soft); color: var(--cool); box-shadow: inset 0 0 0 1px rgba(168,181,199,.2); }
+
+  .card { position: absolute; width: min(400px, calc(100vw - 32px)); background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px;
+    display: grid; gap: 10px; opacity: 0; transform-origin: 0 0; box-shadow: 0 24px 60px rgba(8,8,10,.6); }
+  .card .q { margin: 0; font-size: 15px; line-height: 1.45; border-left: 2px solid var(--accent); padding-left: 12px; }
+  .card .t { margin: 0; color: var(--text-2); font-size: 13px; min-height: 2.8em; padding-left: 14px; }
+  .card .t b { font: 500 11px/1 var(--mono); color: var(--text-3); margin-right: 6px; }
+  .card .src { font: 400 12px/1.3 var(--mono); color: var(--text-3); border-top: 1px solid var(--border); padding-top: 10px; }
+  .caret { display: inline-block; width: 7px; height: 1.05em; vertical-align: -2px; background: var(--accent); margin-left: 1px; }
+
+  .list { position: absolute; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; opacity: 0; box-shadow: 0 24px 60px rgba(8,8,10,.6); }
+  .list-head { padding: 16px 18px 12px; display: grid; gap: 12px; border-bottom: 1px solid var(--border); }
+  .list-head h3 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
+  .list-head h3 span { color: var(--text-3); font-weight: 500; }
+  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; font-size: 12px; color: var(--text-2); width: max-content; }
+  .seg span { padding: 5px 9px; border-right: 1px solid var(--border); }
+  .seg span:last-child { border-right: 0; }
+  .seg span.on { background: #222228; color: var(--text); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; font: 500 11px/1 var(--sans); color: var(--text-3); padding: 10px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td { padding: 11px 12px; vertical-align: top; }
+  tbody tr + tr td { border-top: 1px solid var(--border); }
+  td.n, th.n { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  td.rank { color: var(--text-3); font-family: var(--mono); width: 16px; }
+  .an b { font-weight: 500; display: block; }
+  .an span { color: var(--text-3); font-size: 12px; }
+  td.big { font: 600 15px/1.2 var(--mono); }
+  .sig { font-size: 12px; color: var(--text-2); display: grid; gap: 3px; }
+  .sig i { font-style: normal; color: var(--text-3); }
+  tr.more td { opacity: .5; }
+  .bar { height: 8px; border-radius: 4px; background: #26262D; }
+  .flyer { position: absolute; font: 500 13px/1.2 var(--sans); color: var(--text); white-space: nowrap; opacity: 0; }
+
+  .dots { position: fixed; right: var(--gutter); top: 50%; transform: translateY(-50%); z-index: 30; display: grid; gap: 10px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: #34343C; border: 0; padding: 0; cursor: pointer; transition: background .2s, transform .2s; }
+  .dot[aria-current="step"] { background: var(--accent); transform: scale(1.35); }
+
+  .fallback { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; color: var(--text-3); padding-inline: 24px; }
+  footer { padding: 36px var(--gutter) calc(36px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--border); color: var(--text-3); font-size: 12px; }
+  .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 40; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; font-size: 13px; }
+
+  @media (max-width: 900px) {
+    .step { align-items: flex-end; padding-bottom: 56px; }
+    .scrim { background: linear-gradient(0deg, rgba(14,14,16,.97) 0%, rgba(14,14,16,.75) 36%, rgba(14,14,16,0) 58%); }
+    .dots { display: none; }
+    .col-fit, .col-int, .col-sig { display: none; }
+    .seg-l span { display: none; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="mark">
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="9.5" stroke="#8A8A93" stroke-opacity=".6"/>
+      <circle cx="12" cy="12" r="5" stroke="#8A8A93" stroke-opacity=".6"/>
+      <circle cx="15.6" cy="8.4" r="2.2" fill="#F0803F"/>
+    </svg>
+    LeadRadar
+  </div>
+  <button class="btn" type="button" data-say="In the app, this opens Sign in.">Sign in</button>
+</header>
+
+<nav class="dots" aria-label="Steps" id="dots"></nav>
+
+<main class="scroll" id="scroll">
+  <div class="stage" id="stage">
+    <canvas id="scene" aria-hidden="true"></canvas>
+    <div class="scrim"></div>
+    <div class="overlay" id="overlay" aria-hidden="true">
+      <div id="names"></div>
+      <div id="ports"></div>
+      <div id="segls"></div>
+      <div class="cnt" id="cnt-fit"><strong id="n-fit">0</strong><span>Fit</span></div>
+      <div class="cnt" id="cnt-int"><strong id="n-int">0</strong><span>Intent</span></div>
+      <div class="prio-l" id="prio-l"><span class="chip hot" data-icon="hot">Hot</span><strong id="n-prio">0</strong><span>Priority</span></div>
+
+      <div class="card" id="card">
+        <p class="q">DHL setzt in über 1.000 Prozessen KI-Agenten ein…</p>
+        <p class="t"><b>EN</b><span id="trans"></span></p>
+        <div class="src" id="src">group.dhl.com, press release, 3 weeks ago</div>
+      </div>
+
+      <div class="list" id="list">
+        <div class="list-head">
+          <h3>Prospects <span>for Intelligent Automation</span></h3>
+          <div class="seg"><span class="on">All 6</span><span>Hot 1</span><span>Warm 2</span><span>Cold 3</span></div>
+        </div>
+        <table>
+          <thead><tr><th>#</th><th>Account</th><th>Band</th><th class="n">Priority</th><th class="n col-fit">Fit</th><th class="n col-int">Intent</th><th class="col-sig">Top signals</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="rank">1</td>
+              <td class="an"><b id="row-0">DHL Group</b><span>Germany, Logistics</span></td>
+              <td><span class="chip hot" data-icon="hot">Hot</span></td>
+              <td class="n big">78</td><td class="n col-fit">88</td><td class="n col-int">72</td>
+              <td class="col-sig"><div class="sig"><span>AI projects, Strong <i>3 wk</i></span><span>Cost programme, Clear <i>2 mo</i></span></div></td>
+            </tr>
+            <tr>
+              <td class="rank">2</td>
+              <td class="an"><b id="row-1">Lufthansa Group</b><span>Germany, Aviation</span></td>
+              <td><span class="chip warm" data-icon="warm">Warm</span></td>
+              <td class="n big">58</td><td class="n col-fit">88</td><td class="n col-int">38</td>
+              <td class="col-sig"><div class="sig"><span>Cost programme, Strong <i>6 wk</i></span></div></td>
+            </tr>
+            <tr class="more"><td class="rank">3</td><td><div class="bar" style="width:110px"></div></td><td><span class="chip warm" data-icon="warm">Warm</span></td><td class="n"><div class="bar" style="width:22px;margin-left:auto"></div></td><td class="col-fit"><div class="bar" style="width:22px;margin-left:auto"></div></td><td class="col-int"><div class="bar" style="width:22px;margin-left:auto"></div></td><td class="col-sig"><div class="bar" style="width:150px"></div></td></tr>
+            <tr class="more"><td class="rank">4</td><td><div class="bar" style="width:84px"></div></td><td><span class="chip cold" data-icon="cold">Cold</span></td><td class="n"><div class="bar" style="width:22px;margin-left:auto"></div></td><td class="col-fit"><div class="bar" style="width:22px;margin-left:auto"></div></td><td class="col-int"><div class="bar" style="width:22px;margin-left:auto"></div></td><td class="col-sig"><div class="bar" style="width:120px"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="flyer" id="fly-0">DHL Group</div>
+      <div class="flyer" id="fly-1">Lufthansa Group</div>
+    </div>
+  </div>
+
+  <div class="steps">
+    <section class="step" aria-labelledby="s0"><div class="copy">
+      <h1 id="s0">Know which accounts to call, and why.</h1>
+      <p class="lead">Twenty accounts, one service to sell: Intelligent Automation.</p>
+    </div></section>
+    <section class="step" aria-labelledby="s1"><div class="copy">
+      <h2 id="s1">LeadRadar reads what companies publish.</h2>
+      <p class="lead">News, company sites, job boards and investor relations, fetched on a schedule.</p>
+    </div></section>
+    <section class="step" aria-labelledby="s2"><div class="copy">
+      <h2 id="s2">Every page is read, not guessed.</h2>
+      <p class="lead">Each document is split into passages and kept with its address and date.</p>
+    </div></section>
+    <section class="step" aria-labelledby="s3"><div class="copy">
+      <h2 id="s3">Only passages that answer a question stay.</h2>
+      <p class="lead">Intelligent Automation asks nine questions. Passages that answer none are set aside.</p>
+    </div></section>
+    <section class="step" aria-labelledby="s4"><div class="copy">
+      <h2 id="s4">Every signal carries a quote, source and date.</h2>
+      <p class="lead">The quote stays in its own language, with an English translation beside it.</p>
+    </div></section>
+    <section class="step" aria-labelledby="s5"><div class="copy">
+      <h2 id="s5">Scores come from rules you can read.</h2>
+      <p class="lead">Fit and Intent add up weighted rules. Models answer questions; they never set the score.</p>
+    </div></section>
+    <section class="step" aria-labelledby="s6"><div class="copy">
+      <h2 id="s6">The accounts worth a call rise to the top.</h2>
+      <p class="lead">LeadRadar never contacts anyone. Your team decides who to call.</p>
+    </div></section>
+    <section class="step" aria-labelledby="s7"><div class="copy">
+      <h2 id="s7">Your prospects, ranked and explained.</h2>
+      <p class="lead">Open the live demo as a Sales or an Admin user.</p>
+      <div class="actions">
+        <button class="btn lg" type="button" data-say="In the app, this opens Sign in.">Sign in</button>
+        <button class="btn lg sec" type="button" data-say="In the app, this signs in as sales@leadradar.local.">Enter as Sales</button>
+        <button class="btn lg sec" type="button" data-say="In the app, this signs in as admin@leadradar.local.">Enter as Admin</button>
+      </div>
+    </div></section>
+  </div>
+</main>
+
+<footer>Prototype v3 of the Landing (WF-27). DHL Group and Lufthansa Group values come from WF-12 and WF-24; DHL's Region, Complexity and Cost programme heights, every other account's position, documents and priority are sample values.</footer>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="vendor/three.min.js"></script>
+<script src="vendor/anime.min.js"></script>
+<script>
+(() => {
+  // Phosphor icons (@phosphor-icons/core 2.1.1): flame fill, sun, snowflake
+  const ICON = {
+    hot: '<svg viewBox="0 0 256 256" fill="currentColor"><path d="M173.79,51.48a221.25,221.25,0,0,0-41.67-34.34,8,8,0,0,0-8.24,0A221.25,221.25,0,0,0,82.21,51.48C54.59,80.48,40,112.47,40,144a88,88,0,0,0,176,0C216,112.47,201.41,80.48,173.79,51.48ZM96,184c0-27.67,22.53-47.28,32-54.3,9.48,7,32,26.63,32,54.3a32,32,0,0,1-64,0Z"/></svg>',
+    warm: '<svg viewBox="0 0 256 256" fill="currentColor"><path d="M120,40V16a8,8,0,0,1,16,0V40a8,8,0,0,1-16,0Zm72,88a64,64,0,1,1-64-64A64.07,64.07,0,0,1,192,128Zm-16,0a48,48,0,1,0-48,48A48.05,48.05,0,0,0,176,128ZM58.34,69.66A8,8,0,0,0,69.66,58.34l-16-16A8,8,0,0,0,42.34,53.66Zm0,116.68-16,16a8,8,0,0,0,11.32,11.32l16-16a8,8,0,0,0-11.32-11.32ZM192,72a8,8,0,0,0,5.66-2.34l16-16a8,8,0,0,0-11.32-11.32l-16,16A8,8,0,0,0,192,72Zm5.66,114.34a8,8,0,0,0-11.32,11.32l16,16a8,8,0,0,0,11.32-11.32ZM48,128a8,8,0,0,0-8-8H16a8,8,0,0,0,0,16H40A8,8,0,0,0,48,128Zm80,80a8,8,0,0,0-8,8v24a8,8,0,0,0,16,0V216A8,8,0,0,0,128,208Zm112-88H216a8,8,0,0,0,0,16h24a8,8,0,0,0,0-16Z"/></svg>',
+    cold: '<svg viewBox="0 0 256 256" fill="currentColor"><path d="M223.77,150.09a8,8,0,0,1-5.86,9.68l-24.64,6,6.46,24.11a8,8,0,0,1-5.66,9.8A8.25,8.25,0,0,1,192,200a8,8,0,0,1-7.72-5.93l-7.72-28.8L136,141.86v46.83l21.66,21.65a8,8,0,0,1-11.32,11.32L128,203.31l-18.34,18.35a8,8,0,0,1-11.32-11.32L120,188.69V141.86L79.45,165.27l-7.72,28.8A8,8,0,0,1,64,200a8.25,8.25,0,0,1-2.08-.27,8,8,0,0,1-5.66-9.8l6.46-24.11-24.64-6a8,8,0,0,1,3.82-15.54l29.45,7.23L112,128,71.36,104.54l-29.45,7.23A7.850,7.850,0,0,1,40,112a8,8,0,0,1-1.91-15.77l24.64-6L56.27,66.07a8,8,0,0,1,15.460-4.14l7.72,28.8L120,114.14V67.31L98.34,45.660a8,8,0,0,1,11.32-11.32L128,52.69l18.34-18.35a8,8,0,0,1,11.32,11.32L136,67.31v46.83l40.55-23.41,7.72-28.8a8,8,0,0,1,15.46,4.14l-6.46,24.11,24.64,6A8,8,0,0,1,216,112a7.850,7.850,0,0,1-1.91-.23l-29.45-7.23L144,128l40.64,23.46,29.45-7.23A8,8,0,0,1,223.77,150.09Z"/></svg>',
+  };
+  document.querySelectorAll("[data-icon]").forEach((el) => el.insertAdjacentHTML("afterbegin", ICON[el.dataset.icon]));
+
+  const TAU = Math.PI * 2;
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const $ = (id) => document.getElementById(id);
+  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const ease = (t) => t * t * (3 - 2 * t);
+  const scroll = $("scroll"), stage = $("stage"), canvas = $("scene");
+  const STEPS = ["Accounts", "Sources", "Read", "Sift", "Quote", "Score", "Rank", "Prospects"];
+  const N_STEPS = STEPS.length;
+
+  const toast = $("toast"); let toastTimer;
+  document.querySelectorAll("[data-say]").forEach((b) => b.addEventListener("click", () => {
+    toast.textContent = b.dataset.say; toast.hidden = false; clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => (toast.hidden = true), 2600);
+  }));
+  const dots = STEPS.map((s, i) => {
+    const b = document.createElement("button"); b.className = "dot"; b.type = "button"; b.id = "dot-" + i; b.setAttribute("aria-label", s);
+    b.addEventListener("click", () => {
+      const range = scroll.offsetHeight - innerHeight;
+      scrollTo({ top: scroll.offsetTop + range * (i / (N_STEPS - 1)), behavior: reduced ? "auto" : "smooth" });
+    });
+    $("dots").appendChild(b); return b;
+  });
+  const progress = () => { const r = scroll.getBoundingClientRect(), range = r.height - innerHeight; return range > 0 ? clamp(-r.top / range) : 0; };
+
+  // ---------- Data: the 20 demo accounts. Priority and documents are sample values except DHL Group and Lufthansa Group.
+  const A = [
+    ["Lufthansa Group", 0, 58, "warm", 7, [4]], ["SWISS", 0, 24, null, 3, []], ["Air France-KLM", 0, 21, null, 3, []],
+    ["DHL Group", 1, 78, "hot", 9, [3, 6, 8]], ["Kuehne+Nagel", 1, 53, "warm", 6, [2]], ["DB Schenker", 1, 38, "cold", 5, [2]], ["DSV", 1, 22, null, 3, []],
+    ["Siemens", 2, 41, "cold", 5, [1]],
+    ["Bosch", 3, 27, null, 4, []], ["ZF Group", 3, 18, null, 2, []], ["Continental", 3, 25, null, 3, []], ["Schaeffler", 3, 16, null, 2, []],
+    ["Commerzbank", 4, 26, null, 3, []], ["Erste Group", 4, 15, null, 2, []], ["Raiffeisen Bank International", 4, 14, null, 2, []], ["UBS", 4, 20, null, 3, []],
+    ["Allianz", 5, 35, "cold", 4, [1]], ["Munich Re", 5, 23, null, 3, []], ["Zurich Insurance Group", 5, 17, null, 2, []], ["Generali", 5, 13, null, 2, []],
+  ].map(([n, s, prio, band, docs, rel], i) => ({ n, s, prio, band, docs, rel, i }));
+  const DHL = 3, LH = 0, R = 5.6, SEC = TAU / 6;
+  let rs = 5; const rnd = () => ((rs = (rs * 16807) % 2147483647) / 2147483647);
+  for (let s = 0; s < 6; s++) {
+    const m = A.filter((a) => a.s === s);
+    m.forEach((a, j) => {
+      a.ang = s * SEC + ((j + 0.5) / m.length) * SEC * 0.8 + SEC * 0.1;
+      a.r = 2.1 + rnd() * 3.0;
+      if (a.i === DHL) a.r = 2.6;
+      a.x = Math.cos(a.ang) * a.r; a.z = Math.sin(a.ang) * a.r;
+    });
+  }
+  const ranked = [...A].sort((a, b) => b.prio - a.prio);
+  ranked.forEach((a, k) => (a.rankIdx = k));
+  const PORTS = [
+    { n: "News", ang: 3.5 }, { n: "Company sites", ang: 4.2 }, { n: "Job boards", ang: 4.95 }, { n: "Investor relations", ang: 5.7 },
+  ].map((p) => ({ ...p, x: Math.cos(p.ang) * 6.7, z: Math.sin(p.ang) * 6.7 }));
+
+  // ---------- One timeline; step k is centred at t = 1000k
+  const S = {};
+  const keys = "src tilt read sift lift card typeT focus quoteOut docsOut g0 g1 g2 g3 g4 g5 fitN intN prioLine unfocus collapse rise sort flat list fly".split(" ");
+  keys.forEach((k) => (S[k] = 0));
+  const tl = anime.timeline({ autoplay: false, easing: "easeInOutSine" });
+  const at = (k, t, d, e) => tl.add({ targets: S, [k]: [0, 1], duration: d, ...(e ? { easing: e } : {}) }, t);
+  at("src", 250, 700);
+  at("tilt", 1200, 450); at("read", 1250, 700, "linear");
+  at("sift", 2250, 700, "linear");
+  at("focus", 3200, 400); at("lift", 3250, 280); at("card", 3450, 220, "easeOutCubic"); at("typeT", 3680, 280, "linear");
+  at("quoteOut", 4120, 160); at("docsOut", 4180, 220);
+  for (let k = 0; k < 6; k++) at("g" + k, 4330 + k * 95 + (k > 3 ? 60 : 0), 170, "easeOutCubic");
+  at("fitN", 4330, 420, "easeOutQuad"); at("intN", 4710, 220, "easeOutQuad"); at("prioLine", 4820, 150);
+  at("unfocus", 5200, 420); at("collapse", 5200, 170); at("rise", 5300, 350, "easeOutCubic"); at("sort", 5620, 330);
+  at("flat", 6250, 300); at("list", 6400, 250); at("fly", 6500, 450);
+  const TOTAL = (N_STEPS - 1) * 1000;
+
+  // ---------- WebGL
+  let renderer = null;
+  try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true }); } catch (e) { renderer = null; }
+  if (!renderer || !renderer.getContext()) {
+    const f = document.createElement("div"); f.className = "fallback";
+    f.textContent = "This browser has no WebGL. The app shows a still image of each step here.";
+    stage.appendChild(f); canvas.remove(); return;
+  }
+  const DPR = Math.min(devicePixelRatio, (navigator.hardwareConcurrency || 8) <= 4 ? 1.25 : 2);
+  renderer.setPixelRatio(DPR); renderer.setClearColor(0x0e0e10, 1);
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 120);
+  const C = { page: 0x0e0e10, line: 0x2a2a30, line2: 0x3a3a44, grey: 0x8a8a93, text2: 0xa1a1aa, text: 0xececee, accent: 0xf0803f, ink: 0xfdba8c, cool: 0xa8b5c7, fill: 0x17171a, fill2: 0x26262d };
+  const lineMat = (color, opacity = 1) => new THREE.LineBasicMaterial({ color, transparent: true, opacity });
+  const basic = (color, opacity = 1) => new THREE.MeshBasicMaterial({ color, transparent: true, opacity });
+
+  // The disc: range rings and a sector tick at each boundary
+  const disc = new THREE.Group(); scene.add(disc);
+  [1.4, 2.8, 4.2, R].forEach((r, i) => {
+    const pts = []; for (let k = 0; k <= 160; k++) { const a = (k / 160) * TAU; pts.push(new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r)); }
+    disc.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), lineMat(i === 3 ? C.line2 : C.line)));
+  });
+  for (let s = 0; s < 6; s++) {
+    const a = s * SEC;
+    disc.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(Math.cos(a) * 1.4, 0, Math.sin(a) * 1.4), new THREE.Vector3(Math.cos(a) * R, 0, Math.sin(a) * R)]), lineMat(C.line)));
+  }
+  const discMats = []; disc.traverse((o) => o.material && discMats.push([o.material, o.material.opacity]));
+
+  // Account points
+  const dotTex = (() => { const c = document.createElement("canvas"); c.width = c.height = 64; const g = c.getContext("2d"); g.beginPath(); g.arc(32, 32, 28, 0, TAU); g.fillStyle = "#fff"; g.fill(); return new THREE.CanvasTexture(c); })();
+  const glowTex = (() => { const c = document.createElement("canvas"); c.width = c.height = 64; const g = c.getContext("2d");
+    const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(0.18, "rgba(255,255,255,.55)"); gr.addColorStop(0.5, "rgba(255,255,255,.12)"); gr.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
+  const glowMat = (color, size) => new THREE.PointsMaterial({ size, map: glowTex, color, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0 });
+  const ptGeo = new THREE.BufferGeometry();
+  const ptPos = new Float32Array(A.length * 3), ptCol = new Float32Array(A.length * 3);
+  A.forEach((a, i) => ptPos.set([a.x, 0.01, a.z], i * 3));
+  ptGeo.setAttribute("position", new THREE.BufferAttribute(ptPos, 3));
+  ptGeo.setAttribute("color", new THREE.BufferAttribute(ptCol, 3));
+  const points = new THREE.Points(ptGeo, new THREE.PointsMaterial({ size: 0.19, map: dotTex, vertexColors: true, transparent: true, alphaTest: 0.4, depthWrite: false }));
+  scene.add(points);
+
+  // Sources: a curve from each source to each account it serves, and a packet travelling along it
+  const curves = [];
+  A.forEach((a, i) => PORTS.forEach((p, k) => {
+    if (!(k === 0 ? i % 2 === 0 : k === 1 ? i % 2 === 1 : k === 2 ? i % 4 === 0 : i % 5 === 2)) return;
+    const mid = new THREE.Vector3((p.x + a.x) / 2, 0.9 + (i % 3) * 0.15, (p.z + a.z) / 2);
+    const curve = new THREE.QuadraticBezierCurve3(new THREE.Vector3(p.x, 0, p.z), mid, new THREE.Vector3(a.x, 0.02, a.z));
+    const geo = new THREE.BufferGeometry().setFromPoints(curve.getPoints(48));
+    const line = new THREE.Line(geo, lineMat(C.line2, 0)); scene.add(line);
+    curves.push({ curve, line, geo, seed: rnd(), a: i });
+  }));
+  const pkGeo = new THREE.BufferGeometry(); const pkPos = new Float32Array(curves.length * 3);
+  pkGeo.setAttribute("position", new THREE.BufferAttribute(pkPos, 3));
+  const pkMat = new THREE.PointsMaterial({ size: 0.11, map: dotTex, color: C.text, transparent: true, alphaTest: 0.4, depthWrite: false, opacity: 0 });
+  scene.add(new THREE.Points(pkGeo, pkMat));
+  const pkGlow = glowMat(0xffe6d2, 0.62); scene.add(new THREE.Points(pkGeo, pkGlow));
+  const portMarks = PORTS.map((p) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.34), basic(C.text2, 0)); m.rotation.x = -Math.PI / 2; m.position.set(p.x, 0, p.z); scene.add(m); return m;
+  });
+
+  // Documents: thin sheets stacked above each account
+  const sheetGeo = new THREE.BoxGeometry(0.46, 0.014, 0.32), sheetEdge = new THREE.EdgesGeometry(sheetGeo);
+  const sheets = [];
+  A.forEach((a) => {
+    for (let j = 0; j < a.docs; j++) {
+      const fill = new THREE.Mesh(sheetGeo, basic(C.fill, 0)), edge = new THREE.LineSegments(sheetEdge, lineMat(C.line2, 0));
+      const g = new THREE.Group(); g.add(fill, edge); g.rotation.y = -a.ang + (rnd() - 0.5) * 0.25; scene.add(g);
+      sheets.push({ a, j, g, fill, edge, y: 0.1 + j * 0.085, rel: a.rel.includes(j), delay: (a.i / A.length) * 0.45 + (j / a.docs) * 0.3 });
+    }
+  });
+  const liftSheet = sheets.find((s) => s.a.i === DHL && s.j === 8);
+  // The sieve: a silicon wafer. Each full die is one of LeadRadar's diagrams in miniature: the architecture
+  // (diagrams/src/architecture.json) and the 22 flows (fl-01 to fl-22), their participants as lanes and their
+  // messages as ticks. Ticks to or from the classifier/LLM (OpenRouter) or the embedder are orange.
+  const FLOWS = [{"id":"FL-01","n":6,"m":[[0,1,0.0,0],[1,2,0.07,0],[2,3,0.14,0],[2,1,0.211,0],[0,1,0.324,0],[1,2,0.395,0],[2,3,0.465,0],[2,3,0.535,0],[4,3,0.605,0],[4,5,0.676,1],[4,3,0.746,0],[0,1,0.86,0],[1,2,0.93,0],[2,3,1.0,0]]},{"id":"FL-02","n":5,"m":[[0,1,0.0,0],[1,2,0.089,0],[2,3,0.178,0],[0,1,0.322,0],[1,2,0.411,0],[2,1,0.5,0],[0,1,0.644,0],[1,2,0.733,0],[2,3,0.822,0],[4,3,0.911,0],[1,2,1.0,0]]},{"id":"FL-03","n":6,"m":[[0,1,0.0,0],[1,2,0.121,0],[2,3,0.318,1],[2,4,0.439,0],[2,5,0.636,1],[5,2,0.757,1],[2,4,0.879,0],[2,1,1.0,0]]},{"id":"FL-04","n":5,"m":[[0,1,0.0,0],[1,2,0.138,0],[2,1,0.276,0],[0,1,0.5,0],[1,2,0.638,0],[2,3,0.776,0],[4,3,1.0,0]]},{"id":"FL-05","n":6,"m":[[0,1,0.0,0],[1,2,0.089,0],[2,3,0.178,0],[5,3,0.267,0],[0,1,0.411,0],[1,2,0.5,0],[2,4,0.589,1],[2,3,0.678,0],[0,1,0.822,0],[1,2,0.911,0],[2,3,1.0,0]]},{"id":"FL-06","n":7,"m":[[0,1,0.0,0],[1,2,0.104,0],[2,3,0.208,0],[4,5,0.312,0],[4,6,0.416,1],[4,3,0.52,0],[1,2,0.688,0],[0,1,0.792,0],[1,2,0.896,0],[2,3,1.0,0]]},{"id":"FL-07","n":8,"m":[[0,1,0.0,0],[1,2,0.078,0],[2,3,0.156,0],[4,5,0.281,0],[5,4,0.359,0],[4,6,0.437,1],[4,3,0.515,0],[4,7,0.641,1],[4,7,0.719,1],[4,3,0.796,0],[4,3,0.922,0],[1,2,1.0,0]]},{"id":"FL-08","n":3,"m":[[0,1,0.0,0],[0,1,0.138,0],[0,1,0.276,0],[2,1,0.5,0],[2,1,0.638,0],[2,1,0.776,0],[0,1,1.0,0]]},{"id":"FL-09","n":6,"m":[[0,1,0.0,0],[1,2,0.121,0],[2,3,0.243,0],[4,3,0.439,0],[4,3,0.561,0],[4,5,0.682,1],[4,3,0.803,0],[4,3,1.0,0]]},{"id":"FL-10","n":5,"m":[[0,1,0.0,0],[1,2,0.178,0],[2,3,0.356,0],[4,3,0.644,0],[4,3,0.822,0],[4,3,1.0,0]]},{"id":"FL-11","n":4,"m":[[0,1,0.0,0],[1,2,0.121,0],[2,3,0.243,0],[2,1,0.364,0],[0,1,0.561,0],[1,2,0.682,0],[0,1,0.879,0],[0,1,1.0,0]]},{"id":"FL-12","n":4,"m":[[0,1,0.0,0],[1,2,0.089,0],[1,2,0.178,0],[2,3,0.267,0],[2,1,0.356,0],[0,1,0.5,0],[1,2,0.589,0],[2,1,0.678,0],[0,1,0.822,0],[1,2,0.911,0],[2,1,1.0,0]]},{"id":"FL-13","n":5,"m":[[0,1,0.0,0],[1,2,0.098,0],[2,1,0.195,0],[0,1,0.353,0],[1,2,0.451,0],[2,3,0.549,0],[4,3,0.647,0],[0,1,0.805,0],[1,2,0.902,0],[2,3,1.0,0]]},{"id":"FL-14","n":5,"m":[[0,1,0.0,0],[3,2,0.197,0],[4,3,0.318,0],[3,2,0.439,0],[2,3,0.561,0],[4,3,0.757,0],[3,2,0.879,0],[2,1,1.0,0]]},{"id":"FL-15","n":5,"m":[[0,1,0.0,0],[1,2,0.178,0],[2,3,0.356,0],[4,3,0.644,0],[1,2,0.822,0],[2,1,1.0,0]]},{"id":"FL-16","n":7,"m":[[0,2,0.0,0],[2,3,0.094,0],[3,4,0.188,0],[0,2,0.283,0],[2,3,0.377,0],[3,4,0.471,0],[1,2,0.623,0],[2,3,0.717,0],[5,6,0.812,1],[5,4,0.906,0],[2,3,1.0,0]]},{"id":"FL-17","n":5,"m":[[0,1,0.0,0],[1,2,0.131,0],[2,3,0.263,0],[2,4,0.394,1],[4,2,0.525,1],[2,3,0.656,0],[0,1,0.869,0],[1,2,1.0,0]]},{"id":"FL-18","n":5,"m":[[0,1,0.0,0],[0,1,0.151,0],[1,2,0.396,0],[2,3,0.547,0],[3,2,0.698,0],[2,4,0.849,0],[2,1,1.0,0]]},{"id":"FL-19","n":4,"m":[[0,1,0.0,0],[1,0,0.116,0],[0,1,0.232,0],[1,2,0.348,0],[2,3,0.464,0],[2,1,0.58,0],[0,1,0.768,0],[1,2,0.884,0],[2,3,1.0,0]]},{"id":"FL-20","n":4,"m":[[0,1,0.0,0],[1,2,0.151,0],[2,3,0.302,0],[0,1,0.547,0],[1,2,0.698,0],[2,3,0.849,0],[2,1,1.0,0]]},{"id":"FL-21","n":4,"m":[[0,1,0.0,0],[1,2,0.178,0],[2,3,0.356,0],[2,1,0.534,0],[0,1,0.822,0],[1,2,1.0,0]]},{"id":"FL-22","n":4,"m":[[0,1,0.0,0],[1,2,0.108,0],[2,3,0.216,0],[0,1,0.392,0],[1,2,0.5,0],[2,3,0.608,0],[0,1,0.784,0],[1,2,0.892,0],[2,3,1.0,0]]}];
+  const RW = R + 0.25, B = RW * 2 + 0.4, PITCH = 1.65, DIE = 1.55;
+  const cells = [];
+  for (let gz = -4; gz < 4; gz++) for (let gx = -4; gx < 4; gx++) {
+    const cx = (gx + 0.5) * PITCH, cz = (gz + 0.5) * PITCH, far = Math.hypot(Math.abs(cx) + DIE / 2, Math.abs(cz) + DIE / 2), near = Math.hypot(Math.max(0, Math.abs(cx) - DIE / 2), Math.max(0, Math.abs(cz) - DIE / 2));
+    if (near < RW) cells.push({ cx, cz, full: far <= 5.2, d: Math.hypot(cx, cz) });
+  }
+  const full = cells.filter((c) => c.full);
+  const centre = [...full].sort((p, q) => p.d - q.d)[0];
+  centre.kind = "arch";
+  full.filter((c) => c !== centre).forEach((c, k) => { if (k < FLOWS.length) { c.kind = "flow"; c.flow = FLOWS[k]; } else c.kind = "test"; });
+  const ARCH = { users: [0.08, 0.1], web: [0.08, 0.35], api: [0.3, 0.52], hub: [0.08, 0.82], db: [0.55, 0.52], worker: [0.8, 0.52], emb: [0.55, 0.85], llm: [0.82, 0.85], src: [0.82, 0.14], paid: [0.55, 0.14] };
+  const ARCH_E = [["users", "web"], ["web", "api"], ["api", "db"], ["db", "worker"], ["worker", "llm", 1], ["api", "llm", 1], ["worker", "src"], ["worker", "paid"], ["api", "emb", 1], ["worker", "emb", 1], ["api", "hub"]];
+  const pulses = [];
+  const drawBoard = () => {
+    const PX = 2048, sc = PX / B, cv = document.createElement("canvas"); cv.width = cv.height = PX; const g = cv.getContext("2d");
+    const X = (x) => (x + B / 2) * sc, Z = (z) => (z + B / 2) * sc, L = (v) => v * sc;
+    g.save(); g.beginPath(); g.arc(X(0), Z(0), L(RW), 0, TAU); g.clip();
+    g.fillStyle = "rgba(17,17,21,0.93)"; g.fillRect(0, 0, PX, PX);
+    pulses.length = 0;
+    cells.forEach((c) => {
+      const x0 = X(c.cx - DIE / 2), z0 = Z(c.cz - DIE / 2), w = L(DIE);
+      if (!c.full) {
+        g.strokeStyle = "#1E1E24"; g.lineWidth = 2; g.strokeRect(x0, z0, w, w);
+        g.save(); g.beginPath(); g.rect(x0, z0, w, w); g.clip(); g.strokeStyle = "#1A1A1F"; g.lineWidth = 2;
+        for (let k = -w; k < w; k += 18) { g.beginPath(); g.moveTo(x0 + k, z0); g.lineTo(x0 + k + w, z0 + w); g.stroke(); }
+        g.restore(); return;
+      }
+      g.fillStyle = "#141418"; g.fillRect(x0, z0, w, w); g.strokeStyle = "#26262D"; g.lineWidth = 2; g.strokeRect(x0, z0, w, w);
+      g.fillStyle = "#44444D"; g.font = "500 15px 'Geist Mono', monospace";
+      if (c.kind === "test") {
+        g.strokeStyle = "#2E2E36"; g.lineWidth = 2; g.beginPath(); g.moveTo(x0 + w / 2, z0 + 20); g.lineTo(x0 + w / 2, z0 + w - 20); g.moveTo(x0 + 20, z0 + w / 2); g.lineTo(x0 + w - 20, z0 + w / 2); g.stroke();
+        g.beginPath(); g.arc(x0 + w / 2, z0 + w / 2, w * 0.18, 0, TAU); g.stroke(); return;
+      }
+      const m = L(0.1), ix = x0 + m, iz = z0 + L(0.2), iw = w - 2 * m, ih = w - L(0.3);
+      if (c.kind === "arch") {
+        g.fillText("ARCH", x0 + 8, z0 + 20);
+        const P = (k) => [ix + ARCH[k][0] * iw, iz + ARCH[k][1] * ih];
+        ARCH_E.forEach(([a1, b1, hi]) => {
+          const [ax, az] = P(a1), [bx, bz] = P(b1); g.strokeStyle = hi ? "rgba(240,128,63,.85)" : "#3E3E47"; g.lineWidth = 2;
+          g.beginPath(); g.moveTo(ax, az); g.lineTo(bx, az); g.lineTo(bx, bz); g.stroke();
+          if (hi) pulses.push({ pts: [[ax, az], [bx, az], [bx, bz]], hi: 1 });
+        });
+        Object.keys(ARCH).forEach((k) => { const [x, z] = P(k); g.fillStyle = k === "llm" ? "#F0803F" : "#1B1B20"; g.strokeStyle = k === "llm" ? "#F0803F" : "#55555E"; g.lineWidth = 2; g.fillRect(x - 11, z - 8, 22, 16); g.strokeRect(x - 11, z - 8, 22, 16); });
+        return;
+      }
+      const f = c.flow; g.fillText(f.id, x0 + 8, z0 + 20);
+      const lane = (k) => ix + (f.n === 1 ? iw / 2 : (k / (f.n - 1)) * iw);
+      g.strokeStyle = "#2B2B33"; g.lineWidth = 1.5;
+      for (let k = 0; k < f.n; k++) { g.beginPath(); g.moveTo(lane(k), iz - 6); g.lineTo(lane(k), iz + ih); g.stroke(); g.fillStyle = "#34343C"; g.fillRect(lane(k) - 7, iz - 12, 14, 6); }
+      f.m.forEach(([fa, fb, y, hi], k) => {
+        const z = iz + 6 + y * (ih - 12), xa = lane(fa), xb = lane(fb);
+        g.strokeStyle = hi ? "rgba(240,128,63,.9)" : "#474751"; g.lineWidth = hi ? 2.5 : 2;
+        g.beginPath(); g.moveTo(xa, z); g.lineTo(xb, z); g.stroke();
+        g.fillStyle = hi ? "#F0803F" : "#5A5A64"; g.beginPath(); g.arc(xb, z, 3.2, 0, TAU); g.fill();
+        if (hi || k % 5 === 2) pulses.push({ pts: [[xa, z], [xb, z]], hi });
+      });
+    });
+    g.restore();
+    g.strokeStyle = "#2E2E36"; g.lineWidth = 3; g.beginPath(); g.arc(X(0), Z(0), L(RW), 0, TAU); g.stroke();
+    // the wafer notch
+    g.fillStyle = "#0E0E10"; g.beginPath(); g.arc(X(0), Z(-RW), 16, 0, TAU); g.fill();
+    // canvas pixels back to world coordinates for the pulses
+    pulses.forEach((pl) => (pl.w = pl.pts.map(([x, z]) => [x / sc - B / 2, z / sc - B / 2])));
+    const t = new THREE.CanvasTexture(cv); t.anisotropy = 8; return t;
+  };
+  const boardTex = drawBoard();
+  const sieve = new THREE.Group(); scene.add(sieve);
+  const sieveFill = new THREE.Mesh(new THREE.PlaneGeometry(B, B), new THREE.MeshBasicMaterial({ map: boardTex, transparent: true, opacity: 0, depthWrite: false }));
+  sieveFill.rotation.x = -Math.PI / 2; sieve.add(sieveFill);
+  const curSets = [0, 1].map((hi) => {
+    const geo = new THREE.BufferGeometry(), pos = new Float32Array(200 * 3);
+    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    const core = new THREE.PointsMaterial({ size: hi ? 0.06 : 0.045, map: dotTex, color: hi ? C.accent : C.text2, transparent: true, alphaTest: 0.4, depthWrite: false, opacity: 0 });
+    const glow = glowMat(hi ? 0xf0803f : 0xd8d8e0, hi ? 0.42 : 0.26); sieve.add(new THREE.Points(geo, core), new THREE.Points(geo, glow));
+    return { hi, geo, pos, core, glow };
+  });
+  const redraw = () => { sieveFill.material.map = drawBoard(); sieveFill.material.needsUpdate = true; };
+  document.fonts && document.fonts.ready.then(redraw);
+  function stepCurrent(vis) {
+    curSets.forEach((cs) => {
+      const list = pulses.filter((q) => !!q.hi === !!cs.hi).slice(0, 200);
+      list.forEach((q, k) => {
+        const seed = (k * 0.618) % 1, tt = ((time * (cs.hi ? 0.9 : 0.6) + seed) % 1);
+        const pts = q.w, n = pts.length - 1, sgi = Math.min(n - 1, Math.floor(tt * n)), f = tt * n - sgi;
+        cs.pos.set([lerp(pts[sgi][0], pts[sgi + 1][0], f), 0.012, lerp(pts[sgi][1], pts[sgi + 1][1], f)], k * 3);
+      });
+      cs.geo.setDrawRange(0, list.length); cs.geo.attributes.position.needsUpdate = true;
+      cs.core.opacity = vis; cs.glow.opacity = vis * (cs.hi ? 0.9 : 0.5);
+    });
+  }
+
+  // DHL Group's score as a stack of rule segments: Fit on the left, Intent on the right (0.028 units per point)
+  const U = 0.028, COL = 0.34;
+  const boxGeo = new THREE.BoxGeometry(COL, 1, COL); boxGeo.translate(0, 0.5, 0);
+  const boxEdge = new THREE.EdgesGeometry(boxGeo);
+  const SEGS = [
+    { col: 0, pts: 37.5, label: "Sector", val: "Logistics", txt: "+37.5" },
+    { col: 0, pts: 25.0, label: "Region", val: "Germany", txt: "+25.0" },
+    { col: 0, pts: 12.5, label: "Size", val: "unknown", txt: "+12.5", unk: true },
+    { col: 0, pts: 12.5, label: "Complexity", val: "High", txt: "+12.5" },
+    { col: 1, pts: 53.0, label: "AI projects", val: "Strong", txt: "+53.0" },
+    { col: 1, pts: 19.0, label: "Cost programme", val: "Clear", txt: "" },
+  ];
+  const dA = A[DHL], colX = [dA.x - 0.24, dA.x + 0.24];
+  let acc = [0, 0];
+  SEGS.forEach((sg) => {
+    sg.base = acc[sg.col]; sg.h = sg.pts * U; acc[sg.col] += sg.h;
+    const g = new THREE.Group(); g.position.set(colX[sg.col], sg.base, dA.z);
+    const fillC = sg.col ? C.accent : C.fill2, edgeC = sg.col ? C.accent : C.text2;
+    sg.fill = new THREE.Mesh(boxGeo, basic(fillC, 0));
+    sg.edge = sg.unk ? new THREE.LineSegments(boxEdge, new THREE.LineDashedMaterial({ color: C.grey, dashSize: 0.04, gapSize: 0.035, transparent: true, opacity: 0 }))
+                     : new THREE.LineSegments(boxEdge, lineMat(edgeC, 0));
+    g.add(sg.edge); if (!sg.unk) g.add(sg.fill);
+    g.scale.set(1, sg.h - 0.012, 1); scene.add(g); sg.g = g;
+    if (sg.unk) sg.edge.computeLineDistances();
+    const el = document.createElement("div"); el.className = "seg-l" + (sg.col ? " int" : " left") + (sg.unk ? " unk" : "");
+    el.innerHTML = `<b>${sg.label}</b><span>${sg.val}</span>${sg.txt ? `<em>${sg.txt}</em>` : ""}`; $("segls").appendChild(el); sg.el = el;
+  });
+  const prioY = 78 * U;
+  const prioLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-0.5, 0, 0), new THREE.Vector3(0.5, 0, 0)]), lineMat(C.accent, 0));
+  prioLine.position.set(dA.x, prioY, dA.z); scene.add(prioLine);
+
+  // One priority column per account for the ranking
+  const BAND = { hot: [C.accent, C.accent], warm: [0x3a2a1f, C.ink], cold: [0x252b34, C.cool] };
+  A.forEach((a) => {
+    const [fc, ec] = a.band ? BAND[a.band] : [C.fill2, C.line2];
+    a.cfill = new THREE.Mesh(boxGeo, basic(fc, 0)); a.cedge = new THREE.LineSegments(boxEdge, lineMat(ec, 0));
+    a.col = new THREE.Group(); a.col.add(a.cfill, a.cedge); a.col.scale.set(0.8, 0.001, 0.8); scene.add(a.col);
+    a.skyX = -1.15 + a.rankIdx * 0.37;
+  });
+
+  // HTML labels
+  A.forEach((a) => { const el = document.createElement("div"); el.className = "nm"; el.textContent = a.n; $("names").appendChild(el); a.el = el; });
+  PORTS.forEach((p) => { const el = document.createElement("div"); el.className = "port"; el.textContent = p.n; $("ports").appendChild(el); p.el = el; });
+
+  let W = 1, H = 1, narrow = false;
+  function resize() {
+    W = stage.clientWidth; H = stage.clientHeight; narrow = W < 900;
+    renderer.setSize(W, H, false); camera.aspect = W / H; camera.fov = narrow ? 58 : 38; camera.updateProjectionMatrix();
+  }
+  addEventListener("resize", resize); resize();
+
+  const V = (x, y, z) => new THREE.Vector3(x, y, z);
+  function camKeys() {
+    const o = narrow ? 0 : 1;
+    const dl = V(dA.x - 1.1 * o, 1.3, dA.z);
+    return [
+      { p: V(-2.6 * o, 12.2, 10.2), l: V(-2.9 * o, 0, narrow ? 1.8 : 0.2) },
+      { p: V(-1.7 * o, 5.9, 12.6), l: V(-2.0 * o, 0.8, 0) },
+      { p: dl.clone().add(V(0.4 * o, 1.9, 7.2)), l: dl },
+      { p: V(-0.9 * o + (narrow ? 2.4 : 0), 5.2, 13.5), l: V(-1.1 * o + (narrow ? 2.4 : 0), 1.1, 0) },
+      { p: V(-1.0 * o + (narrow ? 2.4 : 0), 1.9, 15.5), l: V(-1.0 * o + (narrow ? 2.4 : 0), 1.2, 0) },
+    ];
+  }
+  const tmp = new THREE.Vector3(), camP = new THREE.Vector3(), camL = new THREE.Vector3();
+  const toScreen = (x, y, z) => { tmp.set(x, y, z).project(camera); return [(tmp.x * 0.5 + 0.5) * W, (-tmp.y * 0.5 + 0.5) * H]; };
+  const setPos = (el, x, y) => { el.style.left = x + "px"; el.style.top = y + "px"; };
+  const col = new THREE.Color(), cGrey = new THREE.Color(C.grey), cText = new THREE.Color(C.text), cAcc = new THREE.Color(C.accent);
+
+  const card = $("card"), trans = $("trans"), src = $("src"), list = $("list");
+  const nFit = $("n-fit"), nInt = $("n-int"), nPrio = $("n-prio"), cntFit = $("cnt-fit"), cntInt = $("cnt-int"), prioL = $("prio-l");
+  const flyers = [$("fly-0"), $("fly-1")], rows = [$("row-0"), $("row-1")], flySrc = [DHL, LH];
+  const TRANS = "DHL uses AI agents in more than 1,000 processes…";
+  const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  const relRect = (el) => { const r = el.getBoundingClientRect(), s = stage.getBoundingClientRect(); return { x: r.left - s.left, y: r.top - s.top, w: r.width, h: r.height }; };
+
+  let time = 0, last = performance.now(), lastP = -1;
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    if (!reduced) time += dt;
+    const p = progress(), step = Math.round(p * (N_STEPS - 1));
+    if (reduced && p === lastP) { requestAnimationFrame(frame); return; }
+    lastP = p;
+    tl.seek(reduced ? step * 1000 : p * TOTAL);
+    dots.forEach((d, i) => d.setAttribute("aria-current", i === step ? "step" : "false"));
+
+    // camera: accounts, then lower for the documents, then close on DHL Group, then the skyline, then face-on
+    const K = camKeys();
+    camP.copy(K[0].p); camL.copy(K[0].l);
+    [[1, S.tilt], [2, S.focus], [3, S.unfocus], [4, S.flat]].forEach(([k, t]) => { const e = ease(t); camP.lerp(K[k].p, e); camL.lerp(K[k].l, e); });
+    camera.position.copy(camP); camera.lookAt(camL);
+
+    const away = Math.max(S.focus * (1 - S.unfocus), 0);          // everything but DHL Group steps back while we look at it
+    const sceneOut = S.flat;                                         // the object gives way to the list
+    discMats.forEach(([m, o]) => (m.opacity = o * (1 - 0.6 * away) * (1 - S.sort * 0.85) * (1 - sceneOut)));
+
+    // points
+    A.forEach((a, i) => {
+      const focusC = i === DHL && S.focus > 0.02;
+      col.copy(cGrey).lerp(cText, S.src * 0.35);
+      if (focusC) col.lerp(cAcc, S.focus);
+      const dim = i === DHL ? 1 : 1 - 0.75 * away;
+      col.multiplyScalar(dim);
+      ptCol.set([col.r, col.g, col.b], i * 3);
+    });
+    ptGeo.attributes.color.needsUpdate = true;
+    points.material.opacity = 1 - S.rise; points.visible = S.rise < 0.99;
+
+    // sources
+    const drawn = S.src, srcVis = 1 - S.read * 0.85;
+    curves.forEach((c, k) => {
+      const local = clamp(drawn * 1.6 - c.seed * 0.6);
+      c.geo.setDrawRange(0, Math.floor(local * 49));
+      c.line.material.opacity = 0.55 * srcVis * (1 - S.sift);
+      const t = local >= 1 ? (time * 0.28 + c.seed) % 1 : local;
+      const pt = c.curve.getPoint(reduced ? 0.6 : t); pkPos.set([pt.x, pt.y, pt.z], k * 3);
+    });
+    pkGeo.attributes.position.needsUpdate = true;
+    pkMat.opacity = clamp(S.src * 2 - 1) * (1 - S.read); pkGlow.opacity = pkMat.opacity * 0.95;
+    portMarks.forEach((m) => (m.material.opacity = S.src * (1 - S.sift) * 0.9));
+
+    // documents: fall into stacks, then the sieve sets most of them aside
+    const sieveY = lerp(1.7, -0.06, S.sift);
+    sieve.position.y = sieveY;
+    const sv = clamp(S.sift * 6) * (1 - S.focus); sieveFill.material.opacity = 0.9 * sv; sieve.visible = sv > 0.004;
+    if (sieve.visible) stepCurrent(sv);
+    sheets.forEach((sh) => {
+      const a = sh.a, l = ease(clamp((S.read - sh.delay) / 0.25));
+      let y = lerp(sh.y + 2.2, sh.y, l), op = l, edgeC = C.line2, fillC = C.fill;
+      const passed = clamp((sh.y - sieveY) / 0.3) * (S.sift > 0 ? 1 : 0);
+      if (!sh.rel) { op *= 1 - passed; y -= passed * 0.5; }
+      else if (passed > 0) edgeC = a.i === DHL ? C.accent : C.text2;
+      if (a.i !== DHL) op *= 1 - 0.75 * away; else op *= 1 - S.docsOut;
+      op *= 1 - S.collapse;
+      if (sh === liftSheet) {
+        const e = ease(S.lift);
+        y += e * 1.1; sh.g.rotation.x = -e * 0.9; op *= 1 - clamp(S.card * 1.4);
+      }
+      sh.g.position.set(a.x, y, a.z);
+      sh.fill.material.opacity = op * 0.95; sh.edge.material.opacity = op; sh.edge.material.color.setHex(edgeC);
+      sh.g.visible = op > 0.004;
+    });
+
+    // quote card grows out of the lifted sheet
+    const [sx, sy] = toScreen(liftSheet.g.position.x, liftSheet.g.position.y, liftSheet.g.position.z);
+    const cardL = narrow ? 16 : Math.min(W - 460, W * 0.58), cardT = narrow ? 76 : H * 0.2;
+    const ce = ease(S.card);
+    setPos(card, cardL, cardT);
+    card.style.transform = `translate(${(sx - cardL) * (1 - ce)}px, ${(sy - cardT) * (1 - ce)}px) scale(${lerp(0.12, 1, ce)})`;
+    card.style.opacity = clamp(S.card * 3) * (1 - S.quoteOut);
+    trans.innerHTML = esc(TRANS.slice(0, Math.round(S.typeT * TRANS.length))) + (S.typeT > 0 && S.typeT < 1 ? '<span class="caret"></span>' : "");
+    src.style.opacity = S.typeT > 0.95 ? 1 : 0;
+
+    // DHL Group's rule stack
+    SEGS.forEach((sg, k) => {
+      const e = clamp(S["g" + k]), out = S.collapse;
+      sg.g.position.y = sg.base + (1 - e) * 1.0;
+      const op = e * (1 - out);
+      sg.fill.material.opacity = op * (sg.col ? 0.92 : 0.9); sg.edge.material.opacity = op;
+      sg.g.visible = op > 0.004;
+      const [lx, ly] = toScreen(colX[sg.col] + (sg.col ? 0.26 : -0.26), sg.base + sg.h / 2, dA.z);
+      setPos(sg.el, lx, ly); sg.el.style.opacity = e * (1 - out);
+    });
+    const [fx, fy] = toScreen(colX[0], -0.08, dA.z + 0.2), [ix, iy] = toScreen(colX[1], -0.08, dA.z + 0.2);
+    setPos(cntFit, fx, fy); setPos(cntInt, ix, iy);
+    cntFit.style.opacity = cntInt.style.opacity = clamp(S.g0 * 2) * (1 - S.collapse);
+    nFit.textContent = Math.round(88 * S.fitN); nInt.textContent = Math.round(72 * S.intN);
+    prioLine.scale.x = S.prioLine; prioLine.material.opacity = S.prioLine * (1 - S.collapse);
+    const [px, py] = toScreen(dA.x + 0.5, prioY, dA.z);
+    setPos(prioL, px, py); prioL.style.opacity = S.prioLine * (1 - S.collapse); nPrio.textContent = Math.round(78 * S.prioLine);
+
+    // the ranking: every account rises to its priority, then the columns line up
+    A.forEach((a) => {
+      const se = ease(S.sort);
+      const h = Math.max(0.001, a.prio * U * ease(S.rise) * (1 - sceneOut * 0.97));
+      a.col.position.set(lerp(a.x, a.skyX, se), 0, lerp(a.z, 0, se));
+      a.col.scale.set(lerp(0.8, 0.85, se), h, lerp(0.8, 0.85, se));
+      const op = clamp(S.rise * 3) * (1 - sceneOut * 0.85);
+      a.cfill.material.opacity = op * (a.band ? 0.95 : 0.8); a.cedge.material.opacity = op;
+      a.col.visible = op > 0.004;
+    });
+
+    // names: all at first, then only DHL Group, then the three leaders on their columns
+    A.forEach((a, i) => {
+      const top = S.rise > 0.01, ranks = a.rankIdx < 1;
+      const wx = top ? a.col.position.x : a.x, wy = top ? a.prio * U * ease(S.rise) + 0.18 : 0, wz = top ? a.col.position.z : a.z;
+      const [x, y] = toScreen(wx, wy, wz);
+      a.sx = x; a.sy = y;
+      let op = (1 - S.src * 0.45) * (1 - 0.9 * away);
+      op *= 1 - clamp(S.sift * 6) * (1 - S.focus) * (a.rel.length ? 0.35 : 0.92);
+      if (i === DHL) op = Math.max(op, S.focus * (1 - S.collapse) * (1 - clamp(S.g0 * 2)));
+      if (top) op = ranks ? clamp(S.rise * 2) * (1 - S.fly) : op * (1 - clamp(S.rise * 3));
+      if (top && ranks) { a.el.style.transform = "translate(-50%, -100%)"; } else a.el.style.transform = "";
+      a.el.classList.toggle("on", top && ranks);
+      a.el.classList.toggle("focus", i === DHL && S.focus > 0.5 && !top);
+      setPos(a.el, x, y); a.el.style.opacity = op;
+    });
+    PORTS.forEach((pt) => { const [x, y] = toScreen(pt.x, 0, pt.z); setPos(pt.el, x, y); pt.el.style.opacity = S.src * (1 - S.sift); });
+
+    // the list takes over; the leaders' names fly into their rows
+    const lw = narrow ? W - 32 : Math.min(760, W * 0.54), ll = narrow ? 16 : W - lw - 72;
+    list.style.width = lw + "px"; setPos(list, ll, narrow ? 76 : H * 0.18);
+    list.style.opacity = S.list; list.style.transform = `translateY(${(1 - S.list) * 14}px)`;
+    flyers.forEach((f, k) => {
+      const a = A[flySrc[k]], fk = ease(clamp((S.fly - k * 0.2) / 0.8)), tr = relRect(rows[k]);
+      setPos(f, lerp(a.sx - f.offsetWidth / 2, tr.x, fk), lerp(a.sy - 14, tr.y, fk));
+      f.style.opacity = S.fly > 0 && fk < 0.999 ? 1 : 0; rows[k].style.opacity = fk >= 0.999 || S.fly === 0 ? (S.fly === 0 ? 0 : 1) : 0;
+    });
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

@@ -1,6 +1,8 @@
 """Router of the [Authentication and users](/architecture/interfaces.md#authentication-and-users)
-family: `API-01` to `API-06`. Each route validates its input into a Pydantic model, calls one
-`auth` capability function, and shapes the response (api Design "Layering")."""
+family: `API-01` to `API-06`, each built here; `API-78` is a declared stub answering
+`501 NOT_IMPLEMENTED` until task 2 builds it. Each built route validates its input into a
+Pydantic model, calls one `auth` capability function, and shapes the response
+(api Design "Layering")."""
 
 from __future__ import annotations
 
@@ -10,7 +12,8 @@ import uuid
 from datetime import datetime
 
 from fastapi import APIRouter, Cookie, Depends, Request, Response
-from pydantic import BaseModel, ConfigDict, SecretStr
+from pydantic import BaseModel, ConfigDict, SecretStr, field_validator
+from pydantic.json_schema import SkipJsonSchema
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from leadradar.api.authentication import (
@@ -19,6 +22,7 @@ from leadradar.api.authentication import (
     require_admin,
 )
 from leadradar.api.constants import API_PREFIX
+from leadradar.api.router_utils import stub_router
 from leadradar.auth.sessions import sign_in, sign_out
 from leadradar.auth.users import (
     UserCreateData,
@@ -31,6 +35,16 @@ from leadradar.core.enums import AppUserRole, AppUserStatus
 from leadradar.db.models.identity import AppUser
 from leadradar.db.session import get_session
 from leadradar.settings import ApiSettings
+
+demo_login_stub_router = stub_router("authentication-and-users")
+
+
+class DemoLoginRequest(BaseModel):
+    """[`DemoLoginRequest`](/architecture/interfaces.md#demologinrequest)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    role: AppUserRole
 
 
 class LoginRequest(BaseModel):
@@ -88,10 +102,17 @@ class UserUpdate(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    display_name: str | None = None
-    role: AppUserRole | None = None
-    status: AppUserStatus | None = None
-    password: SecretStr | None = None
+    display_name: str | SkipJsonSchema[None] = None
+    role: AppUserRole | SkipJsonSchema[None] = None
+    status: AppUserStatus | SkipJsonSchema[None] = None
+    password: SecretStr | SkipJsonSchema[None] = None
+
+    @field_validator("display_name", "role", "status", "password", mode="before")
+    @classmethod
+    def _optional_field_is_not_null(cls, value: object) -> object:
+        if value is None:
+            raise ValueError("Omit this field instead of sending null.")
+        return value
 
 
 def _to_authenticated_user(user: AppUser) -> AuthenticatedUser:
@@ -218,9 +239,9 @@ def build_users_router(settings: ApiSettings) -> APIRouter:
         )
         return _to_user(user)
 
-    @router.patch("/users/{user_id}", response_model=User)
+    @router.patch("/users/{id}", response_model=User)
     async def update_user_route(
-        user_id: uuid.UUID,
+        id: uuid.UUID,
         payload: UserUpdate,
         request: Request,
         admin: AppUser = Depends(require_admin),
@@ -237,7 +258,7 @@ def build_users_router(settings: ApiSettings) -> APIRouter:
         user = await update_user(
             db,
             actor_id=admin.id,
-            user_id=user_id,
+            user_id=id,
             data=data,
             now=request.app.state.clock(),
             password_min_length=settings.password_min_length,
@@ -245,3 +266,9 @@ def build_users_router(settings: ApiSettings) -> APIRouter:
         return _to_user(user)
 
     return router
+
+
+@demo_login_stub_router.post("/auth/demo-login", response_model=AuthenticatedUser)
+async def demo_login(payload: DemoLoginRequest) -> AuthenticatedUser:
+    """`API-78`."""
+    raise AssertionError("unreachable: contract_not_built already raised")

@@ -6,17 +6,11 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: [
-      "dist",
-      "coverage",
-      "src/api/schema.gen.ts",
-      "src/api/pending/schema.gen.ts",
-      "dev-public",
-    ],
+    ignores: ["dist", "coverage", "src/api/schema.gen.ts", "dev-public"],
   },
   js.configs.recommended,
   {
-    files: ["src/**/*.{ts,tsx}"],
+    files: ["src/**/*.{ts,tsx}", "vite.config.ts"],
     extends: [...tseslint.configs.strictTypeChecked, jsxA11y.flatConfigs.recommended],
     languageOptions: {
       ecmaVersion: 2022,

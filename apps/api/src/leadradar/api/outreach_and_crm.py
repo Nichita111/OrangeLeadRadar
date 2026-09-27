@@ -1,5 +1,6 @@
-"""Router of the [Outreach and CRM](/architecture/interfaces.md#outreach-and-crm) family. Only
-`API-59` is in scope of this task; `API-56` to `API-58` are `S-OUT-01`'s."""
+"""Router of the [Outreach and CRM](/architecture/interfaces.md#outreach-and-crm) family:
+`API-56` to `API-59`. `API-59` is built; `API-56` to `API-58` are declared stubs answering
+`501 NOT_IMPLEMENTED` until `S-OUT-01`."""
 
 from __future__ import annotations
 
@@ -9,14 +10,80 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, ConfigDict
+from pydantic.json_schema import SkipJsonSchema
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from leadradar.api.authentication import CurrentUser
-from leadradar.core.enums import CrmSyncStatus, CrmSyncTarget
+from leadradar.api.router_utils import stub_router
+from leadradar.core.enums import (
+    CrmSyncStatus,
+    CrmSyncTarget,
+    OutreachDraftChannel,
+    OutreachDraftStatus,
+)
 from leadradar.db.session import get_session
 from leadradar.outreach.commands import push_to_crm
 
 router = APIRouter(tags=["outreach-and-crm"])
+outreach_stub_router = stub_router("outreach-and-crm")
+
+
+class OutreachRequest(BaseModel):
+    """[`OutreachRequest`](/architecture/interfaces.md#outreachrequest)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    channel: OutreachDraftChannel
+    contact_id: str | SkipJsonSchema[None] = None
+
+
+class OutreachDraftContact(BaseModel):
+    """`OutreachDraft.contact`."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    id: str
+    full_name: str
+    job_title: str
+
+
+class OutreachDraftFinding(BaseModel):
+    """One entry of `OutreachDraft.findings`."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    id: str
+    question_text: str
+    quote: str
+
+
+class OutreachDraft(BaseModel):
+    """[`OutreachDraft`](/architecture/interfaces.md#outreachdraft)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    id: str
+    account_id: str
+    service_id: str
+    subject: str | None
+    body: str
+    edited: bool
+    created_at: str
+    channel: OutreachDraftChannel
+    status: OutreachDraftStatus
+    contact: OutreachDraftContact | None
+    findings: list[OutreachDraftFinding]
+    created_by_name: str
+
+
+class OutreachDraftUpdate(BaseModel):
+    """[`OutreachDraftUpdate`](/architecture/interfaces.md#outreachdraftupdate)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    subject: str | SkipJsonSchema[None] = None
+    body: str | SkipJsonSchema[None] = None
+    status: OutreachDraftStatus | SkipJsonSchema[None] = None
 
 
 class CrmSyncView(BaseModel):
@@ -60,3 +127,25 @@ async def post_crm_push(
         target=result.target,
         status=result.status,
     )
+
+
+@outreach_stub_router.post(
+    "/accounts/{id}/scores/{service_id}/outreach-drafts", response_model=OutreachDraft
+)
+async def create_outreach_draft(
+    id: str, service_id: str, payload: OutreachRequest
+) -> OutreachDraft:
+    """`API-56`."""
+    raise AssertionError("unreachable: contract_not_built already raised")
+
+
+@outreach_stub_router.get("/accounts/{id}/outreach-drafts", response_model=list[OutreachDraft])
+async def list_outreach_drafts(id: str, service_id: str) -> list[OutreachDraft]:
+    """`API-57`."""
+    raise AssertionError("unreachable: contract_not_built already raised")
+
+
+@outreach_stub_router.patch("/outreach-drafts/{id}", response_model=OutreachDraft)
+async def update_outreach_draft(id: str, payload: OutreachDraftUpdate) -> OutreachDraft:
+    """`API-58`."""
+    raise AssertionError("unreachable: contract_not_built already raised")

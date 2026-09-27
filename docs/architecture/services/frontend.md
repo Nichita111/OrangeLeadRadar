@@ -10,7 +10,7 @@ tags: [accounts-and-discovery, audit-trail, evaluation-and-feedback, identity-an
 
 ## Responsibilities
 
-The frontend is the only user interface: a single-page React app for Sales and Admin users on desktop browsers. It renders what the api returns and composes no score, band, standing or finding of its own; every number it shows comes from a contract. It is built for users without AI expertise: it speaks in the [screen labels](#screen-labels), never in model terms, and it makes every change of state visible, on the screen and in words.
+The frontend is the only user interface: a single-page React app for Sales and Admin users on desktop browsers, opened by the [Landing](#landing) page for anonymous visitors. It renders what the api returns and composes no score, band, standing or finding of its own; every number it shows comes from a contract. It is built for users without AI expertise: it speaks in the [screen labels](#screen-labels), never in model terms, and it makes every change of state visible, on the screen and in words.
 
 It never calls a provider, never stores data outside the browser session except the conveniences [Navigation](#navigation) names, never loads a font, script or image from a third party, and never holds a secret.
 
@@ -24,12 +24,13 @@ Consumes every REST family of [interfaces](/architecture/interfaces.md) through 
 
 ## Design
 
-React with TypeScript in strict mode, built by Vite; React Router for routes; TanStack Query for server state, caching and polling; a typed client generated with `openapi-typescript`; Tailwind CSS with Radix-based components for accessible primitives. Icons come from one family, Phosphor (`@phosphor-icons/react`), at the weights [Visual language](#visual-language) names. Type is Geist and Geist Mono, self-hosted by the `web` container. Animation uses `motion`, and the animated components of [Motion](#motion) are copied from React Bits ([ADR-17](/architecture/adrs/adr-17-animated-components-from-react-bits.md)). The build is static files served by the `web` container, which proxies `/api/v1` to `API_UPSTREAM`. The other keys of [Runtime](#runtime) reach the client at run time: the `web` container writes them to `/config.json` when it starts, and the client reads that file before its first render, so changing one needs a restart, not a rebuild.
+React with TypeScript in strict mode, built by Vite; React Router for routes; TanStack Query for server state, caching and polling; a typed client generated with `openapi-typescript`; Tailwind CSS with Radix-based components for accessible primitives. Icons come from one family, Phosphor (`@phosphor-icons/react`), at the weights [Visual language](#visual-language) names. Type is Geist and Geist Mono, self-hosted by the `web` container. Animation uses `motion`, and the animated components of [Motion](#motion) are copied from React Bits ([ADR-17](/architecture/adrs/adr-17-animated-components-from-react-bits.md)). The [Landing](#landing) scene alone uses three.js through `@react-three/fiber`, `@react-three/drei` and `@react-three/postprocessing`, animated with Anime.js ([ADR-20](/architecture/adrs/adr-20-landing-scene-mock-layer-and-demo-sign-in.md)). The build is static files served by the `web` container, which proxies `/api/v1` to `API_UPSTREAM`. The other keys of [Runtime](#runtime) reach the client at run time: the `web` container writes them to `/config.json` when it starts, and the client reads that file before its first render, so changing one needs a restart, not a rebuild.
 
 ## Routes
 
 | Route | Screen | Roles | Feature |
 |---|---|---|---|
+| `/` | [Landing](#landing) | anonymous | — |
 | `/login` | [Sign in](/features/identity-and-access.md#sign-in) | anonymous | identity-and-access |
 | `/prospects` | [Prospects](/features/prospect-dashboard.md#prospects) | any | prospect-dashboard |
 | `/accounts/:id` | [Account detail](/features/prospect-dashboard.md#account-detail) | any | prospect-dashboard |
@@ -50,7 +51,43 @@ React with TypeScript in strict mode, built by Vite; React Router for routes; Ta
 | `/users` | [Users](/features/identity-and-access.md#users) | Admin | identity-and-access |
 | `/audit` | [Audit log](/features/audit-trail.md#audit-log) | Admin | audit-trail |
 
-`/` redirects to `/prospects`.
+A signed-in user opening `/` is sent to `/prospects` ([Landing](#landing)).
+
+## Landing
+
+Route `/`. Anonymous; a signed-in user is sent to `/prospects`. The page that opens the live demo: three steps that say what LeadRadar does, each leading to [Sign in](/features/identity-and-access.md#sign-in).
+
+```text
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ LeadRadar                                                        [ Sign in ] │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ Scan   Know which accounts to call, and exactly why.                         │
+│        LeadRadar reads public news, company sites and job boards.            │
+│        [ scene: a field of accounts under a radar sweep ]                    │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ Quote  Every signal carries a verbatim quote, its source and its date.       │
+│        [ scene: lines draw from DHL Group to a card typing                ]  │
+│        [ "DHL setzt in über 1.000 Prozessen KI-Agenten ein…", then        ]  │
+│        [ English: "DHL uses AI agents in more than 1,000 processes…"      ]  │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ Rank   Scores come from fixed rules you can read, not from a model.          │
+│        LeadRadar never contacts anyone.                          [ Sign in ] │
+│        [ scene: the accounts rise into Hot, Warm and Cold rings ]            │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+WF-27 — Landing
+
+| ID | Requirement |
+|---|---|
+| `FR-161` | Landing shall show three full-viewport steps in order — Scan, Quote, Rank — each with the words of WF-27, over one pinned scene that each step advances as the visitor scrolls; scrolling back reverses the scene. |
+| `FR-162` | A header with the LeadRadar mark and a Sign in button shall stay visible on every step, and the Rank step shall end with a Sign in button; both open Sign in. |
+| `FR-163` | A signed-in user opening `/` shall be sent to `/prospects`. |
+| `FR-164` | The scene shall show the accounts as points that a radar beam sweeps in Scan; draw lines from DHL Group's point to a card that types DHL Group's quote and then its English translation, as [WF-24](#score-presentation) shows them, in Quote; and raise the points into three rings, Hot, Warm and Cold, each with its band icon ([FR-111](#score-presentation)), in Rank. Its colours are the tokens Accent for Hot and the beam, Accent soft for Warm and Cool for Cold, on the dark Page, in both colour schemes. |
+| `FR-165` | The words of each step shall render before the scene loads; under `prefers-reduced-motion` each step shall show the end frame of its scene still, and without WebGL each step shall show a still image of that end frame. |
+| `FR-166` | Landing shall load lazily; three.js and Anime.js are imported by no other screen, and every font, script and texture it uses is served by the `web` container ([FR-109](#visual-language)). |
+
+**Data**: `API-03`. **States**: none; the page has no data view.
 
 ## Navigation
 
@@ -85,7 +122,7 @@ WF-01 — application shell
 |---|---|
 | `FR-001` | The shell shall show a left navigation with Prospects, Alerts, Accounts, Suggested accounts, Runs and Labelling for every user, and an Admin section with Services, Industries and markets, Quality, Source plug-ins, Users and Audit log shown only to Admins. |
 | `FR-002` | The Alerts entry shall show the number of unread alerts of the selected service when it is greater than zero. |
-| `FR-003` | The header shall carry a service selector listing the active services; the selected service applies to Prospects, Alerts, Suggested accounts and Account detail, and is remembered in the browser's local storage per user, falling back to the first active service. |
+| `FR-003` | The header shall carry a service selector listing the active services; the selected service applies to Prospects, Alerts, Suggested accounts, Account detail and Labelling, and is remembered in the browser's local storage per user, falling back to the first active service. |
 | `FR-004` | The user card at the foot of the navigation shall show the user's display name and role and offer Sign out. |
 | `FR-101` | The navigation shall group its entries under the headings Work and Admin only, every entry carrying an icon and its label; the entry of the current screen shall be marked with a tint and the accessible current-page state, never by colour alone. |
 | `FR-102` | The header shall show the current screen as a breadcrumb, with the parent screen as a link on a nested screen such as Account detail, and every Admin screen shall carry an Admin only chip. |
@@ -153,7 +190,7 @@ The values below are literal design values. The client defines each as a token, 
 
 | ID | Requirement |
 |---|---|
-| `FR-106` | The client shall define colour, type, radius and spacing as tokens with a light and a dark value, follow the system colour scheme, and offer no per-section inversion; a screen never uses a literal colour. |
+| `FR-106` | The client shall define colour, type, radius and spacing as tokens with a light and a dark value, follow the system colour scheme, and offer no per-section inversion except [Landing](#landing), which is dark in both schemes; a screen never uses a literal colour. |
 | `FR-107` | The client shall use one accent colour; the positive, negative, caution and cool colours express state only, and no state is carried by colour alone ([FR-016](#accessibility)). |
 | `FR-108` | Every text and control colour pair of the tokens shall meet WCAG 2.2 AA contrast in both themes; a new token is added only with its measured contrast. |
 | `FR-109` | The client shall serve its fonts and icons itself and make no request to a third party. |
@@ -184,17 +221,25 @@ WF-24 — score anatomy
 | `FR-111` | A band shall be a chip with an icon and its label: Hot a filled accent chip with a flame, Warm a soft accent chip with a sun, Cold a cool chip with a snowflake; a standing other than Ranked is a neutral chip with its label and no band. |
 | `FR-112` | Priority shall be shown as a number in the mono face, larger than Fit and Intent; Fit and Intent each carry a one-line meaning in words where they first appear on a screen, and a bar beside a number is drawn without a background track. |
 | `FR-113` | A signal shall carry a polarity mark: a filled plus circle for a positive signal and a filled minus circle for a negative one, beside the question's label and the signed points. |
-| `FR-114` | A Fit criterion shall carry a match mark: a check for matched, a dashed circle for unknown and a cross for not matched, beside the criterion's icon, its value, its weight level and its points; an unknown criterion says which fact to add to sharpen the score. |
+| `FR-114` | A Fit criterion shall carry a match mark: a check for matched, a dashed circle for unknown and a cross for not matched, beside the criterion's icon, its value, its weight level and its points; an unknown criterion names the fact of the table below that would sharpen the score. |
 | `FR-115` | A strength shall be a chip with the label Weak, Clear or Strong and a confidence shall follow [FR-009](#screen-labels); the deciding check is shown as Quick check or Detailed check. |
 | `FR-116` | A quote shall be shown verbatim with a rule at its left, its English translation on the next line when the passage is not English, then its source domain, source type and age; in the evidence view the quoted sentence is highlighted inside its passage. |
 | `FR-117` | Wherever a band is explained, the legend shall read the Warm and Hot thresholds from the service's active [scoring settings](/architecture/sql-store.md#scoring-settings-document), never from literals in the client. |
+
+| Criterion kind | Icon | Fact an unknown criterion asks for |
+|---|---|---|
+| `INDUSTRY` | Factory | the industry |
+| `GEOGRAPHY` | GlobeHemisphereWest | the country |
+| `EMPLOYEE_RANGE` | UsersThree | the employee count |
+| `REVENUE_RANGE` | CurrencyEur | the revenue |
+| `OPERATIONAL_COMPLEXITY` | TreeStructure | the operational complexity |
 
 ## States
 
 | ID | Requirement |
 |---|---|
 | `FR-005` | Every data view shall render four states: loading (skeleton rows, no spinner longer than the content), empty (a sentence saying what would appear and the action that creates it), error (the error's message and a Retry button), and unavailable (for `503` and `429`: the screen wording of the [Degradation](/architecture/overview.md#degradation) row that the error names under [Dependencies](/architecture/interfaces.md#conventions), saying which dependency is unavailable and what still works). |
-| `FR-006` | A `401` from any call other than `API-01` shall send the user to Sign in with the current route as return path; a `403` from any call other than `API-01` shall show a "Not allowed" page naming the role required. |
+| `FR-006` | A `401` from any call other than `API-01` shall send the user to Sign in with the current route as return path; a `403` from any call other than `API-01` and `API-78` shall show a "Not allowed" page naming the role required. |
 | `FR-007` | A form shall keep the user's input when a save fails and show each `VALIDATION` field error next to its field; any other error of a save shall show as an error callout in the form, the input kept. |
 | `FR-118` | A loading state shall draw skeleton shapes the size of the rows or cards it stands in for, so the layout does not move when the data arrives; an empty state shall name the action that fills it and offer that action as a button; an unavailable state shall list what still works with a check for each item. |
 | `FR-119` | A form field shall place its label above the input, its hint below the label or the input, and its error below the input in words; a placeholder is never the label. |
@@ -249,7 +294,7 @@ The words the screens show for glossary terms. A label is a presentation of the 
 
 ## Motion
 
-Motion tells a user that something changed. It never carries meaning alone, never delays a task, and every pattern below collapses to an instant change under `prefers-reduced-motion`. Only transform and opacity are animated. The animated components come from [React Bits](https://reactbits.dev), installed through its shadcn registry in the TypeScript and Tailwind variant and copied into `apps/web/src/components/motion/` ([ADR-17](/architecture/adrs/adr-17-animated-components-from-react-bits.md)); the Motion library supplies the rest.
+Motion tells a user that something changed. It never carries meaning alone, never delays a task, and every pattern below collapses to an instant change under `prefers-reduced-motion`. Only transform and opacity are animated. The animated components come from [React Bits](https://reactbits.dev), installed through its shadcn registry in the TypeScript and Tailwind variant and copied into `apps/web/src/components/motion/` ([ADR-17](/architecture/adrs/adr-17-animated-components-from-react-bits.md)); the Motion library supplies the rest. The [Landing](#landing) scene is outside these patterns: it is built with three.js and Anime.js ([ADR-20](/architecture/adrs/adr-20-landing-scene-mock-layer-and-demo-sign-in.md)).
 
 | Pattern | React Bits family | Where | What it communicates |
 |---|---|---|---|
@@ -261,7 +306,7 @@ Motion tells a user that something changed. It never carries meaning alone, neve
 | Spotlight hover | Components | A card that is a link, on pointer devices | The card is clickable |
 | Success pulse | Micro interactions | Copy, Push to HubSpot and Accept | The action completed |
 | Blur-in text | Text animations | The headline of an empty state and of Sign in, once on arrival | A screen or state has arrived |
-| Aurora background | Backgrounds | The brand panel of Sign in only | Ambience; the only WebGL, loaded lazily |
+| Aurora background | Backgrounds | The brand panel of Sign in only | Ambience, loaded lazily |
 
 | Design value | Setting |
 |---|---|
@@ -277,9 +322,9 @@ Motion tells a user that something changed. It never carries meaning alone, neve
 |---|---|
 | `FR-124` | Every animation shall be one row of the patterns above; a pattern that is not listed is not used. |
 | `FR-125` | Under `prefers-reduced-motion` every pattern shall show its end state at once, the running indicator shall show a static mark with its label, and the Aurora background shall show a still gradient of the same colours. |
-| `FR-126` | A screen shall show at most one perpetual animation at a time, the running indicator; no pattern loops, parallax, scroll-driven motion or custom cursors are used on any screen. |
+| `FR-126` | A screen shall show at most one perpetual animation at a time, the running indicator; no pattern loops, parallax, scroll-driven motion or custom cursors are used on any screen except the scene of [Landing](#landing). |
 | `FR-127` | A button shall respond to a press within its own bounds, and a pattern shall never move content the user is reading or about to click. |
-| `FR-128` | The Sign in background shall load lazily and its failure to load shall leave the still gradient; no other screen imports a WebGL library. |
+| `FR-128` | The Sign in background and the Landing scene shall load lazily; a failure to load leaves the still gradient on Sign in and the still end frames on Landing; no other screen imports a WebGL library. |
 
 ## Polling
 
@@ -310,6 +355,7 @@ Motion tells a user that something changed. It never carries meaning alone, neve
 | `ALERT_POLL_INTERVAL_MS` | `60000` | Poll interval of the unread-alert count |
 | `CONFIDENCE_HIGH_MIN` | `0.85` | Lowest confidence shown as High |
 | `CONFIDENCE_MEDIUM_MIN` | `0.65` | Lowest confidence shown as Medium |
+| `DEMO_SIGN_IN` | `false` | When `true`, Sign in shows the demo shortcuts ([FR-167](/features/identity-and-access.md#sign-in)); set it only where the api runs with `FIXTURE_MODE` `replay` |
 
 ## Examples
 

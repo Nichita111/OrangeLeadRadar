@@ -13,6 +13,7 @@ from pydantic import SecretStr
 from pydantic_settings import SettingsConfigDict
 
 from leadradar.ai.settings import AiGatewaySettings
+from leadradar.logs import LogLevel
 
 
 class ApiSettings(AiGatewaySettings):
@@ -25,7 +26,7 @@ class ApiSettings(AiGatewaySettings):
     migration_database_url: SecretStr
     api_host: str = "0.0.0.0"
     api_port: int = 8000
-    log_level: str = "INFO"
+    log_level: LogLevel = "INFO"
     health_timeout_ms: int = 2000
 
     impact_period_days: int = 30
@@ -54,6 +55,5 @@ class ApiSettings(AiGatewaySettings):
     outreach_inmail_max_chars: int = 1900
     contact_retention_days: int = 730
     hubspot_access_token: SecretStr | None = None
-    eval_min_items: int = 200
     job_poll_interval_s: int = 1
     refresh_target_minutes: int = 10

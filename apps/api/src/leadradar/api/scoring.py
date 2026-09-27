@@ -1,7 +1,7 @@
 """Router for the [Scoring](/architecture/interfaces.md#scoring) interface family.
 
-This module implements `API-18` only; `API-15`, `API-16`, `API-17`, `API-19` are deferred to
-the service-configuration task.
+`API-15` to `API-17` are built in `leadradar.api.configuration`. This module implements `API-18`;
+`API-19` is a declared stub answering `501 NOT_IMPLEMENTED`.
 
 `API-18` `POST /scoring-configs/{id}/activate` — Admin only; activates a DRAFT scoring config,
 retires the previous ACTIVE version, creates a RESCORE run and returns `ScoringConfig`.
@@ -19,14 +19,17 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from leadradar.api.authentication import require_admin
+from leadradar.api.configuration import ScoringConfig
 from leadradar.api.errors import envelope
-from leadradar.core.enums import ScoringConfigStatus
+from leadradar.api.router_utils import stub_router
+from leadradar.core.enums import AccountScoreBand, AccountScoreStanding
 from leadradar.db.models.identity import AppUser
 from leadradar.db.session import get_session
 from leadradar.scoring.activate import activate_scoring_config
 from leadradar.scoring.errors import NotADraft, ScoringConfigNotFound
 
 router = APIRouter(tags=["scoring"])
+scoring_stub_router = stub_router("scoring")
 
 
 # ---------------------------------------------------------------------------
@@ -35,26 +38,53 @@ router = APIRouter(tags=["scoring"])
 
 
 class ActivationRequest(BaseModel):
-    """`ActivationRequest`: `change_note` required."""
+    """[`ActivationRequest`](/architecture/interfaces.md#activationrequest): `change_note`
+    required."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     change_note: str
 
 
-class ScoringConfig(BaseModel):
-    """`ScoringConfig` ([interfaces](/architecture/interfaces.md#scoringconfig))."""
+class ScoringPreviewAccount(BaseModel):
+    """`ScoringPreview.changes[].account`."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     id: str
-    service_id: str
-    version: int
-    status: ScoringConfigStatus
-    change_note: str | None
-    activated_at: str | None
-    activated_by_name: str | None
-    settings: dict[str, object]
+    name: str
+
+
+class ScoringPreviewScore(BaseModel):
+    """`ScoringPreview.changes[].current` and `.proposed`."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    priority: int
+    standing: AccountScoreStanding
+    band: AccountScoreBand | None
+    rank: int | None
+
+
+class ScoringPreviewChange(BaseModel):
+    """One entry of `ScoringPreview.changes`."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    account: ScoringPreviewAccount
+    current: ScoringPreviewScore
+    proposed: ScoringPreviewScore
+
+
+class ScoringPreview(BaseModel):
+    """[`ScoringPreview`](/architecture/interfaces.md#scoringpreview)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    draft_version: int
+    active_version: int
+    changes: list[ScoringPreviewChange]
+    unchanged_count: int
 
 
 # ---------------------------------------------------------------------------
@@ -64,6 +94,7 @@ class ScoringConfig(BaseModel):
 
 @router.post(
     "/scoring-configs/{id}/activate",
+    response_model=ScoringConfig,
     summary="API-18: Activate a DRAFT scoring config",
 )
 async def activate_scoring_config_route(
@@ -122,3 +153,9 @@ async def activate_scoring_config_route(
         settings=result.settings,
     )
     return JSONResponse(status_code=200, content=response.model_dump(mode="json"))
+
+
+@scoring_stub_router.post("/scoring-configs/{id}/preview", response_model=ScoringPreview)
+async def preview_scoring_config(id: str) -> ScoringPreview:
+    """`API-19`."""
+    raise AssertionError("unreachable: contract_not_built already raised")

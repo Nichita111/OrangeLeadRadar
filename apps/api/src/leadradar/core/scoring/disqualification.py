@@ -23,6 +23,9 @@ class DisqEntry:
     overridden: bool
     override_id: str | None
     finding_id: str | None  # The finding that triggered a SIGNAL disqualifier
+    kind: str = ""
+    criterion_key: str | None = None
+    question_key: str | None = None
 
 
 def disqualify(
@@ -50,12 +53,13 @@ def disqualify(
         key = str(d["key"])
         label = str(d["label"])
         kind = str(d["kind"])
+        criterion_key = str(d["criterion_key"]) if d.get("criterion_key") is not None else None
+        question_key = str(d["question_key"]) if d.get("question_key") is not None else None
 
         matched = False
         finding_id: str | None = None
 
         if kind == "ICP_MISMATCH":
-            criterion_key = d.get("criterion_key")
             if criterion_key is not None:
                 # Scoring breakdown augments attributes with _icp_match_{criterion_key}
                 attr_key = f"_icp_match_{criterion_key}"
@@ -64,7 +68,6 @@ def disqualify(
                     matched = True
 
         elif kind == "SIGNAL":
-            question_key = d.get("question_key")
             min_strength_label = d.get("min_strength")
             if question_key is not None and min_strength_label is not None:
                 # Strength ordering: WEAK < MEDIUM < STRONG
@@ -103,6 +106,9 @@ def disqualify(
             DisqEntry(
                 key=key,
                 label=label,
+                kind=kind,
+                criterion_key=criterion_key,
+                question_key=question_key,
                 matched=matched,
                 overridden=overridden,
                 override_id=override_id,

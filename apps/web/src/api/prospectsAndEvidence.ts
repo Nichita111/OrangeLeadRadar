@@ -6,8 +6,8 @@ import type { Schemas, paths } from "./contract";
 export type ProspectRow = Schemas["ProspectRow"];
 export type ScoreView = Schemas["ScoreView"];
 export type Override = Schemas["Override"];
-export type Standing = Schemas["Standing"];
-export type Band = Schemas["Band"];
+export type Standing = Schemas["AccountScoreStanding"];
+export type Band = Schemas["AccountScoreBand"];
 export type FindingView = Schemas["FindingView"];
 export type FindingStatus = Schemas["FindingStatus"];
 export type ProspectSort = NonNullable<

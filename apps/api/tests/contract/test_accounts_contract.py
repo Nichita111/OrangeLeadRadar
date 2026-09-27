@@ -227,6 +227,19 @@ async def test_patch_account_changes_an_attribute_and_records_its_origin_as_manu
     assert body["attribute_origin"]["employee_count"] == "MANUAL"
 
 
+async def test_patch_account_changes_its_name(sales_client: httpx.AsyncClient) -> None:
+    created = await sales_client.post(
+        "/api/v1/accounts", json={"domain": _domain(), "name": "Original"}
+    )
+
+    response = await sales_client.patch(
+        f"/api/v1/accounts/{created.json()['id']}", json={"name": "Renamed"}
+    )
+
+    assert response.status_code == 200
+    assert response.json()["name"] == "Renamed"
+
+
 async def test_patch_account_on_an_unknown_id_answers_404(sales_client: httpx.AsyncClient) -> None:
     response = await sales_client.patch(f"/api/v1/accounts/{uuid.uuid4()}", json={"notes": "hello"})
 

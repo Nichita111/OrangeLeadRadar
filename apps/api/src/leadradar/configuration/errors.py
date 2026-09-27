@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from leadradar.core.scoring_settings import FieldError
+from leadradar.core.scoring.settings import FieldError
 
 
 class ConfigurationError(Exception):

@@ -85,6 +85,7 @@ empty Flows, Entities or Acceptance cell.
 | `S-SEC-01` | P0 | `B-30` | [FL-19](/features/identity-and-access.md#fl-19-sign-in-and-sign-out) | [`app_user`](/architecture/sql-store.md#app_user), [`auth_session`](/architecture/sql-store.md#auth_session) | `AC-52` |
 | `S-SEC-02` | P0 | `B-30` | all flows | [`app_user`](/architecture/sql-store.md#app_user) | `AC-53` |
 | `S-SEC-03` | P0 | `B-30` | [FL-20](/features/identity-and-access.md#fl-20-manage-users) | [`app_user`](/architecture/sql-store.md#app_user), [`auth_session`](/architecture/sql-store.md#auth_session) | `AC-54` |
+| `S-SEC-04` | P0 | `B-30`, `B-35` | [FL-19](/features/identity-and-access.md#fl-19-sign-in-and-sign-out) | [`app_user`](/architecture/sql-store.md#app_user), [`auth_session`](/architecture/sql-store.md#auth_session) | `AC-76`, `AC-77` |
 | `S-SIG-01` | P0 | `B-12` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account) | [`document_triage`](/architecture/sql-store.md#document_triage), [`document`](/architecture/sql-store.md#document) | `AC-20` |
 | `S-SIG-02` | P0 | `B-12` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account) | [`classification`](/architecture/sql-store.md#classification), [`chunk`](/architecture/sql-store.md#chunk), [`signal_question`](/architecture/sql-store.md#signal_question) | `AC-21` |
 | `S-SIG-03` | P0 | `B-12` | [FL-07](/features/signal-pipeline.md#fl-07-refresh-one-account) | [`classification`](/architecture/sql-store.md#classification) | `AC-22` |
@@ -117,7 +118,7 @@ empty Flows, Entities or Acceptance cell.
 | [FL-16](/features/evaluation-and-feedback.md#fl-16-label-passages-and-run-a-quality-check) | Label passages and run a quality check | `N-03`, `S-EVL-03`, `S-EVL-04`, `S-EVL-05`, `S-RUN-02`, `S-SIG-04` | `AC-21`, `AC-23`, `AC-48`, `AC-49`, `AC-58`, `AC-75` |
 | [FL-17](/features/outreach-and-crm.md#fl-17-draft-outreach) | Draft outreach | `N-06`, `S-OUT-01`, `S-SIG-08` | `AC-27`, `AC-50`, `AC-62`, `AC-70` |
 | [FL-18](/features/outreach-and-crm.md#fl-18-push-to-hubspot) | Push to HubSpot | `N-06`, `S-OUT-02` | `AC-51`, `AC-62` |
-| [FL-19](/features/identity-and-access.md#fl-19-sign-in-and-sign-out) | Sign in and sign out | `N-07`, `S-SEC-01` | `AC-52`, `AC-67` |
+| [FL-19](/features/identity-and-access.md#fl-19-sign-in-and-sign-out) | Sign in and sign out | `N-07`, `S-SEC-01`, `S-SEC-04` | `AC-52`, `AC-67`, `AC-76`, `AC-77` |
 | [FL-20](/features/identity-and-access.md#fl-20-manage-users) | Manage users | `N-07`, `S-SEC-03` | `AC-52`, `AC-54`, `AC-67` |
 | [FL-21](/features/audit-trail.md#fl-21-review-the-audit-trail) | Review the audit trail | `S-AUD-02` | `AC-56` |
 | [FL-22](/features/service-configuration.md#fl-22-maintain-industries-and-markets) | Maintain industries and markets | `S-CFG-07` | `AC-74` |
@@ -131,9 +132,9 @@ empty Flows, Entities or Acceptance cell.
 | [`account_score`](/architecture/sql-store.md#account_score) | `N-01`, `N-04`, `N-05`, `N-10`, `N-13`, `S-CFG-04`, `S-CFG-06`, `S-EVL-01`, `S-PRO-01`, `S-PRO-02`, `S-PRO-04`, `S-SCO-01`, `S-SCO-02`, `S-SCO-04`, `S-SCO-05`, `S-SCO-06`, `S-SCO-07`, `S-SCO-08` |
 | [`account_source`](/architecture/sql-store.md#account_source) | `S-ACC-01`, `S-ACC-02`, `S-ACC-03`, `S-ING-05` |
 | [`alert`](/architecture/sql-store.md#alert) | `N-05`, `S-PRO-06` |
-| [`app_user`](/architecture/sql-store.md#app_user) | `N-07`, `S-RUN-03`, `S-SEC-01`, `S-SEC-02`, `S-SEC-03` |
+| [`app_user`](/architecture/sql-store.md#app_user) | `N-07`, `S-RUN-03`, `S-SEC-01`, `S-SEC-02`, `S-SEC-03`, `S-SEC-04` |
 | [`audit_event`](/architecture/sql-store.md#audit_event) | `N-07`, `S-ACC-02`, `S-ACC-04`, `S-AUD-01`, `S-AUD-02`, `S-CFG-05`, `S-EVL-05`, `S-PRO-05`, `S-RUN-02`, `S-SIG-08` |
-| [`auth_session`](/architecture/sql-store.md#auth_session) | `N-07`, `S-SEC-01`, `S-SEC-03` |
+| [`auth_session`](/architecture/sql-store.md#auth_session) | `N-07`, `S-SEC-01`, `S-SEC-03`, `S-SEC-04` |
 | [`chunk`](/architecture/sql-store.md#chunk) | `N-05`, `N-08`, `S-CFG-05`, `S-EVL-03`, `S-ING-04`, `S-PRO-03`, `S-SIG-02` |
 | [`classification`](/architecture/sql-store.md#classification) | `N-03`, `N-05`, `S-EVL-05`, `S-SIG-02`, `S-SIG-03`, `S-SIG-04`, `S-SIG-05`, `S-SIG-07`, `S-SIG-08` |
 | [`contact`](/architecture/sql-store.md#contact) | `N-08`, `S-ACC-04`, `S-OUT-01` |
@@ -190,12 +191,12 @@ empty Flows, Entities or Acceptance cell.
 | `B-26` | `S-OUT-02` | `AC-51` |
 | `B-27` | `S-EVL-03`, `S-EVL-04` | `AC-48`, `AC-49` |
 | `B-28` | `S-EVL-02` | `AC-47` |
-| `B-30` | `N-07`, `S-SEC-01`, `S-SEC-02`, `S-SEC-03` | `AC-52`, `AC-53`, `AC-54`, `AC-67` |
+| `B-30` | `N-07`, `S-SEC-01`, `S-SEC-02`, `S-SEC-03`, `S-SEC-04` | `AC-52`, `AC-53`, `AC-54`, `AC-67`, `AC-76`, `AC-77` |
 | `B-31` | `S-AUD-01` | `AC-55` |
 | `B-32` | `S-AUD-02` | `AC-56` |
 | `B-33` | `N-03`, `S-ING-02`, `S-PIP-05`, `S-SIG-08` | `AC-16`, `AC-27`, `AC-32`, `AC-49`, `AC-70` |
 | `B-34` | `N-12`, `S-RUN-01` | `AC-57`, `AC-67` |
-| `B-35` | `S-RUN-02`, `S-RUN-03` | `AC-58`, `AC-59` |
+| `B-35` | `S-RUN-02`, `S-RUN-03`, `S-SEC-04` | `AC-58`, `AC-59`, `AC-76`, `AC-77` |
 | `B-36` | `S-ING-05` | `AC-19` |
 | `B-37` | `S-ING-06` | `AC-69` |
 | `B-39` | `S-CFG-07` | `AC-74` |

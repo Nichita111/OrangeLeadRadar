@@ -13,6 +13,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, ConfigDict, Field
+from pydantic.json_schema import SkipJsonSchema
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from leadradar.alerts.commands import acknowledge_alert
@@ -48,7 +49,9 @@ class FeedbackCreate[VerdictT: (LeadFeedbackVerdict, FindingFeedbackVerdict)](Ba
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     verdict: VerdictT
-    note: str | None = None
+    # G10, G15: `note` is `optional` in interfaces.md, so absent rather than `null` when unset.
+    # Schema-only: what `API-46`/`API-47` accept from the client does not change.
+    note: str | SkipJsonSchema[None] = None
 
 
 class LeadFeedback(BaseModel):

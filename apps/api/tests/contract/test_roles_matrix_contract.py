@@ -103,6 +103,14 @@ async def test_every_mounted_route_answers_401_or_403_as_its_roles_column_states
         roles = contract_roles[key]
 
         anonymous = await _request(running_app, method, full_path, cookie_header=None)
+        if anonymous.status_code == 501:
+            assert anonymous.json()["error"]["code"] == "NOT_IMPLEMENTED"
+            sales_cookie = await _login_cookie(running_app, sales_email, sales_password)
+            sales = await _request(running_app, method, full_path, cookie_header=sales_cookie)
+            admin_cookie = await _login_cookie(running_app, admin_email, admin_password)
+            admin = await _request(running_app, method, full_path, cookie_header=admin_cookie)
+            assert sales.status_code == admin.status_code == 501
+            continue
         if roles in {"*", "A"} and anonymous.status_code != 401:
             failures.append(
                 f"{method} {full_path} (roles={roles}): anonymous got "

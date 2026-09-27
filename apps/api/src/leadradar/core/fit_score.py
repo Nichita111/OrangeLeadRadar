@@ -6,7 +6,7 @@ account's attributes; no database, no rounding surprises beyond the rule's own `
 from __future__ import annotations
 
 from leadradar.core.enums import AccountOperationalComplexity
-from leadradar.core.scoring_settings import ICPCriterion, ICPCriterionKind
+from leadradar.core.scoring.settings import ICPCriterion, ICPCriterionKind
 
 
 def _criterion_value(

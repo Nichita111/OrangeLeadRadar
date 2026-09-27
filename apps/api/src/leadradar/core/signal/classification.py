@@ -136,6 +136,97 @@ def choice_option_strength(
     return None
 
 
+# The suffix a `YES_NO` question's strength-scale sub-question is asked under, in the same
+# classifier call, so its answer can be merged back with the main question's.
+SCALE_SUFFIX = "__SCALE"
+
+_STRENGTH_SCALE_OPTIONS: tuple[tuple[str, str], ...] = (
+    (FindingStrength.WEAK.value, "Weak"),
+    (FindingStrength.MEDIUM.value, "Medium"),
+    (FindingStrength.STRONG.value, "Strong"),
+)
+_FULL_SCALE_OPTIONS: tuple[tuple[str, str], ...] = (
+    (FindingStrength.NONE.value, "No signal"),
+    *_STRENGTH_SCALE_OPTIONS,
+)
+
+
+@dataclass(frozen=True)
+class ClassifierQuestionOption:
+    """One option of a classifier question built by `classifier_questions_for`: a key and its
+    label, without the [`finding`](/architecture/sql-store.md#finding) `strength` a `CHOICE`
+    question's own options carry, since the classifier is never told which option is positive."""
+
+    key: str
+    label: str
+
+
+@dataclass(frozen=True)
+class ClassifierQuestionSpec:
+    """One question one passage's classifier call carries, framed for
+    [Signal classification](/architecture/rules.md#signal-classification). Plain data: each AI
+    gateway's own request shape (`worker.ai.classifier.ClassifierQuestion`,
+    `leadradar.ai.shapes.ClassifierQuestion`) is built from these."""
+
+    id: str
+    answer_type: SignalQuestionAnswerType
+    text: str
+    options: list[ClassifierQuestionOption] | None
+
+
+def classifier_questions_for(
+    *,
+    question_id: str,
+    account_name: str,
+    question_text: str,
+    answer_type: SignalQuestionAnswerType,
+    options: Sequence[Mapping[str, object]] | None = None,
+) -> list[ClassifierQuestionSpec]:
+    """The classifier question(s) one passage's call carries for one signal question
+    ([Signal classification](/architecture/rules.md#signal-classification)): the question framed
+    as "About {account name}: {question text}", so that a passage about another company does not
+    answer it; a `YES_NO` question also carries its strength-scale sub-question, `{question_id}
+    {SCALE_SUFFIX}`, asked in the same call. A `CHOICE` question's `options` carry only `key` and
+    `label`; their `strength` is `map_answer`'s concern, not the classifier's."""
+    framed_text = f"About {account_name}: {question_text}"
+    if answer_type is SignalQuestionAnswerType.YES_NO:
+        return [
+            ClassifierQuestionSpec(question_id, SignalQuestionAnswerType.YES_NO, framed_text, None),
+            ClassifierQuestionSpec(
+                f"{question_id}{SCALE_SUFFIX}",
+                SignalQuestionAnswerType.SCALE,
+                "How strong is the evidence?",
+                [ClassifierQuestionOption(key, label) for key, label in _STRENGTH_SCALE_OPTIONS],
+            ),
+        ]
+    if answer_type is SignalQuestionAnswerType.SCALE:
+        return [
+            ClassifierQuestionSpec(
+                question_id,
+                SignalQuestionAnswerType.SCALE,
+                framed_text,
+                [ClassifierQuestionOption(key, label) for key, label in _FULL_SCALE_OPTIONS],
+            )
+        ]
+    if answer_type is SignalQuestionAnswerType.CHOICE:
+        opts = [
+            ClassifierQuestionOption(str(option["key"]), str(option["label"]))
+            for option in options or []
+        ]
+        return [
+            ClassifierQuestionSpec(question_id, SignalQuestionAnswerType.CHOICE, framed_text, opts)
+        ]
+    raise ValueError(f"unknown answer_type: {answer_type!r}")  # pragma: no cover
+
+
+def merge_yes_no_probabilities(
+    main: Mapping[str, float], scale: Mapping[str, float]
+) -> dict[str, float]:
+    """A `YES_NO` question's answer (`YES`/`NO`) merged with its strength-scale sub-question's
+    answer (`WEAK`/`MEDIUM`/`STRONG`), so `map_answer` sees both together."""
+    return {**main, **scale}
+
+
 def observed_at(
     published_at: datetime | None,
     fetched_at: datetime,

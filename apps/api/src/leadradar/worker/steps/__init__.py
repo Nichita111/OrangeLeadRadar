@@ -51,8 +51,9 @@ class ClaimedJob:
 
 @dataclass(frozen=True)
 class StepContext:
-    """What a handler is given: its job, the open transaction's session, the time and the
-    worker's configuration."""
+    """What a handler is given: its job, the open transaction's session, the time, the worker's
+    configuration and the one [AI gateway](/architecture/services/worker.md#ai-gateway) instance
+    of this process. Handlers that make no AI call (`SCORE`) ignore `gateway`."""
 
     job: ClaimedJob
     session: AsyncSession
@@ -131,9 +132,23 @@ async def _run_process(context: StepContext) -> None:
     await run_process_step(context)
 
 
+async def _run_evaluate(context: StepContext) -> None:
+    """Adapts `run_evaluate_job`, which takes the job and run rows and the AI gateway, to the
+    handler shape."""
+    from leadradar.worker.steps.evaluate import run_evaluate_job
+
+    job, run = await _load_job_and_run(context)
+    if context.gateway is None:
+        raise RuntimeError("The EVALUATE step requires the AI gateway")
+    await run_evaluate_job(
+        context.session, job=job, run=run, settings=context.settings, gateway=context.gateway
+    )
+
+
 STEP_HANDLERS: Mapping[JobStep, StepHandler] = {
     JobStep.FETCH: _run_fetch,
     JobStep.PROCESS: _run_process,
     JobStep.SIGNAL: _run_signal,
     JobStep.SCORE: _run_score,
+    JobStep.EVALUATE: _run_evaluate,
 }

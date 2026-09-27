@@ -84,7 +84,7 @@ WF-17 — Labelling
 | ID | Requirement |
 |---|---|
 | `FR-078` | The screen shall show one task at a time — the question, the company, the source with its link, language and age, and the passage in its original language, with no translation offered (labellers may use the browser's own) — and never the classifier's answer. |
-| `FR-079` | The answer buttons shall be No, Weak, Clear and Strong, operable with the keys 0 to 3, and Skip with S; answering saves the label and shows the next task. |
+| `FR-079` | The answer buttons shall be No, Weak, Clear and Strong, operable with the keys 0 to 3, and Skip with S; answering saves the label and shows the next task. Skip leaves the pair unlabelled and moves on; skipped pairs are not offered again while the screen stays open. |
 | `FR-080` | The header shall show the number of active labels against `EVAL_MIN_ITEMS`. |
 | `FR-081` | When the queue is empty the screen shall say so and suggest refreshing more accounts. |
 | `FR-144` | The header shall show a progress bar of the active labels against `EVAL_MIN_ITEMS`, and a callout shall say that the classifier's answer is never shown. |
@@ -92,7 +92,7 @@ WF-17 — Labelling
 
 Obligations: `S-EVL-03`.
 
-**Data**: `API-50`, `API-51`. **States**: [States](/architecture/services/frontend.md#states).
+**Data**: `API-07`, `API-50`, `API-51`. **States**: [States](/architecture/services/frontend.md#states).
 
 ## Quality report
 
@@ -136,7 +136,7 @@ WF-18 — Quality report
 
 Obligations: `S-EVL-04`, `S-EVL-05`, `N-03`.
 
-**Data**: `API-52`, `API-53`, `API-54`, `API-55`, `API-77`, `API-35`. **States**: [States](/architecture/services/frontend.md#states).
+**Data**: `API-07`, `API-34`, `API-35`, `API-53`, `API-54`, `API-55`, `API-77`. **States**: [States](/architecture/services/frontend.md#states).
 
 ## Open questions
 
