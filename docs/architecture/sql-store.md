@@ -8,7 +8,7 @@ tags: [accounts-and-discovery, audit-trail, evaluation-and-feedback, identity-an
 
 # SQL store
 
-LeadRadar has one store: PostgreSQL with the `pgvector` extension ([ADR-01](/architecture/adrs/adr-01-one-postgresql-store.md)). It holds configuration, accounts, fetched documents and their passages with embeddings, classifier answers, findings, scores, feedback, drafts, the job queue and the audit. Which service writes which table is the [store ownership](/architecture/overview.md#store-ownership) table.
+LeadRadar has one store: PostgreSQL with the `pgvector` extension ([ADR-01](/architecture/adrs/adr-01-one-postgresql-store.md)). It holds configuration, accounts, fetched documents and their passages with embeddings, classifier answers, findings, open signals, scores and their interpretations, feedback, engagement statuses, drafts, the job queue and the audit. Which service writes which table is the [store ownership](/architecture/overview.md#store-ownership) table.
 
 Every table has `id` (uuid), `created_at` and `updated_at` (timestamptz, UTC); they are omitted from the column tables below. Column types are PostgreSQL names. Foreign keys use `RESTRICT` on delete, except [`outreach_draft`](#outreach_draft) `contact_id`, which uses `SET NULL` because a contact is erased. Rows are deactivated or superseded, never deleted, except the tables of the [hard-delete allow-list](#hard-delete-allow-list). Each domain opens with a diagram of its tables and a selection of columns; only the column tables are complete. An enum is defined once, under the column that owns it, and every other column of that enum links there.
 
@@ -61,6 +61,7 @@ A signed-in browser session.
 erDiagram
   service ||--o{ signal_question : asks
   service ||--o{ scoring_config : "is scored by"
+  service }o--o{ provider_fact : "may cite"
   service {
     text code UK
     text name
@@ -145,6 +146,17 @@ A named group of countries, such as DACH. An Admin maintains the list ([ADR-18](
 | `country_codes` | text[] | ISO 3166-1 alpha-2 codes of its countries; at least one. |
 | `status` | enum: `ACTIVE`, `INACTIVE` | A retired market is not offered in the editor. |
 
+### provider_fact
+
+One fact about Orange Systems — a team, a delivered project, a result, a partnership or a certification — that [Outreach grounding](/architecture/rules.md#outreach-grounding) and [Interpretation](/architecture/rules.md#interpretation) may cite, so that a message says what Orange Systems has done without inventing it. An Admin maintains the list; its first rows are seeded from the [demo dataset](/architecture/overview.md#demo-dataset).
+
+| Column | Type | Notes |
+|---|---|---|
+| `text` | text | One English sentence, as a draft may state it, e.g. "Orange Systems has automated more than 750 processes with RPA."; at most `PROVIDER_FACT_MAX_CHARS` characters. |
+| `service_ids` | uuid[] | The services it applies to, each an id of [`service`](#service); empty for every service. |
+| `source_url` | text, null | Public page that states it. |
+| `status` | enum: `ACTIVE`, `INACTIVE` | A retired fact is given to no new draft or interpretation; those that cited it keep its id. |
+
 ## Scoring settings document
 
 The `settings` column of [`scoring_config`](#scoring_config) is one JSON object with the keys below. The **Default** column is what a new service's first draft starts with; it is the only place these defaults are stated. The computations that read each key are in [rules](/architecture/rules.md); the checks a draft must pass are [Scoring settings validation](/architecture/rules.md#scoring-settings-validation).
@@ -153,7 +165,6 @@ The `settings` column of [`scoring_config`](#scoring_config) is one JSON object 
 |---|---|---|---|
 | `fit_weight` | number 0–1 | Share of Fit in Priority. | `0.4` |
 | `intent_weight` | number 0–1 | Share of Intent in Priority; `fit_weight + intent_weight = 1`. | `0.6` |
-| `min_fit` | integer 0–100 | An account below it has standing `BELOW_FIT`. | `40` |
 | `hot_threshold` | integer 0–100 | Priority at or above it is `HOT`. | `70` |
 | `warm_threshold` | integer 0–100 | Priority at or above it, and below `hot_threshold`, is `WARM`. | `40` |
 | `weight_values` | object: weight level → number ≥ 0 | Numeric value of each weight level. Weight levels are `HIGH`, `MEDIUM`, `LOW` and `NONE`; `NONE` keeps a question out of Intent while a disqualifier still reads it. | `{"HIGH": 3, "MEDIUM": 2, "LOW": 1, "NONE": 0}` |
@@ -179,12 +190,7 @@ The `settings` column of [`scoring_config`](#scoring_config) is one JSON object 
 
 **Question setting** — `{question_key, weight, half_life_days}`: `question_key` names a [`signal_question`](#signal_question) `key` of the same service; `weight` is a weight level; `half_life_days` is an integer > 0 or null for the source-type default.
 
-**Disqualifier** — `{key, label, kind, criterion_key?, question_key?, min_strength?}`: `key` is UPPER_SNAKE, unique within the service and stable across versions, because [`disqualifier_override`](#disqualifier_override) rows name it; `label` is the reason shown to users. `kind` is one of:
-
-| Kind | Operands | Excludes when |
-|---|---|---|
-| `ICP_MISMATCH` | `criterion_key` | the account's attribute for that ICP criterion is known and does not match |
-| `SIGNAL` | `question_key`, `min_strength` (`WEAK`, `MEDIUM` or `STRONG`) | the account has an in-force finding of that question with strength ≥ `min_strength` and a decay factor ≥ `min_decay` |
+**Disqualifier** — `{key, label, question_key, min_strength}`: `key` is UPPER_SNAKE, unique within the service and stable across versions, because [`disqualifier_override`](#disqualifier_override) rows name it; `label` is the reason shown to users; `question_key` names a question of the service; `min_strength` is `WEAK`, `MEDIUM` or `STRONG`. It excludes an account that has an in-force finding of that question with strength ≥ `min_strength` and a decay factor ≥ `min_decay`. An ICP criterion never excludes an account: it only weighs in Fit ([ADR-22](/architecture/adrs/adr-22-icp-criteria-weigh-never-exclude.md)).
 
 ## Accounts
 
@@ -235,7 +241,7 @@ A company that may buy. Accounts are shared by the whole team.
 | `linkedin_url` | text, null | Entered by a user for manual checks; never fetched ([RULE-01](/requirements/business.md#business-rules)). |
 | `notes` | text, null | Free notes. |
 | `last_refreshed_at` | timestamptz, null | Finish time of the last `ACCOUNT_REFRESH` run that fetched for it. |
-| `next_refresh_at` | timestamptz, null | When [Refresh scheduling](/architecture/rules.md#refresh-scheduling) next enqueues it. |
+| `next_refresh_at` | timestamptz, null | When [Scheduling](/architecture/rules.md#scheduling) next enqueues it. |
 
 ### account_alias
 
@@ -390,14 +396,14 @@ A unit of background work a user can see: a refresh, a reclassification, a resco
 
 | Column | Type | Notes |
 |---|---|---|
-| `kind` | enum: `ACCOUNT_REFRESH`, `RECLASSIFY`, `RESCORE`, `DISCOVERY`, `EVALUATION` | `ACCOUNT_REFRESH`: fetch, process, triage, classify and score one account. `RECLASSIFY`: classify stored passages for one question at its current revision. `RESCORE`: recompute scores of one account or of a whole service, without fetching or classifying. `DISCOVERY`: propose candidates for one service. `EVALUATION`: run the classification cascade over the labelled set. |
-| `trigger` | enum: `SCHEDULE`, `USER`, `QUESTION_CHANGE`, `SCORING_ACTIVATION`, `ACCOUNT_CHANGE`, `FEEDBACK`, `OVERRIDE` | What caused it: the scheduler, a user's explicit request, a question created or changed, a scoring version activated, an account attribute changed, feedback given, or an exception added or revoked. |
+| `kind` | enum: `ACCOUNT_REFRESH`, `RECLASSIFY`, `RESCORE`, `DISCOVERY`, `EVALUATION`, `ENGAGEMENT_SYNC` | `ACCOUNT_REFRESH`: fetch, process, triage, classify and score one account. `RECLASSIFY`: classify stored passages for one question at its current revision. `RESCORE`: recompute scores of one account or of a whole service, without fetching or classifying. `DISCOVERY`: propose candidates for one service. `EVALUATION`: run the classification cascade over the labelled set. `ENGAGEMENT_SYNC`: read engagement from HubSpot and rescore the accounts whose status changed ([Engagement sync](/architecture/rules.md#engagement-sync)). |
+| `trigger` | enum: `SCHEDULE`, `USER`, `QUESTION_CHANGE`, `SCORING_ACTIVATION`, `ACCOUNT_CHANGE`, `FEEDBACK`, `OVERRIDE`, `ENGAGEMENT` | What caused it: the scheduler, a user's explicit request, a question created or changed, a scoring version activated, an account attribute changed, feedback given, an exception added or revoked, or an engagement status set by a user. |
 | `account_id` | uuid FK → [`account`](#account), null | `ACCOUNT_REFRESH`, and a `RESCORE` of one account. |
 | `service_id` | uuid FK → [`service`](#service), null | `RESCORE` of a whole service or of one account for one service, `DISCOVERY`, `RECLASSIFY`. |
 | `question_id` | uuid FK → [`signal_question`](#signal_question), null | `RECLASSIFY`. |
 | `status` | enum: `QUEUED`, `RUNNING`, `SUCCEEDED`, `PARTIAL`, `FAILED`, `CANCELLED` | `PARTIAL`: finished, but at least one plug-in or step failed, or pairs were left `PENDING_LLM`, as `errors` and `progress` state. `FAILED`: its final stage failed after its retries. |
-| `stage` | enum, null: `FETCH`, `PROCESS`, `TRIAGE`, `CLASSIFY`, `EVIDENCE`, `SCORE` | The stage in progress; null when queued or finished. The stages each kind passes through are the [run lifecycle](/architecture/services/worker.md#run-lifecycle). |
-| `progress` | jsonb | Counters: `documents_fetched`, `documents_new`, `documents_kept`, `passages`, `pairs_classified`, `pairs_escalated`, `findings_created`, `pending_budget`, `candidates`, `items_evaluated`, `news_searched`, `organisations_found`. |
+| `stage` | enum, null: `FETCH`, `PROCESS`, `TRIAGE`, `CLASSIFY`, `EVIDENCE`, `OPEN_SIGNALS`, `SYNC`, `SCORE`, `INTERPRET` | The stage in progress; null when queued or finished. The stages each kind passes through are the [run lifecycle](/architecture/services/worker.md#run-lifecycle). |
+| `progress` | jsonb | Counters: `documents_fetched`, `documents_new`, `documents_kept`, `passages`, `pairs_classified`, `pairs_escalated`, `findings_created`, `open_signals_created`, `interpretations_written`, `statuses_synced`, `pending_budget`, `candidates`, `items_evaluated`, `news_searched`, `organisations_found`. |
 | `errors` | jsonb | Array of `{stage, plugin_code?, dependency?, code, message}`; `code` is an error code of [Conventions](/architecture/interfaces.md#conventions) or `FIXTURE_MISSING`; `dependency` is the `details.dependency` value of [Conventions](/architecture/interfaces.md#conventions) of the classifier, LLM or embedder call that failed. |
 | `requested_by` | uuid FK → [`app_user`](#app_user), null | The user whose action caused it; null for the scheduler. |
 | `started_at` | timestamptz, null | When the first job started. |
@@ -410,7 +416,7 @@ The work queue behind runs ([ADR-04](/architecture/adrs/adr-04-postgres-job-queu
 | Column | Type | Notes |
 |---|---|---|
 | `run_id` | uuid FK → [`pipeline_run`](#pipeline_run) | Owning run. |
-| `step` | enum: `FETCH`, `PROCESS`, `SIGNAL`, `SCORE`, `DISCOVER`, `EVALUATE` | `FETCH`: one plug-in for one account; stores each new item it fetches as a normalised document with its passages. `PROCESS`: embed the passages of a batch of fetched documents, mark near duplicates, and classify the account's operational complexity. `SIGNAL`: run the [signal graph](/architecture/services/worker.md#signal-graph) over a batch of documents or passages. `SCORE`: rescore. `DISCOVER`: every available discovery source for one service, and the ranking of its candidates. `EVALUATE`: the labelled pairs of its run. |
+| `step` | enum: `FETCH`, `PROCESS`, `SIGNAL`, `OPEN_SIGNALS`, `SYNC`, `SCORE`, `INTERPRET`, `DISCOVER`, `EVALUATE` | `FETCH`: one plug-in for one account; stores each new item it fetches as a normalised document with its passages. `PROCESS`: embed the passages of a batch of fetched documents, mark near duplicates, and classify the account's operational complexity. `SIGNAL`: run the [signal graph](/architecture/services/worker.md#signal-graph) over a batch of documents or passages. `OPEN_SIGNALS`: [Open signals](/architecture/rules.md#open-signals) for one account. `SYNC`: [Engagement sync](/architecture/rules.md#engagement-sync) for a batch of companies. `SCORE`: rescore. `INTERPRET`: [Interpretation](/architecture/rules.md#interpretation) of the scores a run wrote. `DISCOVER`: every available discovery source for one service, and the ranking of its candidates. `EVALUATE`: the labelled pairs of its run. |
 | `payload` | jsonb | Step input: identifiers only, never document text. |
 | `status` | enum: `READY`, `RUNNING`, `DONE`, `FAILED`, `CANCELLED` | `FAILED` after `JOB_MAX_ATTEMPTS` attempts. |
 | `priority` | smallint | Lower runs first, as the [job queue](/architecture/services/worker.md#job-queue) assigns it. |
@@ -471,6 +477,8 @@ erDiagram
   account ||--o{ disqualifier_override : "is exempted by"
   finding ||--o| alert : raises
   account_score ||--o| alert : raises
+  account_score ||--o| score_interpretation : "is read in"
+  document ||--o{ open_signal : "shows"
   classification {
     uuid chunk_id FK
     uuid question_id FK
@@ -505,6 +513,7 @@ The triage decision for one document ([Triage](/architecture/rules.md#triage)).
 | `about_account_p` | numeric 0–1, null | Probability that the document is about its account; null when skipped for a document from the account's own source. |
 | `service_relevance` | jsonb | Object: service id → probability 0–1 that the document is relevant to that service. |
 | `outcome` | enum: `KEPT`, `NOT_ABOUT_ACCOUNT`, `IRRELEVANT` | `KEPT`: its passages are classified for each service whose relevance passed. `NOT_ABOUT_ACCOUNT`: about another company or only mentions it, or a `CAREERS` page that is not a job posting. `IRRELEVANT`: relevant to no active service. |
+| `open_signal_services` | uuid[] | The services for which [Open signals](/architecture/rules.md#open-signals) has asked the document, each an id of [`service`](#service), so that a document is asked at most once per service. |
 
 ### classification
 
@@ -545,6 +554,27 @@ A positive answer to a signal question, backed by a verbatim quote ([RULE-02](/r
 | `observed_at` | timestamptz | The document's `published_at`, else its `fetched_at`; copied at creation because decay counts from it after the document is purged. |
 | `status` | enum: `ACTIVE`, `SUPERSEDED`, `REJECTED` | `ACTIVE`: counts in scoring. `SUPERSEDED`: its question revision is no longer current. `REJECTED`: the in-force [`finding_feedback`](#finding_feedback) says it is wrong. Only `ACTIVE` findings are **in force**. |
 
+### open_signal
+
+A buying signal the LLM noticed in a kept document that no active question of the service asks about ([Open signals](/architecture/rules.md#open-signals), [ADR-24](/architecture/adrs/adr-24-open-signals-shown-never-scored.md)). It is shown with its quote and never counted in a score.
+
+| Column | Type | Notes |
+|---|---|---|
+| `account_id` | uuid FK → [`account`](#account) | The account. |
+| `service_id` | uuid FK → [`service`](#service) | The service it may matter to. |
+| `chunk_id` | uuid FK → [`chunk`](#chunk) | The passage its quote comes from. |
+| `run_id` | uuid FK → [`pipeline_run`](#pipeline_run) | The run that noticed it. |
+| `label` | text | A few English words naming the signal, e.g. "ERP migration programme". |
+| `polarity` | enum | A [`signal_question`](#signal_question) `polarity` value: whether it argues for or against the service. |
+| `quote` | text | Verbatim substring of the passage, in the original language. |
+| `quote_en` | text, null | English translation of `quote`; null when the document language is `en`. |
+| `rationale` | text | One English sentence: why it matters for the service. |
+| `observed_at` | timestamptz | The document's `published_at`, else its `fetched_at`. |
+| `status` | enum: `ACTIVE`, `DISMISSED`, `PROMOTED` | `ACTIVE`: shown on the account and given to its interpretation. `DISMISSED`: an Admin judged it not useful. `PROMOTED`: an Admin turned it into a question. |
+| `question_id` | uuid FK → [`signal_question`](#signal_question), null | `PROMOTED` only: the question created from it. |
+| `decided_by` | uuid FK → [`app_user`](#app_user), null | The Admin who dismissed or promoted it. |
+| `decided_at` | timestamptz, null | When. |
+
 ### account_score
 
 The score of one account for one service, as of one time. Rows are appended; exactly one per account and service is current ([Rescoring](/architecture/rules.md#rescoring)).
@@ -559,10 +589,24 @@ The score of one account for one service, as of one time. Rows are appended; exa
 | `fit` | integer 0–100 | [Fit score](/architecture/rules.md#fit-score). |
 | `intent` | integer 0–100 | [Intent score](/architecture/rules.md#intent-score). |
 | `priority` | integer 0–100 | [Priority, standing and band](/architecture/rules.md#priority-standing-and-band). |
-| `standing` | enum: `RANKED`, `BELOW_FIT`, `DISQUALIFIED`, `CUSTOMER` | `RANKED`: in the ranking. `BELOW_FIT`: Fit below `min_fit`. `DISQUALIFIED`: a disqualifier matched and is not overridden. `CUSTOMER`: the in-force lead feedback says the account is already a customer for the service. |
+| `standing` | enum: `RANKED`, `DISQUALIFIED`, `CUSTOMER`, `REJECTED` | `RANKED`: in the ranking, whatever its Fit. `DISQUALIFIED`: a disqualifier matched and is not overridden. `CUSTOMER`: the in-force lead feedback says the account is already a customer for the service. `REJECTED`: the in-force [`engagement_status`](#engagement_status) says the company rejected the service. |
 | `band` | enum: `HOT`, `WARM`, `COLD`, null | Set only when `standing` is `RANKED`. |
 | `breakdown` | jsonb | The [Score breakdown](/architecture/rules.md#score-breakdown). |
 | `is_current` | boolean | True on the latest row of the account and service. |
+
+### score_interpretation
+
+The LLM's written reading of one score row ([Interpretation](/architecture/rules.md#interpretation), [ADR-23](/architecture/adrs/adr-23-written-interpretation-after-scoring.md)). It explains a score and never sets one.
+
+| Column | Type | Notes |
+|---|---|---|
+| `score_id` | uuid FK → [`account_score`](#account_score), unique | The score it reads; a `RANKED` row. |
+| `run_id` | uuid FK → [`pipeline_run`](#pipeline_run) | The run that wrote it. |
+| `summary` | text | Why the company is worth approaching for the service, in a short paragraph. |
+| `holding_back` | text, null | What counts against it, when the breakdown has negative signals or unmatched criteria. |
+| `finding_notes` | jsonb | Array of `{finding_id, why_it_matters}`, one per counted positive finding of the breakdown, each `why_it_matters` one English sentence. |
+| `open_signal_ids` | uuid[] | The [`open_signal`](#open_signal) rows it cites. |
+| `provider_fact_ids` | uuid[] | The [`provider_fact`](#provider_fact) rows it cites. |
 
 ### disqualifier_override
 
@@ -585,11 +629,13 @@ A notice that an account needs attention ([Alerts](/architecture/rules.md#alerts
 
 | Column | Type | Notes |
 |---|---|---|
-| `account_id` | uuid FK → [`account`](#account) | The account. |
+| `account_id` | uuid FK → [`account`](#account), null | The account; null for `NEW_CANDIDATES`. |
 | `service_id` | uuid FK → [`service`](#service) | The service. |
-| `kind` | enum: `STRONG_SIGNAL`, `BAND_UP` | `STRONG_SIGNAL`: a new strong, recent, high-weight positive finding. `BAND_UP`: the account's band rose. |
+| `kind` | enum: `STRONG_SIGNAL`, `BAND_UP`, `NEW_CANDIDATES`, `REPLY_RECEIVED` | `STRONG_SIGNAL`: a new strong, recent, high-weight positive finding. `BAND_UP`: the account's band rose. `NEW_CANDIDATES`: a discovery run proposed companies. `REPLY_RECEIVED`: HubSpot reports that the company answered. |
 | `finding_id` | uuid FK → [`finding`](#finding), null | `STRONG_SIGNAL` only; unique. |
 | `score_id` | uuid FK → [`account_score`](#account_score), null | `BAND_UP` only: the score row that rose; unique. |
+| `run_id` | uuid FK → [`pipeline_run`](#pipeline_run), null | `NEW_CANDIDATES` only: the discovery run; unique. |
+| `engagement_status_id` | uuid FK → [`engagement_status`](#engagement_status), null | `REPLY_RECEIVED` only: the status row the sync wrote; unique. |
 | `acknowledged_by` | uuid FK → [`app_user`](#app_user), null | Who acknowledged it. |
 | `acknowledged_at` | timestamptz, null | When; null while unread. |
 
@@ -679,10 +725,11 @@ The metrics of one `EVALUATION` run ([Evaluation metrics](/architecture/rules.md
 | `metrics` | jsonb | The metrics object that [Evaluation metrics](/architecture/rules.md#evaluation-metrics) defines. |
 | `passed` | boolean | Whether the run meets the release gate. |
 
-## Outreach and CRM
+## Outreach, engagement and CRM
 
 ```mermaid
 erDiagram
+  account ||--o{ engagement_status : "is followed in"
   account ||--o{ outreach_draft : "is addressed by"
   contact |o--o{ outreach_draft : "is addressed to"
   account ||--o{ crm_sync : "is pushed in"
@@ -712,6 +759,7 @@ A message draft for a person to send themselves ([RULE-06](/requirements/busines
 | `subject` | text, null | `EMAIL` only. |
 | `body` | text | Message text. |
 | `finding_ids` | uuid[] | The findings the draft cites; each an id of [`finding`](#finding). |
+| `provider_fact_ids` | uuid[] | The provider facts the draft cites; each an id of [`provider_fact`](#provider_fact). |
 | `edited` | boolean | True once a user changed the generated text. |
 | `status` | enum: `DRAFT`, `EXPORTED` | `EXPORTED` once copied or downloaded. |
 | `created_by` | uuid FK → [`app_user`](#app_user) | Who generated it. |
@@ -731,6 +779,20 @@ One push of an account to a CRM.
 | `error` | text, null | Provider message on failure. |
 | `requested_by` | uuid FK → [`app_user`](#app_user) | Who pushed it. |
 
+### engagement_status
+
+Where the team stands with an account for a service. Rows are appended; the latest row of an account and service is **in force**, and an account without one is not contacted ([ADR-25](/architecture/adrs/adr-25-engagement-status-synced-from-hubspot.md)).
+
+| Column | Type | Notes |
+|---|---|---|
+| `account_id` | uuid FK → [`account`](#account) | The account. |
+| `service_id` | uuid FK → [`service`](#service) | The service. |
+| `status` | enum: `NOT_CONTACTED`, `CONTACTED`, `ANSWERED`, `MEETING_BOOKED`, `REJECTED` | `NOT_CONTACTED`: nobody has written yet, or a person reset it. `CONTACTED`: a first message was sent, and a reply is pending. `ANSWERED`: the company replied. `MEETING_BOOKED`: a meeting is booked. `REJECTED`: the company declined the service, which takes the account out of its ranking ([Priority, standing and band](/architecture/rules.md#priority-standing-and-band)). |
+| `origin` | enum: `MANUAL`, `HUBSPOT` | Set by a user, or by [Engagement sync](/architecture/rules.md#engagement-sync). |
+| `set_by` | uuid FK → [`app_user`](#app_user), null | The user; null for `HUBSPOT`. |
+| `occurred_at` | timestamptz | When it happened: the time a user set it, or the HubSpot reply or meeting time it was synced from. |
+| `note` | text, null | Optional comment of the user. |
+
 ## Audit
 
 ### audit_event
@@ -741,7 +803,7 @@ The append-only record of who did what ([RULE-09](/requirements/business.md#busi
 |---|---|---|
 | `occurred_at` | timestamptz | When. |
 | `actor_id` | uuid FK → [`app_user`](#app_user), null | The user; null for a failed sign-in, for seeding, and for the scheduler and the worker acting on their own. |
-| `kind` | enum: `AUTH`, `USER`, `CONFIG`, `ACCOUNT`, `CONTACT`, `RUN`, `OVERRIDE`, `FEEDBACK`, `OUTREACH`, `CRM`, `AI_CALL` | Family of the action, for filtering. |
+| `kind` | enum: `AUTH`, `USER`, `CONFIG`, `ACCOUNT`, `CONTACT`, `RUN`, `OVERRIDE`, `FEEDBACK`, `OUTREACH`, `ENGAGEMENT`, `CRM`, `AI_CALL` | Family of the action, for filtering. |
 | `action` | text | One value of [Audit actions](#audit-actions). |
 | `entity_type` | text, null | Table name of the entity acted on. |
 | `entity_id` | uuid, null | Its id. |
@@ -771,6 +833,10 @@ The closed vocabulary of `audit_event.action`. **AI call payload**: `ai_role` (a
 | `SCORING_DRAFT_SAVED` | `CONFIG` | `scoring_config` | `version` |
 | `SCORING_ACTIVATED` | `CONFIG` | `scoring_config` | `version`, `previous_version`, `change_note` |
 | `PLUGIN_UPDATED` | `CONFIG` | `source_plugin` | changed fields |
+| `PROVIDER_FACT_CREATED` | `CONFIG` | `provider_fact` | `service_ids` |
+| `PROVIDER_FACT_UPDATED` | `CONFIG` | `provider_fact` | changed fields |
+| `OPEN_SIGNAL_DISMISSED` | `CONFIG` | `open_signal` | — |
+| `OPEN_SIGNAL_PROMOTED` | `CONFIG` | `open_signal` | `question_id` |
 | `ACCOUNT_CREATED` | `ACCOUNT` | `account` | `domain`, `origin` |
 | `ACCOUNT_UPDATED` | `ACCOUNT` | `account` | changed fields; also written by the worker, with no actor and with its run, when a refresh detects sources or writes an attribute; the payload names the changed fields |
 | `ACCOUNTS_IMPORTED` | `ACCOUNT` | — | `rows`, `created`, `updated`, `duplicates`, `invalid` |
@@ -787,11 +853,13 @@ The closed vocabulary of `audit_event.action`. **AI call payload**: `ai_role` (a
 | `LEAD_FEEDBACK_GIVEN` | `FEEDBACK` | `lead_feedback` | `verdict` |
 | `FINDING_FEEDBACK_GIVEN` | `FEEDBACK` | `finding_feedback` | `verdict` |
 | `ITEM_LABELLED` | `FEEDBACK` | `evaluation_item` | `expected_strength` |
-| `DRAFT_CREATED` | `OUTREACH` | `outreach_draft` | `channel`, `finding_ids` |
+| `DRAFT_CREATED` | `OUTREACH` | `outreach_draft` | `channel`, `finding_ids`, `provider_fact_ids` |
 | `DRAFT_UPDATED` | `OUTREACH` | `outreach_draft` | changed field names |
 | `DRAFT_EXPORTED` | `OUTREACH` | `outreach_draft` | — |
+| `ENGAGEMENT_SET` | `ENGAGEMENT` | `engagement_status` | `status` |
+| `ENGAGEMENT_SYNCED` | `ENGAGEMENT` | `engagement_status` | `status`, `previous_status` |
 | `CRM_PUSHED` | `CRM` | `crm_sync` | `target`, `status` |
-| `AI_CALL` | `AI_CALL` | the passage, document, draft or run the call served | the AI call payload above |
+| `AI_CALL` | `AI_CALL` | the passage, document, draft, score or run the call served | the AI call payload above |
 
 ## Hard-delete allow-list
 
@@ -805,9 +873,9 @@ Only these tables have rows deleted:
 - `app_user.email`, `service.code`, `service.name`, `industry.code`, `industry.label`, `market.code`, `market.name`, `account.domain`, `source_plugin.code` are unique.
 - `signal_question (service_id, key)`, `scoring_config (service_id, version)`, `account_alias (account_id, normalised)`, `account_source (account_id, url)`, `plugin_usage (plugin_code, day)`, `chunk (document_id, ordinal)` and `classification (chunk_id, question_id, question_revision)` are unique.
 - `document (account_id, content_hash)` is unique with `NULLS NOT DISTINCT`, so discovery documents without an account are deduplicated too; the same canonical URL with new content is a new document ([Document normalisation](/architecture/rules.md#document-normalisation)).
-- Partial unique indexes: one `scoring_config` with `status = 'DRAFT'` and one with `status = 'ACTIVE'` per service; one `account_score` with `is_current` per account and service; one `pipeline_run` of kind `ACCOUNT_REFRESH` with status `QUEUED` or `RUNNING` per account; one `pipeline_run` of kind `DISCOVERY` with status `QUEUED` or `RUNNING` per service; one `pipeline_run` of kind `EVALUATION` with status `QUEUED` or `RUNNING`; one `ACTIVE` `disqualifier_override` per account, service and rule key; one `ACTIVE` `evaluation_item` per passage, question and revision.
-- `finding.classification_id`, `alert.finding_id`, `alert.score_id`, `document_triage.document_id` and `evaluation_result.run_id` are unique.
+- Partial unique indexes: one `scoring_config` with `status = 'DRAFT'` and one with `status = 'ACTIVE'` per service; one `account_score` with `is_current` per account and service; one `pipeline_run` of kind `ACCOUNT_REFRESH` with status `QUEUED` or `RUNNING` per account; one `pipeline_run` of kind `DISCOVERY` with status `QUEUED` or `RUNNING` per service; one `pipeline_run` of kind `EVALUATION` with status `QUEUED` or `RUNNING`; one `pipeline_run` of kind `ENGAGEMENT_SYNC` with status `QUEUED` or `RUNNING`; one `ACTIVE` `disqualifier_override` per account, service and rule key; one `ACTIVE` `evaluation_item` per passage, question and revision.
+- `finding.classification_id`, `alert.finding_id`, `alert.score_id`, `alert.run_id`, `alert.engagement_status_id`, `document_triage.document_id`, `score_interpretation.score_id` and `evaluation_result.run_id` are unique.
 - `chunk.embedding` has an HNSW index with cosine distance; `chunk.lexemes` has a GIN index.
-- `job (status, priority, not_before)` is indexed for claiming; `audit_event (kind, occurred_at)` and `audit_event (run_id)` for filtering and the [Budget guard](/architecture/rules.md#budget-guard); `finding (account_id, status)` and `account_score (service_id, is_current, standing, priority)` for Prospects.
+- `job (status, priority, not_before)` is indexed for claiming; `audit_event (kind, occurred_at)` and `audit_event (run_id)` for filtering and the [Budget guard](/architecture/rules.md#budget-guard); `finding (account_id, status)`, `account_score (service_id, is_current, standing, priority)` and `engagement_status (account_id, service_id, created_at)` for Prospects; `open_signal (service_id, status)` for the Service editor.
 - Check constraints: every column whose type states a 0–1 or 0–100 range is within it; `account_score.band` is null unless `standing = 'RANKED'`; `signal_question.options` is non-null exactly when `answer_type = 'CHOICE'`.
 - The schema is created and changed only by Alembic migrations owned by the [api service](/architecture/services/api.md#owns); each migration grants the application role of [Runtime](/architecture/overview.md#runtime) its privileges.

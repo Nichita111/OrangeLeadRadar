@@ -20,8 +20,8 @@ A term is the one name of its concept in prose. **Identifier** is the name code,
 | Account source | An address where an account publishes: website, newsroom, investor relations, careers or feed. | `account_source` | [`account_source`](/architecture/sql-store.md#account_source) |
 | Admin | The role that configures services, scoring, plug-ins and users on top of everything Sales does. | `ADMIN` | [Roles](/requirements/business.md#roles) |
 | AI call | One request to the classifier or the LLM, audited with its role, model and cost. | `AI_CALL` | [Audit actions](/architecture/sql-store.md#audit-actions) |
-| AI role | The purpose an AI call serves: classifier, escalation, evidence, discovery extraction or outreach. | `ai_role` | [AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries) |
-| Alert | A notice that an account produced a strong new signal or rose in band. | `alert` | [Alerts](/architecture/rules.md#alerts) |
+| AI role | The purpose an AI call serves: classifier, escalation, evidence, open signal, discovery extraction, interpretation or outreach. | `ai_role` | [AI roles and boundaries](/architecture/overview.md#ai-roles-and-boundaries) |
+| Alert | A notice that an account produced a strong new signal, rose in band or replied, or that discovery proposed new companies. | `alert` | [Alerts](/architecture/rules.md#alerts) |
 | Answer type | How a signal question is answered: yes/no, scale or choice. | `answer_type` | [`signal_question`](/architecture/sql-store.md#signal_question) |
 | Audit event | One append-only record of an action. | `audit_event` | [`audit_event`](/architecture/sql-store.md#audit_event) |
 | Band | Hot, Warm or Cold, from a ranked account's Priority. | `band` | [Priority, standing and band](/architecture/rules.md#priority-standing-and-band) |
@@ -31,12 +31,16 @@ A term is the one name of its concept in prose. **Identifier** is the name code,
 | Classifier | The fast model that returns probabilities over fixed answers: Jev, or the LLM classifier adapter. | `CLASSIFIER` | [Classifier](/architecture/interfaces.md#classifier) |
 | Confidence | How sure the deciding model was of a finding, from 0 to 1. | `confidence` | [`finding`](/architecture/sql-store.md#finding) |
 | Contact | A decision-maker at an account, kept to the minimum. | `contact` | [`contact`](/architecture/sql-store.md#contact) |
+| Daily cycle | What the scheduler does every day: refresh every active account, run discovery for every active service and sync engagement statuses from HubSpot. | — | [Scheduling](/architecture/rules.md#scheduling) |
+| Daily summary | The counts at the top of Alerts of what changed for a service over the last day. | `digest` | [Daily summary](/architecture/rules.md#daily-summary) |
 | Demo sign-in | Signing in without a password as the demo dataset's Sales or Admin user, offered only in replay fixture mode. | `demo-login` | `API-78` in [Authentication and users](/architecture/interfaces.md#authentication-and-users) |
-| Discovery | A run that proposes companies not yet accounts for a service. | `DISCOVERY` | [Discovery](/architecture/rules.md#discovery) |
+| Discovery | A run, started by a user or by the daily cycle, that proposes companies not yet accounts for a service. | `DISCOVERY` | [Discovery](/architecture/rules.md#discovery) |
 | Discovery candidate | A company proposed by discovery that a person accepts or rejects. | `discovery_candidate` | [`discovery_candidate`](/architecture/sql-store.md#discovery_candidate) |
-| Disqualifier | A rule of the scoring settings that excludes an account from the ranking. | `disqualifiers` | [scoring settings document](/architecture/sql-store.md#scoring-settings-document) |
+| Disqualifier | A rule of the scoring settings that excludes an account from the ranking on an in-force finding of its question. | `disqualifiers` | [scoring settings document](/architecture/sql-store.md#scoring-settings-document) |
 | Disqualifier override | An Admin's exception that one disqualifier does not apply to one account. | `disqualifier_override` | [`disqualifier_override`](/architecture/sql-store.md#disqualifier_override) |
 | Document | One fetched item: article, page, report, posting or profile. | `document` | [`document`](/architecture/sql-store.md#document) |
+| Engagement statistics | Per service, the accounts in each engagement status and the shares of contacted accounts that answered and booked a meeting. | `engagement_stats` | [Engagement statistics](/architecture/rules.md#engagement-statistics) |
+| Engagement status | Where the team stands with an account for a service: not contacted, contacted, answered, meeting booked or rejected; set by a person or synced from HubSpot. | `engagement_status` | [`engagement_status`](/architecture/sql-store.md#engagement_status) |
 | Escalation | Sending an uncertain classifier answer to the LLM for a final verdict. | `escalated` | [Escalation](/architecture/rules.md#escalation) |
 | Escalation band | The range of `p_positive` between `ESCALATION_LOWER` and `ESCALATION_UPPER` that is escalated. | — | [Escalation](/architecture/rules.md#escalation) |
 | Escalation rate | The share of evaluated pairs that were escalated. | `escalation_rate` | [Evaluation metrics](/architecture/rules.md#evaluation-metrics) |
@@ -51,9 +55,10 @@ A term is the one name of its concept in prose. **Identifier** is the name code,
 | ICP | Ideal customer profile: the companies a service is for. | `icp_criteria` | [scoring settings document](/architecture/sql-store.md#scoring-settings-document) |
 | ICP criterion | One weighted condition of the ICP: industry, geography, size, revenue or complexity. | `icp_criteria[]` | [scoring settings document](/architecture/sql-store.md#scoring-settings-document) |
 | Impact report | What the product saved over a recent period: accounts researched, manual hours replaced, cost and time per refresh, proven precision. | `impact` | [Impact](/architecture/rules.md#impact) |
-| In force | Counting now: an `ACTIVE` finding, the latest feedback row, an `ACTIVE` exception. | — | [`finding`](/architecture/sql-store.md#finding) |
+| In force | Counting now: an `ACTIVE` finding, the latest feedback or engagement status row, an `ACTIVE` exception. | — | [`finding`](/architecture/sql-store.md#finding) |
 | Industry | An Admin-maintained sector an account belongs to and an ICP criterion names. | `industry` | [`industry`](/architecture/sql-store.md#industry) |
 | Intent score | 0–100: how strongly an account's recent findings show a need for a service. | `intent` | [Intent score](/architecture/rules.md#intent-score) |
+| Interpretation | The LLM's written reading of a ranked account's score for a service: why the company is worth approaching, why each counted signal matters and what holds it back, citing only its findings, open signals and provider facts. | `score_interpretation` | [Interpretation](/architecture/rules.md#interpretation) |
 | Jev | TypeSafe AI's classification model, served through OpenRouter; one of the two classifier adapters. | `JEV` | [AI gateway](/architecture/services/worker.md#ai-gateway) |
 | Label queue | The stratified list of pairs offered for labelling. | — | [Evaluation metrics](/architecture/rules.md#evaluation-metrics) |
 | Lead feedback | A user's verdict on a lead: relevant, not relevant or already a customer. | `lead_feedback` | [`lead_feedback`](/architecture/sql-store.md#lead_feedback) |
@@ -61,6 +66,7 @@ A term is the one name of its concept in prose. **Identifier** is the name code,
 | Market | An Admin-maintained, named group of countries, chosen in ICP geography criteria as a shortcut for its countries. | `market` | [`market`](/architecture/sql-store.md#market) |
 | Missed evidence | The share of labelled passages the selection leaves unread that hold a signal. | `missed_evidence` | [Evaluation metrics](/architecture/rules.md#evaluation-metrics) |
 | Negative signal | A finding of a negative question, which lowers Intent. | `NEGATIVE` | [Intent score](/architecture/rules.md#intent-score) |
+| Open signal | A buying signal the LLM noticed in a kept document that no question of the service asks about, kept with its verbatim quote, shown but never scored. | `open_signal` | [Open signals](/architecture/rules.md#open-signals) |
 | Outreach draft | A message a person may send, drafted from findings; never sent by the product. | `outreach_draft` | [`outreach_draft`](/architecture/sql-store.md#outreach_draft) |
 | Passage | A piece of a document: what the classifier reads and a finding quotes. | `chunk` | [`chunk`](/architecture/sql-store.md#chunk) |
 | Passage header | The line naming account, document, section and date that a passage is read with; never quoted. | — | [Chunking and passage selection](/architecture/rules.md#chunking-and-passage-selection) |
@@ -69,6 +75,7 @@ A term is the one name of its concept in prose. **Identifier** is the name code,
 | Precision | The share of predicted positives that the labels confirm. | `precision` | [Evaluation metrics](/architecture/rules.md#evaluation-metrics) |
 | Priority score | 0–100: the weighted combination of Fit and Intent that ranks accounts. | `priority` | [Priority, standing and band](/architecture/rules.md#priority-standing-and-band) |
 | Prospect | An account in a service's ranking. | `prospects` | [Prospects](/features/prospect-dashboard.md#prospects) |
+| Provider fact | One sentence about Orange Systems — a team, a delivered project, a result, a partnership or a certification — that drafts and interpretations may cite. | `provider_fact` | [`provider_fact`](/architecture/sql-store.md#provider_fact) |
 | Question revision | The version of a signal question's content; a new revision reclassifies. | `revision` | [`signal_question`](/architecture/sql-store.md#signal_question) |
 | Question-scoped retrieval | Ranking a long document's passages for one question by keyword and by meaning, fused by rank. | — | [Chunking and passage selection](/architecture/rules.md#chunking-and-passage-selection) |
 | Recall | The share of labelled positives that were predicted positive. | `recall` | [Evaluation metrics](/architecture/rules.md#evaluation-metrics) |
@@ -86,7 +93,7 @@ A term is the one name of its concept in prose. **Identifier** is the name code,
 | Signal question | A configurable question a passage can answer, revealing a need for a service. | `signal_question` | [`signal_question`](/architecture/sql-store.md#signal_question) |
 | Source plug-in | An adapter that fetches from one kind of source. | `source_plugin` | [`source_plugin`](/architecture/sql-store.md#source_plugin) |
 | Source type | The kind of document: news, company publication, job posting or company profile. | `source_type` | [`document`](/architecture/sql-store.md#document) |
-| Standing | Whether an account is ranked, below fit, disqualified or a customer, for a service. | `standing` | [Priority, standing and band](/architecture/rules.md#priority-standing-and-band) |
+| Standing | Whether an account is ranked, disqualified, a customer, or has rejected the service. | `standing` | [Priority, standing and band](/architecture/rules.md#priority-standing-and-band) |
 | Strength | How strongly a passage answers a question: none, weak, medium or strong. | `strength` | [`finding`](/architecture/sql-store.md#finding) |
 | Triage | Deciding whether a document is about its account and relevant to which services. | `document_triage` | [Triage](/architecture/rules.md#triage) |
 | Value proposition | What a service offers a prospect, used in outreach. | `value_proposition` | [`service`](/architecture/sql-store.md#service) |
