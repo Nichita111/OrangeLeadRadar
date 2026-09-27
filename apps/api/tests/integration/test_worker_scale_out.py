@@ -176,7 +176,7 @@ async def test_a_second_worker_runs_a_job_while_the_first_is_busy(database_url: 
         await engine_a.dispose()
         await engine_b.dispose()
 
-    assert results == (True, True)
+    assert list(results) == [True, True]
     assert {job.status for job in jobs} == {JobStatus.DONE}
     assert {job.locked_by for job in jobs} == {None}  # cleared once each job is DONE
 

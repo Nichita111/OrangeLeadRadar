@@ -174,7 +174,7 @@ describe("SourcePluginsScreen switch (FR-061, FR-120)", () => {
       expect(
         screen
           .getAllByRole("status")
-          .some((element) => element.textContent?.includes("GDELT switched off")),
+          .some((element) => element.textContent.includes("GDELT switched off")),
       ).toBe(true);
     });
   });

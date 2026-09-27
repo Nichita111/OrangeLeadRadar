@@ -238,7 +238,9 @@ async def test_a_manual_source_of_a_kind_blocks_its_detection(
     await drain(connection, settings())
 
     sources = await sources_of(connection, scene_.account_id)
-    assert not any(row.kind == AccountSourceKind.CAREERS for row in sources)
+    careers = [row for row in sources if row.kind == AccountSourceKind.CAREERS]
+    assert [c.url for c in careers] == ["https://boards.greenhouse.io/acme"]
+    assert careers[0].origin is AccountSourceOrigin.MANUAL
 
 
 async def test_an_inactive_detected_source_of_a_kind_also_blocks_its_detection(
@@ -484,7 +486,8 @@ async def test_serpapi_available_and_careers_missing_detects_the_first_on_domain
         row for row in sources if row.kind == AccountSourceKind.CAREERS
     ]
     assert [c.url for c in careers] == [f"https://{DOMAIN}/careers"]
-    assert await usage(connection, SourcePluginCode.SERPAPI) == 2  # one search per missing kind
+    # One robots.txt request, plus one search per missing kind (CAREERS, INVESTOR_RELATIONS).
+    assert await usage(connection, SourcePluginCode.SERPAPI) == 3
 
 
 async def test_a_failed_serpapi_search_records_a_run_error_and_keeps_home_page_detections(
