@@ -514,3 +514,16 @@ class AiCallOutcome(StrEnum):
     TIMEOUT = "TIMEOUT"
     ERROR = "ERROR"
     INVALID_OUTPUT = "INVALID_OUTPUT"
+
+
+class Dependency(StrEnum):
+    """`details.dependency` of `UPSTREAM_UNAVAILABLE`, exactly the
+    [Conventions](/architecture/interfaces.md#conventions) Dependencies table: a wire-only enum
+    that also names the dependency of a [`pipeline_run`](/architecture/sql-store.md#pipeline_run)
+    `errors` entry (G1)."""
+
+    DATABASE = "DATABASE"
+    CLASSIFIER = "CLASSIFIER"
+    LLM = "LLM"
+    EMBEDDER = "EMBEDDER"
+    HUBSPOT = "HUBSPOT"

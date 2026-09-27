@@ -27,6 +27,7 @@ from leadradar.ai.shapes import (
 from leadradar.audit.events import append_audit_event
 from leadradar.core.enums import (
     AuditAction,
+    Dependency,
     FindingStatus,
     OutreachDraftChannel,
     OutreachDraftStatus,
@@ -283,7 +284,7 @@ async def create_draft(
             break
     if output is None:
         raise UpstreamUnavailable(
-            "llm", "INVALID_OUTPUT", "The outreach draft broke the grounding rule twice"
+            Dependency.LLM, "INVALID_OUTPUT", "The outreach draft broke the grounding rule twice"
         )
 
     cited = [uuid.UUID(finding_id) for finding_id in dict.fromkeys(output.cited_finding_ids)]

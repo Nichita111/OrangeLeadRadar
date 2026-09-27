@@ -1735,8 +1735,9 @@ export interface components {
         /**
          * Dependency
          * @description `details.dependency` of `UPSTREAM_UNAVAILABLE`, exactly the
-         *     [Dependencies](/architecture/interfaces.md#conventions) table's column: a wire-only enum,
-         *     owned by interfaces and defined here once.
+         *     [Conventions](/architecture/interfaces.md#conventions) Dependencies table: a wire-only enum
+         *     that also names the dependency of a [`pipeline_run`](/architecture/sql-store.md#pipeline_run)
+         *     `errors` entry (G1).
          * @enum {string}
          */
         Dependency: "DATABASE" | "CLASSIFIER" | "LLM" | "EMBEDDER" | "HUBSPOT";
@@ -3029,11 +3030,16 @@ export interface components {
         /**
          * RunError
          * @description One entry of `Run.errors`, as [`pipeline_run`](/architecture/sql-store.md#pipeline_run)
-         *     `errors` states it.
+         *     `errors` states it. `plugin_code` and `dependency` are absent, never `null`, when the run's
+         *     stored entry has none (G1): `to_run` builds each from the exact stored dict via
+         *     `model_validate`, and every route that answers a `Run` or `Page[Run]` dumps its response
+         *     with `response_model_exclude_unset=True`, so an unset field of the stored entry stays unset
+         *     on the wire.
          */
         RunError: {
             /** Code */
             code: string;
+            dependency?: components["schemas"]["Dependency"] | null;
             /** Message */
             message: string;
             plugin_code?: components["schemas"]["SourcePluginCode"] | null;

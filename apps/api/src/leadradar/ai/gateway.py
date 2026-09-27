@@ -27,7 +27,6 @@ from leadradar.ai.classifier import (
     validate_answers,
 )
 from leadradar.ai.errors import (
-    AiDependency,
     BudgetExhausted,
     InvalidOutput,
     UnavailableReason,
@@ -58,7 +57,13 @@ from leadradar.core.budget_guard import (
     call_cost_eur,
     is_budget_exhausted,
 )
-from leadradar.core.enums import AiCallOutcome, AiCallProvider, AiRole, DocumentTriageClassifier
+from leadradar.core.enums import (
+    AiCallOutcome,
+    AiCallProvider,
+    AiRole,
+    Dependency,
+    DocumentTriageClassifier,
+)
 
 T = TypeVar("T")
 OutputT = TypeVar("OutputT", bound=BaseModel)
@@ -71,8 +76,8 @@ def build_ai_http_client(
     return build_fixture_client(settings.fixture_mode, settings.fixture_dir, live)
 
 
-def _dependency(role: AiRole) -> AiDependency:
-    return "classifier" if role == AiRole.CLASSIFIER else "llm"
+def _dependency(role: AiRole) -> Dependency:
+    return Dependency.CLASSIFIER if role == AiRole.CLASSIFIER else Dependency.LLM
 
 
 def _reason(outcome: AiCallOutcome) -> UnavailableReason:

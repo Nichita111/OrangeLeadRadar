@@ -11,9 +11,13 @@ import {
   accounts,
   evidenceFor,
   findings,
+  industries,
+  markets,
   prospectRows,
   scoreViews,
   scoringConfig,
+  scoringSummaries,
+  services,
 } from "./prospectsAndEvidence.fixtures";
 
 type Band = Schemas["AccountScoreBand"];
@@ -27,9 +31,9 @@ const PAGE_SIZE_MAX = 200;
 
 const BANDS: Band[] = ["HOT", "WARM", "COLD"];
 const { settings } = scoringConfig;
-const minFit = Number(settings.min_fit);
-const hotThreshold = Number(settings.hot_threshold);
-const warmThreshold = Number(settings.warm_threshold);
+const minFit = settings.min_fit;
+const hotThreshold = settings.hot_threshold;
+const warmThreshold = settings.warm_threshold;
 
 /** The ranking order of Priority, standing and band. */
 function byRanking(left: ProspectRow, right: ProspectRow): number {
@@ -143,6 +147,17 @@ export function createProspectsHandlers() {
   }
 
   return [
+    http.get("/api/v1/services", ({ response }) => response(200).json(services)),
+    http.get("/api/v1/industries", ({ response }) => response(200).json(industries)),
+    http.get("/api/v1/markets", ({ response }) => response(200).json(markets)),
+    http.get("/api/v1/accounts/{id}", ({ params, response }) => {
+      const found = accounts.find((candidate) => candidate.id === params.id);
+      return found === undefined ? errorResponse(notFound, 404) : response(200).json(found);
+    }),
+    http.get("/api/v1/services/{id}/scoring-configs", ({ response }) =>
+      response(200).json(scoringSummaries),
+    ),
+    http.get("/api/v1/scoring-configs/{id}", ({ response }) => response(200).json(scoringConfig)),
     http.get("/api/v1/services/{id}/prospects", ({ query, response }) => {
       const standing = query.get("standing") ?? "RANKED";
       const bands = query.getAll("band");
