@@ -28,7 +28,7 @@ export function useDiscoveryCandidates(
       requireData(
         (
           await client.GET("/api/v1/discovery-candidates", {
-            params: { query: { service_id: serviceId, status, page } },
+            params: { query: { service_id: serviceId, status: status ?? null, page } },
           })
         ).data,
       ),
