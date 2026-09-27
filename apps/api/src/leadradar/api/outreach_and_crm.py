@@ -1,6 +1,6 @@
 """Router of the [Outreach and CRM](/architecture/interfaces.md#outreach-and-crm) family:
-`API-56` to `API-59`. `API-59` is built; `API-56` to `API-58` are declared stubs answering
-`501 NOT_IMPLEMENTED` until `S-OUT-01`."""
+`API-56` to `API-59`. The drafts (`API-56` to `API-58`, `S-OUT-01`) are
+`leadradar.outreach.drafts`; the HubSpot push (`API-59`) is `leadradar.outreach.commands`."""
 
 from __future__ import annotations
 
@@ -14,7 +14,6 @@ from pydantic.json_schema import SkipJsonSchema
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from leadradar.api.authentication import CurrentUser
-from leadradar.api.router_utils import stub_router
 from leadradar.core.enums import (
     CrmSyncStatus,
     CrmSyncTarget,
@@ -23,9 +22,10 @@ from leadradar.core.enums import (
 )
 from leadradar.db.session import get_session
 from leadradar.outreach.commands import push_to_crm
+from leadradar.outreach.drafts import DraftView, create_draft, list_drafts, update_draft
+from leadradar.outreach.errors import OutreachValidationError
 
 router = APIRouter(tags=["outreach-and-crm"])
-outreach_stub_router = stub_router("outreach-and-crm")
 
 
 class OutreachRequest(BaseModel):
@@ -129,23 +129,103 @@ async def post_crm_push(
     )
 
 
-@outreach_stub_router.post(
-    "/accounts/{id}/scores/{service_id}/outreach-drafts", response_model=OutreachDraft
-)
+def _to_outreach_draft(view: DraftView) -> OutreachDraft:
+    return OutreachDraft(
+        id=str(view.id),
+        account_id=str(view.account_id),
+        service_id=str(view.service_id),
+        subject=view.subject,
+        body=view.body,
+        edited=view.edited,
+        created_at=view.created_at.isoformat(),
+        channel=view.channel,
+        status=view.status,
+        contact=(
+            None
+            if view.contact is None
+            else OutreachDraftContact(
+                id=str(view.contact.id),
+                full_name=view.contact.full_name,
+                job_title=view.contact.job_title,
+            )
+        ),
+        findings=[
+            OutreachDraftFinding(id=str(f.id), question_text=f.question_text, quote=f.quote)
+            for f in view.findings
+        ],
+        created_by_name=view.created_by_name,
+    )
+
+
+@router.post("/accounts/{id}/scores/{service_id}/outreach-drafts", response_model=OutreachDraft)
 async def create_outreach_draft(
-    id: str, service_id: str, payload: OutreachRequest
+    id: uuid.UUID,
+    service_id: uuid.UUID,
+    payload: OutreachRequest,
+    request: Request,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    principal: CurrentUser,
 ) -> OutreachDraft:
-    """`API-56`."""
-    raise AssertionError("unreachable: contract_not_built already raised")
+    """`API-56`: follows [Outreach grounding](/architecture/rules.md#outreach-grounding); nothing
+    is sent."""
+    settings = request.app.state.settings
+    channel = payload.channel
+    view = await create_draft(
+        session,
+        account_id=id,
+        service_id=service_id,
+        channel=channel,
+        contact_id=_contact_id(payload.contact_id),
+        gateway=request.app.state.ai_gateway,
+        max_findings=settings.outreach_max_findings,
+        max_chars=(
+            settings.outreach_email_max_chars
+            if channel == OutreachDraftChannel.EMAIL
+            else settings.outreach_inmail_max_chars
+        ),
+        principal=principal,
+        now=request.app.state.clock(),
+    )
+    return _to_outreach_draft(view)
 
 
-@outreach_stub_router.get("/accounts/{id}/outreach-drafts", response_model=list[OutreachDraft])
-async def list_outreach_drafts(id: str, service_id: str) -> list[OutreachDraft]:
+@router.get("/accounts/{id}/outreach-drafts", response_model=list[OutreachDraft])
+async def list_outreach_drafts(
+    id: uuid.UUID,
+    service_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _principal: CurrentUser,
+) -> list[OutreachDraft]:
     """`API-57`."""
-    raise AssertionError("unreachable: contract_not_built already raised")
+    return [_to_outreach_draft(view) for view in await list_drafts(session, id, service_id)]
 
 
-@outreach_stub_router.patch("/outreach-drafts/{id}", response_model=OutreachDraft)
-async def update_outreach_draft(id: str, payload: OutreachDraftUpdate) -> OutreachDraft:
-    """`API-58`."""
-    raise AssertionError("unreachable: contract_not_built already raised")
+@router.patch("/outreach-drafts/{id}", response_model=OutreachDraft)
+async def update_outreach_draft(
+    id: uuid.UUID,
+    payload: OutreachDraftUpdate,
+    request: Request,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    principal: CurrentUser,
+) -> OutreachDraft:
+    """`API-58`: changing `subject` or `body` sets `edited`; `status` may only move to
+    `EXPORTED`."""
+    view = await update_draft(
+        session,
+        draft_id=id,
+        subject=payload.subject,
+        body=payload.body,
+        status=payload.status,
+        actor_id=principal.id,
+        now=request.app.state.clock(),
+    )
+    return _to_outreach_draft(view)
+
+
+def _contact_id(value: str | None) -> uuid.UUID | None:
+    if value is None:
+        return None
+    try:
+        return uuid.UUID(value)
+    except ValueError:
+        raise OutreachValidationError("contact_id", "Not a contact id.") from None

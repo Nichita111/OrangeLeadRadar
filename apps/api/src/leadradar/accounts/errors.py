@@ -55,3 +55,14 @@ class DomainConflict(AccountError):
 class AccountNotFound(AccountError):
     """No [`account`](/architecture/sql-store.md#account) row for the given id (`API-23`,
     `API-24`)."""
+
+
+class ContactNotFound(AccountError):
+    """No [`contact`](/architecture/sql-store.md#contact) row for the given id (`API-27`,
+    `API-28`)."""
+
+
+class ContactValidationError(AccountValidationError):
+    """A [`ContactCreate`](/architecture/interfaces.md#contactcreate) or
+    [`ContactUpdate`](/architecture/interfaces.md#contactupdate) text field is blank (`API-26`,
+    `API-27`)."""

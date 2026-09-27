@@ -88,6 +88,9 @@ function AccountBody({
                   .filter((part) => part !== null)
                   .join(", ")}
               </span>
+              <Link to={`/accounts/${account.id}/outreach`} className="text-accent-ink underline">
+                Contacts and outreach
+              </Link>
               {account.parent !== null && (
                 <span>
                   Parent:{" "}

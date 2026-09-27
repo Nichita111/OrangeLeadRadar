@@ -3,6 +3,7 @@ import { Navigate, createBrowserRouter, type RouteObject } from "react-router";
 import { AuditLogScreen } from "./features/audit-trail/AuditLogScreen";
 import { LabellingScreen } from "./features/evaluation-and-feedback/labelling/LabellingScreen";
 import { QualityReportScreen } from "./features/evaluation-and-feedback/quality-report/QualityReportScreen";
+import { OutreachComposerScreen } from "./features/outreach-and-crm/OutreachComposerScreen";
 import { AccountDetailScreen } from "./features/prospect-dashboard/account-detail/AccountDetailScreen";
 import { ProspectsScreen } from "./features/prospect-dashboard/prospects/ProspectsScreen";
 import { SignIn } from "./features/identity-and-access/sign-in/SignIn";
@@ -39,6 +40,11 @@ export const routes: RouteObject[] = [
             path: "/accounts/:id",
             element: <AccountDetailScreen />,
             handle: handle({ title: "Account detail" }),
+          },
+          {
+            path: "/accounts/:id/outreach",
+            element: <OutreachComposerScreen />,
+            handle: handle({ title: "Outreach composer" }),
           },
           {
             path: "/labelling",

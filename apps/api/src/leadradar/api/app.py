@@ -1,7 +1,9 @@
 """Builds the FastAPI application ([api Design](/architecture/services/api.md#design)):
 mounts every router under `/api/v1`, serves the OpenAPI document there, and turns off the
-interactive docs pages. A lifespan opens the one async database engine and the one
-`httpx.AsyncClient` the health checks use, and closes them."""
+interactive docs pages. A lifespan opens the one async database engine, the one
+`httpx.AsyncClient` the health checks use and the
+[AI gateway](/architecture/services/worker.md#ai-gateway) the contacts' persona mapping and the
+outreach drafts call, and closes them."""
 
 from __future__ import annotations
 
@@ -10,7 +12,9 @@ from contextlib import AbstractAsyncContextManager, asynccontextmanager
 
 import httpx
 from fastapi import FastAPI
+from sqlalchemy.ext.asyncio import async_sessionmaker
 
+from leadradar.ai.gateway import AiGateway, build_ai_http_client
 from leadradar.api import (
     accounts,
     accounts_and_contacts,
@@ -44,9 +48,16 @@ def _build_lifespan(
         app.state.engine = build_engine(settings.database_url.get_secret_value())
         app.state.http_client = httpx.AsyncClient()
         app.state.clock = build_clock(settings)
+        ai_http = build_ai_http_client(settings)
+        app.state.ai_gateway = AiGateway(
+            settings,
+            http=ai_http,
+            sessions=async_sessionmaker(app.state.engine, expire_on_commit=False),
+        )
         try:
             yield
         finally:
+            await ai_http.aclose()
             await app.state.http_client.aclose()
             await app.state.engine.dispose()
 
@@ -83,7 +94,6 @@ def create_app(settings: ApiSettings) -> FastAPI:
     app.include_router(discovery.router, prefix=API_PREFIX)
     app.include_router(feedback_and_alerts.router, prefix=API_PREFIX)
     app.include_router(outreach_and_crm.router, prefix=API_PREFIX)
-    app.include_router(outreach_and_crm.outreach_stub_router, prefix=API_PREFIX)
     app.include_router(prospects_and_evidence.router, prefix=API_PREFIX)
     app.include_router(evaluation.router, prefix=API_PREFIX)
     return app

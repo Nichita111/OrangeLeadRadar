@@ -24,7 +24,13 @@ from pydantic.json_schema import SkipJsonSchema
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.responses import Response
 
-from leadradar.accounts.errors import AccountNotFound, AccountValidationError, DomainConflict
+from leadradar.accounts.errors import (
+    AccountNotFound,
+    AccountValidationError,
+    ContactNotFound,
+    DomainConflict,
+)
+from leadradar.ai.errors import BudgetExhausted, UpstreamUnavailable
 from leadradar.alerts.errors import AlertNotFound
 from leadradar.auth.errors import (
     AccountDisabled,
@@ -46,7 +52,13 @@ from leadradar.evaluation.errors import (
     ServiceNotFound,
 )
 from leadradar.feedback.errors import FeedbackError
-from leadradar.outreach.errors import CrmUnavailable, HubspotNotConfigured, ScoreNotFound
+from leadradar.outreach.errors import (
+    CrmUnavailable,
+    HubspotNotConfigured,
+    OutreachNotFound,
+    OutreachValidationError,
+    ScoreNotFound,
+)
 from leadradar.runs.errors import (
     AccountInactive,
     RefreshAccountNotFound,
@@ -372,8 +384,43 @@ def register_error_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(AccountNotFound)
-    async def handle_account_not_found(request: Request, exc: AccountNotFound) -> Response:
+    @app.exception_handler(ContactNotFound)
+    @app.exception_handler(OutreachNotFound)
+    async def handle_account_not_found(request: Request, exc: Exception) -> Response:
         return JSONResponse(status_code=404, content=envelope("NOT_FOUND", str(exc)))
+
+    @app.exception_handler(OutreachValidationError)
+    async def handle_outreach_validation_error(
+        request: Request, exc: OutreachValidationError
+    ) -> Response:
+        return JSONResponse(
+            status_code=422,
+            content=envelope(
+                "VALIDATION",
+                "The input is invalid.",
+                {"fields": [{"field": exc.field, "message": str(exc)}]},
+            ),
+        )
+
+    @app.exception_handler(UpstreamUnavailable)
+    async def handle_upstream_unavailable(request: Request, exc: UpstreamUnavailable) -> Response:
+        return JSONResponse(
+            status_code=503,
+            content=envelope(
+                "UPSTREAM_UNAVAILABLE",
+                str(exc),
+                {"dependency": exc.dependency.upper(), "reason": exc.reason},
+            ),
+        )
+
+    @app.exception_handler(BudgetExhausted)
+    async def handle_budget_exhausted(request: Request, exc: BudgetExhausted) -> Response:
+        return JSONResponse(
+            status_code=429,
+            content=envelope(
+                "BUDGET_EXHAUSTED", str(exc), {"resets_at": exc.resets_at.isoformat()}
+            ),
+        )
 
     @app.exception_handler(SourcePluginNotFound)
     async def handle_source_plugin_not_found(
