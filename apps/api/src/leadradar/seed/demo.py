@@ -33,6 +33,7 @@ from leadradar.configuration.commands import (
 from leadradar.core.account_import import parse_csv_rows, parse_import_row
 from leadradar.core.enums import (
     AccountSourceKind,
+    AccountSourceOrigin,
     AccountStatus,
     AppUserRole,
     AppUserStatus,
@@ -726,6 +727,13 @@ class DemoSeedMismatch(Exception):
     """An existing demo seed is incomplete or differs from the declared dataset."""
 
 
+def _seeded_or_enriched(stored: object, seeded: object) -> bool:
+    """Whether a stored attribute is the seed's: equal to the seeded value, or any value when the
+    demo file leaves it empty, since a refresh's profile enrichment may fill it
+    ([Account attributes](/architecture/rules.md#account-attributes))."""
+    return seeded is None or stored == seeded
+
+
 async def _existing_seed_matches(db: AsyncSession, settings: SeedSettings) -> bool:
     """Return whether a complete demo seed is already present, without writing anything.
 
@@ -873,10 +881,12 @@ async def _existing_seed_matches(db: AsyncSession, settings: SeedSettings) -> bo
             and account.name == account_spec.name
             and account.country_code == account_spec.country_code
             and account.industry == account_spec.industry
-            and account.employee_count == account_spec.employee_count
-            and account.revenue_eur == account_spec.revenue_eur
-            and account.operational_complexity == account_spec.operational_complexity
-            and account.linkedin_url == account_spec.linkedin_url
+            and _seeded_or_enriched(account.employee_count, account_spec.employee_count)
+            and _seeded_or_enriched(account.revenue_eur, account_spec.revenue_eur)
+            and _seeded_or_enriched(
+                account.operational_complexity, account_spec.operational_complexity
+            )
+            and _seeded_or_enriched(account.linkedin_url, account_spec.linkedin_url)
             and account.notes == account_spec.notes
             and account.status == AccountStatus.ACTIVE,
             f"account {account_spec.domain}",
@@ -888,11 +898,17 @@ async def _existing_seed_matches(db: AsyncSession, settings: SeedSettings) -> bo
                 await db.execute(select(AccountAlias).where(AccountAlias.account_id == account.id))
             ).scalars()
         }
+        # A refresh adds `DETECTED` sources
+        # ([Source detection](/architecture/rules.md#source-detection)); they are the
+        # account's, not the seed's, so only the seeded ones are compared.
         sources = {
             (source.kind, source.url)
             for source in (
                 await db.execute(
-                    select(AccountSource).where(AccountSource.account_id == account.id)
+                    select(AccountSource).where(
+                        AccountSource.account_id == account.id,
+                        AccountSource.origin != AccountSourceOrigin.DETECTED,
+                    )
                 )
             ).scalars()
         }
