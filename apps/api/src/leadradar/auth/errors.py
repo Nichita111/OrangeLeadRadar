@@ -33,7 +33,8 @@ class Forbidden(Exception):
 
 
 class UserNotFound(Exception):
-    """`API-06` on an unknown `id`; `404`."""
+    """`API-06` on an unknown `id`, or `API-78` for a role whose demo user does not exist or
+    outside `FIXTURE_MODE` `replay`; `404`."""
 
 
 class EmailTaken(Exception):

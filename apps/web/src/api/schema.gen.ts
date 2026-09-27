@@ -353,7 +353,7 @@ export interface paths {
         put?: never;
         /**
          * Demo Login
-         * @description `API-78`.
+         * @description `API-78`: answers only in `FIXTURE_MODE` `replay`, `404 NOT_FOUND` otherwise.
          */
         post: operations["demo_login_api_v1_auth_demo_login_post"];
         delete?: never;

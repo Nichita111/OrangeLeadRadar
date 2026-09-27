@@ -87,7 +87,6 @@ def create_app(settings: ApiSettings) -> FastAPI:
     app.include_router(audit_and_health.router, prefix=API_PREFIX)
     app.include_router(auth_and_users.build_auth_router(settings), prefix=API_PREFIX)
     app.include_router(auth_and_users.build_users_router(settings), prefix=API_PREFIX)
-    app.include_router(auth_and_users.demo_login_stub_router, prefix=API_PREFIX)
     app.include_router(configuration.router, prefix=API_PREFIX)
     app.include_router(services_and_questions.router, prefix=API_PREFIX)
     app.include_router(scoring.router, prefix=API_PREFIX)

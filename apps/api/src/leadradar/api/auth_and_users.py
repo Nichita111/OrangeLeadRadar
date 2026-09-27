@@ -1,8 +1,7 @@
 """Router of the [Authentication and users](/architecture/interfaces.md#authentication-and-users)
-family: `API-01` to `API-06`, each built here; `API-78` is a declared stub answering
-`501 NOT_IMPLEMENTED` until task 2 builds it. Each built route validates its input into a
-Pydantic model, calls one `auth` capability function, and shapes the response
-(api Design "Layering")."""
+family: `API-01` to `API-06` and `API-78`, each built here. Each built route validates its input
+into a Pydantic model, calls one `auth` capability function, and shapes the response (api Design
+"Layering")."""
 
 from __future__ import annotations
 
@@ -22,8 +21,8 @@ from leadradar.api.authentication import (
     require_admin,
 )
 from leadradar.api.constants import API_PREFIX
-from leadradar.api.router_utils import stub_router
-from leadradar.auth.sessions import sign_in, sign_out
+from leadradar.auth.errors import UserNotFound
+from leadradar.auth.sessions import demo_sign_in, sign_in, sign_out
 from leadradar.auth.users import (
     UserCreateData,
     UserUpdateData,
@@ -34,9 +33,8 @@ from leadradar.auth.users import (
 from leadradar.core.enums import AppUserRole, AppUserStatus
 from leadradar.db.models.identity import AppUser
 from leadradar.db.session import get_session
+from leadradar.seed.demo import DEMO_USER_EMAILS
 from leadradar.settings import ApiSettings
-
-demo_login_stub_router = stub_router("authentication-and-users")
 
 
 class DemoLoginRequest(BaseModel):
@@ -182,6 +180,29 @@ def build_auth_router(settings: ApiSettings) -> APIRouter:
         _set_session_cookie(response, token, settings)
         return _to_authenticated_user(user)
 
+    @router.post("/auth/demo-login", response_model=AuthenticatedUser)
+    async def demo_login(
+        payload: DemoLoginRequest,
+        request: Request,
+        response: Response,
+        db: AsyncSession = Depends(get_session),
+    ) -> AuthenticatedUser:
+        """`API-78`: answers only in `FIXTURE_MODE` `replay`, `404 NOT_FOUND` otherwise."""
+        if settings.fixture_mode != "replay":
+            raise UserNotFound
+        token = secrets.token_bytes(32)
+        user = await demo_sign_in(
+            db,
+            email=DEMO_USER_EMAILS[payload.role],
+            now=request.app.state.clock(),
+            token=token,
+            max_failures=settings.login_max_failures,
+            lock_minutes=settings.login_lock_minutes,
+            session_ttl_hours=settings.session_ttl_hours,
+        )
+        _set_session_cookie(response, token, settings)
+        return _to_authenticated_user(user)
+
     @router.post("/auth/logout", status_code=204)
     async def logout(
         request: Request,
@@ -266,9 +287,3 @@ def build_users_router(settings: ApiSettings) -> APIRouter:
         return _to_user(user)
 
     return router
-
-
-@demo_login_stub_router.post("/auth/demo-login", response_model=AuthenticatedUser)
-async def demo_login(payload: DemoLoginRequest) -> AuthenticatedUser:
-    """`API-78`."""
-    raise AssertionError("unreachable: contract_not_built already raised")

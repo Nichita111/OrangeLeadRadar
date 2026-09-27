@@ -90,6 +90,11 @@ class SeedSettings(ApiSettings):
 # a second literal of the same address.
 DEMO_ADMIN_EMAIL = "admin@leadradar.local"
 DEMO_SALES_EMAIL = "sales@leadradar.local"
+# The demo user of each role, which the demo sign-in `API-78` signs in as.
+DEMO_USER_EMAILS: dict[AppUserRole, str] = {
+    AppUserRole.ADMIN: DEMO_ADMIN_EMAIL,
+    AppUserRole.SALES: DEMO_SALES_EMAIL,
+}
 
 # Email, role, and the settings field holding its password. Display name is the email's local
 # part (G2). The admin comes first: every later step needs its id as the actor of a write the

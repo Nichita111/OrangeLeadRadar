@@ -116,6 +116,7 @@ _BUILT_CONTRACTS = {
     "API-75",
     "API-76",
     "API-77",
+    "API-78",
 }
 STUB_CONTRACTS = [row for row in REST_CONTRACTS if row.id not in _BUILT_CONTRACTS]
 

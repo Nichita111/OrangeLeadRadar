@@ -1,8 +1,8 @@
-"""Sign-in, sign-out and session authentication ([S-SEC-01](/requirements/system.md), `API-01`
-to `API-03`). Each function owns its transaction (api Design "Transactions"): the failed
-sign-in's counters, lock and `LOGIN_FAILED` row are committed before the typed error is raised,
-so they survive the `401` or `423` ([api Design](/architecture/services/api.md#design) "Sessions
-and passwords")."""
+"""Sign-in, sign-out and session authentication ([S-SEC-01](/requirements/system.md), `API-01` to
+`API-03`, and the demo sign-in `API-78`). Each function owns its transaction (api Design
+"Transactions"): the failed sign-in's counters, lock and `LOGIN_FAILED` row are committed before
+the typed error is raised, so they survive the `401` or `423` ([api
+Design](/architecture/services/api.md#design) "Sessions and passwords")."""
 
 from __future__ import annotations
 
@@ -19,6 +19,7 @@ from leadradar.auth.errors import (
     Forbidden,
     InvalidCredentials,
     Unauthenticated,
+    UserNotFound,
 )
 from leadradar.auth.passwords import verify_password
 from leadradar.core.enums import AppUserStatus, AuditAction
@@ -47,9 +48,7 @@ async def sign_in(
 ) -> AppUser:
     """`API-01`. Raises `InvalidCredentials`, `AccountLocked` or `AccountDisabled` after
     committing the write its outcome makes."""
-    user = (
-        await db.execute(select(AppUser).where(AppUser.email == email).with_for_update())
-    ).scalar_one_or_none()
+    user = await _user_for_sign_in(db, email)
 
     if user is None:
         await append_audit_event(
@@ -64,7 +63,65 @@ async def sign_in(
         await db.commit()
         raise InvalidCredentials
 
-    password_matches = verify_password(password, user.password_hash)
+    return await _complete_sign_in(
+        db,
+        user,
+        password_matches=verify_password(password, user.password_hash),
+        now=now,
+        token=token,
+        max_failures=max_failures,
+        lock_minutes=lock_minutes,
+        session_ttl_hours=session_ttl_hours,
+    )
+
+
+async def demo_sign_in(
+    db: AsyncSession,
+    *,
+    email: str,
+    now: datetime,
+    token: bytes,
+    max_failures: int,
+    lock_minutes: int,
+    session_ttl_hours: int,
+) -> AppUser:
+    """`API-78`: signs in as the user of `email` exactly as `API-01` with that user's correct
+    password would. Raises `UserNotFound` when no user has `email`, else `AccountLocked` or
+    `AccountDisabled` as `API-01` does."""
+    user = await _user_for_sign_in(db, email)
+    if user is None:
+        raise UserNotFound
+    return await _complete_sign_in(
+        db,
+        user,
+        password_matches=True,
+        now=now,
+        token=token,
+        max_failures=max_failures,
+        lock_minutes=lock_minutes,
+        session_ttl_hours=session_ttl_hours,
+    )
+
+
+async def _user_for_sign_in(db: AsyncSession, email: str) -> AppUser | None:
+    return (
+        await db.execute(select(AppUser).where(AppUser.email == email).with_for_update())
+    ).scalar_one_or_none()
+
+
+async def _complete_sign_in(
+    db: AsyncSession,
+    user: AppUser,
+    *,
+    password_matches: bool,
+    now: datetime,
+    token: bytes,
+    max_failures: int,
+    lock_minutes: int,
+    session_ttl_hours: int,
+) -> AppUser:
+    """Applies `decide_sign_in` to `user`: opens the session and appends `LOGIN_SUCCEEDED`, or
+    records the failure and raises its typed error, committing either."""
     state = UserAuthState(
         status=user.status, failed_logins=user.failed_logins, locked_until=user.locked_until
     )

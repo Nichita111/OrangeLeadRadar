@@ -17,9 +17,10 @@ from leadradar.auth.errors import (
     AccountLocked,
     InvalidCredentials,
     Unauthenticated,
+    UserNotFound,
 )
 from leadradar.auth.passwords import hash_password
-from leadradar.auth.sessions import authenticate, sign_in, sign_out
+from leadradar.auth.sessions import authenticate, demo_sign_in, sign_in, sign_out
 from leadradar.core.enums import AppUserRole, AppUserStatus, AuditAction
 from leadradar.db.models.identity import AppUser, AuthSession
 from leadradar.logs import request_id_var
@@ -330,3 +331,58 @@ async def test_concurrent_wrong_passwords_lock_the_account_exactly_at_the_maximu
         await setup_session.execute(text("DELETE FROM app_user WHERE id = :id"), {"id": user.id})
         await setup_session.commit()
         await setup_session.close()
+
+
+async def _demo_sign_in(db: AsyncSession, email: str) -> AppUser:
+    return await demo_sign_in(
+        db,
+        email=email,
+        now=NOW,
+        token=b"\x03" * 32,
+        max_failures=MAX_FAILURES,
+        lock_minutes=LOCK_MINUTES,
+        session_ttl_hours=SESSION_TTL_HOURS,
+    )
+
+
+async def test_demo_sign_in_opens_a_session_and_records_login_succeeded_without_a_password(
+    db_session: AsyncSession,
+) -> None:
+    user = await _make_user(db_session, failed_logins=2)
+
+    signed_in = await _demo_sign_in(db_session, user.email)
+
+    assert signed_in.id == user.id
+    assert signed_in.last_login_at == NOW
+    assert signed_in.failed_logins == 0
+    session_row = (
+        await db_session.execute(select(AuthSession).where(AuthSession.user_id == user.id))
+    ).scalar_one()
+    assert session_row.expires_at == NOW + timedelta(hours=SESSION_TTL_HOURS)
+    action: str = (
+        await db_session.execute(
+            text("SELECT action FROM audit_event WHERE entity_id = :id"), {"id": user.id}
+        )
+    ).scalar_one()
+    assert action == AuditAction.LOGIN_SUCCEEDED.value
+
+
+async def test_demo_sign_in_answers_as_api_01_for_a_locked_or_disabled_user(
+    db_session: AsyncSession,
+) -> None:
+    locked = await _make_user(db_session, locked_until=NOW + timedelta(minutes=5))
+    disabled = await _make_user(db_session, status=AppUserStatus.DISABLED)
+
+    with pytest.raises(AccountLocked):
+        await _demo_sign_in(db_session, locked.email)
+    with pytest.raises(AccountDisabled):
+        await _demo_sign_in(db_session, disabled.email)
+
+
+async def test_demo_sign_in_raises_user_not_found_for_an_unknown_email_and_writes_nothing(
+    db_session: AsyncSession,
+) -> None:
+    unknown_email = f"unknown-{uuid.uuid4()}@example.com"
+
+    with pytest.raises(UserNotFound):
+        await _demo_sign_in(db_session, unknown_email)
