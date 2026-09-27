@@ -8,6 +8,10 @@ from __future__ import annotations
 import httpx
 import pytest
 from fastapi import FastAPI
+from pydantic import BaseModel
+
+from leadradar.api.errors import register_error_handlers
+from leadradar.api.router_utils import stub_router
 
 from .interfaces_parsing import ContractRow, rest_contracts
 
@@ -92,7 +96,13 @@ _BUILT_CONTRACTS = {
     "API-36",
     "API-37",
     "API-38",
+    "API-39",
+    "API-40",
     "API-41",
+    "API-42",
+    "API-43",
+    "API-44",
+    "API-45",
     "API-46",
     "API-47",
     "API-48",
@@ -121,12 +131,6 @@ _BUILT_CONTRACTS = {
 STUB_CONTRACTS = [row for row in REST_CONTRACTS if row.id not in _BUILT_CONTRACTS]
 
 
-def _has_json_body(row: ContractRow) -> bool:
-    """A row whose request side is a named shape, not `—` (no request) or a multipart upload."""
-    left = row.request_response.split("→", 1)[0].strip()
-    return bool(left) and not left.startswith(("—", "multipart"))
-
-
 def test_every_rest_contract_of_interfaces_is_a_route_with_its_method_and_path(
     app: FastAPI,
 ) -> None:
@@ -142,52 +146,56 @@ def test_every_rest_contract_of_interfaces_is_a_route_with_its_method_and_path(
     assert declared == expected, f"undeclared extra routes: {declared - expected}"
 
 
-@pytest.mark.parametrize("row", STUB_CONTRACTS, ids=lambda row: row.id)
-async def test_a_declared_contract_not_built_answers_501_not_implemented(
-    row: ContractRow, client: httpx.AsyncClient
+@pytest.fixture
+def stub_app() -> FastAPI:
+    """An app with one route on a `stub_router`, the mechanism every declared-but-unbuilt
+    contract uses, registered with the same error handlers as the real app."""
+    stub_app = FastAPI()
+    register_error_handlers(stub_app)
+    router = stub_router("declared")
+
+    class _Body(BaseModel):
+        required: str
+
+    @router.post("/declared/{id}")
+    async def declared(id: str, body: _Body) -> None:
+        raise AssertionError("unreachable: contract_not_built already raised")
+
+    stub_app.include_router(router, prefix="/api/v1")
+    return stub_app
+
+
+async def test_a_declared_contract_not_built_answers_501_even_when_its_body_misses_fields(
+    stub_app: FastAPI,
 ) -> None:
-    url = f"/api/v1{_fill_path(row)}"
-    response = await client.request(row.method, url, headers=_headers(row))
+    transport = httpx.ASGITransport(app=stub_app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as http:
+        response = await http.post(f"/api/v1/declared/{SAMPLE_ID}", json={})
 
-    assert response.status_code == 501, f"{row.id} {row.method} {url}: {response.text}"
+    assert response.status_code == 501, response.text
     assert response.json()["error"]["code"] == "NOT_IMPLEMENTED"
-    assert "x-request-id" in response.headers
 
 
-@pytest.mark.parametrize(
-    "row",
-    [row for row in STUB_CONTRACTS if row.method in {"POST", "PUT", "PATCH"}],
-    ids=lambda row: row.id,
-)
-async def test_a_stub_answers_501_even_when_its_body_misses_required_fields(
-    row: ContractRow, client: httpx.AsyncClient
+async def test_every_declared_contract_not_built_answers_501_not_implemented(
+    client: httpx.AsyncClient,
 ) -> None:
-    url = f"/api/v1{_fill_path(row)}"
-    response = await client.request(row.method, url, json={}, headers=_headers(row))
+    for row in STUB_CONTRACTS:
+        url = f"/api/v1{_fill_path(row)}"
+        response = await client.request(row.method, url, headers=_headers(row))
 
-    assert response.status_code == 501, f"{row.id} {row.method} {url}: {response.text}"
-    assert response.json()["error"]["code"] == "NOT_IMPLEMENTED"
+        assert response.status_code == 501, f"{row.id} {row.method} {url}: {response.text}"
+        assert response.json()["error"]["code"] == "NOT_IMPLEMENTED"
+        assert "x-request-id" in response.headers
 
 
-@pytest.mark.parametrize(
-    "row",
-    [
-        row
-        for row in STUB_CONTRACTS
-        if row.method in {"POST", "PUT", "PATCH"} and _has_json_body(row)
-    ],
-    ids=lambda row: row.id,
-)
 async def test_a_malformed_json_body_answers_422_with_the_validation_envelope(
-    row: ContractRow, client: httpx.AsyncClient
+    client: httpx.AsyncClient,
 ) -> None:
-    url = f"/api/v1{_fill_path(row)}"
-    response = await client.request(
-        row.method,
-        url,
+    response = await client.post(
+        "/api/v1/auth/login",
         content=b"not json",
-        headers={"content-type": "application/json", **_headers(row)},
+        headers={"content-type": "application/json", **_CSRF_HEADERS},
     )
 
-    assert response.status_code == 422, f"{row.id} {row.method} {url}: {response.text}"
+    assert response.status_code == 422, response.text
     assert response.json()["error"]["code"] == "VALIDATION"

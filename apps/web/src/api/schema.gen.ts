@@ -105,10 +105,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Findings
-         * @description `API-42`.
+         * Get Findings
+         * @description `API-42`: ordered by contribution, then `observed_at` descending.
          */
-        get: operations["list_findings_api_v1_accounts__id__findings_get"];
+        get: operations["get_findings_api_v1_accounts__id__findings_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -166,7 +166,7 @@ export interface paths {
         };
         /**
          * Get Score
-         * @description `API-40`.
+         * @description `API-40`: `404` when the account has no score for the service yet.
          */
         get: operations["get_score_api_v1_accounts__id__scores__service_id__get"];
         put?: never;
@@ -271,10 +271,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Create Override
-         * @description `API-44`.
+         * Post Override
+         * @description `API-44`: enqueues a `RESCORE` with trigger `OVERRIDE`.
          */
-        post: operations["create_override_api_v1_accounts__id__scores__service_id__overrides_post"];
+        post: operations["post_override_api_v1_accounts__id__scores__service_id__overrides_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -810,10 +810,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Revoke Override
-         * @description `API-45`.
+         * Post Override Revoke
+         * @description `API-45`: enqueues a `RESCORE` with trigger `OVERRIDE`.
          */
-        post: operations["revoke_override_api_v1_overrides__id__revoke_post"];
+        post: operations["post_override_revoke_api_v1_overrides__id__revoke_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1066,10 +1066,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Prospects
+         * Get Prospects
          * @description `API-39`.
          */
-        get: operations["list_prospects_api_v1_services__id__prospects_get"];
+        get: operations["get_prospects_api_v1_services__id__prospects_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2233,7 +2233,7 @@ export interface components {
          */
         FitCriterionBreakdown: {
             /** Attribute */
-            attribute: string | null;
+            attribute: string | number | null;
             /** Credit */
             credit: number;
             /** Key */
@@ -3957,18 +3957,20 @@ export interface operations {
             };
         };
     };
-    list_findings_api_v1_accounts__id__findings_get: {
+    get_findings_api_v1_accounts__id__findings_get: {
         parameters: {
             query?: {
                 service_id?: string | null;
                 question_id?: string | null;
-                status?: components["schemas"]["FindingStatus"] | null;
+                status?: components["schemas"]["FindingStatus"];
             };
             header?: never;
             path: {
                 id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -4077,7 +4079,9 @@ export interface operations {
                 id: string;
                 service_id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -4245,7 +4249,7 @@ export interface operations {
             };
         };
     };
-    create_override_api_v1_accounts__id__scores__service_id__overrides_post: {
+    post_override_api_v1_accounts__id__scores__service_id__overrides_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -4253,7 +4257,9 @@ export interface operations {
                 id: string;
                 service_id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody: {
             content: {
@@ -4911,7 +4917,9 @@ export interface operations {
             path: {
                 id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -5288,14 +5296,16 @@ export interface operations {
             };
         };
     };
-    revoke_override_api_v1_overrides__id__revoke_post: {
+    post_override_revoke_api_v1_overrides__id__revoke_post: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {
@@ -5776,7 +5786,7 @@ export interface operations {
             };
         };
     };
-    list_prospects_api_v1_services__id__prospects_get: {
+    get_prospects_api_v1_services__id__prospects_get: {
         parameters: {
             query?: {
                 standing?: components["schemas"]["AccountScoreStanding"];
@@ -5792,7 +5802,9 @@ export interface operations {
             path: {
                 id: string;
             };
-            cookie?: never;
+            cookie?: {
+                leadradar_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {

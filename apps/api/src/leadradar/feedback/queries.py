@@ -156,11 +156,11 @@ async def read_finding_view(
     *,
     finding: Finding,
     question: SignalQuestion,
-    feedback: FeedbackSummary,
+    feedback: FeedbackSummary | None,
 ) -> FindingViewData:
     """Assembles [`FindingView`](/architecture/interfaces.md#findingview) for one finding, given
-    the finding, its question, and the feedback row to show — the one `give_finding_feedback`
-    just wrote, which is in force by definition."""
+    the finding, its question, and the in-force feedback to show, if any — for `API-47` the one
+    `give_finding_feedback` just wrote, which is in force by definition."""
     document = await _document_summary(session, finding.chunk_id)
     breakdown = await _current_breakdown(session, finding.account_id, question.service_id)
     points = counted_points(breakdown, finding.id) if breakdown is not None else None

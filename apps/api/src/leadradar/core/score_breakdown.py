@@ -32,7 +32,9 @@ class FitCriterionBreakdown(BaseModel):
     kind: ICPCriterionKind
     weight: WeightLevel
     weight_value: float
-    attribute: str | None
+    # The account's attribute value as scored: a code, a country, or a number such as the
+    # employee count; null when unknown ([Score breakdown](/architecture/rules.md#score-breakdown)).
+    attribute: str | int | float | None
     match: Match
     credit: float
     points: float

@@ -2450,6 +2450,12 @@
                 "type": "string"
               },
               {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
                 "type": "null"
               }
             ],
@@ -6692,14 +6698,15 @@
     },
     "/api/v1/accounts/{id}/findings": {
       "get": {
-        "description": "`API-42`.",
-        "operationId": "list_findings_api_v1_accounts__id__findings_get",
+        "description": "`API-42`: ordered by contribution, then `observed_at` descending.",
+        "operationId": "get_findings_api_v1_accounts__id__findings_get",
         "parameters": [
           {
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Id",
               "type": "string"
             }
@@ -6711,6 +6718,7 @@
             "schema": {
               "anyOf": [
                 {
+                  "format": "uuid",
                   "type": "string"
                 },
                 {
@@ -6727,6 +6735,7 @@
             "schema": {
               "anyOf": [
                 {
+                  "format": "uuid",
                   "type": "string"
                 },
                 {
@@ -6741,15 +6750,24 @@
             "name": "status",
             "required": false,
             "schema": {
+              "$ref": "#/components/schemas/FindingStatus",
+              "default": "ACTIVE"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
               "anyOf": [
                 {
-                  "$ref": "#/components/schemas/FindingStatus"
+                  "type": "string"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "title": "Status"
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -6761,7 +6779,7 @@
                   "items": {
                     "$ref": "#/components/schemas/FindingView"
                   },
-                  "title": "Response List Findings Api V1 Accounts  Id  Findings Get",
+                  "title": "Response Get Findings Api V1 Accounts  Id  Findings Get",
                   "type": "array"
                 }
               }
@@ -6779,7 +6797,7 @@
             "description": "Error"
           }
         },
-        "summary": "List Findings",
+        "summary": "Get Findings",
         "tags": [
           "prospects-and-evidence"
         ]
@@ -6931,7 +6949,7 @@
     },
     "/api/v1/accounts/{id}/scores/{service_id}": {
       "get": {
-        "description": "`API-40`.",
+        "description": "`API-40`: `404` when the account has no score for the service yet.",
         "operationId": "get_score_api_v1_accounts__id__scores__service_id__get",
         "parameters": [
           {
@@ -6939,6 +6957,7 @@
             "name": "id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Id",
               "type": "string"
             }
@@ -6948,8 +6967,25 @@
             "name": "service_id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Service Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -7287,14 +7323,15 @@
     },
     "/api/v1/accounts/{id}/scores/{service_id}/overrides": {
       "post": {
-        "description": "`API-44`.",
-        "operationId": "create_override_api_v1_accounts__id__scores__service_id__overrides_post",
+        "description": "`API-44`: enqueues a `RESCORE` with trigger `OVERRIDE`.",
+        "operationId": "post_override_api_v1_accounts__id__scores__service_id__overrides_post",
         "parameters": [
           {
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Id",
               "type": "string"
             }
@@ -7304,8 +7341,25 @@
             "name": "service_id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Service Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -7341,7 +7395,7 @@
             "description": "Error"
           }
         },
-        "summary": "Create Override",
+        "summary": "Post Override",
         "tags": [
           "prospects-and-evidence"
         ]
@@ -8677,8 +8731,25 @@
             "name": "id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -9338,16 +9409,33 @@
     },
     "/api/v1/overrides/{id}/revoke": {
       "post": {
-        "description": "`API-45`.",
-        "operationId": "revoke_override_api_v1_overrides__id__revoke_post",
+        "description": "`API-45`: enqueues a `RESCORE` with trigger `OVERRIDE`.",
+        "operationId": "post_override_revoke_api_v1_overrides__id__revoke_post",
         "parameters": [
           {
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -9373,7 +9461,7 @@
             "description": "Error"
           }
         },
-        "summary": "Revoke Override",
+        "summary": "Post Override Revoke",
         "tags": [
           "prospects-and-evidence"
         ]
@@ -10276,13 +10364,14 @@
     "/api/v1/services/{id}/prospects": {
       "get": {
         "description": "`API-39`.",
-        "operationId": "list_prospects_api_v1_services__id__prospects_get",
+        "operationId": "get_prospects_api_v1_services__id__prospects_get",
         "parameters": [
           {
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "title": "Id",
               "type": "string"
             }
@@ -10398,6 +10487,7 @@
             "required": false,
             "schema": {
               "default": 1,
+              "minimum": 1,
               "title": "Page",
               "type": "integer"
             }
@@ -10409,6 +10499,7 @@
             "schema": {
               "anyOf": [
                 {
+                  "minimum": 1,
                   "type": "integer"
                 },
                 {
@@ -10416,6 +10507,22 @@
                 }
               ],
               "title": "Page Size"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "leadradar_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Leadradar Session"
             }
           }
         ],
@@ -10441,7 +10548,7 @@
             "description": "Error"
           }
         },
-        "summary": "List Prospects",
+        "summary": "Get Prospects",
         "tags": [
           "prospects-and-evidence"
         ]

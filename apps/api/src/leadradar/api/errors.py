@@ -66,6 +66,7 @@ from leadradar.outreach.errors import (
     OutreachValidationError,
     ScoreNotFound,
 )
+from leadradar.prospects.errors import OverrideConflict, OverrideRuleInvalid, ProspectNotFound
 from leadradar.runs.errors import (
     AccountInactive,
     RefreshAccountNotFound,
@@ -322,6 +323,28 @@ def register_error_handlers(app: FastAPI) -> None:
     async def handle_run_not_found(request: Request, exc: Exception) -> Response:
         return JSONResponse(
             status_code=404, content=envelope("NOT_FOUND", "The resource does not exist.")
+        )
+
+    @app.exception_handler(ProspectNotFound)
+    async def handle_prospect_not_found(request: Request, exc: ProspectNotFound) -> Response:
+        return JSONResponse(status_code=404, content=envelope("NOT_FOUND", str(exc)))
+
+    @app.exception_handler(OverrideRuleInvalid)
+    async def handle_override_rule_invalid(request: Request, exc: OverrideRuleInvalid) -> Response:
+        return JSONResponse(
+            status_code=422,
+            content=envelope(
+                "VALIDATION",
+                "The input is invalid.",
+                {"fields": [{"field": "rule_key", "message": str(exc)}]},
+            ),
+        )
+
+    @app.exception_handler(OverrideConflict)
+    async def handle_override_conflict(request: Request, exc: OverrideConflict) -> Response:
+        return JSONResponse(
+            status_code=409,
+            content=envelope("CONFLICT", str(exc), {"entity_id": str(exc.entity_id)}),
         )
 
     @app.exception_handler(NotFound)

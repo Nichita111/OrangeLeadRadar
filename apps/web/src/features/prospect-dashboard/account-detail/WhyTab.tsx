@@ -73,6 +73,9 @@ export function WhyTab({
     if (criterion.attribute === null) {
       return "unknown";
     }
+    if (typeof criterion.attribute === "number") {
+      return criterion.attribute.toLocaleString("en-US");
+    }
     const raw = criterion.attribute;
     switch (criterion.kind) {
       case "INDUSTRY":

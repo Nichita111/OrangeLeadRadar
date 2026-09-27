@@ -4,20 +4,23 @@ family: `API-39`, `API-40`, `API-42` to `API-45`. `API-41` (score history) is bu
 `API-46`. [`LeadFeedback`](/architecture/interfaces.md#leadfeedback) and
 [`FindingView`](/architecture/interfaces.md#findingview) are defined there too, which `API-46`
 and `API-47` need them for, and imported back here for `ScoreView.lead_feedback` and `API-42`, so
-neither is defined twice. Every route here is a declared stub answering `501 NOT_IMPLEMENTED`."""
+neither is defined twice. Each route validates its input, calls one `prospects` capability
+function, and shapes the response (api Design "Layering")."""
 
 from __future__ import annotations
 
+import uuid
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 
-from fastapi import Query
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, ConfigDict
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from leadradar.api.feedback_and_alerts import FindingView, LeadFeedback
+from leadradar.api.authentication import CurrentUser, require_admin
+from leadradar.api.feedback_and_alerts import FindingView, LeadFeedback, finding_view
 from leadradar.api.outreach_and_crm import CrmSyncView
-from leadradar.api.pagination import Page
-from leadradar.api.router_utils import stub_router
+from leadradar.api.pagination import Page, PageRequest, page_request
 from leadradar.core.enums import (
     AccountScoreBand,
     AccountScoreStanding,
@@ -32,10 +35,20 @@ from leadradar.core.score_breakdown import (
     FitBreakdown,
     QuestionBreakdown,
 )
+from leadradar.db.models.identity import AppUser
+from leadradar.db.session import get_session
+from leadradar.prospects.commands import create_override, revoke_override
+from leadradar.prospects.queries import (
+    ProspectFilters,
+    list_findings,
+    list_prospects,
+    read_evidence,
+    read_score_view,
+)
 
 ProspectSort = Literal["priority", "intent", "fit", "name", "last_refreshed"]
 
-router = stub_router("prospects-and-evidence")
+router = APIRouter(tags=["prospects-and-evidence"])
 
 
 class ProspectAccount(BaseModel):
@@ -214,51 +227,117 @@ class EvidenceView(BaseModel):
 
 
 @router.get("/services/{id}/prospects", response_model=ProspectPage)
-async def list_prospects(
-    id: str,
+async def get_prospects(
+    id: uuid.UUID,
+    request: Request,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    principal: CurrentUser,
+    paging: Annotated[PageRequest, Depends(page_request)],
     standing: AccountScoreStanding = AccountScoreStanding.RANKED,
     band: list[AccountScoreBand] | None = Query(default=None),
     country_code: list[str] | None = Query(default=None),
     industry: list[str] | None = Query(default=None),
     q: str | None = None,
     sort: ProspectSort | None = None,
-    page: int = 1,
-    page_size: int | None = None,
 ) -> ProspectPage:
     """`API-39`."""
-    raise AssertionError("unreachable: contract_not_built already raised")
+    page = await list_prospects(
+        session,
+        service_id=id,
+        filters=ProspectFilters(
+            standing=standing,
+            bands=band,
+            country_codes=country_code,
+            industries=industry,
+            q=q,
+            sort=sort or "priority",
+        ),
+        page=paging.page,
+        page_size=paging.page_size,
+        top_signals=request.app.state.settings.prospect_top_signals,
+    )
+    return ProspectPage.model_validate(page)
 
 
 @router.get("/accounts/{id}/scores/{service_id}", response_model=ScoreView)
-async def get_score(id: str, service_id: str) -> ScoreView:
-    """`API-40`."""
-    raise AssertionError("unreachable: contract_not_built already raised")
+async def get_score(
+    id: uuid.UUID,
+    service_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    principal: CurrentUser,
+) -> ScoreView:
+    """`API-40`: `404` when the account has no score for the service yet."""
+    return ScoreView.model_validate(
+        await read_score_view(session, account_id=id, service_id=service_id)
+    )
 
 
 @router.get("/accounts/{id}/findings", response_model=list[FindingView])
-async def list_findings(
-    id: str,
-    service_id: str | None = None,
-    question_id: str | None = None,
-    status: FindingStatus | None = None,
+async def get_findings(
+    id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    principal: CurrentUser,
+    service_id: uuid.UUID | None = None,
+    question_id: uuid.UUID | None = None,
+    status: FindingStatus = FindingStatus.ACTIVE,
 ) -> list[FindingView]:
-    """`API-42`."""
-    raise AssertionError("unreachable: contract_not_built already raised")
+    """`API-42`: ordered by contribution, then `observed_at` descending."""
+    views = await list_findings(
+        session, account_id=id, service_id=service_id, question_id=question_id, status=status
+    )
+    return [finding_view(view) for view in views]
 
 
 @router.get("/findings/{id}/evidence", response_model=EvidenceView)
-async def get_evidence(id: str) -> EvidenceView:
+async def get_evidence(
+    id: uuid.UUID,
+    request: Request,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    principal: CurrentUser,
+) -> EvidenceView:
     """`API-43`."""
-    raise AssertionError("unreachable: contract_not_built already raised")
+    return EvidenceView.model_validate(
+        await read_evidence(
+            session,
+            finding_id=id,
+            context_chars=request.app.state.settings.evidence_context_chars,
+        )
+    )
 
 
 @router.post("/accounts/{id}/scores/{service_id}/overrides", response_model=Override)
-async def create_override(id: str, service_id: str, payload: OverrideCreate) -> Override:
-    """`API-44`."""
-    raise AssertionError("unreachable: contract_not_built already raised")
+async def post_override(
+    id: uuid.UUID,
+    service_id: uuid.UUID,
+    body: OverrideCreate,
+    request: Request,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    admin: Annotated[AppUser, Depends(require_admin)],
+) -> Override:
+    """`API-44`: enqueues a `RESCORE` with trigger `OVERRIDE`."""
+    return Override.model_validate(
+        await create_override(
+            session,
+            account_id=id,
+            service_id=service_id,
+            rule_key=body.rule_key,
+            note=body.note,
+            principal=admin,
+            now=request.app.state.clock(),
+        )
+    )
 
 
 @router.post("/overrides/{id}/revoke", response_model=Override)
-async def revoke_override(id: str) -> Override:
-    """`API-45`."""
-    raise AssertionError("unreachable: contract_not_built already raised")
+async def post_override_revoke(
+    id: uuid.UUID,
+    request: Request,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    admin: Annotated[AppUser, Depends(require_admin)],
+) -> Override:
+    """`API-45`: enqueues a `RESCORE` with trigger `OVERRIDE`."""
+    return Override.model_validate(
+        await revoke_override(
+            session, override_id=id, principal=admin, now=request.app.state.clock()
+        )
+    )

@@ -36,7 +36,7 @@ from leadradar.core.enums import (
 )
 from leadradar.db.session import get_session
 from leadradar.feedback.commands import give_finding_feedback, give_lead_feedback
-from leadradar.feedback.queries import read_score_history
+from leadradar.feedback.queries import FindingViewData, read_score_history
 
 router = APIRouter(tags=["feedback-and-alerts"])
 
@@ -167,25 +167,9 @@ async def post_lead_feedback(
     )
 
 
-@router.post("/findings/{id}/feedback")
-async def post_finding_feedback(
-    id: uuid.UUID,
-    body: FeedbackCreate[FindingFeedbackVerdict],
-    request: Request,
-    session: Annotated[AsyncSession, Depends(get_session)],
-    principal: CurrentUser,
-) -> FindingView:
-    """`API-47`: applies the api's half of [Feedback effects]
-    (/architecture/rules.md#feedback-effects) to one finding."""
-    current_time = request.app.state.clock()
-    view = await give_finding_feedback(
-        session,
-        finding_id=id,
-        verdict=body.verdict,
-        note=body.note,
-        principal=principal,
-        now=current_time,
-    )
+def finding_view(view: FindingViewData) -> FindingView:
+    """[`FindingView`](/architecture/interfaces.md#findingview) of one assembled finding, the
+    response entry of `API-42` and `API-47`."""
     return FindingView(
         id=view.id,
         account_id=view.account_id,
@@ -230,6 +214,28 @@ async def post_finding_feedback(
             else None
         ),
     )
+
+
+@router.post("/findings/{id}/feedback")
+async def post_finding_feedback(
+    id: uuid.UUID,
+    body: FeedbackCreate[FindingFeedbackVerdict],
+    request: Request,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    principal: CurrentUser,
+) -> FindingView:
+    """`API-47`: applies the api's half of [Feedback effects]
+    (/architecture/rules.md#feedback-effects) to one finding."""
+    current_time = request.app.state.clock()
+    view = await give_finding_feedback(
+        session,
+        finding_id=id,
+        verdict=body.verdict,
+        note=body.note,
+        principal=principal,
+        now=current_time,
+    )
+    return finding_view(view)
 
 
 class ScoreChangeFinding(BaseModel):
