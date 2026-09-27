@@ -94,6 +94,7 @@ function account(
   countryCode: string,
   industry: string,
   parent: Account["parent"] = null,
+  relationshipStatus: Account["relationship_status"] = "PROSPECT",
 ): Account {
   return {
     id,
@@ -101,6 +102,7 @@ function account(
     domain,
     country_code: countryCode,
     industry,
+    relationship_status: relationshipStatus,
     parent,
     aliases: [],
     attribute_origin: {},
@@ -120,7 +122,7 @@ function account(
 }
 
 export const accounts: Account[] = [
-  account("acc-dhl", "DHL Group", "dhl.com", "DE", "LOGISTICS_TRANSPORT"),
+  account("acc-dhl", "DHL Group", "dhl.com", "DE", "LOGISTICS_TRANSPORT", null, "IN_TALKS"),
   account("acc-lh", "Lufthansa Group", "lufthansa.com", "DE", "AEROSPACE_AVIATION", {
     id: "acc-holding",
     name: "Lufthansa Holding",
@@ -146,6 +148,7 @@ function row(
       domain: found.domain,
       country_code: found.country_code,
       industry: found.industry,
+      relationship_status: found.relationship_status,
     },
     ...scores,
     reason: null,

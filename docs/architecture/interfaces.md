@@ -366,7 +366,7 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 
 | ID | Method | Path | Roles | Request → response |
 |---|---|---|---|---|
-| `API-20` | GET | `/accounts` | `*` | query `q`, `status`, `country_code`, `industry`, `origin` → `Page<`[`AccountRow`](#accountrow)`>` |
+| `API-20` | GET | `/accounts` | `*` | query `q`, `status`, `relationship_status`, `country_code`, `industry`, `origin` → `Page<`[`AccountRow`](#accountrow)`>` |
 | `API-21` | POST | `/accounts` | `*` | [`AccountCreate`](#accountcreate) → [`Account`](#account) |
 | `API-22` | POST | `/accounts/import` | `*` | multipart: `file` ([`AccountImportRow`](#accountimportrow) CSV), `dry_run` → [`ImportResult`](#importresult) |
 | `API-23` | GET | `/accounts/{id}` | `*` | — → [`Account`](#account) |
@@ -379,7 +379,7 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 - `API-20` — `q` matches the name, any alias or the domain.
 - `API-21` — the domain is normalised by [Account identity](/architecture/rules.md#account-identity); an existing domain answers `409 CONFLICT` with `details.entity_id`. Creates the name alias, the `WEBSITE` source and any sources given; `next_refresh_at` stays null, so the scheduler treats the account as due ([Refresh scheduling](/architecture/rules.md#refresh-scheduling)).
 - `API-22` — at most `IMPORT_MAX_ROWS` rows, else `422`. Each row is matched by [Account identity](/architecture/rules.md#account-identity): a new domain is created; an existing domain is updated with the columns the row fills, as `MANUAL` values, and an update that changes an attribute enqueues a `RESCORE` with trigger `ACCOUNT_CHANGE` for that account, as `API-24` does; a new domain whose name matches another account is reported `POSSIBLE_DUPLICATE` and skipped; an invalid row is reported with its errors. With `dry_run` true nothing is written.
-- `API-24` — `aliases` replaces the aliases (the name alias is kept); `sources` replaces the `MANUAL` sources and may set a `DETECTED` source's status. Any attribute change enqueues a `RESCORE` with trigger `ACCOUNT_CHANGE`.
+- `API-24` — `aliases` replaces the aliases (the name alias is kept); `sources` replaces the `MANUAL` sources and may set a `DETECTED` source's status. Any attribute change enqueues a `RESCORE` with trigger `ACCOUNT_CHANGE`. `relationship_status` is not an attribute: a change to it alone enqueues no run.
 - `API-26`, `API-27` — a contact without `source_url` answers `422`; a body field not in the shape, such as an email address, answers `422`. The persona is mapped by [Persona mapping](/architecture/rules.md#persona-mapping) unless one is given; when the classifier is unavailable the request answers `503`, or `429` when the [Budget guard](/architecture/rules.md#budget-guard) stops the LLM classifier adapter, and nothing is stored.
 - `API-28` — erases the contact as [Retention and erasure](/architecture/rules.md#retention-and-erasure) states, with reason `REQUEST`.
 
@@ -392,6 +392,7 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 | `id`, `name`, `domain`, `country_code` | string | [`account`](/architecture/sql-store.md#account) |
 | `industry` | string, null | an [`industry`](/architecture/sql-store.md#industry) code |
 | `status` | enum | [`account`](/architecture/sql-store.md#account) `status` |
+| `relationship_status` | enum | [`account`](/architecture/sql-store.md#account) `relationship_status` |
 | `origin` | enum | [`account`](/architecture/sql-store.md#account) `origin` |
 | `last_refreshed_at` | string, null | [`account`](/architecture/sql-store.md#account) |
 | `active_run_id` | string, null | its `QUEUED` or `RUNNING` `ACCOUNT_REFRESH` [`pipeline_run`](/architecture/sql-store.md#pipeline_run) |
@@ -428,6 +429,7 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 | every field of [`AccountCreate`](#accountcreate) except `domain`, optional | | |
 | `sources` | array of `{kind, url, status}`, optional | [`account_source`](/architecture/sql-store.md#account_source) |
 | `status` | enum, optional | [`account`](/architecture/sql-store.md#account) `status` |
+| `relationship_status` | enum, optional | [`account`](/architecture/sql-store.md#account) `relationship_status` |
 
 #### AccountImportRow
 
@@ -602,7 +604,7 @@ One CSV row. The file is UTF-8, comma-separated, with this header row; the colum
 | Field | Type | Source of truth |
 |---|---|---|
 | `rank` | integer, null | position in the ranking; null unless `RANKED` |
-| `account` | `{id, name, domain, country_code, industry}` | [`account`](/architecture/sql-store.md#account) |
+| `account` | `{id, name, domain, country_code, industry, relationship_status}` | [`account`](/architecture/sql-store.md#account) |
 | `fit`, `intent`, `priority` | integer | current [`account_score`](/architecture/sql-store.md#account_score) |
 | `standing` | enum | current [`account_score`](/architecture/sql-store.md#account_score) |
 | `band` | enum, null | current [`account_score`](/architecture/sql-store.md#account_score) band; null unless `RANKED` |

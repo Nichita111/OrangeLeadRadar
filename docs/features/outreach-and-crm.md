@@ -82,7 +82,7 @@ WF-19 — Outreach composer
 | `FR-087` | Generate shall take the channel and an optional contact of the account, and show the subject (email only), the body and which signals it cites. |
 | `FR-088` | The subject and body shall be editable and saved with Save; the screen shall state that nothing is sent from LeadRadar. |
 | `FR-089` | Copy and Download .txt shall export the draft and mark it exported. |
-| `FR-090` | When the account has no in-force positive signal for the service, Generate shall be disabled with the reason. |
+| `FR-090` | When the account has no in-force positive signal for the service, Generate shall be disabled with the reason; the account's relationship status never disables it. |
 
 Obligations: `S-OUT-01`.
 

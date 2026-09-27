@@ -2,6 +2,7 @@
 
 ## 2026-09-27
 
+* **Update**: Accounts gain a [relationship status](/architecture/sql-store.md#account) set by a user and shared by every service (`B-41`, `S-ACC-06`, `AC-78`): set from the Account detail header (`FR-171`), shown on Prospects except Prospect (`FR-170`), and listed and filtered on Accounts (`FR-038`, `FR-169`, `API-20`); it changes no score or standing, sits beside `ALREADY_CUSTOMER` and does not disable Generate ([ADR-22](/architecture/adrs/adr-22-relationship-status-beside-lead-feedback.md)).
 * **Update**: The [Landing](/architecture/services/frontend.md#landing) scene stands the accounts on a floor grid that fades toward its edges and gives way to the Sift wafer and the Prospects list (`FR-164`).
 * **Update**: [Landing](/architecture/services/frontend.md#landing) offers only Sign in (`FR-162`, `WF-27`); the demo shortcuts stay on [Sign in](/features/identity-and-access.md#sign-in) alone ([ADR-20](/architecture/adrs/adr-20-landing-scene-mock-layer-and-demo-sign-in.md)).
 * **Update**: [Landing](/architecture/services/frontend.md#landing) follows the approved prototype: eight steps (`WF-27`, `FR-161`, `FR-164`) with step dots, the demo shortcuts on its last step when `DEMO_SIGN_IN` is true (`FR-162`), words alone without WebGL (`FR-165`), and a scene built with three.js and Anime.js without the React three.js libraries ([ADR-20](/architecture/adrs/adr-20-landing-scene-mock-layer-and-demo-sign-in.md)).

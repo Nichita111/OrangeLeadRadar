@@ -96,7 +96,7 @@ The api service owns the schema and applies migrations; both processes write the
 |---|---|---|
 | [`app_user`](/architecture/sql-store.md#app_user), [`auth_session`](/architecture/sql-store.md#auth_session) | all | deletes expired sessions |
 | [`service`](/architecture/sql-store.md#service), [`signal_question`](/architecture/sql-store.md#signal_question), [`scoring_config`](/architecture/sql-store.md#scoring_config), [`industry`](/architecture/sql-store.md#industry), [`market`](/architecture/sql-store.md#market) | all | — |
-| [`account`](/architecture/sql-store.md#account) | user-entered fields, including an accepted discovery candidate's attributes, `status` | `CRUNCHBASE` and `CLASSIFIER` attributes, `crunchbase_id`, `last_refreshed_at`, `next_refresh_at` |
+| [`account`](/architecture/sql-store.md#account) | user-entered fields, including an accepted discovery candidate's attributes, `status`, `relationship_status` | `CRUNCHBASE` and `CLASSIFIER` attributes, `crunchbase_id`, `last_refreshed_at`, `next_refresh_at` |
 | [`account_alias`](/architecture/sql-store.md#account_alias) | all | — |
 | [`account_source`](/architecture/sql-store.md#account_source) | `MANUAL` rows, any row's `status` | `DETECTED` rows |
 | [`contact`](/architecture/sql-store.md#contact) | all, including persona mapping and erasure on request | erasure at the end of retention |

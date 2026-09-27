@@ -231,6 +231,7 @@ A company that may buy. Accounts are shared by the whole team.
 | `parent_account_id` | uuid FK → [`account`](#account), null | Group parent, e.g. SWISS → Lufthansa Group. Display and navigation only; findings are never inherited. |
 | `origin` | enum: `IMPORTED`, `MANUAL`, `DISCOVERED` | How the account entered: CSV import, manual entry, or an accepted [`discovery_candidate`](#discovery_candidate). |
 | `status` | enum: `ACTIVE`, `INACTIVE` | An inactive account is not refreshed, scored or listed in Prospects; its data is kept. |
+| `relationship_status` | enum: `PROSPECT`, `IN_TALKS`, `CLIENT`, `PAST_CLIENT`, `DO_NOT_CONTACT` | The team's relationship with the company, set by a user and shared by every service; an account starts `PROSPECT`. `PROSPECT`: no relationship yet. `IN_TALKS`: the team is discussing a deal with it. `CLIENT`: it buys from Orange Systems. `PAST_CLIENT`: it bought before and does not now. `DO_NOT_CONTACT`: the team shall not approach it. No rule reads it: it changes no score, standing or band, it is independent of the per-service lead feedback `ALREADY_CUSTOMER`, and it does not prevent drafting outreach ([ADR-22](/architecture/adrs/adr-22-relationship-status-beside-lead-feedback.md)). |
 | `crunchbase_id` | text, null | Crunchbase organisation permalink, when matched. |
 | `linkedin_url` | text, null | Entered by a user for manual checks; never fetched ([RULE-01](/requirements/business.md#business-rules)). |
 | `notes` | text, null | Free notes. |

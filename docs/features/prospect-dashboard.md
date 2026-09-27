@@ -17,7 +17,7 @@ This is where a sales manager spends the day. Prospects ranks a service's accoun
 ### FL-11 Work the prospect list
 
 1. Sales opens [Prospects](#prospects) for the selected service.
-2. The list shows ranked accounts by Priority with their band, Fit, Intent and top signals; filters narrow it by band, country and industry, and a status filter shows accounts below fit, excluded or marked as customers with their reason.
+2. The list shows ranked accounts by Priority with their band, Fit, Intent and top signals; filters narrow it by band, country and industry, and a status filter shows accounts below fit, excluded or marked as customers with their reason; an account whose relationship status is other than Prospect shows it on its row.
 3. Sales selects a row to read the account's strongest signals in a drawer, and opens its [Account detail](#account-detail) for the full explanation.
 
 ### FL-12 Explain a lead
@@ -53,15 +53,15 @@ sequenceDiagram
 
 ## Reading order
 
-1. Terms in the [glossary](/requirements/glossary.md): Prospect, Fit score, Intent score, Priority score, Standing, Band, Score breakdown, Finding, Strength, Confidence, Evidence quote, Disqualifier, Disqualifier override, Negative signal, Recency decay, Alert.
-2. Requirement rows: `S-PRO-01` to `S-PRO-06`, `S-SCO-04` to `S-SCO-06`, `S-PIP-01`, `S-SIG-09` in [system requirements](/requirements/system.md); `N-01`, `N-10`, `N-13`; `B-14`, `B-16` to `B-23`, `RULE-02`, `RULE-10` in [business requirements](/requirements/business.md).
-3. Stores: [`account_score`](/architecture/sql-store.md#account_score), [`finding`](/architecture/sql-store.md#finding), [`document`](/architecture/sql-store.md#document), [`chunk`](/architecture/sql-store.md#chunk), [`disqualifier_override`](/architecture/sql-store.md#disqualifier_override), [`alert`](/architecture/sql-store.md#alert), [`lead_feedback`](/architecture/sql-store.md#lead_feedback), [`finding_feedback`](/architecture/sql-store.md#finding_feedback), [`pipeline_run`](/architecture/sql-store.md#pipeline_run).
+1. Terms in the [glossary](/requirements/glossary.md): Prospect, Fit score, Intent score, Priority score, Standing, Band, Score breakdown, Finding, Strength, Confidence, Evidence quote, Disqualifier, Disqualifier override, Negative signal, Recency decay, Alert, Relationship status.
+2. Requirement rows: `S-PRO-01` to `S-PRO-06`, `S-SCO-04` to `S-SCO-06`, `S-PIP-01`, `S-SIG-09`, `S-ACC-06` in [system requirements](/requirements/system.md); `N-01`, `N-10`, `N-13`; `B-14`, `B-16` to `B-23`, `B-41`, `RULE-02`, `RULE-10` in [business requirements](/requirements/business.md).
+3. Stores: [`account`](/architecture/sql-store.md#account), [`account_score`](/architecture/sql-store.md#account_score), [`finding`](/architecture/sql-store.md#finding), [`document`](/architecture/sql-store.md#document), [`chunk`](/architecture/sql-store.md#chunk), [`disqualifier_override`](/architecture/sql-store.md#disqualifier_override), [`alert`](/architecture/sql-store.md#alert), [`lead_feedback`](/architecture/sql-store.md#lead_feedback), [`finding_feedback`](/architecture/sql-store.md#finding_feedback), [`pipeline_run`](/architecture/sql-store.md#pipeline_run).
 4. Rules: [Score breakdown](/architecture/rules.md#score-breakdown), [Fit score](/architecture/rules.md#fit-score), [Intent score](/architecture/rules.md#intent-score), [Recency decay](/architecture/rules.md#recency-decay), [Disqualification](/architecture/rules.md#disqualification), [Priority, standing and band](/architecture/rules.md#priority-standing-and-band), [Alerts](/architecture/rules.md#alerts), [Rescoring](/architecture/rules.md#rescoring).
 5. Interfaces: [Prospects and evidence](/architecture/interfaces.md#prospects-and-evidence) (`API-39` to `API-45`), [Feedback and alerts](/architecture/interfaces.md#feedback-and-alerts) (`API-46` to `API-49`), `API-33` and `API-35` of [Runs and source plug-ins](/architecture/interfaces.md#runs-and-source-plug-ins).
 6. Services: the [api](/architecture/services/api.md) with `EVIDENCE_CONTEXT_CHARS` and `INTERACTIVE_P95_TARGET_MS` in its [runtime](/architecture/services/api.md#runtime); the [frontend](/architecture/services/frontend.md) — [screen labels](/architecture/services/frontend.md#screen-labels), [Formatting](/architecture/services/frontend.md#formatting), [Polling](/architecture/services/frontend.md#polling), [Accessibility](/architecture/services/frontend.md#accessibility); [Degradation](/architecture/overview.md#degradation) for what these screens still show when a dependency is down.
-7. Decisions: [ADR-03](/architecture/adrs/adr-03-models-answer-rules-score.md), [ADR-06](/architecture/adrs/adr-06-rule-based-scoring-with-versioned-settings.md), [ADR-13](/architecture/adrs/adr-13-run-progress-by-polling.md).
+7. Decisions: [ADR-03](/architecture/adrs/adr-03-models-answer-rules-score.md), [ADR-06](/architecture/adrs/adr-06-rule-based-scoring-with-versioned-settings.md), [ADR-13](/architecture/adrs/adr-13-run-progress-by-polling.md), [ADR-22](/architecture/adrs/adr-22-relationship-status-beside-lead-feedback.md).
 8. Screens: [Prospects](#prospects), [Account detail](#account-detail), [Alerts](#alerts); the Profile tab is [Account profile](/features/accounts-and-discovery.md#account-profile), the Outreach tab is [Outreach composer](/features/outreach-and-crm.md#outreach-composer).
-9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-24`, `AC-28`, `AC-36` to `AC-38`, `AC-41` to `AC-45`, `AC-60`, `AC-65`, `AC-68`.
+9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-24`, `AC-28`, `AC-36` to `AC-38`, `AC-41` to `AC-45`, `AC-60`, `AC-65`, `AC-68`, `AC-78`.
 
 ## Prospects
 
@@ -70,16 +70,16 @@ Route `/prospects`. Any signed-in user; shows the selected service.
 **Layout**
 
 ```text
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ Prospects · Intelligent Automation                                          │
-│ Status [Ranked ▾]  Band [All 6][Hot 1][Warm 2][Cold 3]  Country ▾  Industry ▾  [ search ] │
-├───┬───────────────────┬───────┬──────────┬─────┬────────┬────────────────────┤
-│ # │ Account           │ Band  │ Priority │ Fit │ Intent │ Top signals        │
-├───┼───────────────────┼───────┼──────────┼─────┼────────┼────────────────────┤
-│ 1 │ DHL Group  ● 1    │ ▲ Hot │ 78       │ 88  │ 72     │ AI projects · Strong · 3 wk │
-│   │ Germany · Logistics│      │          │     │        │ Cost programme · Clear · 2 mo │
-│ 2 │ Lufthansa Group   │ ■ Warm│ 58       │ 88  │ 38     │ Cost programme · Strong · 6 wk │
-└───┴───────────────────┴───────┴──────────┴─────┴────────┴────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Prospects · Intelligent Automation                                                                 │
+│ Status [Ranked ▾]  Band [All 6][Hot 1][Warm 2][Cold 3]  Country ▾  Industry ▾  [ search ]          │
+├───┬────────────────────────────┬────────┬──────────┬─────┬────────┬────────────────────────────────┤
+│ # │ Account                    │ Band   │ Priority │ Fit │ Intent │ Top signals                    │
+├───┼────────────────────────────┼────────┼──────────┼─────┼────────┼────────────────────────────────┤
+│ 1 │ DHL Group  [In talks]  ● 1 │ ▲ Hot  │ 78       │ 88  │ 72     │ AI projects · Strong · 3 wk    │
+│   │ Germany · Logistics        │        │          │     │        │ Cost programme · Clear · 2 mo  │
+│ 2 │ Lufthansa Group            │ ■ Warm │ 58       │ 88  │ 38     │ Cost programme · Strong · 6 wk │
+└───┴────────────────────────────┴────────┴──────────┴─────┴────────┴────────────────────────────────┘
 ```
 
 WF-12 — Prospects
@@ -109,8 +109,9 @@ WF-25 — Prospects, account drawer
 | `FR-065` | When the selected service has no active scoring version, the empty state shall explain that accounts appear after their first refresh and link to [Accounts](/features/accounts-and-discovery.md#accounts); any other empty result shall show a filtered-empty state with a Clear filters action. |
 | `FR-129` | The band filter shall show the number of ranked accounts in each band beside its label, with All first, and a legend under the list shall explain Hot, Warm and Cold, reading their thresholds as [FR-117](/architecture/services/frontend.md#score-presentation) states. |
 | `FR-130` | Selecting a row shall open a drawer over the right side of the list, without moving the rows, showing the account's name and band, Priority, and Fit and Intent each with its meaning in words, its top signals from the list row with strength and age, and Open full explanation to [Account detail](#account-detail); Escape or a close button shall dismiss it and return focus to the row. |
+| `FR-170` | The account cell shall show the account's relationship status as a neutral chip with its label beside the name, except Prospect, which shows no chip. |
 
-Obligations: `S-PRO-01`, `S-SCO-05`, `N-01`, `N-10`, `N-13`.
+Obligations: `S-PRO-01`, `S-SCO-05`, `S-ACC-06`, `N-01`, `N-10`, `N-13`.
 
 **Data**: `API-07`, `API-15`, `API-16`, `API-39`, `API-71`, `API-74`. **States**: [States](/architecture/services/frontend.md#states); with no active service the screen says there is no active service yet, with no action for Sales.
 
@@ -121,25 +122,25 @@ Route `/accounts/:id`, with the service from the selector. Any signed-in user; e
 **Layout**
 
 ```text
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ DHL Group · dhl.com ↗ · Germany · Logistics            ▲ Hot  Priority 78     │
-│ Fit 88 · Intent 72 · scored 2 h ago with scoring v3     [ Refresh now ]       │
-│ Is this a good lead?  [ Relevant ] [ Not relevant ] [ Already a customer ]    │
-│ [Why] [Signals] [History] [Profile] [Outreach]            [ Push to HubSpot ] │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ In short: strong fit (sector, region, size). Strongest signals: AI and        │
-│ automation projects (strong, 3 weeks ago) and a cost programme (clear,        │
-│ 2 months ago). Holding back: an in-house automation centre (clear).           │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ Fit 88       ✓ Sector  Logistics                        High     +37.5        │
-│              ✓ Region  Germany                          Medium   +25.0        │
-│              ? Size    unknown                          Medium   +12.5        │
-│ Intent 72    + AI and automation projects   Strong · 3 wk · group.dhl.com  +53.0 │
-│                "DHL setzt in über 1.000 Prozessen KI-Agenten ein…"             │
-│                EN: "DHL uses AI agents in more than 1,000 processes…" [Evidence] │
-│              − In-house automation capability  Clear · 5 mo · dhl.com   −20.7 │
-│ Exclusions   none matched                                                     │
-└──────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────────────────┐
+│ DHL Group · dhl.com ↗ · Germany · Logistics  Relationship [ In talks ▾ ]  ▲ Hot  Priority 78 │
+│ Fit 88 · Intent 72 · scored 2 h ago with scoring v3     [ Refresh now ]                      │
+│ Is this a good lead?  [ Relevant ] [ Not relevant ] [ Already a customer ]                   │
+│ [Why] [Signals] [History] [Profile] [Outreach]            [ Push to HubSpot ]                │
+├──────────────────────────────────────────────────────────────────────────────────────────────┤
+│ In short: strong fit (sector, region, size). Strongest signals: AI and                       │
+│ automation projects (strong, 3 weeks ago) and a cost programme (clear,                       │
+│ 2 months ago). Holding back: an in-house automation centre (clear).                          │
+├──────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Fit 88       ✓ Sector  Logistics                        High     +37.5                       │
+│              ✓ Region  Germany                          Medium   +25.0                       │
+│              ? Size    unknown                          Medium   +12.5                       │
+│ Intent 72    + AI and automation projects   Strong · 3 wk · group.dhl.com  +53.0             │
+│                "DHL setzt in über 1.000 Prozessen KI-Agenten ein…"                           │
+│                EN: "DHL uses AI agents in more than 1,000 processes…" [Evidence]             │
+│              − In-house automation capability  Clear · 5 mo · dhl.com   −20.7                │
+│ Exclusions   none matched                                                                    │
+└──────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 WF-13 — Account detail, Why tab
@@ -186,8 +187,9 @@ WF-15 — Account detail, History tab
 | `FR-132` | The running state of [FR-067](#account-detail) shall be a callout below the header that lists the run's stages with done, current and pending marks and the current stage's counter, while the Refresh now button reads Refreshing. |
 | `FR-133` | The lead verdict shall be a segmented control; the note beside it shall say who recorded the verdict and when, and Already a customer shall say that the account leaves the ranking for this service. |
 | `FR-134` | Each History row shall carry an icon for its cause and, when the band changed, a chip for the band before and after. |
+| `FR-171` | The header shall show the account's relationship status as a select labelled Relationship, the same for every service and whether or not the account has a score for the service; choosing a value shall save it at once and confirm with a toast that the whole team shares it and that it changes no score; a failed save shall return the select to the stored value and show the error as a callout. |
 
-Obligations: `S-PRO-02`, `S-PRO-03`, `S-PRO-04`, `S-PRO-05`, `S-PIP-01`, `S-SCO-04`, `S-SCO-06`, `S-SIG-09`, `S-EVL-01`, `S-EVL-02`, `N-13`.
+Obligations: `S-PRO-02`, `S-PRO-03`, `S-PRO-04`, `S-PRO-05`, `S-PIP-01`, `S-SCO-04`, `S-SCO-06`, `S-SIG-09`, `S-EVL-01`, `S-EVL-02`, `S-ACC-06`, `N-13`.
 
 **Data**: `API-23`, `API-33`, `API-35`, `API-40` to `API-47`, `API-71`. **States**: [States](/architecture/services/frontend.md#states); an account never scored for the service shows its header and a note that it gets a score at its next refresh, and, once those screens exist, its profile and Refresh now; with no active service the screen says there is no active service yet, with no action for Sales. Its breadcrumb parent is Prospects.
 

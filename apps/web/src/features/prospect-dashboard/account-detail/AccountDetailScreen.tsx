@@ -1,12 +1,17 @@
+import { useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 
+import { useUpdateAccount } from "../../../api/accounts";
 import type { Schemas } from "../../../api/contract";
 import { useIndustries } from "../../../api/industriesAndMarkets";
 import { useScore } from "../../../api/prospectsAndEvidence";
 import { useAccount } from "../../../api/referenceData";
+import { Callout } from "../../../components/Callout";
+import { Select } from "../../../components/controls";
 import { Skeleton } from "../../../components/Skeleton";
 import { cn } from "../../../components/cn";
-import { countryName } from "../../../shell/format";
+import { useToast } from "../../../components/Toast";
+import { countryName, enumLabel } from "../../../shell/format";
 import { RelativeTime } from "../../../shell/RelativeTime";
 import { DataView } from "../../../shell/states/DataView";
 import { WithService } from "../../../shell/WithService";
@@ -14,6 +19,16 @@ import { BandChip } from "../BandChip";
 import { ScoreFigures } from "../ScoreFigures";
 import { SignalsTab } from "./SignalsTab";
 import { WhyTab } from "./WhyTab";
+
+/** The five [`account`](/architecture/sql-store.md#account) `relationship_status` values, in the
+ * store's order (`FR-171`). */
+const RELATIONSHIP_STATUSES: Schemas["AccountRelationshipStatus"][] = [
+  "PROSPECT",
+  "IN_TALKS",
+  "CLIENT",
+  "PAST_CLIENT",
+  "DO_NOT_CONTACT",
+];
 
 const TABS = [
   { value: "why", label: "Why" },
@@ -117,6 +132,7 @@ function AccountBody({
             </p>
           </>
         )}
+        <RelationshipStatusSelect account={account} />
       </header>
 
       <DataView
@@ -157,6 +173,65 @@ function AccountBody({
           )
         }
       </DataView>
+    </div>
+  );
+}
+
+/**
+ * `FR-171`: the Relationship select, shown for every service whether or not the account has a
+ * score, on every tab. Saves on selection (`FR-015`), confirms with a toast on success, and on
+ * failure returns the select to the stored value and shows the error as a callout, never a toast
+ * (`FR-120`).
+ */
+function RelationshipStatusSelect({ account }: { account: Schemas["Account"] }) {
+  const update = useUpdateAccount(account.id);
+  const { notify } = useToast();
+  const [value, setValue] = useState(account.relationship_status);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setValue(account.relationship_status);
+  }, [account.relationship_status]);
+
+  return (
+    <div className="flex flex-col gap-2">
+      <label
+        htmlFor="account-detail-relationship"
+        className="flex items-center gap-2 text-hint text-text-secondary"
+      >
+        Relationship
+        <Select
+          id="account-detail-relationship"
+          className="w-auto"
+          value={value}
+          disabled={update.isPending}
+          onChange={(event) => {
+            const next = event.target.value as Schemas["AccountRelationshipStatus"];
+            const previous = account.relationship_status;
+            setValue(next);
+            setError(null);
+            update.mutate(
+              { relationship_status: next },
+              {
+                onSuccess: () => {
+                  notify("Saved. The whole team shares this status; it changes no score.");
+                },
+                onError: (mutationError) => {
+                  setValue(previous);
+                  setError(mutationError.message);
+                },
+              },
+            );
+          }}
+        >
+          {RELATIONSHIP_STATUSES.map((status) => (
+            <option key={status} value={status}>
+              {enumLabel(status)}
+            </option>
+          ))}
+        </Select>
+      </label>
+      {error !== null && <Callout kind="error">{error}</Callout>}
     </div>
   );
 }

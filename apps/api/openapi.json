@@ -157,6 +157,9 @@
               }
             ]
           },
+          "relationship_status": {
+            "$ref": "#/components/schemas/AccountRelationshipStatus"
+          },
           "revenue_eur": {
             "anyOf": [
               {
@@ -186,6 +189,7 @@
           "country_code",
           "industry",
           "status",
+          "relationship_status",
           "origin",
           "last_refreshed_at",
           "active_run_id",
@@ -333,6 +337,18 @@
         "title": "AccountParent",
         "type": "object"
       },
+      "AccountRelationshipStatus": {
+        "description": "`account.relationship_status`.",
+        "enum": [
+          "PROSPECT",
+          "IN_TALKS",
+          "CLIENT",
+          "PAST_CLIENT",
+          "DO_NOT_CONTACT"
+        ],
+        "title": "AccountRelationshipStatus",
+        "type": "string"
+      },
       "AccountRow": {
         "additionalProperties": false,
         "description": "[`AccountRow`](/architecture/interfaces.md#accountrow), one item of `API-20`.",
@@ -399,6 +415,9 @@
           "origin": {
             "$ref": "#/components/schemas/AccountOrigin"
           },
+          "relationship_status": {
+            "$ref": "#/components/schemas/AccountRelationshipStatus"
+          },
           "status": {
             "$ref": "#/components/schemas/AccountStatus"
           }
@@ -410,6 +429,7 @@
           "country_code",
           "industry",
           "status",
+          "relationship_status",
           "origin",
           "last_refreshed_at",
           "active_run_id"
@@ -547,6 +567,10 @@
             "format": "uuid",
             "title": "Parent Account Id",
             "type": "string"
+          },
+          "relationship_status": {
+            "$ref": "#/components/schemas/AccountRelationshipStatus",
+            "title": "Relationship Status"
           },
           "revenue_eur": {
             "title": "Revenue Eur",
@@ -3924,6 +3948,9 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "relationship_status": {
+            "$ref": "#/components/schemas/AccountRelationshipStatus"
           }
         },
         "required": [
@@ -3931,7 +3958,8 @@
           "name",
           "domain",
           "country_code",
-          "industry"
+          "industry",
+          "relationship_status"
         ],
         "title": "ProspectAccount",
         "type": "object"
@@ -6195,6 +6223,22 @@
                 }
               ],
               "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "relationship_status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/AccountRelationshipStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Relationship Status"
             }
           },
           {

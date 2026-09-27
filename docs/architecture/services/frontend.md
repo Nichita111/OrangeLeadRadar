@@ -288,7 +288,7 @@ WF-24 — score anatomy
 
 | ID | Requirement |
 |---|---|
-| `FR-015` | Erasing a contact, disabling a user, revoking an exception, activating scoring and deactivating a service or question shall ask for confirmation in a dialog that says what will happen; every other change applies on Save and confirms with a short toast. |
+| `FR-015` | Erasing a contact, disabling a user, revoking an exception, activating scoring and deactivating a service or question shall ask for confirmation in a dialog that says what will happen; every other change applies on Save, or on selection for the lead verdict and the relationship status, and confirms with a short toast. |
 | `FR-123` | A dialog shall title itself with the action, say in one sentence what changes and what is kept, offer the cancel button first and the confirming button last, and name the confirming button after its verb, such as Disable user, never OK; Escape closes it and focus returns to the control that opened it. |
 
 ## Screen labels
