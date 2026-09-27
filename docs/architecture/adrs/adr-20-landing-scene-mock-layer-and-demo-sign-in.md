@@ -16,7 +16,7 @@ The jury meets LeadRadar through the live demo. [ADR-17](/architecture/adrs/adr-
 
 1. `/` is a Landing page whose one scene is built with three.js and animated by one Anime.js timeline scrubbed by scroll. It is loaded lazily, and it is the only screen outside ADR-17's pattern list and the only other WebGL screen; React Bits remains the only source of animated components on app screens.
 2. Every REST contract is declared in the api from the start and answers `501 NOT_IMPLEMENTED` until built, so the OpenAPI document and the client generated from it are complete, and the client holds no hand-written copy of a shape. In development only, Mock Service Worker answers the contracts not yet built, from handlers typed with that client; the production build carries no mock. A family's handlers are deleted when the api builds the family.
-3. `API-78` signs in as a demo dataset user without a password, only in `FIXTURE_MODE` `replay`; the client shows the shortcuts, on Sign in and on the last step of Landing, only when `DEMO_SIGN_IN` is true.
+3. `API-78` signs in as a demo dataset user without a password, only in `FIXTURE_MODE` `replay`; the client shows the shortcuts, on Sign in only, only when `DEMO_SIGN_IN` is true.
 
 ## Consequences
 

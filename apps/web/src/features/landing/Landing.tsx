@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
-import { useDemoLogin } from "../../api/authenticationAndUsers";
 import { ButtonLink } from "../../components/Button";
 import { usePrefersReducedMotion } from "../../components/motion/usePrefersReducedMotion";
-import { DemoShortcuts } from "../identity-and-access/sign-in/DemoShortcuts";
 import "./landing.css";
 
 /** The steps of WF-27, in order (FR-161). */
@@ -46,7 +44,7 @@ export const STEPS = [
   {
     name: "Prospects",
     title: "Your prospects, ranked and explained.",
-    lead: "Open the live demo as a Sales or an Admin user.",
+    lead: "Sign in with the account your Admin created.",
   },
 ] as const;
 
@@ -72,7 +70,6 @@ function Mark() {
  */
 export function Landing() {
   const reduced = usePrefersReducedMotion();
-  const demoLogin = useDemoLogin();
   const scrollRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -194,11 +191,10 @@ export function Landing() {
                 )}
                 <p className="lr-lead">{s.lead}</p>
                 {index === STEPS.length - 1 && (
-                  <div className="flex flex-wrap gap-2.5 pt-1.5">
+                  <div className="pt-1.5">
                     <ButtonLink to="/login" variant="primary">
                       Sign in
                     </ButtonLink>
-                    <DemoShortcuts demoLogin={demoLogin} className="flex flex-wrap gap-2.5" />
                   </div>
                 )}
               </div>

@@ -100,8 +100,8 @@ Route `/`. Anonymous; a signed-in user is sent to `/prospects`. The page that op
 │              line up, highest first ]                                        │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │ Prospects  Your prospects, ranked and explained.                             │
-│            Open the live demo as a Sales or an Admin user.                   │
-│            [ Sign in ]  [ Enter as Sales ]  [ Enter as Admin ]               │
+│            Sign in with the account your Admin created.                      │
+│            [ Sign in ]                                                       │
 │            [ scene: the Prospects list takes over; DHL Group and Lufthansa   │
 │              Group fly into its first rows ]                                 │
 └──────────────────────────────────────────────────────────────────────────────┘
@@ -112,7 +112,7 @@ WF-27 — Landing
 | ID | Requirement |
 |---|---|
 | `FR-161` | Landing shall show eight full-viewport steps in order — Accounts, Sources, Read, Sift, Quote, Score, Rank, Prospects — each with the words of WF-27, over one pinned scene that each step advances as the visitor scrolls; scrolling back reverses the scene. A column of step dots beside the steps shows the current step and scrolls to the one pressed. |
-| `FR-162` | A header with the LeadRadar mark and a Sign in button shall stay visible on every step, and the Prospects step shall end with a Sign in button; both open Sign in. When `DEMO_SIGN_IN` is true, the Prospects step also shows Enter as Sales and Enter as Admin, which act as on Sign in ([FR-168](/features/identity-and-access.md#sign-in)); otherwise it shows neither. |
+| `FR-162` | A header with the LeadRadar mark and a Sign in button shall stay visible on every step, and the Prospects step shall end with a Sign in button; both open Sign in. Landing offers no other way to sign in. |
 | `FR-163` | A signed-in user opening `/` shall be sent to `/prospects`. |
 | `FR-164` | The scene shall show the scenes of WF-27 with the [demo dataset](/architecture/overview.md#demo-dataset)'s twenty accounts; DHL Group's quote, rules and scores and Lufthansa Group's band and scores are those of [WF-24](#score-presentation) and the demo dataset, and every other account's position, documents and Priority are illustrative. Band chips carry their band icon ([FR-111](#score-presentation)). Its colours are the tokens Accent for what the current step is about and for Hot, Accent soft for Warm and Cool for Cold, on the dark Page, in both colour schemes. |
 | `FR-165` | The words of each step shall render before the scene loads; under `prefers-reduced-motion` each step shall show the end frame of its scene still, and without WebGL the steps show their words on the dark Page with no scene. |
@@ -386,7 +386,7 @@ Motion tells a user that something changed. It never carries meaning alone, neve
 | `ALERT_POLL_INTERVAL_MS` | `60000` | Poll interval of the unread-alert count |
 | `CONFIDENCE_HIGH_MIN` | `0.85` | Lowest confidence shown as High |
 | `CONFIDENCE_MEDIUM_MIN` | `0.65` | Lowest confidence shown as Medium |
-| `DEMO_SIGN_IN` | `false` | When `true`, Sign in and Landing show the demo shortcuts ([FR-167](/features/identity-and-access.md#sign-in), [FR-162](#landing)); set it only where the api runs with `FIXTURE_MODE` `replay` |
+| `DEMO_SIGN_IN` | `false` | When `true`, Sign in shows the demo shortcuts ([FR-167](/features/identity-and-access.md#sign-in)); set it only where the api runs with `FIXTURE_MODE` `replay` |
 
 ## Examples
 
