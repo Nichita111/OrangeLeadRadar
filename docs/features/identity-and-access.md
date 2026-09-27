@@ -18,8 +18,7 @@ LeadRadar serves one organisation with two roles. Sales works accounts, prospect
 
 1. An anonymous visitor opening `/` sees [Landing](/architecture/services/frontend.md#landing), whose Sign in buttons open [Sign in](#sign-in). Opening any other route, they are sent to Sign in with that route as return path.
 2. Correct credentials set the session cookie (`API-01`) and return the user to that page; wrong ones answer one message that does not reveal which was wrong; `LOGIN_MAX_FAILURES` failures in a row lock the account for `LOGIN_LOCK_MINUTES`.
-3. With `DEMO_SIGN_IN` on and the api in `FIXTURE_MODE` `replay`, Enter as Sales or Enter as Admin signs in as the [demo dataset](/architecture/overview.md#demo-dataset) user of that role without a password (`API-78`) and returns the user to that page.
-4. Sign out revokes the session (`API-02`) and shows Sign in. A session ends by itself after `SESSION_TTL_HOURS`.
+3. Sign out revokes the session (`API-02`) and shows Sign in. A session ends by itself after `SESSION_TTL_HOURS`.
 
 ### FL-20 Manage users
 
@@ -31,14 +30,14 @@ LeadRadar serves one organisation with two roles. Sales works accounts, prospect
 ## Reading order
 
 1. Terms in the [glossary](/requirements/glossary.md): Sales, Admin, Session.
-2. Requirement rows: `S-SEC-01` to `S-SEC-05` in [system requirements](/requirements/system.md); `N-07`; `B-30`, `B-41` and the [Roles](/requirements/business.md#roles) in [business requirements](/requirements/business.md).
+2. Requirement rows: `S-SEC-01` to `S-SEC-03`, `S-SEC-05` in [system requirements](/requirements/system.md); `N-07`; `B-30`, `B-41` and the [Roles](/requirements/business.md#roles) in [business requirements](/requirements/business.md).
 3. Stores: [`app_user`](/architecture/sql-store.md#app_user), [`auth_session`](/architecture/sql-store.md#auth_session), [`user_invite`](/architecture/sql-store.md#user_invite); `AUTH` and `USER` rows of [Audit actions](/architecture/sql-store.md#audit-actions).
 4. Rules: [Retention and erasure](/architecture/rules.md#retention-and-erasure) for expired sessions and invites; [store ownership](/architecture/overview.md#store-ownership) for who writes users and sessions.
-5. Interfaces: [Conventions](/architecture/interfaces.md#conventions) (roles, authentication, CSRF) and [Authentication and users](/architecture/interfaces.md#authentication-and-users) (`API-01` to `API-06`, `API-78` to `API-83`).
-6. Services: the [api](/architecture/services/api.md) (`SESSION_TTL_HOURS`, `LOGIN_MAX_FAILURES`, `LOGIN_LOCK_MINUTES`, `PASSWORD_MIN_LENGTH`, `INVITE_TTL_HOURS`, `APP_BASE_URL` in its [runtime](/architecture/services/api.md#runtime)); the frontend's [Routes](/architecture/services/frontend.md#routes), [Navigation](/architecture/services/frontend.md#navigation) and [States](/architecture/services/frontend.md#states); the frontend's [Landing](/architecture/services/frontend.md#landing) and `DEMO_SIGN_IN` in its [Runtime](/architecture/services/frontend.md#runtime).
+5. Interfaces: [Conventions](/architecture/interfaces.md#conventions) (roles, authentication, CSRF) and [Authentication and users](/architecture/interfaces.md#authentication-and-users) (`API-01` to `API-06`, `API-79` to `API-83`).
+6. Services: the [api](/architecture/services/api.md) (`SESSION_TTL_HOURS`, `LOGIN_MAX_FAILURES`, `LOGIN_LOCK_MINUTES`, `PASSWORD_MIN_LENGTH`, `INVITE_TTL_HOURS`, `APP_BASE_URL` in its [runtime](/architecture/services/api.md#runtime)); the frontend's [Routes](/architecture/services/frontend.md#routes), [Navigation](/architecture/services/frontend.md#navigation) and [States](/architecture/services/frontend.md#states); the frontend's [Landing](/architecture/services/frontend.md#landing).
 7. Decisions: [ADR-20](/architecture/adrs/adr-20-landing-scene-mock-layer-and-demo-sign-in.md), [ADR-21](/architecture/adrs/adr-21-invite-links-and-the-invite-scene.md).
 8. Screens: [Sign in](#sign-in), [Accept invite](#accept-invite), [Users](#users).
-9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-52` to `AC-54`, `AC-67`, `AC-76` to `AC-79`.
+9. Acceptance rows in [acceptance criteria](/requirements/acceptance.md): `AC-52` to `AC-54`, `AC-67`, `AC-78`, `AC-79`.
 
 ## Sign in
 
@@ -59,8 +58,6 @@ Route `/login`. Anonymous.
 │                                │ (hint)                           │
 │  (Aurora background)           │                                  │
 │                                │                       [ Sign in ]│
-│                                │ [ Enter as Sales ]               │
-│                                │ [ Enter as Admin ]               │
 └────────────────────────────────┴──────────────────────────────────┘
 ```
 
@@ -74,12 +71,10 @@ WF-21 — Sign in
 | `FR-094` | A failure shall show the api's message: wrong credentials, account locked with the minutes remaining, or account disabled. |
 | `FR-152` | Each field of Sign in shall carry a hint under it: the email field says that it is the address the Admin created, and the password field says that repeated failures lock the account for a short time. |
 | `FR-160` | Sign in shall be two panels: a brand panel carrying the LeadRadar wordmark and the headline "Know which accounts to call, and exactly why." over the [Aurora background](/architecture/services/frontend.md#motion) in the Accent and Accent soft colours, and a panel with the form; the brand panel carries no other text and no sign-in shortcut. |
-| `FR-167` | When `DEMO_SIGN_IN` is true, the form panel of Sign in shall show two secondary buttons under the form, Enter as Sales and Enter as Admin; otherwise it shows neither. |
-| `FR-168` | A demo shortcut shall call `API-78` with its role and, on success, go to the return path or `/prospects` as `FR-093` does; a failure shows the api's message as `FR-094` does. |
 
-Obligations: `S-SEC-01`, `S-SEC-04`.
+Obligations: `S-SEC-01`.
 
-**Data**: `API-01`, `API-03`, `API-78`. **States**: [States](/architecture/services/frontend.md#states).
+**Data**: `API-01`, `API-03`. **States**: [States](/architecture/services/frontend.md#states).
 
 ## Accept invite
 

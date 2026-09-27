@@ -17,7 +17,6 @@ export const testConfig: Config = {
   CONFIDENCE_HIGH_MIN: 0.85,
   CONFIDENCE_MEDIUM_MIN: 0.65,
   RUN_POLL_INTERVAL_MS: 1000,
-  DEMO_SIGN_IN: false,
 };
 
 /** Renders the whole client at a route, with the routes of the router and an in-memory history. */

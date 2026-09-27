@@ -27,5 +27,5 @@ RUN chmod +x /usr/local/bin/config-json.sh /docker-entrypoint.d/40-config-json.s
 
 # The one place in code where the Runtime defaults live.
 ENV API_UPSTREAM=http://api:8000
-ENV CONFIDENCE_HIGH_MIN=0.85 CONFIDENCE_MEDIUM_MIN=0.65 RUN_POLL_INTERVAL_MS=2000 DEMO_SIGN_IN=false
+ENV CONFIDENCE_HIGH_MIN=0.85 CONFIDENCE_MEDIUM_MIN=0.65 RUN_POLL_INTERVAL_MS=2000
 EXPOSE 80

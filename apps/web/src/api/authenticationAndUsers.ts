@@ -34,19 +34,6 @@ export function useLogin() {
   });
 }
 
-/** `API-78`: signs in as the demo dataset user of a role and puts the user in the `me` query. */
-export function useDemoLogin() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    meta: READS_OWN_UNAUTHENTICATED,
-    mutationFn: async (body: Schemas["DemoLoginRequest"]) =>
-      requireData((await client.POST("/api/v1/auth/demo-login", { body })).data),
-    onSuccess: (user) => {
-      queryClient.setQueryData(authenticationAndUsersKeys.me, user);
-    },
-  });
-}
-
 /** `API-02`: signs out and clears the cache. A `401` means there is no session left, the goal. */
 export function useLogout() {
   const queryClient = useQueryClient();

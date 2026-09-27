@@ -8,7 +8,6 @@ const FULL_BODY = {
   CONFIDENCE_HIGH_MIN: "0.85",
   CONFIDENCE_MEDIUM_MIN: "0.65",
   RUN_POLL_INTERVAL_MS: "2000",
-  DEMO_SIGN_IN: "false",
 };
 
 describe("config.json (frontend Design, P-10)", () => {
@@ -17,11 +16,10 @@ describe("config.json (frontend Design, P-10)", () => {
       CONFIDENCE_HIGH_MIN: 0.85,
       CONFIDENCE_MEDIUM_MIN: 0.65,
       RUN_POLL_INTERVAL_MS: 2000,
-      DEMO_SIGN_IN: false,
     });
   });
 
-  it.each(["CONFIDENCE_HIGH_MIN", "CONFIDENCE_MEDIUM_MIN", "RUN_POLL_INTERVAL_MS", "DEMO_SIGN_IN"])(
+  it.each(["CONFIDENCE_HIGH_MIN", "CONFIDENCE_MEDIUM_MIN", "RUN_POLL_INTERVAL_MS"])(
     "throws naming %s when it is missing, with no default",
     (missing) => {
       const partial = Object.fromEntries(
@@ -46,14 +44,6 @@ describe("config.json (frontend Design, P-10)", () => {
     },
   );
 
-  it.each(["yes", "", "1"])("throws when DEMO_SIGN_IN is not true or false (%j)", (value) => {
-    expect(() => parseConfig({ ...FULL_BODY, DEMO_SIGN_IN: value })).toThrow(/DEMO_SIGN_IN/);
-  });
-
-  it("reads DEMO_SIGN_IN true", () => {
-    expect(parseConfig({ ...FULL_BODY, DEMO_SIGN_IN: "true" }).DEMO_SIGN_IN).toBe(true);
-  });
-
   it("throws when the body is not an object", () => {
     expect(() => parseConfig("nope")).toThrow(/config\.json/);
   });
@@ -66,7 +56,6 @@ describe("config.json (frontend Design, P-10)", () => {
       CONFIDENCE_HIGH_MIN: 0.85,
       CONFIDENCE_MEDIUM_MIN: 0.65,
       RUN_POLL_INTERVAL_MS: 2000,
-      DEMO_SIGN_IN: false,
     });
   });
 

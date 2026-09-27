@@ -271,7 +271,7 @@ WF-24 — score anatomy
 | ID | Requirement |
 |---|---|
 | `FR-005` | Every data view shall render four states: loading (skeleton rows, no spinner longer than the content), empty (a sentence saying what would appear and the action that creates it), error (the error's message and a Retry button), and unavailable (for `503` and `429`: the screen wording of the [Degradation](/architecture/overview.md#degradation) row that the error names under [Dependencies](/architecture/interfaces.md#conventions), saying which dependency is unavailable and what still works). |
-| `FR-006` | A `401` from any call other than `API-01` shall send the user to Sign in with the current route as return path; a `403` from any call other than `API-01` and `API-78` shall show a "Not allowed" page naming the role required. |
+| `FR-006` | A `401` from any call other than `API-01` shall send the user to Sign in with the current route as return path; a `403` from any call other than `API-01` shall show a "Not allowed" page naming the role required. |
 | `FR-007` | A form shall keep the user's input when a save fails and show each `VALIDATION` field error next to its field; any other error of a save shall show as an error callout in the form, the input kept. |
 | `FR-118` | A loading state shall draw skeleton shapes the size of the rows or cards it stands in for, so the layout does not move when the data arrives; an empty state shall name the action that fills it and offer that action as a button; an unavailable state shall list what still works with a check for each item. |
 | `FR-119` | A form field shall place its label above the input, its hint below the label or the input, and its error below the input in words; a placeholder is never the label. |
@@ -387,7 +387,6 @@ Motion tells a user that something changed. It never carries meaning alone, neve
 | `ALERT_POLL_INTERVAL_MS` | `60000` | Poll interval of the unread-alert count |
 | `CONFIDENCE_HIGH_MIN` | `0.85` | Lowest confidence shown as High |
 | `CONFIDENCE_MEDIUM_MIN` | `0.65` | Lowest confidence shown as Medium |
-| `DEMO_SIGN_IN` | `false` | When `true`, Sign in shows the demo shortcuts ([FR-167](/features/identity-and-access.md#sign-in)); set it only where the api runs with `FIXTURE_MODE` `replay` |
 
 ## Examples
 

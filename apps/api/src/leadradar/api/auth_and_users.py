@@ -1,6 +1,5 @@
 """Router of the [Authentication and users](/architecture/interfaces.md#authentication-and-users)
-family: `API-01` to `API-06` and `API-79` to `API-83`, each built here; `API-78` is a declared
-stub answering `501 NOT_IMPLEMENTED` until task 2 builds it. Each built route validates its
+family: `API-01` to `API-06` and `API-79` to `API-83`, each built here. Each route validates its
 input into a Pydantic model, calls one `auth` capability function, and shapes the response
 (api Design "Layering")."""
 
@@ -21,7 +20,6 @@ from leadradar.api.authentication import (
     require_admin,
 )
 from leadradar.api.constants import API_PREFIX
-from leadradar.api.router_utils import stub_router
 from leadradar.auth.errors import InviteNotFound
 from leadradar.auth.invites import (
     InviteView,
@@ -44,16 +42,6 @@ from leadradar.core.invites import invite_link
 from leadradar.db.models.identity import AppUser
 from leadradar.db.session import get_session
 from leadradar.settings import ApiSettings
-
-demo_login_stub_router = stub_router("authentication-and-users")
-
-
-class DemoLoginRequest(BaseModel):
-    """[`DemoLoginRequest`](/architecture/interfaces.md#demologinrequest)."""
-
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    role: AppUserRole
 
 
 class LoginRequest(BaseModel):
@@ -428,9 +416,3 @@ def build_users_router(settings: ApiSettings) -> APIRouter:
         await revoke_invite(db, actor_id=admin.id, invite_id=id, now=request.app.state.clock())
 
     return router
-
-
-@demo_login_stub_router.post("/auth/demo-login", response_model=AuthenticatedUser)
-async def demo_login(payload: DemoLoginRequest) -> AuthenticatedUser:
-    """`API-78`."""
-    raise AssertionError("unreachable: contract_not_built already raised")

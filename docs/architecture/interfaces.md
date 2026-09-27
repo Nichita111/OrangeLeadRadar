@@ -24,7 +24,7 @@ tags: [accounts-and-discovery, audit-trail, evaluation-and-feedback, identity-an
 
 Authorisation is enforced by the api on every route ([S-SEC-02](/requirements/system.md)); a signed-in user without the role gets `403 FORBIDDEN`.
 
-**Authentication.** `API-01` and `API-78` set an HTTP-only, `Secure`, `SameSite=Lax` session cookie, named `leadradar_session`, with `Path=/api/v1` and `Max-Age` of `SESSION_TTL_HOURS`; `API-02` clears it. Its token is recorded as a hash in [`auth_session`](/architecture/sql-store.md#auth_session) and expires after `SESSION_TTL_HOURS`. Every other route except `API-61` requires it and accepts no other credential. `API-02` revokes it.
+**Authentication.** `API-01` and `API-82` set an HTTP-only, `Secure`, `SameSite=Lax` session cookie, named `leadradar_session`, with `Path=/api/v1` and `Max-Age` of `SESSION_TTL_HOURS`; `API-02` clears it. Its token is recorded as a hash in [`auth_session`](/architecture/sql-store.md#auth_session) and expires after `SESSION_TTL_HOURS`. Every other route except `API-61` requires it and accepts no other credential. `API-02` revokes it.
 
 **CSRF.** A `POST`, `PUT`, `PATCH` or `DELETE` without an `X-Requested-With` header is refused `403 FORBIDDEN`. The browser reaches the api only through the frontend's proxy on the same origin.
 
@@ -76,7 +76,6 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 | `API-04` | GET | `/users` | `A` | — → [`User`](#user)`[]` |
 | `API-05` | POST | `/users` | `A` | [`UserCreate`](#usercreate) → [`User`](#user) |
 | `API-06` | PATCH | `/users/{id}` | `A` | [`UserUpdate`](#userupdate) → [`User`](#user) |
-| `API-78` | POST | `/auth/demo-login` | `-` | [`DemoLoginRequest`](#demologinrequest) → [`AuthenticatedUser`](#authenticateduser) |
 | `API-79` | POST | `/invites` | `A` | [`InviteCreate`](#invitecreate) → [`InviteCreated`](#invitecreated) |
 | `API-80` | POST | `/invites/{id}/revoke` | `A` | — → `204` |
 | `API-81` | POST | `/auth/invite` | `-` | [`InviteToken`](#invitetoken) → [`InvitePreview`](#invitepreview) |
@@ -91,7 +90,6 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 - `API-80` — answers `409 CONFLICT` for an invite that is no longer pending.
 - `API-81`, `API-82` — the token travels in the body, never in a path or query, so it reaches no log. A token of no pending invite answers `404 NOT_FOUND`, whether it is unknown, used, revoked or expired. `API-82` creates the active user with the invite's email and role, marks the invite accepted and answers exactly as `API-01` with that user's password would: the same session cookie and `LOGIN_SUCCEEDED` row.
 - `API-83` — the pending invites, newest first.
-- `API-78` — answers only while the api runs with `FIXTURE_MODE` `replay`, and `404 NOT_FOUND` in any other mode. It signs in as the [demo dataset](/architecture/overview.md#demo-dataset) user of the requested role and answers exactly as `API-01` with that user's correct password would: the same session cookie and `LOGIN_SUCCEEDED` row, `403 FORBIDDEN` for a disabled user and `423 LOCKED` for a locked one. It answers `404 NOT_FOUND` when that user does not exist.
 
 ### Authentication and users shapes
 
@@ -101,12 +99,6 @@ Degraded behaviour is an explicit error, never a placeholder result ([Degradatio
 |---|---|---|
 | `email` | string | [`app_user`](/architecture/sql-store.md#app_user) `email` |
 | `password` | string | checked against `password_hash`; never stored or logged |
-
-#### DemoLoginRequest
-
-| Field | Type | Source of truth |
-|---|---|---|
-| `role` | enum | [`app_user`](/architecture/sql-store.md#app_user) `role` |
 
 #### InviteCreate
 

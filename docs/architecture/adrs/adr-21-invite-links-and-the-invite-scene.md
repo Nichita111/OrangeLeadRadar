@@ -17,11 +17,12 @@ Users exist only when an Admin creates them with a password the Admin chooses an
 1. An Admin invites an email with a role; the api returns a single-use link `APP_BASE_URL/invite#<token>` once, stores only the token's hash, and the Admin hands the link over. The invite expires after `INVITE_TTL_HOURS` and can be revoked while pending.
 2. The token travels in the link's fragment and in request bodies only, never in a path or query, so no server or proxy log records it.
 3. Accepting creates an active user with the invited email and role and signs them in, exactly as a sign-in would.
-4. [Accept invite](/features/identity-and-access.md#accept-invite) reuses the Landing scene module: it is the second screen outside [ADR-17](/architecture/adrs/adr-17-animated-components-from-react-bits.md)'s pattern list and the only other screen to import three.js and Anime.js, lazily.
+4. Everyone signs in with credentials: the demo sign-in of [ADR-20](/architecture/adrs/adr-20-landing-scene-mock-layer-and-demo-sign-in.md) decision 3 is withdrawn, with `API-78`, its shortcuts and `DEMO_SIGN_IN`; the presenter signs in as the demo users with their seeded passwords.
+5. [Accept invite](/features/identity-and-access.md#accept-invite) reuses the Landing scene module: it is the second screen outside [ADR-17](/architecture/adrs/adr-17-animated-components-from-react-bits.md)'s pattern list and the only other screen to import three.js and Anime.js, lazily.
 
 ## Consequences
 
-Anyone holding the link before it is used can join with the invited role, so the Admin hands it over privately; the short expiry and single use bound the risk. There is still no open registration and no email service. A new table, [`user_invite`](/architecture/sql-store.md#user_invite), and five contracts, `API-79` to `API-83`, join the Authentication and users family.
+Anyone holding the link before it is used can join with the invited role, so the Admin hands it over privately; the short expiry and single use bound the risk. There is still no open registration and no email service, and no way in without a password: anyone reaching the demo stack no longer becomes Admin. A new table, [`user_invite`](/architecture/sql-store.md#user_invite), and five contracts, `API-79` to `API-83`, join the Authentication and users family.
 
 ## Alternatives considered
 

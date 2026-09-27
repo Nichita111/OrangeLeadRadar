@@ -341,26 +341,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/demo-login": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Demo Login
-         * @description `API-78`.
-         */
-        post: operations["demo_login_api_v1_auth_demo_login_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/auth/invite": {
         parameters: {
             query?: never;
@@ -1778,13 +1758,6 @@ export interface components {
             id: string;
             status: components["schemas"]["CrmSyncStatus"];
             target: components["schemas"]["CrmSyncTarget"];
-        };
-        /**
-         * DemoLoginRequest
-         * @description [`DemoLoginRequest`](/architecture/interfaces.md#demologinrequest).
-         */
-        DemoLoginRequest: {
-            role: components["schemas"]["AppUserRole"];
         };
         /**
          * Dependency
@@ -4501,39 +4474,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Page_AuditEntry_"];
-                };
-            };
-            /** @description Error */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    demo_login_api_v1_auth_demo_login_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DemoLoginRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuthenticatedUser"];
                 };
             };
             /** @description Error */

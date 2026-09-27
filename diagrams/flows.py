@@ -356,7 +356,7 @@ FLOWS = [
          ("user", "web", "Sign out"),
          ("web", "api", "sign out (API-02)"),
          ("api", "db", "session revoked")])],
-     [("cyan", "Spec", ["FL-19 in Identity and access", "S-SEC-01, S-SEC-02, S-SEC-04"]),
+     [("cyan", "Spec", ["FL-19 in Identity and access", "S-SEC-01, S-SEC-02"]),
       ("rose", "Security", ["Only token hashes are stored", "Locked after LOGIN_MAX_FAILURES failures"])]),
 
     ("fl-20", "Manage users", "identity-and-access", "Users",
