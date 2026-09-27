@@ -16,7 +16,14 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from leadradar.audit.events import append_audit_event
-from leadradar.core.enums import AuditAction, JobStatus, PipelineRunKind, PipelineRunStatus
+from leadradar.core.enums import (
+    AuditAction,
+    Dependency,
+    JobStatus,
+    PipelineRunKind,
+    PipelineRunStage,
+    PipelineRunStatus,
+)
 from leadradar.core.job_queue import job_priority
 from leadradar.core.refresh_scheduling import refresh_times_after
 from leadradar.core.run_lifecycle import (
@@ -168,6 +175,84 @@ async def complete_job(
     )
 
 
+def build_run_error(
+    *,
+    stage: PipelineRunStage,
+    code: str,
+    message: str,
+    plugin_code: str | None = None,
+    dependency: Dependency | None = None,
+) -> dict[str, object]:
+    """One entry of [`pipeline_run`](/architecture/sql-store.md#pipeline_run) `errors`:
+    `{stage, plugin_code?, dependency?, code, message}` (G1). `plugin_code` and `dependency` are
+    absent, never `null`, when the entry has none — `_append_error_entry` is the one place that
+    appends it to a run's `errors`, so the shape has one implementation."""
+    error: dict[str, object] = {"stage": stage.value}
+    if plugin_code is not None:
+        error["plugin_code"] = plugin_code
+    if dependency is not None:
+        error["dependency"] = dependency.value
+    error["code"] = code
+    error["message"] = message
+    return error
+
+
+def _append_error_entry(
+    run: PipelineRun,
+    *,
+    stage: PipelineRunStage,
+    code: str,
+    message: str,
+    plugin_code: str | None = None,
+    dependency: Dependency | None = None,
+) -> None:
+    """Appends one `errors` entry, built by `build_run_error`, to an already-locked `run`. Never
+    called on a run this caller has not itself locked `FOR UPDATE` — `append_run_error` locks
+    before calling this, and `record_job_failure` calls this directly because it already holds
+    the run's lock, so the row is never locked twice for the one append."""
+    run.errors = [
+        *run.errors,
+        build_run_error(
+            stage=stage,
+            code=code,
+            message=message,
+            plugin_code=plugin_code,
+            dependency=dependency,
+        ),
+    ]
+
+
+async def append_run_error(
+    session: AsyncSession,
+    *,
+    run_id: uuid.UUID,
+    stage: PipelineRunStage,
+    code: str,
+    message: str,
+    plugin_code: str | None = None,
+    dependency: Dependency | None = None,
+) -> PipelineRun:
+    """Locks the run `FOR UPDATE` and appends one `errors` entry via `_append_error_entry`, then
+    returns the locked run. Locking here, immediately before the append, is what keeps a
+    concurrent writer's own entry — another SIGNAL batch of the same run, or a failed job of a
+    different step — from being lost to a stale `errors` snapshot read earlier in the job
+    ([Job queue](/architecture/services/worker.md#job-queue) Retries). The SIGNAL step's own
+    LLM-unavailable entry ([Signal graph](/architecture/services/worker.md#signal-graph)) calls
+    this directly; `record_job_failure` already holds the run's lock by the time it appends, so
+    it calls `_append_error_entry` itself instead of locking a second time here."""
+    run = await _lock_run(session, run_id)
+    _append_error_entry(
+        run,
+        stage=stage,
+        code=code,
+        message=message,
+        plugin_code=plugin_code,
+        dependency=dependency,
+    )
+    await session.flush()
+    return run
+
+
 async def record_job_failure(
     session: AsyncSession,
     job: ClaimedJob,
@@ -178,6 +263,7 @@ async def record_job_failure(
     retry_at: datetime | None,
     now: datetime,
     refresh_interval_hours: int,
+    dependency: Dependency | None = None,
 ) -> None:
     """After a failed attempt: the job is `READY` again from `retry_at`, or, with `retry_at`
     `None`, `FAILED`, its run records the error, and the run is settled."""
@@ -196,20 +282,21 @@ async def record_job_failure(
         worker_id=worker_id,
         values={"status": JobStatus.FAILED, "last_error": message},
     )
-    run = await _lock_run(session, job.run_id)
-    error: dict[str, object] = {
-        "stage": stage_after_claim(run.stage, job.step).value,
-        "code": code,
-        "message": message,
-    }
+    current_run = await _lock_run(session, job.run_id)
+    stage = stage_after_claim(current_run.stage, job.step)
     plugin_code = job.payload.get("plugin_code")
-    if plugin_code is not None:
-        error["plugin_code"] = plugin_code
-    run.errors = [*run.errors, error]
+    _append_error_entry(
+        current_run,
+        stage=stage,
+        code=code,
+        message=message,
+        plugin_code=plugin_code if isinstance(plugin_code, str) else None,
+        dependency=dependency,
+    )
     await session.flush()
     await _settle_run(
         session,
-        run,
+        current_run,
         job,
         job_failed=True,
         now=now,

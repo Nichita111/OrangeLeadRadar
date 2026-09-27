@@ -398,7 +398,7 @@ A unit of background work a user can see: a refresh, a reclassification, a resco
 | `status` | enum: `QUEUED`, `RUNNING`, `SUCCEEDED`, `PARTIAL`, `FAILED`, `CANCELLED` | `PARTIAL`: finished, but at least one plug-in or step failed, or pairs were left `PENDING_LLM`, as `errors` and `progress` state. `FAILED`: its final stage failed after its retries. |
 | `stage` | enum, null: `FETCH`, `PROCESS`, `TRIAGE`, `CLASSIFY`, `EVIDENCE`, `SCORE` | The stage in progress; null when queued or finished. The stages each kind passes through are the [run lifecycle](/architecture/services/worker.md#run-lifecycle). |
 | `progress` | jsonb | Counters: `documents_fetched`, `documents_new`, `documents_kept`, `passages`, `pairs_classified`, `pairs_escalated`, `findings_created`, `pending_budget`, `candidates`, `items_evaluated`. |
-| `errors` | jsonb | Array of `{stage, plugin_code?, code, message}`; `code` is an error code of [Conventions](/architecture/interfaces.md#conventions) or `FIXTURE_MISSING`. |
+| `errors` | jsonb | Array of `{stage, plugin_code?, dependency?, code, message}`; `code` is an error code of [Conventions](/architecture/interfaces.md#conventions) or `FIXTURE_MISSING`; `dependency` is the `details.dependency` value of [Conventions](/architecture/interfaces.md#conventions) of the classifier, LLM or embedder call that failed. |
 | `requested_by` | uuid FK → [`app_user`](#app_user), null | The user whose action caused it; null for the scheduler. |
 | `started_at` | timestamptz, null | When the first job started. |
 | `finished_at` | timestamptz, null | When the last job finished. |

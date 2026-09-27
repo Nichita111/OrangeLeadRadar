@@ -283,7 +283,7 @@ The words the screens show for glossary terms. A label is a presentation of the 
 | ID | Requirement |
 |---|---|
 | `FR-008` | Screens shall use the labels above and shall never show internal names such as `p_positive`, escalation, triage or token counts, except on the Admin screens Quality report and Audit log and in the Admin-only details of Runs. |
-| `FR-009` | A confidence shall be shown as a word: High at `CONFIDENCE_HIGH_MIN` or above, Medium at `CONFIDENCE_MEDIUM_MIN` or above, Low below; the number is shown only in a tooltip. |
+| `FR-009` | A confidence shall be shown as a word: High at `CONFIDENCE_HIGH_MIN` or above, Medium at `CONFIDENCE_MEDIUM_MIN` or above, Low below; to an Admin the number is shown only in a tooltip, and to Sales never ([N-10](/requirements/system.md)). |
 
 ## Formatting
 

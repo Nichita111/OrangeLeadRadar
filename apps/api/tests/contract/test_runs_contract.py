@@ -139,6 +139,34 @@ async def test_run_detail_answers_the_run_and_404_for_an_unknown_one(
     assert missing.status_code == 404
 
 
+async def test_an_error_entry_carries_dependency_only_when_the_run_has_one(
+    running_app: FastAPI, sales_client: httpx.AsyncClient
+) -> None:
+    async with running_app.state.engine.begin() as conn:
+        run_id: uuid.UUID = await conn.run_sync(
+            lambda sync: f.make_pipeline_run(
+                sync,
+                errors=[
+                    {"stage": "FETCH", "code": "INTERNAL", "message": "no handler"},
+                    {
+                        "stage": "EVIDENCE",
+                        "dependency": "LLM",
+                        "code": "UPSTREAM_UNAVAILABLE",
+                        "message": "The LLM is unavailable.",
+                    },
+                ],
+            )
+        )
+
+    response = await sales_client.get(f"/api/v1/runs/{run_id}")
+
+    assert response.status_code == 200
+    errors = response.json()["errors"]
+    assert "dependency" not in errors[0]
+    assert "plugin_code" not in errors[0]
+    assert errors[1]["dependency"] == "LLM"
+
+
 async def test_runs_list_is_a_page_filtered_by_account(
     sales_client: httpx.AsyncClient, make_account: MakeAccount
 ) -> None:

@@ -2,6 +2,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
+import { expectNoSeriousOrCriticalViolations } from "../../../accessibilityTestSupport";
 import {
   anaSales,
   errorEnvelope,
@@ -375,5 +376,14 @@ describe("Users by keyboard (FR-016, FR-008)", () => {
     });
     expect(button).toHaveFocus();
     expect(document.body).not.toHaveTextContent(/p_positive|escalation|triage/i);
+  });
+});
+
+describe("Accessibility (N-10, FR-016)", () => {
+  it("has no serious or critical axe violation as Admin", async () => {
+    arrangeUsers([olgaAdmin]);
+    const { container } = await openUsers();
+
+    await expectNoSeriousOrCriticalViolations(container);
   });
 });

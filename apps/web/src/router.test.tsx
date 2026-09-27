@@ -2,6 +2,7 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
+import { expectNoSeriousOrCriticalViolations } from "./accessibilityTestSupport";
 import {
   anaSales,
   authenticatedUser,
@@ -115,5 +116,23 @@ describe("routes and guards (FR-006, FR-159, DC-3, DC-4)", () => {
     renderApp("/users");
     expect(await screen.findByText("Something went wrong on our side.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
+  });
+});
+
+describe("Accessibility (N-10, FR-016)", () => {
+  it("Not found has no serious or critical axe violation", async () => {
+    signedInAs(anaSales);
+    const { container } = renderApp("/nope");
+    await screen.findByRole("heading", { name: "Page not found" });
+
+    await expectNoSeriousOrCriticalViolations(container);
+  });
+
+  it("Not allowed has no serious or critical axe violation", async () => {
+    signedInAs(anaSales);
+    const { container } = renderApp("/users");
+    await screen.findByRole("heading", { name: "Not allowed" });
+
+    await expectNoSeriousOrCriticalViolations(container);
   });
 });

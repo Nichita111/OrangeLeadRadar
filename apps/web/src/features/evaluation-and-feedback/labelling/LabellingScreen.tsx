@@ -200,13 +200,15 @@ function LabellingTasks({ service }: { service: Schemas["Service"] }) {
 
 function LabelCount({ activeItems, minItems }: { activeItems: number; minItems: number }) {
   const percent = minItems <= 0 ? 100 : Math.min(100, Math.round((activeItems / minItems) * 100));
+  const labelId = "label-count-progress-label";
   return (
     <div className="flex flex-col items-end gap-1">
-      <span className="text-text-secondary">
+      <span id={labelId} className="text-text-secondary">
         Labels: {activeItems} of {minItems} needed
       </span>
       <div
         role="progressbar"
+        aria-labelledby={labelId}
         aria-valuenow={activeItems}
         aria-valuemin={0}
         aria-valuemax={minItems}

@@ -12,7 +12,6 @@ handler here, because Starlette's `ServerErrorMiddleware` sits outside every lay
 from __future__ import annotations
 
 from datetime import datetime
-from enum import StrEnum
 from http import HTTPStatus
 from uuid import UUID
 
@@ -38,6 +37,7 @@ from leadradar.auth.errors import (
     UserNotFound,
 )
 from leadradar.configuration.errors import Conflict, DraftInvalid, NotFound, QuestionInvalid
+from leadradar.core.enums import Dependency
 from leadradar.evaluation.errors import (
     ChunkNotFound,
     QuestionNotFound,
@@ -54,18 +54,6 @@ from leadradar.runs.errors import (
     RunNotFound,
     SourcePluginNotFound,
 )
-
-
-class Dependency(StrEnum):
-    """`details.dependency` of `UPSTREAM_UNAVAILABLE`, exactly the
-    [Dependencies](/architecture/interfaces.md#conventions) table's column: a wire-only enum,
-    owned by interfaces and defined here once."""
-
-    DATABASE = "DATABASE"
-    CLASSIFIER = "CLASSIFIER"
-    LLM = "LLM"
-    EMBEDDER = "EMBEDDER"
-    HUBSPOT = "HUBSPOT"
 
 
 class ErrorDetailField(BaseModel):

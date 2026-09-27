@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession, async_sessionm
 
 from leadradar.ai.gateway import AiGateway, build_ai_http_client
 from leadradar.core.enums import (
+    Dependency,
     DocumentTriageClassifier,
     EvaluationItemStatus,
     FindingStrength,
@@ -296,6 +297,7 @@ class TestFailure:
         with pytest.raises(StepFailed) as excinfo:
             await run_evaluate_step(async_session, run=run, settings=settings, gateway=ai)
         assert excinfo.value.code == "UPSTREAM_UNAVAILABLE"
+        assert excinfo.value.dependency == Dependency.CLASSIFIER
 
         remaining = (
             await async_session.execute(
@@ -318,6 +320,7 @@ class TestFailure:
         with pytest.raises(StepFailed) as excinfo:
             await run_evaluate_step(async_session, run=run, settings=settings, gateway=ai)
         assert excinfo.value.code == "FIXTURE_MISSING"
+        assert excinfo.value.dependency is None
 
 
 class TestZeroItems:

@@ -1,6 +1,13 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
+import {
+  expectFullKeyboardCoverage,
+  expectNoSalesForbiddenWording,
+  expectNoSeriousOrCriticalViolations,
+  tabOrderWithin,
+} from "../../../accessibilityTestSupport";
 import {
   anaSales,
   errorEnvelope,
@@ -213,5 +220,30 @@ describe("LabellingScreen", () => {
     await waitFor(() => {
       expect(requestedServiceIds).toContain("service-b");
     });
+  });
+});
+
+describe("Accessibility (N-10, FR-016)", () => {
+  it("has no serious or critical axe violation as Sales", async () => {
+    const { container } = arrange({ tasks: [task()], active_items: 143, min_items: 200 });
+    await screen.findByText("Lufthansa Group plans a cost-reduction programme.");
+
+    await expectNoSeriousOrCriticalViolations(container);
+  });
+
+  it("tabs through every action with each one taking focus in turn", async () => {
+    const { container } = arrange({ tasks: [task()], active_items: 143, min_items: 200 });
+    await screen.findByText("Lufthansa Group plans a cost-reduction programme.");
+
+    const visited = await tabOrderWithin(userEvent.setup(), container);
+
+    expectFullKeyboardCoverage(container, visited);
+  });
+
+  it("shows Sales no escalation, triage or fixture probability wording", async () => {
+    const { container } = arrange({ tasks: [task()], active_items: 143, min_items: 200 });
+    await screen.findByText("Lufthansa Group plans a cost-reduction programme.");
+
+    expectNoSalesForbiddenWording(container);
   });
 });

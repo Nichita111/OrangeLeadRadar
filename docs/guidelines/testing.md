@@ -48,6 +48,7 @@ The level of a test decides what its author may look at.
 ## End-to-end tests
 
 - Playwright against the composed stack, following the journeys of the business scenarios `SC-A` to `SC-D` and the criteria that need a screen; each test's title starts with the `AC-` or `SC-` identifier.
+- The accessibility scan of every screen is axe-core through `@axe-core/playwright`; a violation of impact serious or critical fails it.
 
 ## Determinism tests
 

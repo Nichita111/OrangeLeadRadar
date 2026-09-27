@@ -6,10 +6,16 @@ import { createOpenApiHttp } from "openapi-msw";
 import { errorEnvelope, errorResponse, olgaAdmin } from "../api/authenticationAndUsers.fixtures";
 import type { Schemas, paths } from "../api/contract";
 import {
+  accounts,
   evidenceFor,
   findings,
+  industries,
+  markets,
   prospectRows,
   scoreViews,
+  scoringConfig,
+  scoringSummaries,
+  services,
 } from "./prospectsAndEvidence.fixtures";
 
 export function createProspectsHandlers() {
@@ -19,6 +25,17 @@ export function createProspectsHandlers() {
   const notFound = errorEnvelope("NOT_FOUND", "Not found.");
 
   return [
+    http.get("/api/v1/services", ({ response }) => response(200).json(services)),
+    http.get("/api/v1/industries", ({ response }) => response(200).json(industries)),
+    http.get("/api/v1/markets", ({ response }) => response(200).json(markets)),
+    http.get("/api/v1/accounts/{id}", ({ params, response }) => {
+      const found = accounts.find((candidate) => candidate.id === params.id);
+      return found === undefined ? errorResponse(notFound, 404) : response(200).json(found);
+    }),
+    http.get("/api/v1/services/{id}/scoring-configs", ({ response }) =>
+      response(200).json(scoringSummaries),
+    ),
+    http.get("/api/v1/scoring-configs/{id}", ({ response }) => response(200).json(scoringConfig)),
     http.get("/api/v1/services/{id}/prospects", ({ request, response }) => {
       const query = new URL(request.url).searchParams;
       const standing = query.get("standing") ?? "RANKED";

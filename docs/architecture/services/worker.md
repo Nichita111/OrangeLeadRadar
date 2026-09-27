@@ -41,7 +41,7 @@ A worker process runs `WORKER_CONCURRENCY` job loops. A loop claims the next job
 | 5 | `ACCOUNT_REFRESH` from `SCHEDULE` |
 | 7 | `DISCOVERY`, `EVALUATION` |
 
-**Retries.** A step that raises is retried with `not_before` = now + `JOB_RETRY_BACKOFF_S × 2^(attempts − 1)`, up to `JOB_MAX_ATTEMPTS` attempts, after which the job is `FAILED` and its run records the error: an entry of `errors` with the stage the step was in, the `plugin_code` of a `FETCH` job, and the code the step raised, else `INTERNAL`. A `RUNNING` job whose `locked_at` is older than `JOB_LOCK_TIMEOUT_S` is returned to `READY`; this is safe because every step is idempotent: it writes through the unique constraints of the [SQL store](/architecture/sql-store.md#constraints-and-indexes) and skips work already recorded ([N-05](/requirements/system.md)).
+**Retries.** A step that raises is retried with `not_before` = now + `JOB_RETRY_BACKOFF_S × 2^(attempts − 1)`, up to `JOB_MAX_ATTEMPTS` attempts, after which the job is `FAILED` and its run records the error: an entry of `errors` with the stage the step was in, the `plugin_code` of a `FETCH` job, the `dependency` when a classifier, LLM or embedder call failed, and the code the step raised, else `INTERNAL`. A `RUNNING` job whose `locked_at` is older than `JOB_LOCK_TIMEOUT_S` is returned to `READY`; this is safe because every step is idempotent: it writes through the unique constraints of the [SQL store](/architecture/sql-store.md#constraints-and-indexes) and skips work already recorded ([N-05](/requirements/system.md)).
 
 **Fan-out.** A step that finishes a stage enqueues the next stage's jobs in the same transaction as its own results. When every job of an `ACCOUNT_REFRESH` or `RECLASSIFY` run is final and none is a `SCORE` job, the job loop enqueues the run's `SCORE` job, so a refresh whose fetches all failed is still scored. Otherwise the last job of a run to finish sets the run's final status.
 
@@ -104,6 +104,8 @@ flowchart TD
 
 The graph's state holds identifiers and passage texts of one batch. Each node writes its results before the next runs, so an interrupted job resumes from what is recorded; the graph keeps no checkpoint of its own. Classification and escalation of different passages run concurrently up to `AI_CONCURRENCY`.
 
+An escalation or evidence call whose LLM is unavailable leaves its pair `PENDING_LLM`, as a budget stop does; the job then makes no further LLM call, leaves its remaining escalation and evidence pairs `PENDING_LLM`, and adds one entry `{stage: EVIDENCE, code: UPSTREAM_UNAVAILABLE, dependency: LLM}` to its run's `errors`, so the run ends `PARTIAL` naming the LLM. A classifier call that fails raises, and the job is retried as Retries states.
+
 ### AI gateway
 
 One module owns every classifier and LLM call, for the worker and the api. For each call it:
@@ -114,7 +116,7 @@ One module owns every classifier and LLM call, for the worker and the api. For e
 4. validates the output against the port's shape;
 5. writes the `AI_CALL` audit row with the payload of [Audit actions](/architecture/sql-store.md#audit-actions), computing `cost_eur` from the response's `usage.cost` at `USD_EUR_RATE`.
 
-A call stopped before it is sent — by the budget guard, by a missing recording, or because `OPENROUTER_API_KEY` outside `replay` or the role's model id is unset — writes no `AI_CALL` row, since nothing answered it. Every other call writes exactly one, whatever its outcome, with its latency across all attempts. A failure is `UPSTREAM_UNAVAILABLE` with `details.dependency` `classifier` for the `CLASSIFIER` role and `llm` otherwise and `details.reason` the call's `outcome`, or `NOT_CONFIGURED` for an unset key or model id; a budget stop is `BUDGET_EXHAUSTED` with `details.resets_at` the next 00:00 UTC; a missing recording is `FIXTURE_MISSING`.
+A call stopped before it is sent — by the budget guard, by a missing recording, or because `OPENROUTER_API_KEY` outside `replay` or the role's model id is unset — writes no `AI_CALL` row, since nothing answered it. Every other call writes exactly one, whatever its outcome, with its latency across all attempts. A failure is `UPSTREAM_UNAVAILABLE` with `details.dependency` `CLASSIFIER` for the `CLASSIFIER` role and `LLM` otherwise, values of [Conventions](/architecture/interfaces.md#conventions), and `details.reason` the call's `outcome`, or `NOT_CONFIGURED` for an unset key or model id; a budget stop is `BUDGET_EXHAUSTED` with `details.resets_at` the next 00:00 UTC; a missing recording is `FIXTURE_MISSING`.
 
 **Jev adapter.** Maps a [`ClassifierRequest`](/architecture/interfaces.md#classifierrequest) to one Jev request: the passage and the context line are Jev's state, and each question, keyed by its `id`, becomes one of Jev's typed questions — `YES_NO` a `noul` question, `SCALE` a `score` question whose `criteria` are its levels' labels in order, `CHOICE` a `choice` question whose `criteria` map each option key to its label — so that one call answers them all. The state is the passage alone without a context line, else `{context, text}`. A `noul` answer is P(`YES`), and P(`NO`) is its complement; a `score` or `choice` answer's `probabilities`, keyed by option key or, for a score, by the level's position from 0, become the answer's `probabilities`; an answer without them is `INVALID_OUTPUT`. Requests go to `JEV_DECISIONS_URL`, OpenRouter's Decisions API, for the model `JEV_MODEL` with the `OPENROUTER_API_KEY` bearer token, and the response's `usage.cost` is the call's cost ([ADR-15](/architecture/adrs/adr-15-openrouter-as-the-llm-provider.md)).
 
@@ -156,7 +158,7 @@ Crunchbase category mapping: the first of the organisation's categories that thi
 
 ### Scheduler and housekeeping
 
-One worker at a time runs the scheduler: each loop takes a PostgreSQL advisory lock and skips the tick if another holds it. Every `SCHEDULER_TICK_S` it applies [Refresh scheduling](/architecture/rules.md#refresh-scheduling); once a day at `HOUSEKEEPING_HOUR_UTC` it applies [Retention and erasure](/architecture/rules.md#retention-and-erasure).
+One worker at a time runs the scheduler: each loop takes a PostgreSQL advisory lock and skips the tick if another holds it. Every `SCHEDULER_TICK_S` it applies [Refresh scheduling](/architecture/rules.md#refresh-scheduling); the first tick of each UTC day at or after `HOUSEKEEPING_HOUR_UTC` also applies [Retention and erasure](/architecture/rules.md#retention-and-erasure); the process keeps the day it last did so, which is safe to lose because the housekeeping is idempotent, so a worker started later in the day applies it at its first tick.
 
 ## Runtime
 
@@ -255,7 +257,7 @@ One worker at a time runs the scheduler: each loop takes a PostgreSQL advisory l
 
 **Source plug-in keys.** `CRUNCHBASE_API_KEY`, `NEWSAPI_KEY`, `SERPAPI_KEY`: unset by default; a plug-in whose key is unset is unavailable.
 
-The worker also reads `DATABASE_URL` and `LOG_LEVEL` of the [api runtime](/architecture/services/api.md#runtime).
+The worker also reads `DATABASE_URL`, `LOG_LEVEL` and `SESSION_TTL_HOURS` of the [api runtime](/architecture/services/api.md#runtime).
 
 ## Examples
 

@@ -11,7 +11,8 @@ import asyncio
 import logging
 from collections.abc import Callable
 from contextlib import suppress
-from datetime import datetime
+from dataclasses import dataclass
+from datetime import date, datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,10 +26,12 @@ from leadradar.core.enums import (
     SourcePluginCode,
 )
 from leadradar.core.refresh_scheduling import RefreshCandidate, due_refresh_account_ids
+from leadradar.core.retention import housekeeping_due, today_utc
 from leadradar.db.models.accounts import Account
 from leadradar.db.models.ingestion import PipelineRun
 from leadradar.runs.enqueue import enqueue_account_refresh
 from leadradar.runs.queries import available_refresh_plugins
+from leadradar.worker.housekeeping import run_housekeeping
 from leadradar.worker.settings import WorkerSettings
 
 logger = logging.getLogger(__name__)
@@ -41,6 +44,16 @@ _ACTIVE_STATUSES = (PipelineRunStatus.QUEUED, PipelineRunStatus.RUNNING)
 #: This scheduler tick's own PostgreSQL advisory lock id: an arbitrary constant, unique among
 #: the process's advisory locks (there are no others), never a business-configurable number.
 _SCHEDULER_LOCK_KEY = 72710010
+
+
+@dataclass
+class HousekeepingTracker:
+    """The UTC day the process last ran the housekeeping ([Scheduler and housekeeping]
+    (/architecture/services/worker.md#scheduler-and-housekeeping), G3): kept in the process, not
+    the store; safe to lose on a restart, since the housekeeping is idempotent, so a worker
+    started later in the day applies it at its first tick."""
+
+    last_day: date | None = None
 
 
 def _plugin_keys_configured(settings: WorkerSettings) -> frozenset[SourcePluginCode]:
@@ -84,53 +97,68 @@ async def run_scheduler_tick(
     clock: Clock,
     max_enqueue: int,
     keys_configured: frozenset[SourcePluginCode],
+    housekeeping_hour_utc: int,
+    session_ttl_hours: int,
+    housekeeping: HousekeepingTracker,
 ) -> int:
     """One tick: skips when another worker holds the advisory lock, else enqueues an
     `ACCOUNT_REFRESH` with trigger `SCHEDULE` for every due account, oldest due first, up to
     `max_enqueue`. Returns how many were selected (0 when the lock was held or none was due).
     `requested_by` is `None`: the scheduler acts on its own ([`audit_event`]
-    (/architecture/sql-store.md#audit_event) `actor_id`)."""
+    (/architecture/sql-store.md#audit_event) `actor_id`). At the first tick of each UTC day at
+    or after `housekeeping_hour_utc`, also applies [Retention and erasure]
+    (/architecture/rules.md#retention-and-erasure) (G3), before the refresh-scheduling check, in
+    the same transaction and lock."""
     now = clock()
+    # Read only after the transaction below has committed (R-5): a day recorded before the
+    # commit would survive a rollback of the housekeeping it names, so the process would skip
+    # that day's retention on every later tick.
+    ran_housekeeping_day: date | None = None
+    due_count = 0
     async with session_factory() as session, session.begin():
         acquired: bool = (
             await session.execute(select(func.pg_try_advisory_xact_lock(_SCHEDULER_LOCK_KEY)))
         ).scalar_one()
-        if not acquired:
-            return 0
+        if acquired:
+            if housekeeping_due(now, housekeeping_hour_utc, housekeeping.last_day):
+                await run_housekeeping(session, now=now, session_ttl_hours=session_ttl_hours)
+                ran_housekeeping_day = today_utc(now)
 
-        due_ids = due_refresh_account_ids(
-            await _refresh_candidates(session), now=now, limit=max_enqueue
-        )
-        if not due_ids:
-            return 0
-
-        available_plugins = await available_refresh_plugins(
-            session, keys_configured=keys_configured, now=now
-        )
-        for account_id in due_ids:
-            run_id, created = await enqueue_account_refresh(
-                session,
-                account_id=account_id,
-                trigger=PipelineRunTrigger.SCHEDULE,
-                requested_by=None,
-                available_plugins=available_plugins,
-                now=now,
+            due_ids = due_refresh_account_ids(
+                await _refresh_candidates(session), now=now, limit=max_enqueue
             )
-            if created:
-                await append_audit_event(
-                    session,
-                    action=AuditAction.RUN_REQUESTED,
-                    occurred_at=now,
-                    actor_id=None,
-                    entity_type="pipeline_run",
-                    entity_id=run_id,
-                    payload={
-                        "kind": PipelineRunKind.ACCOUNT_REFRESH.value,
-                        "trigger": PipelineRunTrigger.SCHEDULE.value,
-                    },
-                    run_id=run_id,
+            if due_ids:
+                available_plugins = await available_refresh_plugins(
+                    session, keys_configured=keys_configured, now=now
                 )
-        return len(due_ids)
+                for account_id in due_ids:
+                    run_id, created = await enqueue_account_refresh(
+                        session,
+                        account_id=account_id,
+                        trigger=PipelineRunTrigger.SCHEDULE,
+                        requested_by=None,
+                        available_plugins=available_plugins,
+                        now=now,
+                    )
+                    if created:
+                        await append_audit_event(
+                            session,
+                            action=AuditAction.RUN_REQUESTED,
+                            occurred_at=now,
+                            actor_id=None,
+                            entity_type="pipeline_run",
+                            entity_id=run_id,
+                            payload={
+                                "kind": PipelineRunKind.ACCOUNT_REFRESH.value,
+                                "trigger": PipelineRunTrigger.SCHEDULE.value,
+                            },
+                            run_id=run_id,
+                        )
+                due_count = len(due_ids)
+
+    if ran_housekeeping_day is not None:
+        housekeeping.last_day = ran_housekeeping_day
+    return due_count
 
 
 async def run_scheduler_loop(
@@ -142,6 +170,7 @@ async def run_scheduler_loop(
 ) -> None:
     """Ticks every `SCHEDULER_TICK_S` until `stop` is set."""
     keys_configured = _plugin_keys_configured(settings)
+    housekeeping = HousekeepingTracker()
     while not stop.is_set():
         try:
             await run_scheduler_tick(
@@ -149,6 +178,9 @@ async def run_scheduler_loop(
                 clock=clock,
                 max_enqueue=settings.scheduler_max_enqueue,
                 keys_configured=keys_configured,
+                housekeeping_hour_utc=settings.housekeeping_hour_utc,
+                session_ttl_hours=settings.session_ttl_hours,
+                housekeeping=housekeeping,
             )
         except Exception:
             # The database is unreachable or refused the tick: logged, and tried again after

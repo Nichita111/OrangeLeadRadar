@@ -32,7 +32,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from leadradar.ai.audit import AiCallContext
-from leadradar.ai.errors import BudgetExhausted
+from leadradar.ai.errors import BudgetExhausted, UpstreamUnavailable
 from leadradar.ai.fixtures import FixtureMissing
 from leadradar.ai.shapes import (
     ClassifierAnswer,
@@ -46,6 +46,7 @@ from leadradar.ai.shapes import (
 )
 from leadradar.core.enums import (
     ClassificationStatus,
+    Dependency,
     DocumentTriageClassifier,
     FindingDecidedBy,
     FindingStatus,
@@ -75,7 +76,9 @@ from leadradar.db.models.accounts import Account
 from leadradar.db.models.configuration import Service, SignalQuestion
 from leadradar.db.models.ingestion import Chunk, Document, Job, PipelineRun
 from leadradar.db.models.signals import Classification, DocumentTriage, Finding
+from leadradar.worker.queue import append_run_error
 from leadradar.worker.settings import WorkerSettings
+from leadradar.worker.steps import step_failure
 
 # ── State ──────────────────────────────────────────────────────────────────────
 
@@ -199,10 +202,18 @@ async def _node_triage(state: SignalBatch, session: AsyncSession) -> None:
             questions=triage_questions,
         )
 
-        answers_list = await state.gateway.classify(
-            req,
-            AiCallContext(entity_type="document", entity_id=uuid.UUID(doc_id), run_id=state.run_id),
-        )
+        try:
+            answers_list = await state.gateway.classify(
+                req,
+                AiCallContext(
+                    entity_type="document", entity_id=uuid.UUID(doc_id), run_id=state.run_id
+                ),
+            )
+        except (UpstreamUnavailable, FixtureMissing) as error:
+            # The classifier is unavailable: the job is retried under Retries ([Degradation]
+            # (/architecture/overview.md#degradation) Classifier row, DC3). Budget handling is
+            # untouched here (T11, #20).
+            raise step_failure(error) from error
         answers: dict[str, dict[str, float]] = {
             a.question_id: a.probabilities for a in answers_list
         }
@@ -335,12 +346,15 @@ async def _node_classify(state: SignalBatch, session: AsyncSession) -> None:
             questions=clf_questions,
         )
 
-        answers_list = await state.gateway.classify(
-            req,
-            AiCallContext(
-                entity_type="chunk", entity_id=uuid.UUID(chunk_id_str), run_id=state.run_id
-            ),
-        )
+        try:
+            answers_list = await state.gateway.classify(
+                req,
+                AiCallContext(
+                    entity_type="chunk", entity_id=uuid.UUID(chunk_id_str), run_id=state.run_id
+                ),
+            )
+        except (UpstreamUnavailable, FixtureMissing) as error:
+            raise step_failure(error) from error
         answers_by_qid: dict[str, dict[str, float]] = {
             a.question_id: a.probabilities for a in answers_list
         }
@@ -425,12 +439,18 @@ async def _node_classify(state: SignalBatch, session: AsyncSession) -> None:
 # ── Node: escalate/evidence ─────────────────────────────────────────────────────
 
 
-async def _node_evidence(state: SignalBatch, session: AsyncSession) -> None:
+async def _node_evidence(state: SignalBatch, session: AsyncSession) -> bool:
     """Route, escalate and extract evidence for pending classifications.
 
-    Writes final ``classification`` status and ``finding`` rows.
+    Writes final ``classification`` status and ``finding`` rows. Returns whether the LLM was
+    unavailable during this job (G2): once an escalation or evidence call raises
+    ``UpstreamUnavailable``, every remaining pair here is left ``PENDING_LLM`` with no further
+    LLM call, as a budget stop already does.
     """
+    llm_unavailable = False
     for item in state.finding_inputs:
+        if llm_unavailable:
+            continue
         clf_id = uuid.UUID(item["classification_id"])
         q = item["question"]
         mapping: AnswerMapping = item["mapping"]
@@ -492,7 +512,9 @@ async def _node_evidence(state: SignalBatch, session: AsyncSession) -> None:
                     language=language,
                 )
                 if esc_out is None:
-                    # Budget or unavailability — stays PENDING_LLM
+                    # A budget stop or a missing recording — stays PENDING_LLM. An unavailable
+                    # LLM does not reach here: it propagates to the `except UpstreamUnavailable`
+                    # below (G2).
                     continue
 
                 post_route = post_escalation_route(esc_out.strength)
@@ -545,11 +567,15 @@ async def _node_evidence(state: SignalBatch, session: AsyncSession) -> None:
                     session, clf_id, ClassificationStatus.POSITIVE, esc_out.strength
                 )
 
+        except UpstreamUnavailable:
+            # Stays PENDING_LLM, like a budget stop (G2); no further LLM call this job.
+            llm_unavailable = True
         except (BudgetExhausted, FixtureMissing):
             # Stays PENDING_LLM; caller decides whether to mark run PARTIAL
             pass
 
     await session.flush()
+    return llm_unavailable
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -758,8 +784,9 @@ async def run_signal_step(
     session: AsyncSession,
     *,
     batch: SignalBatch,
-) -> None:
-    """Execute the SIGNAL graph for one batch.
+) -> bool:
+    """Execute the SIGNAL graph for one batch. Returns whether the LLM was unavailable during
+    evidence extraction or escalation (G2).
 
     Nodes run in order; each writes to the database before the next starts.
     An interrupted job resumes from what is already recorded.
@@ -769,7 +796,7 @@ async def run_signal_step(
     await _set_stage(session, batch.run_id, PipelineRunStage.CLASSIFY)
     await _node_classify(batch, session)
     await _set_stage(session, batch.run_id, PipelineRunStage.EVIDENCE)
-    await _node_evidence(batch, session)
+    return await _node_evidence(batch, session)
 
 
 async def _set_stage(session: AsyncSession, run_id: uuid.UUID, stage: PipelineRunStage) -> None:
@@ -935,4 +962,18 @@ async def run_signal_job(
         evidence_max_rationale_chars=cfg.evidence_max_rationale_chars,
     )
 
-    await run_signal_step(session, batch=batch)
+    llm_unavailable = await run_signal_step(session, batch=batch)
+    if llm_unavailable:
+        # One entry, however many pairs it left PENDING_LLM (G2); the run ends PARTIAL through
+        # this error, without failing the job. `run` was loaded with a plain `session.get` well
+        # before the LLM calls above (`_load_job_and_run`), with no lock; `append_run_error`
+        # re-locks the row `FOR UPDATE` immediately before appending, so a concurrent writer's
+        # own entry — another batch of this run, or a failed FETCH job — is never overwritten.
+        await append_run_error(
+            session,
+            run_id=run.id,
+            stage=PipelineRunStage.EVIDENCE,
+            code="UPSTREAM_UNAVAILABLE",
+            message="The LLM is unavailable.",
+            dependency=Dependency.LLM,
+        )

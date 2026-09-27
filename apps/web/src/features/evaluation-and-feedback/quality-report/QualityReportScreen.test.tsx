@@ -1,6 +1,12 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
+import {
+  expectFullKeyboardCoverage,
+  expectNoSeriousOrCriticalViolations,
+  tabOrderWithin,
+} from "../../../accessibilityTestSupport";
 import { olgaAdmin } from "../../../api/authenticationAndUsers.fixtures";
 import type { Schemas } from "../../../api/contract";
 import { renderApp, signedInAs } from "../../../testRender";
@@ -333,5 +339,23 @@ describe("QualityReportScreen", () => {
 
     expect(await screen.findByText("The quality check failed.")).toBeInTheDocument();
     expect(screen.getByText("The classifier is unavailable.")).toBeInTheDocument();
+  });
+});
+
+describe("Accessibility (N-10, FR-016)", () => {
+  it("has no serious or critical axe violation as Admin", async () => {
+    const { container } = arrange();
+    await screen.findByRole("heading", { name: "Quality report", level: 1 });
+
+    await expectNoSeriousOrCriticalViolations(container);
+  });
+
+  it("tabs through every action with each one taking focus in turn", async () => {
+    const { container } = arrange();
+    await screen.findByRole("heading", { name: "Quality report", level: 1 });
+
+    const visited = await tabOrderWithin(userEvent.setup(), container);
+
+    expectFullKeyboardCoverage(container, visited);
   });
 });
