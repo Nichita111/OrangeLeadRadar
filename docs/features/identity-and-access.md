@@ -16,7 +16,7 @@ LeadRadar serves one organisation with two roles. Sales works accounts, prospect
 
 ### FL-19 Sign in and sign out
 
-1. An anonymous visitor opening `/` sees [Landing](/architecture/services/frontend.md#landing), whose Sign in buttons open [Sign in](#sign-in). Opening any other route, they are sent to Sign in with that route as return path.
+1. An anonymous visitor opening `/` sees [Landing](/architecture/services/frontend.md#landing), whose Sign in buttons open [Sign in](#sign-in) and whose demo shortcuts act as those of Sign in. Opening any other route, they are sent to Sign in with that route as return path.
 2. Correct credentials set the session cookie (`API-01`) and return the user to that page; wrong ones answer one message that does not reveal which was wrong; `LOGIN_MAX_FAILURES` failures in a row lock the account for `LOGIN_LOCK_MINUTES`.
 3. With `DEMO_SIGN_IN` on and the api in `FIXTURE_MODE` `replay`, Enter as Sales or Enter as Admin signs in as the [demo dataset](/architecture/overview.md#demo-dataset) user of that role without a password (`API-78`) and returns the user to that page.
 4. Sign out revokes the session (`API-02`) and shows Sign in. A session ends by itself after `SESSION_TTL_HOURS`.
